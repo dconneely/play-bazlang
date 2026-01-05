@@ -1,0 +1,25 @@
+package com.davidconneely.bazlang;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import org.junit.jupiter.api.Test;
+
+class ReportExceptionTest {
+
+  @Test
+  void testExceptionFormat() {
+    ReportException ex = new ReportException(ReportCode.RETURN_WITHOUT_GOSUB, 40, "Test error");
+
+    assertTrue(ex.prefix().contains("7/40"));
+    assertTrue(ex.getMessage().contains("Test error"));
+  }
+
+  @Test
+  void testExceptionGetters() {
+    ReportException ex = new ReportException(ReportCode.SUBSCRIPT_WRONG, 100, "Error");
+
+    assertEquals(ReportCode.SUBSCRIPT_WRONG, ex.reportCode());
+    assertEquals(100, ex.lineLabel());
+  }
+}
