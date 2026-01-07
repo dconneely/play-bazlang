@@ -3,17 +3,17 @@ package com.davidconneely.bazlang;
 import java.util.Map;
 
 public class Interpreter {
-  private final MachineState state;
+  private final EvalState state;
   private final Executor executor;
 
   public Interpreter() {
-    this.state = new MachineState();
-    final var terminal = new Terminal();
+    this.state = new EvalState();
+    final var terminal = new Display();
     final var evaluator = new Evaluator(state, terminal);
     this.executor = new Executor(state, evaluator, terminal);
   }
 
-  public Interpreter(MachineState state, Executor executor) {
+  public Interpreter(EvalState state, Executor executor) {
     this.state = state;
     this.executor = executor;
   }

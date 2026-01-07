@@ -9,18 +9,18 @@ import java.util.NavigableMap;
 import java.util.Random;
 import java.util.TreeMap;
 
-public class MachineState {
-  public record NumericArray(List<Integer> dimensions, double[] data) {}
+public class EvalState {
+  public record NumArray(List<Integer> dimensions, double[] data) {}
 
-  public record CharacterArray(List<Integer> dimensions, int fixedStringLength, char[] data) {}
+  public record CharArray(List<Integer> dimensions, int fixedStrLen, char[] data) {}
 
   public record ForLoopData(double limit, double step, int loopPc) {}
 
   private final NavigableMap<Integer, Statement> program = new TreeMap<>();
-  private final Map<String, Double> numericScalars = new HashMap<>();
-  private final Map<String, NumericArray> numericArrays = new HashMap<>();
-  private final Map<String, String> variableLengthStrings = new HashMap<>();
-  private final Map<String, CharacterArray> characterArrays = new HashMap<>();
+  private final Map<String, Double> numScalars = new HashMap<>();
+  private final Map<String, NumArray> numArrays = new HashMap<>();
+  private final Map<String, String> strVars = new HashMap<>();
+  private final Map<String, CharArray> charArrays = new HashMap<>();
   private final Map<String, ForLoopData> forLoops = new HashMap<>();
   private final Deque<Integer> returnStack = new ArrayDeque<>();
   private final Random random = new Random();
@@ -39,20 +39,20 @@ public class MachineState {
     this.program.putAll(program);
   }
 
-  public Map<String, Double> numericScalars() {
-    return numericScalars;
+  public Map<String, Double> numScalars() {
+    return numScalars;
   }
 
-  public Map<String, NumericArray> numericArrays() {
-    return numericArrays;
+  public Map<String, NumArray> numArrays() {
+    return numArrays;
   }
 
-  public Map<String, String> variableLengthStrings() {
-    return variableLengthStrings;
+  public Map<String, String> strVars() {
+    return strVars;
   }
 
-  public Map<String, CharacterArray> characterArrays() {
-    return characterArrays;
+  public Map<String, CharArray> charArrays() {
+    return charArrays;
   }
 
   public Map<String, ForLoopData> forLoops() {
@@ -100,10 +100,10 @@ public class MachineState {
   }
 
   public void clear() {
-    numericScalars.clear();
-    numericArrays.clear();
-    variableLengthStrings.clear();
-    characterArrays.clear();
+    numScalars.clear();
+    numArrays.clear();
+    strVars.clear();
+    charArrays.clear();
     forLoops.clear();
     returnStack.clear();
     lastReportCode = ReportCode.OK;

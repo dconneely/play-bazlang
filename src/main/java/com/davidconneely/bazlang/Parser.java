@@ -72,7 +72,7 @@ public class Parser {
   }
 
   private void putParsedLine(Map<Integer, Statement> program) {
-    Token labelToken = consume(TokenType.NUMERIC_LITERAL, "Line must begin with a label");
+    Token labelToken = consume(TokenType.NUM_LITERAL, "Line must begin with a label");
     try {
       currentLineLabel = Integer.parseInt(labelToken.rep());
       if (currentLineLabel < Limits.MIN_LINE_LABEL || currentLineLabel > Limits.MAX_LINE_LABEL) {
@@ -92,7 +92,7 @@ public class Parser {
     prevLineLabel = currentLineLabel;
     Statement statement = parseStatement();
     program.put(currentLineLabel, statement);
-    // Every statement must end with a newline or EOF.
+    // Every statement must endLabel with a newline or EOF.
     if (!isAtEnd()) {
       consume(TokenType.NEWLINE, "Expected newline after statement");
     }
@@ -113,10 +113,10 @@ public class Parser {
   private Statement parseDim() {
     Token varToken = consume(TokenType.IDENTIFIER, "Expected variable name");
     consume(TokenType.LEFT_PAREN, "Expected '('");
-    List<Expression.Numeric> dimensions = new ArrayList<>();
-    dimensions.add(parseNumericExpression());
+    List<Expression.NumExpr> dimensions = new ArrayList<>();
+    dimensions.add(parseNumExpr());
     while (match(TokenType.COMMA)) {
-      dimensions.add(parseNumericExpression());
+      dimensions.add(parseNumExpr());
     }
     consume(TokenType.RIGHT_PAREN, "Expected ')'");
     return new Statement.Dim(varToken.rep(), dimensions);
@@ -125,26 +125,26 @@ public class Parser {
   private Statement parseFor() {
     Token varToken = consume(TokenType.IDENTIFIER, "Expected variable name");
     consume(TokenType.EQUALS, "Expected '='");
-    Expression.Numeric start = parseNumericExpression();
+    Expression.NumExpr start = parseNumExpr();
     consume(TokenType.TO, "Expected TO");
-    Expression.Numeric end = parseNumericExpression();
-    Expression.Numeric step = new Expression.Numeric.Literal(1.0);
+    Expression.NumExpr end = parseNumExpr();
+    Expression.NumExpr step = new Expression.NumExpr.Literal(1.0);
     if (match(TokenType.STEP)) {
-      step = parseNumericExpression();
+      step = parseNumExpr();
     }
     return new Statement.For(varToken.rep(), start, end, step);
   }
 
   private Statement parseGosub() {
-    return new Statement.Gosub(parseNumericExpression());
+    return new Statement.Gosub(parseNumExpr());
   }
 
   private Statement parseGoto() {
-    return new Statement.Goto(parseNumericExpression());
+    return new Statement.Goto(parseNumExpr());
   }
 
   private Statement parseIf() {
-    Expression.Numeric condition = parseNumericExpression();
+    Expression.NumExpr condition = parseNumExpr();
     consume(TokenType.THEN, "Expected THEN");
     return new Statement.If(condition, parseStatement());
   }
@@ -157,89 +157,26 @@ public class Parser {
     Expression target = parseLValue();
     consume(TokenType.EQUALS, "Expected '='");
     Expression value;
-    if (target instanceof Expression.Numeric) {
-      value = parseNumericExpression();
+    if (target instanceof Expression.NumExpr) {
+      value = parseNumExpr();
     } else {
-      value = parseStringExpression();
+      value = parseStrExpr();
     }
     return new Statement.Let(target, value);
   }
 
-  private Expression parseLValue() {
-    Token varToken = consume(TokenType.IDENTIFIER, "Expected variable name");
-    String name = varToken.rep();
-    if (!check(TokenType.LEFT_PAREN)) {
-      if (!name.endsWith("$")) {
-        return new Expression.Numeric.ScalarRef(name);
-      } else {
-        return new Expression.String.ScalarRef(name);
-      }
-    } else if (name.endsWith("$")) {
-      return parseStringSubscript(name);
-    } else {
-      return parseNumericSubscript(name);
-    }
-  }
-
-  private Expression.Numeric.SubscriptRef parseNumericSubscript(String name) {
-    consume(TokenType.LEFT_PAREN, "Expected '(' after numeric variable name");
-    List<Expression.Numeric> indices = new ArrayList<>();
-    while (true) {
-      indices.add(parseNumericExpression());
-      if (check(TokenType.TO)) {
-        throw codedException("Cannot slice numeric array");
-      }
-      if (!match(TokenType.COMMA)) break;
-    }
-    consume(TokenType.RIGHT_PAREN, "Expected ')' after numeric subscript");
-    return new Expression.Numeric.SubscriptRef(name, indices);
-  }
-
-  private Expression.String parseStringSubscript(String name) {
-    consume(TokenType.LEFT_PAREN, "Expected '(' after string variable name");
-    List<Expression.Numeric> indices = new ArrayList<>();
-    Expression.Slice slice = null;
-    if (match(TokenType.TO)) {
-      Expression.Numeric end = !check(TokenType.RIGHT_PAREN) ? parseNumericExpression() : null;
-      slice = new Expression.Slice(null, end);
-    } else {
-      while (true) {
-        indices.add(parseNumericExpression());
-        if (match(TokenType.TO)) {
-          Expression.Numeric start = indices.removeLast();
-          Expression.Numeric end = !check(TokenType.RIGHT_PAREN) ? parseNumericExpression() : null;
-          slice = new Expression.Slice(start, end);
-          break;
-        }
-        if (!match(TokenType.COMMA)) {
-          break;
-        }
-      }
-    }
-    consume(TokenType.RIGHT_PAREN, "Expected ')' after string subscript");
-    return new Expression.String.SubscriptRef(name, indices, slice);
-  }
-
-  private Statement parseLoad() {
-    return new Statement.Load(parseStringExpression());
-  }
-
-  private Statement parseSave() {
-    return new Statement.Save(parseStringExpression());
-  }
-
   private Statement parseList() {
-    Expression.Numeric start = new Expression.Numeric.Literal(Limits.MIN_TARGET_LABEL);
-    Expression.Numeric end = new Expression.Numeric.Literal(Limits.MAX_TARGET_LABEL);
+    Expression.NumExpr start = new Expression.NumExpr.Literal(Limits.MIN_TARGET_LABEL);
+    Expression.NumExpr end = new Expression.NumExpr.Literal(Limits.MAX_TARGET_LABEL);
     if (match(TokenType.COMMA)) {
       if (!check(TokenType.NEWLINE) && !isAtEnd()) {
-        end = parseNumericExpression();
+        end = parseNumExpr();
       }
     } else if (!check(TokenType.NEWLINE) && !isAtEnd()) {
-      start = parseNumericExpression();
+      start = parseNumExpr();
       if (match(TokenType.COMMA)) {
         if (!check(TokenType.NEWLINE) && !isAtEnd()) {
-          end = parseNumericExpression();
+          end = parseNumExpr();
         }
       }
     }
@@ -247,29 +184,25 @@ public class Parser {
   }
 
   private Statement parseLList() {
-    Expression.Numeric start = new Expression.Numeric.Literal(Limits.MIN_TARGET_LABEL);
-    Expression.Numeric end = new Expression.Numeric.Literal(Limits.MAX_TARGET_LABEL);
+    Expression.NumExpr start = new Expression.NumExpr.Literal(Limits.MIN_TARGET_LABEL);
+    Expression.NumExpr end = new Expression.NumExpr.Literal(Limits.MAX_TARGET_LABEL);
     if (match(TokenType.COMMA)) {
       if (!check(TokenType.NEWLINE) && !isAtEnd()) {
-        end = parseNumericExpression();
+        end = parseNumExpr();
       }
     } else if (!check(TokenType.NEWLINE) && !isAtEnd()) {
-      start = parseNumericExpression();
+      start = parseNumExpr();
       if (match(TokenType.COMMA)) {
         if (!check(TokenType.NEWLINE) && !isAtEnd()) {
-          end = parseNumericExpression();
+          end = parseNumExpr();
         }
       }
     }
     return new Statement.LList(start, end);
   }
 
-  private Statement parseRand() {
-    return new Statement.Rand(parseOptionalNumeric(0.0));
-  }
-
-  private Statement parseRun() {
-    return new Statement.Run(parseOptionalNumeric(0.0));
+  private Statement parseLoad() {
+    return new Statement.Load(parseStrExpr());
   }
 
   private Statement parseLPrint() {
@@ -281,7 +214,7 @@ public class Parser {
   }
 
   private Statement parsePause() {
-    return new Statement.Pause(parseNumericExpression());
+    return new Statement.Pause(parseNumExpr());
   }
 
   private Statement parsePlot() {
@@ -289,21 +222,88 @@ public class Parser {
   }
 
   private Statement parsePoke() {
-    Expression.Numeric addr = parseNumericExpression();
+    Expression.NumExpr addr = parseNumExpr();
     consume(TokenType.COMMA, "Expected ','");
-    return new Statement.Poke(addr, parseNumericExpression());
+    return new Statement.Poke(addr, parseNumExpr());
   }
 
   private Statement parsePrint() {
     return parsePrintItems(Statement.Print::new);
   }
 
+  private Statement parseRand() {
+    return new Statement.Rand(parseOptNumExpr(0.0));
+  }
+
   private Statement parseRem() {
     return new Statement.Rem(previous().rep());
   }
 
+  private Statement parseRun() {
+    return new Statement.Run(parseOptNumExpr(Limits.MIN_TARGET_LABEL));
+  }
+
+  private Statement parseSave() {
+    return new Statement.Save(parseStrExpr());
+  }
+
   private Statement parseUnplot() {
     return parseXy(Statement.Unplot::new);
+  }
+
+  private Expression parseLValue() {
+    Token varToken = consume(TokenType.IDENTIFIER, "Expected variable name");
+    String name = varToken.rep();
+    if (!check(TokenType.LEFT_PAREN)) {
+      if (!name.endsWith("$")) {
+        return new Expression.NumExpr.ScalarRef(name);
+      } else {
+        return new Expression.StrExpr.ScalarRef(name);
+      }
+    } else if (name.endsWith("$")) {
+      return parseStrSubscript(name);
+    } else {
+      return parseNumSubscript(name);
+    }
+  }
+
+  private Expression.NumExpr.SubscriptRef parseNumSubscript(String name) {
+    consume(TokenType.LEFT_PAREN, "Expected '(' after numeric variable name");
+    List<Expression.NumExpr> indices = new ArrayList<>();
+    while (true) {
+      indices.add(parseNumExpr());
+      if (check(TokenType.TO)) {
+        throw codedException("Cannot slice numeric array");
+      }
+      if (!match(TokenType.COMMA)) break;
+    }
+    consume(TokenType.RIGHT_PAREN, "Expected ')' after numeric subscript");
+    return new Expression.NumExpr.SubscriptRef(name, indices);
+  }
+
+  private Expression.StrExpr parseStrSubscript(String name) {
+    consume(TokenType.LEFT_PAREN, "Expected '(' after string variable name");
+    List<Expression.NumExpr> indices = new ArrayList<>();
+    Expression.Slice slice = null;
+    if (match(TokenType.TO)) {
+      Expression.NumExpr end = !check(TokenType.RIGHT_PAREN) ? parseNumExpr() : null;
+      slice = new Expression.Slice(null, end);
+    } else {
+      while (true) {
+        indices.add(parseNumExpr());
+        if (match(TokenType.TO)) {
+          Expression.NumExpr start = indices.removeLast();
+          Expression.NumExpr end = !check(TokenType.RIGHT_PAREN) ? parseNumExpr() : null;
+          slice = new Expression.Slice(start, end);
+          break;
+        }
+        if (!match(TokenType.COMMA)) {
+          break;
+        }
+      }
+    }
+    consume(TokenType.RIGHT_PAREN, "Expected ')' after string subscript");
+    return new Expression.StrExpr.SubscriptRef(name, indices, slice);
   }
 
   @FunctionalInterface
@@ -316,18 +316,18 @@ public class Parser {
     boolean newline = true;
     while (!isAtEnd() && !check(TokenType.NEWLINE)) {
       if (match(TokenType.AT)) {
-        Expression.Numeric row = parseNumericExpression();
+        Expression.NumExpr row = parseNumExpr();
         consume(TokenType.COMMA, "Expected ',' after AT row");
-        items.add(new PrintItem.At(row, parseNumericExpression()));
+        items.add(new PrintItem.At(row, parseNumExpr()));
       } else if (match(TokenType.TAB)) {
-        items.add(new PrintItem.Tab(parseNumericExpression()));
+        items.add(new PrintItem.Tab(parseNumExpr()));
       } else {
         items.add(new PrintItem.Expr(parseExpression()));
       }
       if (match(TokenType.SEMICOLON)) {
         newline = !isAtEnd() && !check(TokenType.NEWLINE);
       } else if (match(TokenType.COMMA)) {
-        items.add(new PrintItem.Tab(new Expression.Numeric.Literal(-1)));
+        items.add(new PrintItem.Tab(new Expression.NumExpr.Literal(-1)));
         newline = !isAtEnd() && !check(TokenType.NEWLINE);
       } else {
         break;
@@ -338,68 +338,68 @@ public class Parser {
 
   @FunctionalInterface
   private interface XyFactory {
-    Statement create(Expression.Numeric x, Expression.Numeric y);
+    Statement create(Expression.NumExpr x, Expression.NumExpr y);
   }
 
   private Statement parseXy(XyFactory f) {
-    Expression.Numeric x = parseNumericExpression();
+    Expression.NumExpr x = parseNumExpr();
     consume(TokenType.COMMA, "Expected ','");
-    return f.create(x, parseNumericExpression());
+    return f.create(x, parseNumExpr());
   }
 
-  private Expression.Numeric parseOptionalNumeric(double defaultValue) {
+  private Expression.NumExpr parseOptNumExpr(double defaultValue) {
     if (!isAtEnd() && !check(TokenType.NEWLINE)) {
-      return parseNumericExpression();
+      return parseNumExpr();
     }
-    return new Expression.Numeric.Literal(defaultValue);
+    return new Expression.NumExpr.Literal(defaultValue);
   }
 
-  private Expression.Numeric parseNumericExpression() {
+  private Expression.NumExpr parseNumExpr() {
     return parseOr();
   }
 
-  private Expression.String parseStringExpression() {
-    return parseStringConcatenation();
+  private Expression.StrExpr parseStrExpr() {
+    return parseStrConcat();
   }
 
   private Expression parseExpression() {
-    if (isStringNext()) return parseStringExpression();
-    return parseNumericExpression();
+    if (isStrNext()) return parseStrExpr();
+    return parseNumExpr();
   }
 
-  private Expression.Numeric parseOr() {
-    Expression.Numeric left = parseAnd();
+  private Expression.NumExpr parseOr() {
+    Expression.NumExpr left = parseAnd();
     while (match(TokenType.OR)) {
-      left = new Expression.Numeric.BinaryOp(left, TokenType.OR, parseAnd());
+      left = new Expression.NumExpr.BinaryOp(left, TokenType.OR, parseAnd());
     }
     return left;
   }
 
-  private Expression.Numeric parseAnd() {
-    Expression.Numeric left = parseNot();
+  private Expression.NumExpr parseAnd() {
+    Expression.NumExpr left = parseNot();
     while (match(TokenType.AND)) {
-      left = new Expression.Numeric.BinaryOp(left, TokenType.AND, parseNot());
+      left = new Expression.NumExpr.BinaryOp(left, TokenType.AND, parseNot());
     }
     return left;
   }
 
-  private Expression.Numeric parseNot() {
+  private Expression.NumExpr parseNot() {
     if (match(TokenType.NOT)) {
-      return new Expression.Numeric.UnaryOp(TokenType.NOT, parseNot());
+      return new Expression.NumExpr.UnaryOp(TokenType.NOT, parseNot());
     }
-    return parseComparison();
+    return parseComp();
   }
 
-  private Expression.Numeric parseComparison() {
-    if (isStringNext()) {
-      return parseStringComparison();
+  private Expression.NumExpr parseComp() {
+    if (isStrNext()) {
+      return parseStrComp();
     } else {
-      return parseNumericComparison();
+      return parseNumComp();
     }
   }
 
-  private Expression.Numeric parseStringComparison() {
-    Expression.String left = parseStringConcatenation();
+  private Expression.NumExpr parseStrComp() {
+    Expression.StrExpr left = parseStrConcat();
     if (match(
         TokenType.EQUALS,
         TokenType.NOT_EQUALS,
@@ -408,13 +408,13 @@ public class Parser {
         TokenType.GREATER_THAN,
         TokenType.GREATER_EQUAL)) {
       TokenType op = previous().type();
-      return new Expression.Numeric.StringComparison(left, op, parseStringConcatenation());
+      return new Expression.NumExpr.StrComp(left, op, parseStrConcat());
     }
     throw codedException("Expected comparison operator after string expression");
   }
 
-  private Expression.Numeric parseNumericComparison() {
-    Expression.Numeric left = parseAddSub();
+  private Expression.NumExpr parseNumComp() {
+    Expression.NumExpr left = parseAddSub();
     if (match(
         TokenType.EQUALS,
         TokenType.NOT_EQUALS,
@@ -423,53 +423,53 @@ public class Parser {
         TokenType.GREATER_THAN,
         TokenType.GREATER_EQUAL)) {
       TokenType op = previous().type();
-      return new Expression.Numeric.NumericComparison(left, op, parseAddSub());
+      return new Expression.NumExpr.NumComp(left, op, parseAddSub());
     }
     return left;
   }
 
-  private Expression.Numeric parseAddSub() {
-    Expression.Numeric left = parseMulDiv();
+  private Expression.NumExpr parseAddSub() {
+    Expression.NumExpr left = parseMulDiv();
     while (match(TokenType.PLUS, TokenType.MINUS)) {
       TokenType op = previous().type();
-      left = new Expression.Numeric.BinaryOp(left, op, parseMulDiv());
+      left = new Expression.NumExpr.BinaryOp(left, op, parseMulDiv());
     }
     return left;
   }
 
-  private Expression.Numeric parseMulDiv() {
-    Expression.Numeric left = parseNumericUnary();
+  private Expression.NumExpr parseMulDiv() {
+    Expression.NumExpr left = parseNumUnary();
     while (match(TokenType.MULTIPLY, TokenType.DIVIDE)) {
       TokenType op = previous().type();
-      left = new Expression.Numeric.BinaryOp(left, op, parseNumericUnary());
+      left = new Expression.NumExpr.BinaryOp(left, op, parseNumUnary());
     }
     return left;
   }
 
-  private Expression.Numeric parsePower() {
-    Expression.Numeric left = parseNumericPrimary();
+  private Expression.NumExpr parsePower() {
+    Expression.NumExpr left = parseNumPrimary();
     if (match(TokenType.POWER)) {
-      left = new Expression.Numeric.BinaryOp(left, TokenType.POWER, parsePower());
+      left = new Expression.NumExpr.BinaryOp(left, TokenType.POWER, parsePower());
     }
     return left;
   }
 
-  private Expression.Numeric parseNumericUnary() {
+  private Expression.NumExpr parseNumUnary() {
     if (match(TokenType.MINUS)) {
-      return new Expression.Numeric.UnaryOp(TokenType.MINUS, parseNumericUnary());
+      return new Expression.NumExpr.UnaryOp(TokenType.MINUS, parseNumUnary());
     }
     if (match(TokenType.PLUS)) {
-      return parseNumericUnary();
+      return parseNumUnary();
     }
     return parsePower();
   }
 
-  private Expression.Numeric parseNumericPrimary() {
-    if (match(TokenType.NUMERIC_LITERAL)) {
-      return new Expression.Numeric.Literal(Double.parseDouble(previous().rep()));
+  private Expression.NumExpr parseNumPrimary() {
+    if (match(TokenType.NUM_LITERAL)) {
+      return new Expression.NumExpr.Literal(Double.parseDouble(previous().rep()));
     }
     if (match(TokenType.LEFT_PAREN)) {
-      Expression.Numeric expr = parseNumericExpression();
+      Expression.NumExpr expr = parseNumExpr();
       consume(TokenType.RIGHT_PAREN, "Expected ')' after numeric expression");
       return expr;
     }
@@ -477,42 +477,42 @@ public class Parser {
       TokenType type = peek().type();
       if (type == TokenType.PI || type == TokenType.RND) {
         advance();
-        return new Expression.Numeric.NullaryCall(type);
+        return new Expression.NumExpr.NullFunc(type);
       } else if (type == TokenType.VAL || type == TokenType.CODE || type == TokenType.LEN) {
         advance();
-        return new Expression.Numeric.FuncCallStr(type, parseStringPrimary());
+        return new Expression.NumExpr.StrFunc(type, parseStrPrimary());
       } else {
         advance();
-        return new Expression.Numeric.FuncCall(type, parseNumericUnary());
+        return new Expression.NumExpr.NumFunc(type, parseNumUnary());
       }
     }
     if (match(TokenType.IDENTIFIER)) {
       String name = previous().rep();
       if (check(TokenType.LEFT_PAREN)) {
-        return parseNumericSubscript(name);
+        return parseNumSubscript(name);
       }
       if (name.endsWith("$")) {
         throw codedException("Expected numeric variable");
       }
-      return new Expression.Numeric.ScalarRef(name);
+      return new Expression.NumExpr.ScalarRef(name);
     }
     throw codedException("Unexpected token in numeric expression: " + peek());
   }
 
-  private Expression.String parseStringConcatenation() {
-    Expression.String left = parseStringPrimary();
+  private Expression.StrExpr parseStrConcat() {
+    Expression.StrExpr left = parseStrPrimary();
     while (match(TokenType.PLUS)) {
-      left = new Expression.String.Concatenation(left, parseStringPrimary());
+      left = new Expression.StrExpr.StrConcat(left, parseStrPrimary());
     }
     return left;
   }
 
-  private Expression.String parseStringPrimary() {
-    if (match(TokenType.STRING_LITERAL)) {
-      return new Expression.String.Literal(previous().rep());
+  private Expression.StrExpr parseStrPrimary() {
+    if (match(TokenType.STR_LITERAL)) {
+      return new Expression.StrExpr.Literal(previous().rep());
     }
     if (match(TokenType.LEFT_PAREN)) {
-      Expression.String expr = parseStringExpression();
+      Expression.StrExpr expr = parseStrExpr();
       consume(TokenType.RIGHT_PAREN, "Expected ')' after string expression");
       return expr;
     }
@@ -520,27 +520,27 @@ public class Parser {
       TokenType type = peek().type();
       if (type == TokenType.INKEY_STR) {
         advance();
-        return new Expression.String.NullaryCall(type);
+        return new Expression.StrExpr.NullFunc(type);
       }
       if (type == TokenType.CHR_STR || type == TokenType.STR_STR) {
         advance();
-        return new Expression.String.FuncCall(type, parseNumericExpression());
+        return new Expression.StrExpr.NumFunc(type, parseNumExpr());
       }
     }
     if (match(TokenType.IDENTIFIER)) {
       String name = previous().rep();
       if (check(TokenType.LEFT_PAREN)) {
-        return parseStringSubscript(name);
+        return parseStrSubscript(name);
       }
       if (!name.endsWith("$")) {
         throw codedException("Expected string variable");
       }
-      return new Expression.String.ScalarRef(name);
+      return new Expression.StrExpr.ScalarRef(name);
     }
     throw codedException("Unexpected token in string expression: " + peek());
   }
 
-  private boolean isStringNext() {
+  private boolean isStrNext() {
     int lookahead = 0;
     while (pos + lookahead < tokens.size()
         && tokens.get(pos + lookahead).type() == TokenType.LEFT_PAREN) {
@@ -550,7 +550,7 @@ public class Parser {
       return false;
     }
     Token t = tokens.get(pos + lookahead);
-    if (t.type() == TokenType.STRING_LITERAL) {
+    if (t.type() == TokenType.STR_LITERAL) {
       return true;
     }
     if (t.type() == TokenType.IDENTIFIER && t.rep().endsWith("$")) {
@@ -562,7 +562,7 @@ public class Parser {
   }
 
   private boolean checkFunction() {
-    return pos < tokens.size() && tokens.get(pos).type().tokenClass() == TokenClass.FUNCTION;
+    return pos < tokens.size() && tokens.get(pos).type().tokenClass() == TokenClass.FUNC;
   }
 
   private boolean match(TokenType... types) {

@@ -1,180 +1,136 @@
-# BazLang Reference Manual
+# BazLang Reference
 
-BazLang is a dialect of BASIC loosely modeled on the Sinclair ZX81.
-This document serves as a comprehensive reference for the language's syntax,
-commands, functions, and behaviors.
+BazLang is a BASIC dialect based on the Sinclair ZX81. This file lists the available commands, functions, and syntax rules.
 
-## 1. Program Structure
+## 1. Structure
 
-### Line Labels
+### Lines
 
-- All executable lines in a stored program must begin with a numeric line
-  label (1 to 999,999,999).
-- Line label numbers must be strictly increasing.
-- Statements entered without line labels are executed immediately
-  (Immediate Mode).
+- Every line in a program needs a number (1 to 999,999,999).
+- Line numbers must go up.
+- If you type a command without a number, it runs immediately.
 
 ### Comments
 
-- `REM comment`: Standard BASIC comment (must have a line label if stored).
-- `# comment`: Line comment (ignored by parser, can be used in source files
-  without labels).
+- `REM comment`: Standard comment.
+- `# comment`: Line comment (ignored by the parser, useful for source files).
 
-### Limitations
+### Limits
 
-- **No Multi-Statement Lines**: The colon (`:`) separator is **not**
-  supported. Each statement must be on a new line.
-- **Strict Typing**: No implicit conversion between strings and numbers.
+- **One statement per line**: You cannot use `:` to put multiple commands on one line.
+- **Strict Typing**: You cannot mix strings and numbers without converting them.
 
-## 2. Variables and Types
+## 2. Variables
 
-### Numeric Variables
+### Numbers
 
-- **Scalars**: `A`, `B1`, `VarName`. Double-precision floating point.
-- **Arrays**: `DIM A(10)`, `DIM B(5, 5)`. Accessed via `A(i)` or `B(x, y)`.
-- **Indexing**: 1-based. `A(1)` is the first element.
+- **Simple Variables**: `A`, `B1`, `Count`. These are double-precision decimals.
+- **Arrays**: `DIM A(10)`. Access with `A(1)`. Indices start at 1.
 
-### String Variables
+### Strings
 
-- **Scalars**: `A$`, `Name$`. Dynamic length (unless dimensioned).
-- **Arrays/Fixed Strings**: `DIM A$(10)` creates a fixed-length string of 10
-  chars. `DIM A$(5, 10)` creates an array of 5 strings, each 10 chars long.
-- **Indexing**: 1-based. `A$(i)` refers to the character at index `i`.
+- **Simple Variables**: `A$`, `Name$`. These can change length.
+- **Fixed Strings**: `DIM A$(10)` is a string of 10 characters.
+- **String Arrays**: `DIM A$(5, 10)` is 5 strings, each 10 characters long.
+- **Indexing**: `A$(1)` is the first character.
 
 ### Namespaces
 
-- Numeric scalars, numeric arrays, and string variables (scalars/arrays
-  combined) occupy separate namespaces. `A`, `A()`, and `A$` are distinct.
+Variables with different types don't clash. `A`, `A(1)`, and `A$` are all different variables.
 
 ## 3. Operators
 
-### Arithmetic
+### Math
 
-| Operator | Description      | Precedence  |
+| Operator | Action           | Priority    |
 | :------- | :--------------- | :---------- |
-| `**`     | Exponentiation   | 1 (Highest) |
-| `-`      | Unary Minus      | 2           |
+| `**`     | Power            | 1 (Highest) |
+| `-`      | Negative (Unary) | 2           |
 | `*`, `/` | Multiply, Divide | 3           |
 | `+`, `-` | Add, Subtract    | 4           |
 
-**Note**: `-2**2` is evaluated as `-(2**2) = -4`.
+**Note**: `-2**2` means `-(2**2)`, which is `-4`.
 
-### Relational
+### Comparisons
 
-Returns `1.0` for True, `0.0` for False.
+Returns `1` for True, `0` for False.
 
 - `=`, `<>`, `<`, `<=`, `>`, `>=`
-- Precedence: 5 (After arithmetic)
 
-### Logical
+### Logic
 
-- `NOT` (Unary) - Precedence 6
-- `AND` - Precedence 7
-- `OR` - Precedence 8 (Lowest)
+- `NOT`
+- `AND`
+- `OR`
 
-### String
+### Strings
 
-- `+`: Concatenation.
+- `+` joins two strings together.
 
-## 4. Statements
+## 4. Commands
 
-### Control Flow
+### Flow Control
 
-- **`GOTO n`**: Jumps to line `n`. If `n` doesn't exist, jumps to the next
-  available line.
-- **`GOSUB n` ... `RETURN`**: Calls subroutine at `n`.
-- **`IF condition THEN statement`**: Executes statement if condition is
-  non-zero. No `ELSE`.
+- **`GOTO n`**: Jump to line `n`. If missing, jumps to the next one.
+- **`GOSUB n` ... `RETURN`**: Call a subroutine.
+- **`IF condition THEN statement`**: Run statement if true. No `ELSE`.
 - **`FOR var = start TO end STEP step` ... `NEXT var`**: Loop.
-    - If initial condition fails (e.g. `10 TO 1`), the loop body and `NEXT`
-      are skipped entirely.
-    - Variable is not incremented on skip.
-- **`STOP`**: Terminates execution.
-- **`CONT`**: Continues execution after `STOP` or `BREAK`.
-- **`PAUSE n`**: Pauses for `n` frames (approx `n * 20ms`).
-- **`RUN n`**: Clears variables and jumps to line `n` (default first line).
+- **`STOP`**: Stop the program.
+- **`CONT`**: Continue after a `STOP`.
+- **`PAUSE n`**: Wait for `n` frames.
+- **`RUN n`**: Restart program from line `n`.
 
 ### Input / Output
 
-- **`PRINT item; item, ...`**: Prints to stdout.
-    - `;`: Concatenate.
-    - `,`: Tab to next zone (16 chars).
-    - `AT line, col`: Move cursor.
+- **`PRINT`**: Print to screen.
+    - `;`: Join items.
+    - `,`: Tab to next zone.
+    - `AT y, x`: Move cursor.
     - `TAB n`: Move to column `n`.
-- **`LPRINT ...`**: Prints to stderr (Printer).
-- **`INPUT target`**: Reads a line from stdin into `target`.
-    - `target` can be scalar (`A`, `A$`) or array ref (`A(1)`, `A$(1 TO 5)`).
-- **`CLS`**: Clears screen.
-- **`SCROLL`**: Scrolls the screen up one line.
-- **`PLOT x, y`**: Draws a block at `(x, y)`.
-- **`UNPLOT x, y`**: Erasers a block at `(x, y)`.
-- **`LIST`, `LLIST`**: Lists program source.
+- **`LPRINT`**: Print to "printer" (standard error).
+- **`INPUT var`**: Ask user for input.
+- **`CLS`**: Clear screen.
+- **`SCROLL`**: Scroll screen up.
+- **`PLOT x, y`**: Draw a block.
+- **`UNPLOT x, y`**: Erase a block.
+- **`LIST`**: Show program code.
 
-### Data Management
+### Data
 
-- **`LET target = value`**: Assignment.
-- **`DIM var(dims)`**: Allocates array.
-    - `DIM A(10)`: Numeric array size 10.
-    - `DIM A$(10)`: Fixed string length 10.
-    - `DIM A$(5, 10)`: 5 strings of length 10.
-- **`CLEAR`**: Clears all variables.
-- **`NEW`**: Wipes program and variables.
-- **`SAVE "file"`, `LOAD "file"`**: Disk operations.
-
-### No-Ops (Compatibility)
-
-- `COPY`, `FAST`, `POKE`, `SLOW`.
+- **`LET var = value`**: Set a variable.
+- **`DIM var(size)`**: Create an array.
+- **`CLEAR`**: Delete all variables.
+- **`NEW`**: Delete program and variables.
+- **`SAVE "file"`, `LOAD "file"`**: Save or load a script.
 
 ## 5. Functions
 
-### Numeric Functions
+### Math Functions
 
 - **`ABS(x)`**: Absolute value.
-- **`ACS(x)`**: Arccosine (radians).
-- **`ASN(x)`**: Arcsine (radians).
-- **`ATN(x)`**: Arctangent (radians).
-- **`COS(x)`**: Cosine (radians).
-- **`EXP(x)`**: Exponential ($e^x$).
-- **`INT(x)`**: Floor integer.
-- **`LEN(s)`**: Length of string `s`.
-- **`LN(x)`**: Natural logarithm.
-- **`PEEK(addr)`**: Returns 0 (Hardware emulation not implemented).
-- **`PI`**: Constant $\pi$.
-- **`RND`**: Random number $0 \le n < 1$.
+- **`INT(x)`**: Round down to integer.
+- **`RND`**: Random number between 0 and 1.
 - **`SGN(x)`**: Sign (-1, 0, 1).
-- **`SIN(x)`**: Sine (radians).
 - **`SQR(x)`**: Square root.
-- **`TAN(x)`**: Tangent (radians).
-- **`VAL(s)`**: Parses string to number.
-- **`CODE(s)`**: Unicode code point of first char in `s`.
-- **`USR(x)`**: Machine code call (Returns 0).
+- **`PI`**: 3.14159...
+- **`LEN(s)`**: String length.
+- **`VAL(s)`**: Convert string to number.
+- **`CODE(s)`**: Unicode value of first char.
+- **Trig**: `SIN`, `COS`, `TAN`, `ASN`, `ACS`, `ATN`.
+- **Logs**: `EXP`, `LN`.
 
 ### String Functions
 
-- **`CHR$(x)`**: Character from code point `x`.
-- **`INKEY$`**: Reads current key press (non-blocking). Returns empty string
-  if none.
-- **`STR$(x)`**: Formats number `x` as string.
+- **`CHR$(x)`**: Character from code `x`.
+- **`STR$(x)`**: Convert number to string.
+- **`INKEY$`**: Check key press.
 
-## 6. Subscript & Slicing Syntax
+## 6. Slicing
 
-### Numeric Arrays
+You can slice strings and arrays.
 
-- `A(x)`: Element at index `x`.
-- `A(x, y)`: Element at indices `x, y`.
+- **`A$(x)`**: Character at `x`.
+- **`A$(x TO y)`**: String from `x` to `y`.
+- **`A$(i, x TO y)`**: Slice of `i`-th string in an array.
 
-### String Arrays & Slicing
-
-Unified syntax for character access and slicing.
-
-- **`A$(x)`**: Character at index `x` (Scalar or 1D fixed string).
-- **`A$(x TO y)`**: Substring from `x` to `y`.
-- **`A$(i, x)`**: Character at index `x` of $i$-th element (2D array).
-- **`A$(i, x TO y)`**: Substring of $i$-th element (2D array).
-
-**Slicing Rules:**
-
-- For **Scalar/1D Fixed Strings**: `(start TO end)`.
-- For **N-Dimension Arrays**: The slice `TO` must be the **last** dimension.
-    - Valid: `A$(1, 2 TO 5)`
-    - Invalid: `A$(1 TO 2, 5)`
+**Rule**: The `TO` slice must always be the last part of the index.

@@ -9,18 +9,18 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 public class Executor {
-  private final MachineState state;
+  private final EvalState state;
   private final Evaluator evaluator;
-  private final Terminal terminal;
+  private final Display display;
 
-  public Executor(MachineState state, Evaluator evaluator, Terminal terminal) {
+  public Executor(EvalState state, Evaluator evaluator, Display display) {
     this.state = state;
     this.evaluator = evaluator;
-    this.terminal = terminal;
+    this.display = display;
   }
 
-  public Terminal terminal() {
-    return terminal;
+  public Display terminal() {
+    return display;
   }
 
   public void executeStatement(final Statement stmt) {
@@ -60,24 +60,12 @@ public class Executor {
     }
   }
 
-  private void executeSave(Statement.Save save) {
-    String filename = evaluator.evaluateStringExpression(save.filename());
-    try (var writer = Files.newBufferedWriter(Path.of(filename))) {
-      for (var entry : state.program().entrySet()) {
-        writer.write(entry.getKey() + " " + decompileStatement(entry.getValue()));
-        writer.newLine();
-      }
-    } catch (Exception e) {
-      throw codedException(ReportCode.INVALID_FILE_NAME, "Failed to save: " + e.getMessage());
-    }
-  }
-
   private void executeClear() {
     state.clear();
   }
 
   private void executeCls() {
-    terminal.cls();
+    display.cls();
   }
 
   private void executeCont() {
@@ -95,14 +83,14 @@ public class Executor {
     String name = dim.variable();
     boolean isStr = name.endsWith("$");
     List<Integer> dims = new ArrayList<>();
-    for (Expression.Numeric e : dim.dimensions()) {
-      dims.add((int) evaluator.evaluateNumericExpression(e));
+    for (Expression.NumExpr e : dim.dimensions()) {
+      dims.add((int) evaluator.evaluateNumExpr(e));
     }
     if (isStr) {
-      if (state.characterArrays().containsKey(name)) {
+      if (state.charArrays().containsKey(name)) {
         throw codedException(ReportCode.NONSENSE_IN_BASIC, "Already DIMensioned");
       }
-      state.variableLengthStrings().remove(name);
+      state.strVars().remove(name);
       int flen = dims.removeLast(), total = 1;
       for (int d : dims) {
         total *= d;
@@ -112,9 +100,9 @@ public class Executor {
       }
       char[] data = new char[total * flen];
       Arrays.fill(data, ' ');
-      state.characterArrays().put(name, new MachineState.CharacterArray(dims, flen, data));
+      state.charArrays().put(name, new EvalState.CharArray(dims, flen, data));
     } else {
-      if (state.numericArrays().containsKey(name)) {
+      if (state.numArrays().containsKey(name)) {
         throw codedException(ReportCode.NONSENSE_IN_BASIC, "Already DIMensioned");
       }
       int total = 1;
@@ -122,17 +110,17 @@ public class Executor {
       if (total <= 0 || total > Limits.MAX_ARRAY_ELEMENTS) {
         throw codedException(ReportCode.OUT_OF_MEMORY, "Array too large");
       }
-      state.numericArrays().put(name, new MachineState.NumericArray(dims, new double[total]));
+      state.numArrays().put(name, new EvalState.NumArray(dims, new double[total]));
     }
   }
 
   private void executeFor(Statement.For forStmt) {
-    double st = evaluator.evaluateNumericExpression(forStmt.start());
-    double en = evaluator.evaluateNumericExpression(forStmt.end());
-    double step = evaluator.evaluateNumericExpression(forStmt.step());
+    double st = evaluator.evaluateNumExpr(forStmt.start());
+    double en = evaluator.evaluateNumExpr(forStmt.end());
+    double step = evaluator.evaluateNumExpr(forStmt.step());
     String var = forStmt.variable();
-    state.numericScalars().put(var, st);
-    state.forLoops().put(var, new MachineState.ForLoopData(en, step, state.currentLineLabel()));
+    state.numScalars().put(var, st);
+    state.forLoops().put(var, new EvalState.ForLoopData(en, step, state.currentLineLabel()));
     if ((step >= 0) ? (st > en) : (st < en)) {
       Integer nextLabel = state.program().higherKey(state.currentLineLabel());
       while (nextLabel != null) {
@@ -153,7 +141,7 @@ public class Executor {
   }
 
   private void executeGoto(Statement.Goto gotoStmt) {
-    int target = (int) Math.round(evaluator.evaluateNumericExpression(gotoStmt.targetLabel()));
+    int target = (int) Math.round(evaluator.evaluateNumExpr(gotoStmt.targetLabel()));
     if (target < Limits.MIN_TARGET_LABEL || target > Limits.MAX_TARGET_LABEL) {
       throw codedException(ReportCode.INTEGER_OUT_OF_RANGE, "GOTO line label out of range");
     }
@@ -168,125 +156,54 @@ public class Executor {
   }
 
   private void executeIf(Statement.If ifStmt) {
-    if (evaluator.evaluateNumericExpression(ifStmt.condition()) != 0.0) {
-      executeStatement(ifStmt.thenStatement());
+    if (evaluator.evaluateNumExpr(ifStmt.condition()) != 0.0) {
+      executeStatement(ifStmt.thenStmt());
     }
   }
 
   private void executeInput(Statement.Input input) {
-    String line = terminal.readln("");
-    if (input.target() instanceof Expression.Numeric nt) {
+    String line = display.readln("");
+    if (input.target() instanceof Expression.NumExpr nt) {
       double val;
       try {
         val = Double.parseDouble(line);
       } catch (Exception e) {
         val = 0.0;
       }
-      assignNumeric(nt, val);
-    } else if (input.target() instanceof Expression.String st) {
-      assignString(st, line);
+      assignNum(nt, val);
+    } else if (input.target() instanceof Expression.StrExpr st) {
+      assignStr(st, line);
     }
   }
 
   private void executeLet(Statement.Let let) {
-    if (let.target() instanceof Expression.Numeric nt) {
-      double val = evaluator.evaluateNumericExpression((Expression.Numeric) let.value());
-      assignNumeric(nt, val);
-    } else if (let.target() instanceof Expression.String st) {
-      String val = evaluator.evaluateStringExpression((Expression.String) let.value());
-      assignString(st, val);
-    }
-  }
-
-  private void assignNumeric(Expression.Numeric target, double val) {
-    if (target instanceof Expression.Numeric.ScalarRef s) {
-      state.numericScalars().put(s.name(), val);
-    } else if (target instanceof Expression.Numeric.SubscriptRef s) {
-      if (!state.numericArrays().containsKey(s.name())) {
-        throw codedException(ReportCode.VARIABLE_NOT_FOUND, "Undefined variable");
-      }
-      MachineState.NumericArray na = state.numericArrays().get(s.name());
-      int idx = evaluator.calculateArrayIndex(na.dimensions(), s.indices());
-      na.data()[idx] = val;
-    } else {
-      throw codedException(ReportCode.NONSENSE_IN_BASIC, "Invalid numeric assignment target");
-    }
-  }
-
-  private void assignString(Expression.String target, String val) {
-    if (target instanceof Expression.String.ScalarRef s) {
-      String name = s.name();
-      if (state.characterArrays().containsKey(name)) {
-        MachineState.CharacterArray ca = state.characterArrays().get(name);
-        int fullLen = ca.data().length;
-        applyStringAssignment((i, c) -> ca.data()[i] = c, fullLen, null, null, val);
-        return;
-      }
-      state.variableLengthStrings().put(name, val);
-    } else if (target instanceof Expression.String.SubscriptRef s) {
-      String name = s.name();
-      if (state.characterArrays().containsKey(name)) {
-        MachineState.CharacterArray ca = state.characterArrays().get(name);
-        int n = ca.dimensions().size();
-        List<Expression.Numeric> indices = s.indices();
-        Expression.Numeric ci = null;
-        if (indices.size() == n + 1) {
-          ci = indices.get(n);
-          indices = indices.subList(0, n);
-        } else if (indices.size() != n) {
-          if (n == 0) {
-            if (indices.size() == 1) {
-              ci = indices.getFirst();
-              indices = List.of();
-            } else if (!indices.isEmpty()) {
-              throw codedException(ReportCode.SUBSCRIPT_WRONG, "Incorrect dimensions");
-            }
-          } else {
-            throw codedException(ReportCode.SUBSCRIPT_WRONG, "Incorrect dimensions");
-          }
-        }
-        int idx = evaluator.calculateArrayIndex(ca.dimensions(), indices);
-        int base = idx * ca.fixedStringLength();
-        applyStringAssignment(
-            (i, c) -> ca.data()[base + i] = c, ca.fixedStringLength(), ci, s.slice(), val);
-      } else if (state.variableLengthStrings().containsKey(name)) {
-        String str = state.variableLengthStrings().get(name);
-        StringBuilder sb = new StringBuilder(str);
-        if (s.indices().isEmpty()) {
-          applyStringAssignment(sb::setCharAt, sb.length(), null, s.slice(), val);
-        } else if (s.indices().size() == 1 && s.slice() == null) {
-          applyStringAssignment(sb::setCharAt, sb.length(), s.indices().getFirst(), null, val);
-        } else {
-          throw codedException(
-              ReportCode.SUBSCRIPT_WRONG, "Scalar string only takes one index or slice");
-        }
-        state.variableLengthStrings().put(name, sb.toString());
-      } else {
-        throw codedException(ReportCode.VARIABLE_NOT_FOUND, "Undefined variable");
-      }
-    } else {
-      throw codedException(ReportCode.NONSENSE_IN_BASIC, "Invalid string assignment target");
+    if (let.target() instanceof Expression.NumExpr nt) {
+      double val = evaluator.evaluateNumExpr((Expression.NumExpr) let.value());
+      assignNum(nt, val);
+    } else if (let.target() instanceof Expression.StrExpr st) {
+      String val = evaluator.evaluateStrExpr((Expression.StrExpr) let.value());
+      assignStr(st, val);
     }
   }
 
   private void executeList(Statement.ListStmt list) {
-    int start = (int) evaluator.evaluateNumericExpression(list.start());
-    int end = (int) evaluator.evaluateNumericExpression(list.end());
+    int start = (int) evaluator.evaluateNumExpr(list.startLabel());
+    int end = (int) evaluator.evaluateNumExpr(list.endLabel());
     for (var entry : state.program().subMap(start, true, end, true).entrySet()) {
-      terminal.println(entry.getKey() + " " + decompileStatement(entry.getValue()));
+      display.println(entry.getKey() + " " + decompileStatement(entry.getValue()));
     }
   }
 
   private void executeLList(Statement.LList llist) {
-    int start = (int) evaluator.evaluateNumericExpression(llist.start());
-    int end = (int) evaluator.evaluateNumericExpression(llist.end());
+    int start = (int) evaluator.evaluateNumExpr(llist.startLabel());
+    int end = (int) evaluator.evaluateNumExpr(llist.endLabel());
     for (var entry : state.program().subMap(start, true, end, true).entrySet()) {
-      terminal.lprintln(entry.getKey() + " " + decompileStatement(entry.getValue()));
+      display.lprintln(entry.getKey() + " " + decompileStatement(entry.getValue()));
     }
   }
 
   private void executeLoad(Statement.Load load) {
-    String filename = evaluator.evaluateStringExpression(load.filename());
+    String filename = evaluator.evaluateStrExpr(load.filename());
     try {
       String source;
       if (filename.startsWith("resource:")) {
@@ -317,24 +234,24 @@ public class Executor {
       switch (item) {
         case PrintItem.Expr e -> {
           String s = evaluator.evaluatePrintItemExpr(e.expr());
-          terminal.lprint(s);
+          display.lprint(s);
           tp += s.length();
         }
-        case PrintItem.At at -> tp = (int) evaluator.evaluateNumericExpression(at.col());
+        case PrintItem.At at -> tp = (int) evaluator.evaluateNumExpr(at.col());
         case PrintItem.Tab tab -> {
-          int t = (int) evaluator.evaluateNumericExpression(tab.col());
+          int t = (int) evaluator.evaluateNumExpr(tab.col());
           if (t < 0) {
             t = ((tp / Limits.TAB_WIDTH) + 1) * Limits.TAB_WIDTH;
           }
           if (t > tp) {
-            terminal.lprint(" ".repeat(t - tp));
+            display.lprint(" ".repeat(t - tp));
             tp = t;
           }
         }
       }
     }
     if (lprint.newline()) {
-      terminal.lprintln();
+      display.lprintln();
     }
   }
 
@@ -348,19 +265,19 @@ public class Executor {
     if (!state.forLoops().containsKey(var)) {
       throw codedException(ReportCode.NEXT_WITHOUT_FOR, "NEXT without FOR");
     }
-    MachineState.ForLoopData d = state.forLoops().get(var);
-    if (!state.numericScalars().containsKey(var)) {
+    EvalState.ForLoopData d = state.forLoops().get(var);
+    if (!state.numScalars().containsKey(var)) {
       throw codedException(ReportCode.VARIABLE_NOT_FOUND, "Undefined loop variable");
     }
-    double nv = state.numericScalars().get(var) + d.step();
-    state.numericScalars().put(var, nv);
+    double nv = state.numScalars().get(var) + d.step();
+    state.numScalars().put(var, nv);
     if (d.step() >= 0 ? nv <= d.limit() : nv >= d.limit()) {
       state.setCurrentLineLabel(d.loopPc());
     }
   }
 
   private void executePause(Statement.Pause pause) {
-    long frames = Math.round(evaluator.evaluateNumericExpression(pause.frames()));
+    long frames = Math.round(evaluator.evaluateNumExpr(pause.frames()));
     for (long i = 0; i < frames; i++) {
       try {
         Thread.sleep(20L);
@@ -368,7 +285,7 @@ public class Executor {
         Thread.currentThread().interrupt();
         break;
       }
-      if (terminal.checkInterrupt()) {
+      if (display.checkInterrupt()) {
         state.setRunning(false);
         throw codedException(
             ReportCode.BREAK_CONT_REPEATS, ReportCode.BREAK_CONT_REPEATS.getMessage());
@@ -377,48 +294,48 @@ public class Executor {
   }
 
   private void executePlot(Statement.Plot plot) {
-    int x = (int) evaluator.evaluateNumericExpression(plot.x()),
-        y = (int) evaluator.evaluateNumericExpression(plot.y());
-    terminal.plot(x, y);
+    int x = (int) evaluator.evaluateNumExpr(plot.x()),
+        y = (int) evaluator.evaluateNumExpr(plot.y());
+    display.plot(x, y);
   }
 
   private void executePrint(Statement.Print print) {
-    int tabPos = terminal.currentCol();
+    int tabPos = display.currentCol();
     for (PrintItem item : print.items()) {
       switch (item) {
         case PrintItem.Expr expr -> {
           String s = evaluator.evaluatePrintItemExpr(expr.expr());
-          terminal.print(s);
-          tabPos = terminal.currentCol();
+          display.print(s);
+          tabPos = display.currentCol();
         }
         case PrintItem.At at -> {
-          int row = (int) evaluator.evaluateNumericExpression(at.row()),
-              col = (int) evaluator.evaluateNumericExpression(at.col());
+          int row = (int) evaluator.evaluateNumExpr(at.row()),
+              col = (int) evaluator.evaluateNumExpr(at.col());
           if (row < 0 || col < 0) {
             throw codedException(ReportCode.OUT_OF_SCREEN, "Screen out of bounds");
           }
-          terminal.moveCursor(row, col);
+          display.locate(row, col);
           tabPos = col;
         }
         case PrintItem.Tab tab -> {
-          int t = (int) evaluator.evaluateNumericExpression(tab.col());
+          int t = (int) evaluator.evaluateNumExpr(tab.col());
           if (t < 0) {
             t = ((tabPos / Limits.TAB_WIDTH) + 1) * Limits.TAB_WIDTH;
           }
           if (t > tabPos) {
-            terminal.print(" ".repeat(t - tabPos));
-            tabPos = terminal.currentCol();
+            display.print(" ".repeat(t - tabPos));
+            tabPos = display.currentCol();
           }
         }
       }
     }
     if (print.newline()) {
-      terminal.println();
+      display.println();
     }
   }
 
   private void executeRand(Statement.Rand rand) {
-    state.random().setSeed(Math.round(evaluator.evaluateNumericExpression(rand.seed())));
+    state.random().setSeed(Math.round(evaluator.evaluateNumExpr(rand.seed())));
   }
 
   private void executeReturn() {
@@ -429,7 +346,7 @@ public class Executor {
   }
 
   private void executeRun(Statement.Run run) {
-    int target = (int) Math.round(evaluator.evaluateNumericExpression(run.targetLabel()));
+    int target = (int) Math.round(evaluator.evaluateNumExpr(run.targetLabel()));
     if (target < Limits.MIN_TARGET_LABEL || target > Limits.MAX_TARGET_LABEL) {
       throw codedException(ReportCode.INTEGER_OUT_OF_RANGE, "RUN line label out of range");
     }
@@ -437,8 +354,20 @@ public class Executor {
     executeGoto(new Statement.Goto(run.targetLabel()));
   }
 
+  private void executeSave(Statement.Save save) {
+    String filename = evaluator.evaluateStrExpr(save.filename());
+    try (var writer = Files.newBufferedWriter(Path.of(filename))) {
+      for (var entry : state.program().entrySet()) {
+        writer.write(entry.getKey() + " " + decompileStatement(entry.getValue()));
+        writer.newLine();
+      }
+    } catch (Exception e) {
+      throw codedException(ReportCode.INVALID_FILE_NAME, "Failed to save: " + e.getMessage());
+    }
+  }
+
   private void executeScroll() {
-    terminal.scroll();
+    display.scroll();
   }
 
   private void executeStop() {
@@ -449,17 +378,87 @@ public class Executor {
   }
 
   private void executeUnplot(Statement.Unplot unplot) {
-    int x = (int) evaluator.evaluateNumericExpression(unplot.x()),
-        y = (int) evaluator.evaluateNumericExpression(unplot.y());
-    terminal.unplot(x, y);
+    int x = (int) evaluator.evaluateNumExpr(unplot.x()),
+        y = (int) evaluator.evaluateNumExpr(unplot.y());
+    display.unplot(x, y);
   }
 
-  private interface StringStore {
+  private void assignNum(Expression.NumExpr target, double val) {
+    if (target instanceof Expression.NumExpr.ScalarRef s) {
+      state.numScalars().put(s.name(), val);
+    } else if (target instanceof Expression.NumExpr.SubscriptRef s) {
+      if (!state.numArrays().containsKey(s.name())) {
+        throw codedException(ReportCode.VARIABLE_NOT_FOUND, "Undefined variable");
+      }
+      EvalState.NumArray na = state.numArrays().get(s.name());
+      int idx = evaluator.calculateArrayIndex(na.dimensions(), s.indices());
+      na.data()[idx] = val;
+    } else {
+      throw codedException(ReportCode.NONSENSE_IN_BASIC, "Invalid numeric assignment target");
+    }
+  }
+
+  private void assignStr(Expression.StrExpr target, String val) {
+    if (target instanceof Expression.StrExpr.ScalarRef s) {
+      String name = s.name();
+      if (state.charArrays().containsKey(name)) {
+        EvalState.CharArray ca = state.charArrays().get(name);
+        int fullLen = ca.data().length;
+        applyStrAssignment((i, c) -> ca.data()[i] = c, fullLen, null, null, val);
+        return;
+      }
+      state.strVars().put(name, val);
+    } else if (target instanceof Expression.StrExpr.SubscriptRef s) {
+      String name = s.name();
+      if (state.charArrays().containsKey(name)) {
+        EvalState.CharArray ca = state.charArrays().get(name);
+        int n = ca.dimensions().size();
+        List<Expression.NumExpr> indices = s.indices();
+        Expression.NumExpr ci = null;
+        if (indices.size() == n + 1) {
+          ci = indices.get(n);
+          indices = indices.subList(0, n);
+        } else if (indices.size() != n) {
+          if (n == 0) {
+            if (indices.size() == 1) {
+              ci = indices.getFirst();
+              indices = List.of();
+            } else if (!indices.isEmpty()) {
+              throw codedException(ReportCode.SUBSCRIPT_WRONG, "Incorrect dimensions");
+            }
+          } else {
+            throw codedException(ReportCode.SUBSCRIPT_WRONG, "Incorrect dimensions");
+          }
+        }
+        int idx = evaluator.calculateArrayIndex(ca.dimensions(), indices);
+        int base = idx * ca.fixedStrLen();
+        applyStrAssignment((i, c) -> ca.data()[base + i] = c, ca.fixedStrLen(), ci, s.slice(), val);
+      } else if (state.strVars().containsKey(name)) {
+        String str = state.strVars().get(name);
+        StringBuilder sb = new StringBuilder(str);
+        if (s.indices().isEmpty()) {
+          applyStrAssignment(sb::setCharAt, sb.length(), null, s.slice(), val);
+        } else if (s.indices().size() == 1 && s.slice() == null) {
+          applyStrAssignment(sb::setCharAt, sb.length(), s.indices().getFirst(), null, val);
+        } else {
+          throw codedException(
+              ReportCode.SUBSCRIPT_WRONG, "Scalar string only takes one index or slice");
+        }
+        state.strVars().put(name, sb.toString());
+      } else {
+        throw codedException(ReportCode.VARIABLE_NOT_FOUND, "Undefined variable");
+      }
+    } else {
+      throw codedException(ReportCode.NONSENSE_IN_BASIC, "Invalid string assignment target");
+    }
+  }
+
+  private interface StrStore {
     void set(int index, char c);
   }
 
-  private void applyStringAssignment(
-      StringStore store, int fullLen, Expression.Numeric ci, Expression.Slice sl, String val) {
+  private void applyStrAssignment(
+      StrStore store, int fullLen, Expression.NumExpr ci, Expression.Slice sl, String val) {
     Evaluator.Range r = evaluator.calculateSliceRange(fullLen, ci, sl);
     for (int i = 0; i < (r.end() - r.start() + 1); i++) {
       store.set(r.start() + i - 1, (i < val.length()) ? val.charAt(i) : ' ');
@@ -473,78 +472,81 @@ public class Executor {
       case Statement.Cont _ -> "CONT";
       case Statement.Copy _ -> "COPY";
       case Statement.Dim dim ->
-          "DIM " + dim.variable() + "(" + decompileNumericExpressions(dim.dimensions()) + ")";
+          "DIM " + dim.variable() + "(" + decompileNumExprs(dim.dimensions()) + ")";
       case Statement.Fast _ -> "FAST";
       case Statement.For forStmt ->
           "FOR "
               + forStmt.variable()
               + " = "
-              + decompileNumeric(forStmt.start())
+              + decompileNumExpr(forStmt.start())
               + " TO "
-              + decompileNumeric(forStmt.end())
+              + decompileNumExpr(forStmt.end())
               + " STEP "
-              + decompileNumeric(forStmt.step());
-      case Statement.Gosub gosub -> "GOSUB " + decompileNumeric(gosub.targetLabel());
-      case Statement.Goto gotoStmt -> "GOTO " + decompileNumeric(gotoStmt.targetLabel());
+              + decompileNumExpr(forStmt.step());
+      case Statement.Gosub gosub -> "GOSUB " + decompileNumExpr(gosub.targetLabel());
+      case Statement.Goto gotoStmt -> "GOTO " + decompileNumExpr(gotoStmt.targetLabel());
       case Statement.If ifStmt ->
           "IF "
-              + decompileNumeric(ifStmt.condition())
+              + decompileNumExpr(ifStmt.condition())
               + " THEN "
-              + decompileStatement(ifStmt.thenStatement());
+              + decompileStatement(ifStmt.thenStmt());
       case Statement.Input input -> "INPUT " + decompileLValue(input.target());
       case Statement.Let let ->
           "LET " + decompileLValue(let.target()) + " = " + decompileExpression(let.value());
       case Statement.ListStmt list ->
-          "LIST " + decompileNumeric(list.start()) + ", " + decompileNumeric(list.end());
+          "LIST " + decompileNumExpr(list.startLabel()) + ", " + decompileNumExpr(list.endLabel());
       case Statement.LList llist ->
-          "LLIST " + decompileNumeric(llist.start()) + ", " + decompileNumeric(llist.end());
+          "LLIST "
+              + decompileNumExpr(llist.startLabel())
+              + ", "
+              + decompileNumExpr(llist.endLabel());
       case Statement.LPrint lprint ->
           "LPRINT " + decompilePrintItems(lprint.items()) + (lprint.newline() ? "" : ";");
       case Statement.New _ -> "NEW";
       case Statement.Next next -> "NEXT " + next.variable();
-      case Statement.Pause pause -> "PAUSE " + decompileNumeric(pause.frames());
+      case Statement.Pause pause -> "PAUSE " + decompileNumExpr(pause.frames());
       case Statement.Plot plot ->
-          "PLOT " + decompileNumeric(plot.x()) + ", " + decompileNumeric(plot.y());
+          "PLOT " + decompileNumExpr(plot.x()) + ", " + decompileNumExpr(plot.y());
       case Statement.Poke poke ->
-          "POKE " + decompileNumeric(poke.address()) + ", " + decompileNumeric(poke.data());
+          "POKE " + decompileNumExpr(poke.address()) + ", " + decompileNumExpr(poke.data());
       case Statement.Print print ->
           "PRINT " + decompilePrintItems(print.items()) + (print.newline() ? "" : ";");
-      case Statement.Rand rand -> "RAND " + decompileNumeric(rand.seed());
+      case Statement.Rand rand -> "RAND " + decompileNumExpr(rand.seed());
       case Statement.Rem rem -> "REM " + rem.comment();
       case Statement.Return _ -> "RETURN";
-      case Statement.Run run -> "RUN " + decompileNumeric(run.targetLabel());
-      case Statement.Save save -> "SAVE " + decompileString(save.filename());
+      case Statement.Run run -> "RUN " + decompileNumExpr(run.targetLabel());
+      case Statement.Save save -> "SAVE " + decompileStrExpr(save.filename());
       case Statement.Scroll _ -> "SCROLL";
       case Statement.Slow _ -> "SLOW";
       case Statement.Stop _ -> "STOP";
       case Statement.Unplot unplot ->
-          "UNPLOT " + decompileNumeric(unplot.x()) + ", " + decompileNumeric(unplot.y());
+          "UNPLOT " + decompileNumExpr(unplot.x()) + ", " + decompileNumExpr(unplot.y());
       default -> "";
     };
   }
 
   private String decompileLValue(Expression target) {
-    if (target instanceof Expression.Numeric n) {
-      return decompileNumeric(n);
-    } else if (target instanceof Expression.String s) {
-      return decompileString(s);
+    if (target instanceof Expression.NumExpr n) {
+      return decompileNumExpr(n);
+    } else if (target instanceof Expression.StrExpr s) {
+      return decompileStrExpr(s);
     } else {
       return "";
     }
   }
 
   private String decompileExpression(Expression expr) {
-    if (expr instanceof Expression.Numeric n) {
-      return decompileNumeric(n);
-    } else if (expr instanceof Expression.String s) {
-      return decompileString(s);
+    if (expr instanceof Expression.NumExpr n) {
+      return decompileNumExpr(n);
+    } else if (expr instanceof Expression.StrExpr s) {
+      return decompileStrExpr(s);
     } else {
       return "";
     }
   }
 
-  private String decompileNumericExpressions(List<Expression.Numeric> exprs) {
-    return exprs.stream().map(this::decompileNumeric).collect(Collectors.joining(","));
+  private String decompileNumExprs(List<Expression.NumExpr> exprs) {
+    return exprs.stream().map(this::decompileNumExpr).collect(Collectors.joining(","));
   }
 
   private String decompilePrintItems(List<PrintItem> items) {
@@ -552,7 +554,7 @@ public class Executor {
     for (PrintItem item : items) {
       if (!sb.isEmpty()
           && !(item instanceof PrintItem.Tab
-              && ((PrintItem.Tab) item).col() instanceof Expression.Numeric.Literal l
+              && ((PrintItem.Tab) item).col() instanceof Expression.NumExpr.Literal l
               && l.value() == -1)) {
         // Only add generic separator if not a comma-tab
         // But logic is complex for ; and ,
@@ -563,10 +565,10 @@ public class Executor {
           if (!sb.isEmpty()) {
             sb.append(";");
           }
-          if (e.expr() instanceof Expression.Numeric n) {
-            sb.append(decompileNumeric(n));
-          } else if (e.expr() instanceof Expression.String s) {
-            sb.append(decompileString(s));
+          if (e.expr() instanceof Expression.NumExpr n) {
+            sb.append(decompileNumExpr(n));
+          } else if (e.expr() instanceof Expression.StrExpr s) {
+            sb.append(decompileStrExpr(s));
           }
         }
         case PrintItem.At at -> {
@@ -574,18 +576,18 @@ public class Executor {
             sb.append(";");
           }
           sb.append("AT ")
-              .append(decompileNumeric(at.row()))
+              .append(decompileNumExpr(at.row()))
               .append(",")
-              .append(decompileNumeric(at.col()));
+              .append(decompileNumExpr(at.col()));
         }
         case PrintItem.Tab tab -> {
-          if (tab.col() instanceof Expression.Numeric.Literal l && l.value() == -1) {
+          if (tab.col() instanceof Expression.NumExpr.Literal l && l.value() == -1) {
             sb.append(",");
           } else {
             if (!sb.isEmpty()) {
               sb.append(";");
             }
-            sb.append("TAB ").append(decompileNumeric(tab.col()));
+            sb.append("TAB ").append(decompileNumExpr(tab.col()));
           }
         }
       }
@@ -593,65 +595,65 @@ public class Executor {
     return sb.toString();
   }
 
-  private String decompileNumeric(Expression.Numeric expr) {
+  private String decompileNumExpr(Expression.NumExpr expr) {
     // Simplified decompilation - mostly just for debugging/LIST
     // A real decompiler would need to handle precedence parentheses
     return switch (expr) {
-      case Expression.Numeric.Literal nl -> evaluator.formatNumber(nl.value());
-      case Expression.Numeric.ScalarRef sr -> sr.name();
-      case Expression.Numeric.SubscriptRef sr ->
-          sr.name() + "(" + decompileNumericExpressions(sr.indices()) + ")";
-      case Expression.Numeric.BinaryOp bo ->
-          decompileNumeric(bo.left())
+      case Expression.NumExpr.Literal nl -> evaluator.formatNum(nl.value());
+      case Expression.NumExpr.ScalarRef sr -> sr.name();
+      case Expression.NumExpr.SubscriptRef sr ->
+          sr.name() + "(" + decompileNumExprs(sr.indices()) + ")";
+      case Expression.NumExpr.BinaryOp bo ->
+          decompileNumExpr(bo.left())
               + " "
               + getRep(bo.operator())
               + " "
-              + decompileNumeric(bo.right());
-      case Expression.Numeric.UnaryOp uo ->
-          getRep(uo.operator()) + " " + decompileNumeric(uo.operand());
-      case Expression.Numeric.FuncCall fc ->
-          getRep(fc.func()) + "(" + decompileNumeric(fc.argument()) + ")";
-      case Expression.Numeric.FuncCallStr fc ->
-          getRep(fc.func()) + "(" + decompileString(fc.argument()) + ")";
-      case Expression.Numeric.NullaryCall nc -> getRep(nc.func());
-      case Expression.Numeric.NumericComparison nc ->
-          decompileNumeric(nc.left())
+              + decompileNumExpr(bo.right());
+      case Expression.NumExpr.UnaryOp uo ->
+          getRep(uo.operator()) + " " + decompileNumExpr(uo.operand());
+      case Expression.NumExpr.NumFunc fc ->
+          getRep(fc.func()) + "(" + decompileNumExpr(fc.argument()) + ")";
+      case Expression.NumExpr.StrFunc fc ->
+          getRep(fc.func()) + "(" + decompileStrExpr(fc.argument()) + ")";
+      case Expression.NumExpr.NullFunc nc -> getRep(nc.func());
+      case Expression.NumExpr.NumComp nc ->
+          decompileNumExpr(nc.left())
               + " "
               + getRep(nc.operator())
               + " "
-              + decompileNumeric(nc.right());
-      case Expression.Numeric.StringComparison sc ->
-          decompileString(sc.left())
+              + decompileNumExpr(nc.right());
+      case Expression.NumExpr.StrComp sc ->
+          decompileStrExpr(sc.left())
               + " "
               + getRep(sc.operator())
               + " "
-              + decompileString(sc.right());
+              + decompileStrExpr(sc.right());
     };
   }
 
-  private String decompileString(Expression.String expr) {
+  private String decompileStrExpr(Expression.StrExpr expr) {
     return switch (expr) {
-      case Expression.String.Literal sl -> "\"" + sl.value() + "\"";
-      case Expression.String.ScalarRef sr -> sr.name();
-      case Expression.String.SubscriptRef sr -> {
+      case Expression.StrExpr.Literal sl -> "\"" + sl.value() + "\"";
+      case Expression.StrExpr.ScalarRef sr -> sr.name();
+      case Expression.StrExpr.SubscriptRef sr -> {
         StringBuilder sb = new StringBuilder(sr.name()).append("(");
         if (!sr.indices().isEmpty()) {
-          sb.append(decompileNumericExpressions(sr.indices()));
+          sb.append(decompileNumExprs(sr.indices()));
         }
         if (sr.slice() != null) {
           if (!sr.indices().isEmpty()) sb.append(", ");
-          if (sr.slice().start() != null) sb.append(decompileNumeric(sr.slice().start()));
+          if (sr.slice().start() != null) sb.append(decompileNumExpr(sr.slice().start()));
           sb.append(" TO ");
-          if (sr.slice().end() != null) sb.append(decompileNumeric(sr.slice().end()));
+          if (sr.slice().end() != null) sb.append(decompileNumExpr(sr.slice().end()));
         }
         sb.append(")");
         yield sb.toString();
       }
-      case Expression.String.Concatenation sc ->
-          decompileString(sc.left()) + " + " + decompileString(sc.right());
-      case Expression.String.FuncCall fc ->
-          getRep(fc.func()) + "(" + decompileNumeric(fc.argument()) + ")";
-      case Expression.String.NullaryCall nc -> getRep(nc.func());
+      case Expression.StrExpr.StrConcat sc ->
+          decompileStrExpr(sc.left()) + " + " + decompileStrExpr(sc.right());
+      case Expression.StrExpr.NumFunc nf ->
+          getRep(nf.func()) + "(" + decompileNumExpr(nf.argument()) + ")";
+      case Expression.StrExpr.NullFunc nf -> getRep(nf.func());
     };
   }
 

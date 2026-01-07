@@ -1,24 +1,20 @@
 # BazLang Interpreter
 
-A Java 25 implementation of a Sinclair ZX81 BASIC-compatible language as a
-command-line interpreter. This interpreter accepts UTF-8 encoded source code
-files and executes them using standard input/output.
+BazLang is a simple BASIC interpreter written in Java 25. It is loosely based on Sinclair ZX81 BASIC but designed for the modern command line. It includes a REPL and runs standard UTF-8 source files.
 
 ## Documentation
 
-For detailed information on the language and implementation, please refer to
-the files in the `docs/` directory:
+For more details, check the `docs/` folder:
 
-- [Language features](docs/language_features.md) - Crucial information about
-string/array semantics, namespaces, typing, and other dialect peculiarities.
-- [Architecture](docs/architecture.md) - System overview and technical design.
-- [Implementation](docs/implementation.md) - Specific implementation details.
+- [Language Features](docs/language_features.md) - Details on variables, types, and commands.
+- [Architecture](docs/architecture.md) - How the interpreter is designed.
+- [Implementation](docs/implementation.md) - How the code is structured.
 
 ## Quick Start
 
 ### Building
 
-Requires Java 25 or later. Uses Gradle wrapper (included):
+You need Java 25 or later. Build it with Gradle:
 
 ```bash
 ./gradlew clean build
@@ -26,24 +22,21 @@ Requires Java 25 or later. Uses Gradle wrapper (included):
 
 ### Running
 
-Using shell script:
+Use the shell script:
 
 ```bash
 ./run.sh <optional-source-file.bas>
 ```
 
-Or using the executable JAR:
+Or run the JAR directly:
 
 ```bash
-java -jar target/play-bazlang-1.0-SNAPSHOT.jar <optional-source-file.bas>
+java -jar build/libs/play-bazlang-1.0-SNAPSHOT.jar <optional-source-file.bas>
 ```
 
-## Example Programs
+## Examples
 
-Several example programs are included in the subdirectories of
-`src/test/resources/`:
-
-Run them as follows:
+You can find example programs in `src/test/resources/`. Run one like this:
 
 ```bash
 ./run.sh "src/test/resources/games/mastermind.bas"
@@ -51,5 +44,4 @@ Run them as follows:
 
 ## License
 
-This is a recreational implementation of a simple interpreted language,
-developed under the MIT License.
+This project is open source under the MIT License.

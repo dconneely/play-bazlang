@@ -95,9 +95,9 @@ public class Lexer {
           || (ch == '.'
               && pos + 1 < source.length()
               && Character.isDigit(source.charAt(pos + 1)))) {
-        tokens.add(readNumericLiteral());
+        tokens.add(readNumLiteral());
       } else if (ch == '"') {
-        tokens.add(readStringLiteral());
+        tokens.add(readStrLiteral());
       } else if (Character.isLetter(ch)) {
         Token t = readIdentifierOrKeyword();
         tokens.add(t);
@@ -106,7 +106,7 @@ public class Lexer {
           tokens.add(new Token(TokenType.NEWLINE, "\n"));
         }
       } else {
-        tokens.add(readOperatorOrDelimiter());
+        tokens.add(readOpOrDelimiter());
       }
     }
     tokens.add(new Token(TokenType.EOF, null));
@@ -131,7 +131,7 @@ public class Lexer {
     }
   }
 
-  private Token readNumericLiteral() {
+  private Token readNumLiteral() {
     StringBuilder sb = new StringBuilder();
     while (pos < source.length()
         && (Character.isDigit(source.charAt(pos)) || source.charAt(pos) == '.')) {
@@ -150,10 +150,10 @@ public class Lexer {
         ++pos;
       }
     }
-    return new Token(TokenType.NUMERIC_LITERAL, sb.toString());
+    return new Token(TokenType.NUM_LITERAL, sb.toString());
   }
 
-  private Token readStringLiteral() {
+  private Token readStrLiteral() {
     StringBuilder sb = new StringBuilder();
     ++pos;
     while (pos < source.length()) {
@@ -173,7 +173,7 @@ public class Lexer {
     if (pos < source.length()) {
       ++pos;
     }
-    return new Token(TokenType.STRING_LITERAL, sb.toString());
+    return new Token(TokenType.STR_LITERAL, sb.toString());
   }
 
   private Token readIdentifierOrKeyword() {
@@ -199,7 +199,7 @@ public class Lexer {
     return new Token(type, type == TokenType.IDENTIFIER ? upper : text);
   }
 
-  private Token readOperatorOrDelimiter() {
+  private Token readOpOrDelimiter() {
     char ch = source.charAt(pos);
     ++pos;
     return switch (ch) {

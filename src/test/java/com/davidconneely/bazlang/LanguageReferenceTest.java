@@ -2,38 +2,22 @@ package com.davidconneely.bazlang;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import java.io.ByteArrayOutputStream;
-import java.io.PrintStream;
 import java.util.List;
 import java.util.Map;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 /** Tests covering the language features described in docs/language_features.md. */
 class LanguageReferenceTest {
-  private final ByteArrayOutputStream outContent = new ByteArrayOutputStream();
-  private final PrintStream originalOut = System.out;
 
-  @BeforeEach
-  public void setUpStreams() {
-    System.setOut(new PrintStream(outContent));
-  }
-
-  @AfterEach
-  public void restoreStreams() {
-    System.setOut(originalOut);
-  }
-
-  private MachineState runProgram(String source) {
+  private EvalState runProgram(String source) {
     Lexer lexer = new Lexer(source);
     List<Token> tokens = lexer.tokenize();
     Parser parser = new Parser(tokens);
     Map<Integer, Statement> program = parser.parseProgram();
-    MachineState state = new MachineState();
-    Terminal terminal = new Terminal(false); // Mock terminal (calls System.out)
-    Evaluator evaluator = new Evaluator(state, terminal);
-    Executor executor = new Executor(state, evaluator, terminal);
+    EvalState state = new EvalState();
+    MockDisplay display = new MockDisplay();
+    Evaluator evaluator = new Evaluator(state, display);
+    Executor executor = new Executor(state, evaluator, display);
     Interpreter interpreter = new Interpreter(state, executor);
     try {
       interpreter.execute(program);
@@ -46,7 +30,7 @@ class LanguageReferenceTest {
   }
 
   @Test
-  void testNumericFunctions() {
+  void testNumFuncs() {
     String source =
         """
         10 LET A = ABS(-5)
@@ -57,18 +41,18 @@ class LanguageReferenceTest {
         60 LET F = VAL("123")
         70 LET G = CODE("A")
         """;
-    MachineState state = runProgram(source);
-    assertEquals(5.0, state.numericScalars().get("A"));
-    assertEquals(3.0, state.numericScalars().get("B"));
-    assertEquals(-1.0, state.numericScalars().get("C"));
-    assertEquals(4.0, state.numericScalars().get("D"));
-    assertEquals(5.0, state.numericScalars().get("E"));
-    assertEquals(123.0, state.numericScalars().get("F"));
-    assertEquals(65.0, state.numericScalars().get("G"));
+    EvalState state = runProgram(source);
+    assertEquals(5.0, state.numScalars().get("A"));
+    assertEquals(3.0, state.numScalars().get("B"));
+    assertEquals(-1.0, state.numScalars().get("C"));
+    assertEquals(4.0, state.numScalars().get("D"));
+    assertEquals(5.0, state.numScalars().get("E"));
+    assertEquals(123.0, state.numScalars().get("F"));
+    assertEquals(65.0, state.numScalars().get("G"));
   }
 
   @Test
-  void testTrigFunctions() {
+  void testTrigFuncs() {
     // Basic check they run and return somewhat sane values
     String source =
         """
@@ -76,51 +60,51 @@ class LanguageReferenceTest {
         20 LET C = COS(0)
         30 LET T = TAN(0)
         """;
-    MachineState state = runProgram(source);
-    assertEquals(0.0, state.numericScalars().get("S"), 0.0001);
-    assertEquals(1.0, state.numericScalars().get("C"), 0.0001);
-    assertEquals(0.0, state.numericScalars().get("T"), 0.0001);
+    EvalState state = runProgram(source);
+    assertEquals(0.0, state.numScalars().get("S"), 0.0001);
+    assertEquals(1.0, state.numScalars().get("C"), 0.0001);
+    assertEquals(0.0, state.numScalars().get("T"), 0.0001);
   }
 
   @Test
-  void testExpLogFunctions() {
+  void testExpLogFuncs() {
     String source =
         """
         10 LET E = EXP(1)
         20 LET L = LN(E)
         """;
-    MachineState state = runProgram(source);
-    assertEquals(Math.E, state.numericScalars().get("E"), 0.0001);
-    assertEquals(1.0, state.numericScalars().get("L"), 0.0001);
+    EvalState state = runProgram(source);
+    assertEquals(Math.E, state.numScalars().get("E"), 0.0001);
+    assertEquals(1.0, state.numScalars().get("L"), 0.0001);
   }
 
   @Test
-  void testHardwareFunctions() {
+  void testHardwareFuncs() {
     // PEEK and USR return 0.0
     String source =
         """
         10 LET P = PEEK(1234)
         20 LET U = USR(5678)
         """;
-    MachineState state = runProgram(source);
-    assertEquals(0.0, state.numericScalars().get("P"));
-    assertEquals(0.0, state.numericScalars().get("U"));
+    EvalState state = runProgram(source);
+    assertEquals(0.0, state.numScalars().get("P"));
+    assertEquals(0.0, state.numScalars().get("U"));
   }
 
   @Test
-  void testStringFunctions() {
+  void testStrFuncs() {
     String source =
         """
         10 LET A$ = CHR$(65)
         20 LET B$ = STR$(123)
         """;
-    MachineState state = runProgram(source);
-    assertEquals("A", state.variableLengthStrings().get("A$"));
-    assertEquals("123", state.variableLengthStrings().get("B$"));
+    EvalState state = runProgram(source);
+    assertEquals("A", state.strVars().get("A$"));
+    assertEquals("123", state.strVars().get("B$"));
   }
 
   @Test
-  void testOperators() {
+  void testNumOps() {
     String source =
         """
         10 LET A = 1 + 2 * 3
@@ -128,10 +112,10 @@ class LanguageReferenceTest {
         30 LET C = 2 ** 3
         40 LET D = 5 / 2
         """;
-    MachineState state = runProgram(source);
-    assertEquals(7.0, state.numericScalars().get("A"));
-    assertEquals(9.0, state.numericScalars().get("B"));
-    assertEquals(8.0, state.numericScalars().get("C"));
-    assertEquals(2.5, state.numericScalars().get("D"));
+    EvalState state = runProgram(source);
+    assertEquals(7.0, state.numScalars().get("A"));
+    assertEquals(9.0, state.numScalars().get("B"));
+    assertEquals(8.0, state.numScalars().get("C"));
+    assertEquals(2.5, state.numScalars().get("D"));
   }
 }

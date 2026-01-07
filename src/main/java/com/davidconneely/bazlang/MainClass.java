@@ -6,18 +6,18 @@ import java.nio.file.Path;
 
 public class MainClass {
   public static void main(String[] args) {
-    Terminal terminal = new Terminal();
+    Display display = new Display();
     if (args.length == 0) {
-      runRepl(terminal);
+      runRepl(display);
     } else if (args.length == 1) {
-      runFile(args[0], terminal);
+      runFile(args[0], display);
     } else {
-      terminal.println("Usage: java com.davidconneely.bazlang.MainClass [source-file]");
+      display.println("Usage: java com.davidconneely.bazlang.MainClass [source-file]");
       System.exit(1);
     }
   }
 
-  private static void runFile(String sourceFile, Terminal terminal) {
+  private static void runFile(String sourceFile, Display display) {
     try {
       String source = Files.readString(Path.of(sourceFile));
       Lexer lexer = new Lexer(source);
@@ -27,25 +27,25 @@ public class MainClass {
       Interpreter interpreter = new Interpreter();
       interpreter.execute(program);
     } catch (IOException e) {
-      terminal.println("Error reading file: " + e.getMessage());
+      display.println("Error reading file: " + e.getMessage());
       System.exit(1);
     } catch (ReportException e) {
-      terminal.println(e.prefix() + " " + e.getMessage());
+      display.println(e.prefix() + " " + e.getMessage());
       System.exit(1);
     } catch (Exception e) {
-      terminal.println("Error: " + e.getMessage());
+      display.println("Error: " + e.getMessage());
       System.exit(1);
     }
   }
 
-  private static void runRepl(Terminal terminal) {
-    MachineState state = new MachineState();
-    Evaluator evaluator = new Evaluator(state, terminal);
-    Executor executor = new Executor(state, evaluator, terminal);
+  private static void runRepl(Display display) {
+    EvalState state = new EvalState();
+    Evaluator evaluator = new Evaluator(state, display);
+    Executor executor = new Executor(state, evaluator, display);
     Interpreter interpreter = new Interpreter(state, executor);
-    terminal.println("BazLang REPL. Type 'STOP' or Ctrl+C to exit.");
+    display.println("BazLang REPL. Type 'STOP' or Ctrl+C to exit.");
     while (true) {
-      String line = terminal.readln("\033[7m>\033[27m ");
+      String line = display.readln("\033[7m>\033[27m ");
       if (line == null) {
         break; // EOF
       }
@@ -63,7 +63,7 @@ public class MainClass {
         if (significantTokens.isEmpty()) {
           continue;
         }
-        if (significantTokens.getFirst().type() == TokenType.NUMERIC_LITERAL) {
+        if (significantTokens.getFirst().type() == TokenType.NUM_LITERAL) {
           // Line editing
           int label = Integer.parseInt(significantTokens.getFirst().rep());
           if (significantTokens.size() == 1) {
@@ -83,19 +83,19 @@ public class MainClass {
             break;
           }
           executor.executeStatement(stmt);
-          if (stmt instanceof Statement.Run
-              || stmt instanceof Statement.Goto
+          if (stmt instanceof Statement.Cont
               || stmt instanceof Statement.Gosub
-              || stmt instanceof Statement.Cont) {
+              || stmt instanceof Statement.Goto
+              || stmt instanceof Statement.Run) {
             interpreter.resume();
           }
         }
       } catch (ReportException e) {
         state.setLastReportCode(e.reportCode());
         state.setLastReportLabel(e.lineLabel());
-        terminal.println(e.prefix() + " " + e.getMessage());
+        display.println(e.prefix() + " " + e.getMessage());
       } catch (Exception e) {
-        terminal.println("Error: " + e.getMessage());
+        display.println("Error: " + e.getMessage());
       }
     }
   }

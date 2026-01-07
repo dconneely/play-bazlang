@@ -1,110 +1,84 @@
 # Implementation Details
 
-This document provides a low-level overview of the Bazlang interpreter's Java
-implementation.
+This document explains how the BazLang interpreter is built in Java.
 
-## Abstract Syntax Tree (AST)
+## Code Structure
 
-The core logic is represented by the `Statement` and `Expression` sealed
-interfaces (using Java records).
+The code is built around two main types: `Statement` and `Expression`.
 
 ### Statements
 
-Statements represent the executable instructions. Key changes from standard
-ASTs include:
+Statements are the commands the program executes. Some key details:
 
-- **Unified LET**: `Let(Expression target, Expression value)` handles both
-  numeric and string assignments, as well as scalar and array targets.
-- **Unified INPUT**: `Input(Expression target)` allows inputting directly
-  into scalars or array elements.
-- **Next-Line Logic**: Control flow statements like `GOTO` and `FOR` logic
-  rely on `MachineState`'s `NavigableMap` to find the "next" line if a
-  target doesn't exist.
+- **Assignments (`LET`)**: Handles both numbers and strings, and works for single variables or array elements.
+- **Input (`INPUT`)**: Reads user input into variables or array elements.
+- **Flow Control**: Commands like `GOTO` and `FOR` use the `EvalState` to find which line to run next.
 
 ### Expressions
 
-Expressions are split into `Expression.Numeric` and `Expression.String` to
-enforce parse-time type safety.
+Expressions represent values or calculations. They are strictly divided into Numeric and String types to prevent mixing them up improperly.
 
-- **Precedence**: Implemented via recursive descent in `Parser.java`. The
-hierarchy is strictly defined to match the language specification.
-
-## Core Components
+## Main Components
 
 ### `Lexer`
 
-- **Regex-free**: Uses a simple character-by-character scanning loop for
-  performance and simplicity.
-- **Keywords**: Case-insensitive, stored in a static map.
-- **Output**: A list of `Token` records.
+This reads the source code string.
+- It scans through characters one by one.
+- It looks up keywords (which are case-insensitive).
+- It produces a list of tokens.
 
 ### `Parser`
 
-- **Recursive Descent**: Directly maps grammar rules to methods
-  (`parseStatement`, `parseExpression`).
-- **L-Value Parsing**: `parseLValue` handles valid assignment targets
-  (vars, array refs), used by both `LET` and `INPUT`.
-- **Error Handling**: Throws `CodedException` with line numbers attached.
+This turns the list of tokens into a structured program.
+- It matches the tokens against the rules of the language.
+- It handles complex things like assignment targets (variables vs arrays).
+- It catches syntax errors and reports the line number.
 
-### `MachineState`
+### `EvalState`
 
-- **Program Storage**: `NavigableMap<Integer, Statement>` allows efficient
-  lookups for `GOTO` (using `ceilingKey`).
-- **Variable Storage**: Separate Maps for numeric/string scalars and arrays.
-- **Loop State**: `ForLoopData` stores the limit, step, and the line number
-  of the loop body start.
+This holds the memory of the running program.
+- **Program**: Stores the lines of code so they can be looked up by line number.
+- **Variables**: Stores numbers, strings, and arrays in separate maps.
+- **Loops**: Keeps track of active `FOR` loops so `NEXT` knows where to go back to.
 
 ### `Executor` / `Interpreter`
 
-- **Executor**: Stateless visitor that executes a single `Statement` against
-  the `MachineState`.
-- **Interpreter**: Manages the program counter (`currentLineLabel`) and the
-  run loop.
-- **Loop Skipping**: When a `FOR` loop condition is initially false, the
-  interpreter scans forward for the matching `NEXT` and sets the program
-  counter to that line, effectively skipping the loop body *and* the `NEXT`
-  statement itself.
+- **Executor**: Runs a single statement. It looks at what the statement is and updates the `EvalState` or the screen.
+- **Interpreter**: Controls the flow. It keeps track of the current line number and moves to the next one. It also handles logic for skipping loops if they shouldn't run.
 
 ### `Evaluator`
 
-- Pure functional component that reduces `Expression` objects to values
-  (`double` or `String`).
-- Handles array index calculation and bounds checking.
-- Manages string slicing logic.
+This calculates values.
+- It takes an expression (like `1 + 2` or `LEN("A")`) and returns the result.
+- It handles array indexing and string slicing logic.
 
-## Key Differences from original ZX81
+## ZX81 Differences
 
-- **Case-insensitive keywords**: Keywords can be written in any case.
-- **Full keyword spelling**: Keywords are spelled out in full, not tokenized.
-- **UTF-8 support**: Source files use UTF-8 encoding.
-- **Unicode graphics**: PLOT uses Unicode block character (█) instead of
-  quadrant graphics.
-- **ANSI terminal support**: Cursor positioning and screen clearing use ANSI
-  escape sequences.
+BazLang is similar to ZX81 BASIC but has some modern changes:
 
-## Specific Implementations
+- **Keywords**: You can type them in any case (e.g., `print`, `PRINT`).
+- **Typing**: You type the full word, not a special token.
+- **Files**: Source code is just standard UTF-8 text.
+- **Graphics**: Uses the Unicode block character (█) for `PLOT`.
+- **Screen**: Uses standard terminal codes (ANSI) to move the cursor and clear the screen.
+
+## Specific Logic
 
 ### `INPUT`
 
-The `INPUT` statement uses `Executor.assignNumeric` or `Executor.assignString`
-(shared with `LET`) to allow robust input handling:
+The `INPUT` command shares logic with `LET`.
+1. It reads a line of text from the user.
+2. If the variable is a number, it tries to convert the text to a number (defaulting to 0 if it fails).
+3. If the variable is a string, it takes the text as-is.
 
-1. Reads a line from the `Terminal`.
-2. If the target is numeric, attempts to parse as `Double` (defaults to `0.0`
-   on failure).
-3. If the target is string/array, assigns strictly.
+### `FOR-NEXT` Loop
 
-### `FOR-NEXT`
+- **Start**: `FOR` sets up the loop. If the start is past the end (and step is positive), it searches ahead for `NEXT` and skips the loop entirely.
+- **End**: `NEXT` adds the step to the variable. If the loop isn't finished, it jumps back to the line after `FOR`.
+- **Nesting**: Nested loops work naturally because they use the variable name to store state.
 
-- **Initialization**: `FOR` calculates start, end, step. If the loop should
-  not run, it scans for `NEXT`.
-- **Iteration**: `NEXT` increments the variable. If the condition holds, it
-  sets the PC back to the saved loop start label.
-- **Nesting**: Handled via simple variable name lookup. Shadowing a loop
-  variable overwrites the outer loop's control data.
+## I/O
 
-## Console I/O
-
-- `Terminal` class abstracts `System.in` / `System.out`.
-- Uses ANSI codes for `CLS` and `AT`.
-- Buffers input to support `readln`.
+- The `Display` class handles printing and reading text.
+- It abstracts away the details of `System.in` and `System.out`.
+- It buffers input to allow for line editing if needed.

@@ -3,43 +3,41 @@ package com.davidconneely.bazlang;
 import java.util.List;
 
 public sealed interface Expression {
-  sealed interface Numeric extends Expression {
-    record Literal(double value) implements Numeric {}
+  sealed interface NumExpr extends Expression {
+    record Literal(double value) implements NumExpr {}
 
-    record ScalarRef(java.lang.String name) implements Numeric {}
+    record ScalarRef(String name) implements NumExpr {}
 
-    record SubscriptRef(java.lang.String name, List<Expression.Numeric> indices)
-        implements Numeric {}
+    record SubscriptRef(String name, List<NumExpr> indices) implements NumExpr {}
 
-    record UnaryOp(TokenType operator, Numeric operand) implements Numeric {}
+    record UnaryOp(TokenType operator, NumExpr operand) implements NumExpr {}
 
-    record BinaryOp(Numeric left, TokenType operator, Numeric right) implements Numeric {}
+    record BinaryOp(NumExpr left, TokenType operator, NumExpr right) implements NumExpr {}
 
-    record NumericComparison(Numeric left, TokenType operator, Numeric right) implements Numeric {}
+    record NumComp(NumExpr left, TokenType operator, NumExpr right) implements NumExpr {}
 
-    record StringComparison(String left, TokenType operator, String right) implements Numeric {}
+    record StrComp(StrExpr left, TokenType operator, StrExpr right) implements NumExpr {}
 
-    record FuncCall(TokenType func, Numeric argument) implements Numeric {}
+    record NumFunc(TokenType func, NumExpr argument) implements NumExpr {}
 
-    record FuncCallStr(TokenType func, String argument) implements Numeric {}
+    record StrFunc(TokenType func, StrExpr argument) implements NumExpr {}
 
-    record NullaryCall(TokenType func) implements Numeric {}
+    record NullFunc(TokenType func) implements NumExpr {}
   }
 
-  sealed interface String extends Expression {
-    record Literal(java.lang.String value) implements String {}
+  sealed interface StrExpr extends Expression {
+    record Literal(String value) implements StrExpr {}
 
-    record ScalarRef(java.lang.String name) implements String {}
+    record ScalarRef(String name) implements StrExpr {}
 
-    record SubscriptRef(java.lang.String name, List<Expression.Numeric> indices, Slice slice)
-        implements String {}
+    record SubscriptRef(String name, List<NumExpr> indices, Slice slice) implements StrExpr {}
 
-    record Concatenation(String left, String right) implements String {}
+    record StrConcat(StrExpr left, StrExpr right) implements StrExpr {}
 
-    record FuncCall(TokenType func, Numeric argument) implements String {}
+    record NumFunc(TokenType func, NumExpr argument) implements StrExpr {}
 
-    record NullaryCall(TokenType func) implements String {}
+    record NullFunc(TokenType func) implements StrExpr {}
   }
 
-  record Slice(Numeric start, Numeric end) {}
+  record Slice(NumExpr start, NumExpr end) {}
 }

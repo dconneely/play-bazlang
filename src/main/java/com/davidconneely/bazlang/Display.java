@@ -1,14 +1,17 @@
 package com.davidconneely.bazlang;
 
 import java.io.IOException;
+import org.jline.reader.EndOfFileException;
 import org.jline.reader.LineReader;
 import org.jline.reader.LineReaderBuilder;
 import org.jline.reader.MaskingCallback;
+import org.jline.reader.UserInterruptException;
+import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
 import org.jline.utils.NonBlockingReader;
 
-public class Terminal implements AutoCloseable {
-  private final org.jline.terminal.Terminal terminal;
+public class Display implements AutoCloseable {
+  private final Terminal terminal;
   private final NonBlockingReader reader;
   private final StringBuilder typeAheadBuffer = new StringBuilder();
   private LineReader cachedLineReader;
@@ -16,11 +19,11 @@ public class Terminal implements AutoCloseable {
   private int currentCol = 0;
   private boolean interruptRequested = false;
 
-  public Terminal() {
+  public Display() {
     this(true);
   }
 
-  protected Terminal(boolean useSystem) {
+  protected Display(boolean useSystem) {
     if (useSystem) {
       try {
         this.terminal =
@@ -44,7 +47,7 @@ public class Terminal implements AutoCloseable {
   }
 
   public boolean isTerminal() {
-    return terminal != null && !org.jline.terminal.Terminal.TYPE_DUMB.equals(terminal.getType());
+    return terminal != null && Terminal.TYPE_DUMB.equals(terminal.getType());
   }
 
   public int currentRow() {
@@ -64,7 +67,7 @@ public class Terminal implements AutoCloseable {
     currentCol = 0;
   }
 
-  public void moveCursor(int row, int col) {
+  public void locate(int row, int col) {
     if (isTerminal()) {
       terminal.writer().print("\033[" + (row + 1) + ";" + (col + 1) + "H");
       terminal.flush();
@@ -73,8 +76,9 @@ public class Terminal implements AutoCloseable {
     currentCol = col;
   }
 
+  // TODO: should not change location (currentRow, currentCol) or affect the print/lprint
   public void plot(int x, int y) {
-    moveCursor(y, x);
+    locate(y, x);
     if (isTerminal()) {
       terminal.writer().print("█");
       terminal.flush();
@@ -84,8 +88,9 @@ public class Terminal implements AutoCloseable {
     currentCol = x + 1;
   }
 
+  // TODO: should not change location (currentRow, currentCol) or affect print/lprint
   public void unplot(int x, int y) {
-    moveCursor(y, x);
+    locate(y, x);
     if (isTerminal()) {
       terminal.writer().print(" ");
       terminal.flush();
@@ -99,7 +104,7 @@ public class Terminal implements AutoCloseable {
     if (isTerminal()) {
       int height = terminal.getHeight();
       if (height > 0) {
-        moveCursor(height - 1, 0);
+        locate(height - 1, 0);
         terminal.writer().println();
         terminal.flush();
         // After scroll, we are still at the bottom row
@@ -117,16 +122,6 @@ public class Terminal implements AutoCloseable {
   public void print(String text) {
     if (isTerminal()) {
       terminal.writer().print(text);
-      terminal.flush();
-    } else {
-      System.out.print(text);
-    }
-    currentCol += text.length();
-  }
-
-  public void printInverse(String text) {
-    if (isTerminal()) {
-      terminal.writer().print("\033[7m" + text + "\033[27m");
       terminal.flush();
     } else {
       System.out.print(text);
@@ -197,7 +192,7 @@ public class Terminal implements AutoCloseable {
       currentRow++;
       currentCol = 0;
       return line;
-    } catch (org.jline.reader.UserInterruptException | org.jline.reader.EndOfFileException e) {
+    } catch (UserInterruptException | EndOfFileException e) {
       return null;
     }
   }

@@ -1,66 +1,44 @@
-# Architecture: Principles and Pipeline
+# Architecture
 
-The Bazlang interpreter is designed to transform Sinclair BASIC source code
-into observable output through a deterministic, multi-stage pipeline. The
-system prioritizes dialect fidelity and immediate feedback over internal
-complexity.
+BazLang works by transforming source code into executable actions through three main stages. This document describes how the interpreter processes code.
 
-## The Transformation Pipeline
+## How It Works
 
-1.  **Normalization and Tokenization**: The raw character stream is filtered
-    to remove non-executable content (comments and blank lines). Valid source
-    is then broken down into its fundamental linguistic units (keywords,
-    literals, and operators) while enforcing mandatory monotonic line labels.
-2.  **Strictly-Typed Translation**: The sequence of units is translated into a
-    structured, type-aware representation. By separating numeric and string
-    logic during this translation, the system identifies logic errors (such as
-    adding a number to a string) before any code is executed.
-3.  **State-Driven Execution**: The structured program is loaded into an
-    execution engine that manages variables, control flow (loops and jumps),
-    and the simulated screen state.
+1.  **Scanning and Parsing**: The interpreter reads the source code character by character. It ignores comments and blank lines, then groups the remaining characters into tokens (like keywords, numbers, and strings). It checks that the code follows basic rules, like having correct line numbers.
+2.  **Type Checking**: The tokens are turned into a structured representation of the code. During this step, the interpreter checks for type errors—like trying to add a number to a string—before running the code.
+3.  **Execution**: The structured code is loaded into the engine. The engine runs the program line by line, managing variables, loops, and screen output.
 
-## Core Behavioral Components
+## Key Components
 
-### Linguistic Normalization
+### Normalization
 
-Enforces the structural rules of the language, ensuring every statement is
-associated with a unique, increasing address (line label). It acts as the
-first gate for source validity.
+The first step is to clean up the source code. The interpreter ensures that every line has a valid, unique, and increasing line number. This makes sure the program runs in the correct order.
 
-### Structural Logic Analysis
+### Logic Analysis
 
-Builds a complete map of the program's logic. It resolves operator precedence
-and enforces the strict typing rules that define the language's mathematical
-and string-handling behavior.
+The interpreter maps out the program's logic. It handles mathematical operations (like strict order of operations) and ensures that numeric and string operations are kept separate.
 
 ### Execution Engine
 
-The heart of the interpreter. It manages the lifecycle of the program,
-handling the dynamic allocation of arrays, the navigation between line labels,
-and the persistent state of the user's environment.
+This is the core of the interpreter. It:
+*   Allocates memory for variables and arrays.
+*   Handles jumps (`GOTO`, `GOSUB`) and loops (`FOR`/`NEXT`).
+*   Maintains the state of the program as it runs.
 
-### Simulated Interface
+### Interface
 
-A centralized component that manages all interaction between the program and
-the user. It tracks cursor positions, handles screen clearing, and manages the
-distinction between standard output and printer output.
+The interface manages interaction with the user. It tracks where the cursor is on the screen, clears the screen when needed, and separates normal output from "printer" output.
 
-## Operational Principles
+## How it Runs
 
-### Address-Based Navigation
+### Line Numbers
 
-Control flow is exclusively driven by line labels. Jumps (`GOTO`, `GOSUB`)
-target these addresses directly, with automatic resolution to the next
-available address if an exact match is not found.
+Everything in BazLang is driven by line numbers. When the code says `GOTO 100`, the interpreter jumps directly to line 100. If line 100 doesn't exist, it jumps to the next available line number.
 
-### Persistent Environment
+### State
 
-Variables and program structure are maintained in a cohesive state that
-survives between execution cycles, mimicking the behavior of a physical
-microcomputer.
+Variables (like `A` or `A$`) stay in memory as long as the program runs. This means you can stop a program, check a variable, and continue (if supported by the implementation).
 
-### Diagnostic Reliability
+### Errors
 
-Errors are reported using a consistent, address-aware format
-(`ReportCode/Address`), ensuring that every fault can be traced back to a
-specific location in the source code.
+If something goes wrong, the interpreter reports an error code and the line number where it happened (e.g., `2/100` means error type 2 at line 100). This helps in finding bugs quickly.
