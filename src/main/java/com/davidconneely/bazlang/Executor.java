@@ -1,5 +1,6 @@
 package com.davidconneely.bazlang;
 
+import com.davidconneely.bazlang.io.Display;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -162,7 +163,22 @@ public class Executor {
   }
 
   private void executeInput(Statement.Input input) {
-    String line = display.readln("");
+    String line;
+    try {
+      line = display.readln("");
+    } catch (Display.BreakException e) {
+      // Ctrl+C at INPUT: interrupt execution
+      state.setRunning(false);
+      throw codedException(
+          ReportCode.BREAK_CONT_REPEATS, ReportCode.BREAK_CONT_REPEATS.getMessage());
+    }
+
+    if (line == null) {
+      // EOF during INPUT treated as empty string or should it abort?
+      // Standard BASIC behavior on EOF isn't well defined, but empty string is safe.
+      line = "";
+    }
+
     if (input.target() instanceof Expression.NumExpr nt) {
       double val;
       try {
@@ -285,7 +301,7 @@ public class Executor {
         Thread.currentThread().interrupt();
         break;
       }
-      if (display.checkInterrupt()) {
+      if (display.pollForBreak()) {
         state.setRunning(false);
         throw codedException(
             ReportCode.BREAK_CONT_REPEATS, ReportCode.BREAK_CONT_REPEATS.getMessage());
@@ -296,7 +312,11 @@ public class Executor {
   private void executePlot(Statement.Plot plot) {
     int x = (int) evaluator.evaluateNumExpr(plot.x()),
         y = (int) evaluator.evaluateNumExpr(plot.y());
-    display.plot(x, y);
+    try {
+      display.plot(x, y);
+    } catch (IllegalArgumentException e) {
+      throw codedException(ReportCode.INTEGER_OUT_OF_RANGE, e.getMessage());
+    }
   }
 
   private void executePrint(Statement.Print print) {
@@ -380,7 +400,11 @@ public class Executor {
   private void executeUnplot(Statement.Unplot unplot) {
     int x = (int) evaluator.evaluateNumExpr(unplot.x()),
         y = (int) evaluator.evaluateNumExpr(unplot.y());
-    display.unplot(x, y);
+    try {
+      display.unplot(x, y);
+    } catch (IllegalArgumentException e) {
+      throw codedException(ReportCode.INTEGER_OUT_OF_RANGE, e.getMessage());
+    }
   }
 
   private void assignNum(Expression.NumExpr target, double val) {
@@ -474,15 +498,20 @@ public class Executor {
       case Statement.Dim dim ->
           "DIM " + dim.variable() + "(" + decompileNumExprs(dim.dimensions()) + ")";
       case Statement.Fast _ -> "FAST";
-      case Statement.For forStmt ->
-          "FOR "
-              + forStmt.variable()
-              + " = "
-              + decompileNumExpr(forStmt.start())
-              + " TO "
-              + decompileNumExpr(forStmt.end())
-              + " STEP "
-              + decompileNumExpr(forStmt.step());
+      case Statement.For forStmt -> {
+        String base =
+            "FOR "
+                + forStmt.variable()
+                + " = "
+                + decompileNumExpr(forStmt.start())
+                + " TO "
+                + decompileNumExpr(forStmt.end());
+        if (forStmt.step() instanceof Expression.NumExpr.Literal l && l.value() == 1.0) {
+          yield base;
+        } else {
+          yield base + " STEP " + decompileNumExpr(forStmt.step());
+        }
+      }
       case Statement.Gosub gosub -> "GOSUB " + decompileNumExpr(gosub.targetLabel());
       case Statement.Goto gotoStmt -> "GOTO " + decompileNumExpr(gotoStmt.targetLabel());
       case Statement.If ifStmt ->
@@ -493,13 +522,36 @@ public class Executor {
       case Statement.Input input -> "INPUT " + decompileLValue(input.target());
       case Statement.Let let ->
           "LET " + decompileLValue(let.target()) + " = " + decompileExpression(let.value());
-      case Statement.ListStmt list ->
-          "LIST " + decompileNumExpr(list.startLabel()) + ", " + decompileNumExpr(list.endLabel());
-      case Statement.LList llist ->
-          "LLIST "
-              + decompileNumExpr(llist.startLabel())
-              + ", "
-              + decompileNumExpr(llist.endLabel());
+      case Statement.ListStmt list -> {
+        boolean defStart =
+            list.startLabel() instanceof Expression.NumExpr.Literal l
+                && l.value() == Limits.MIN_TARGET_LABEL;
+        boolean defEnd =
+            list.endLabel() instanceof Expression.NumExpr.Literal l
+                && l.value() == Limits.MAX_TARGET_LABEL;
+        if (defStart && defEnd) yield "LIST";
+        if (defEnd) yield "LIST " + decompileNumExpr(list.startLabel());
+        if (defStart) yield "LIST ," + decompileNumExpr(list.endLabel());
+        yield "LIST "
+            + decompileNumExpr(list.startLabel())
+            + ","
+            + decompileNumExpr(list.endLabel());
+      }
+      case Statement.LList llist -> {
+        boolean defStart =
+            llist.startLabel() instanceof Expression.NumExpr.Literal l
+                && l.value() == Limits.MIN_TARGET_LABEL;
+        boolean defEnd =
+            llist.endLabel() instanceof Expression.NumExpr.Literal l
+                && l.value() == Limits.MAX_TARGET_LABEL;
+        if (defStart && defEnd) yield "LLIST";
+        if (defEnd) yield "LLIST " + decompileNumExpr(llist.startLabel());
+        if (defStart) yield "LLIST ," + decompileNumExpr(llist.endLabel());
+        yield "LLIST "
+            + decompileNumExpr(llist.startLabel())
+            + ","
+            + decompileNumExpr(llist.endLabel());
+      }
       case Statement.LPrint lprint ->
           "LPRINT " + decompilePrintItems(lprint.items()) + (lprint.newline() ? "" : ";");
       case Statement.New _ -> "NEW";
@@ -511,10 +563,21 @@ public class Executor {
           "POKE " + decompileNumExpr(poke.address()) + ", " + decompileNumExpr(poke.data());
       case Statement.Print print ->
           "PRINT " + decompilePrintItems(print.items()) + (print.newline() ? "" : ";");
-      case Statement.Rand rand -> "RAND " + decompileNumExpr(rand.seed());
+      case Statement.Rand rand -> {
+        if (rand.seed() instanceof Expression.NumExpr.Literal l && l.value() == 0.0) {
+          yield "RAND";
+        }
+        yield "RAND " + decompileNumExpr(rand.seed());
+      }
       case Statement.Rem rem -> "REM " + rem.comment();
       case Statement.Return _ -> "RETURN";
-      case Statement.Run run -> "RUN " + decompileNumExpr(run.targetLabel());
+      case Statement.Run run -> {
+        if (run.targetLabel() instanceof Expression.NumExpr.Literal l
+            && l.value() == (double) Limits.MIN_TARGET_LABEL) {
+          yield "RUN";
+        }
+        yield "RUN " + decompileNumExpr(run.targetLabel());
+      }
       case Statement.Save save -> "SAVE " + decompileStrExpr(save.filename());
       case Statement.Scroll _ -> "SCROLL";
       case Statement.Slow _ -> "SLOW";

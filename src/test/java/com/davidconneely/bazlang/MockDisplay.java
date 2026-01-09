@@ -1,9 +1,10 @@
 package com.davidconneely.bazlang;
 
+import com.davidconneely.bazlang.io.Display;
 import java.util.Collections;
 import java.util.List;
 
-public class MockDisplay extends Display {
+public class MockDisplay implements Display {
   private final StringBuilder output = new StringBuilder();
   private final List<String> inputs;
   private int inputIdx = 0;
@@ -15,7 +16,6 @@ public class MockDisplay extends Display {
   }
 
   public MockDisplay(List<String> inputs) {
-    super(false);
     this.inputs = inputs;
   }
 
@@ -25,11 +25,6 @@ public class MockDisplay extends Display {
 
   public void clearOutput() {
     output.setLength(0);
-  }
-
-  @Override
-  public boolean isTerminal() {
-    return false;
   }
 
   @Override
@@ -134,15 +129,25 @@ public class MockDisplay extends Display {
     return "";
   }
 
+  private boolean simulatedBreak = false;
+
+  public void triggerBreak() {
+    simulatedBreak = true;
+  }
+
+  @Override
+  public boolean pollForBreak() {
+    if (simulatedBreak) {
+      simulatedBreak = false;
+      return true;
+    }
+    return false;
+  }
+
   @Override
   public String inkey() {
     // Not simulating INKEY$ interaction for now
     return "";
-  }
-
-  @Override
-  public boolean checkInterrupt() {
-    return false;
   }
 
   @Override

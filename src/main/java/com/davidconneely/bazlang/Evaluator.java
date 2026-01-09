@@ -1,5 +1,6 @@
 package com.davidconneely.bazlang;
 
+import com.davidconneely.bazlang.io.Display;
 import java.util.List;
 
 public class Evaluator {

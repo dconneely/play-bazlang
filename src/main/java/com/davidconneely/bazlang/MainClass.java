@@ -1,12 +1,26 @@
 package com.davidconneely.bazlang;
 
+import com.davidconneely.bazlang.io.Display;
+import com.davidconneely.bazlang.io.StreamDisplay;
+import com.davidconneely.bazlang.io.TerminalDisplay;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
 public class MainClass {
   public static void main(String[] args) {
-    Display display = new Display();
+    Display display;
+    try {
+      // Simple heuristic: if no console, use stream display
+      if (System.console() == null) {
+        display = new StreamDisplay();
+      } else {
+        display = new TerminalDisplay();
+      }
+    } catch (Exception e) {
+      display = new StreamDisplay();
+    }
+
     if (args.length == 0) {
       runRepl(display);
     } else if (args.length == 1) {
@@ -24,7 +38,10 @@ public class MainClass {
       var tokens = lexer.tokenize();
       Parser parser = new Parser(tokens);
       var program = parser.parseProgram();
-      Interpreter interpreter = new Interpreter();
+      EvalState state = new EvalState();
+      Evaluator evaluator = new Evaluator(state, display);
+      Executor executor = new Executor(state, evaluator, display);
+      Interpreter interpreter = new Interpreter(state, executor);
       interpreter.execute(program);
     } catch (IOException e) {
       display.println("Error reading file: " + e.getMessage());
@@ -43,9 +60,16 @@ public class MainClass {
     Evaluator evaluator = new Evaluator(state, display);
     Executor executor = new Executor(state, evaluator, display);
     Interpreter interpreter = new Interpreter(state, executor);
-    display.println("BazLang REPL. Type 'STOP' or Ctrl+C to exit.");
+    display.println("BazLang REPL. Type 'STOP' or Ctrl+D at the prompt to exit.");
     while (true) {
-      String line = display.readln("\033[7m>\033[27m ");
+      String line;
+      try {
+        line = display.readln("\033[7m>\033[27m ");
+      } catch (Display.BreakException e) {
+        // Ctrl+C at prompt: just reprint prompt
+        continue;
+      }
+
       if (line == null) {
         break; // EOF
       }

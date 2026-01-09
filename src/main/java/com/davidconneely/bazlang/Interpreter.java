@@ -1,5 +1,8 @@
 package com.davidconneely.bazlang;
 
+import com.davidconneely.bazlang.io.Display;
+import com.davidconneely.bazlang.io.StreamDisplay;
+import com.davidconneely.bazlang.io.TerminalDisplay;
 import java.util.Map;
 
 public class Interpreter {
@@ -8,7 +11,12 @@ public class Interpreter {
 
   public Interpreter() {
     this.state = new EvalState();
-    final var terminal = new Display();
+    Display terminal;
+    try {
+      terminal = new TerminalDisplay();
+    } catch (Exception e) {
+      terminal = new StreamDisplay();
+    }
     final var evaluator = new Evaluator(state, terminal);
     this.executor = new Executor(state, evaluator, terminal);
   }
@@ -26,22 +34,17 @@ public class Interpreter {
 
   public void resume() {
     state.setRunning(true);
-    long lastCheck = 0;
     while (state.isRunning()) {
       var entry = state.program().higherEntry(state.currentLineLabel());
       if (entry == null) {
         break;
       }
-      long now = System.currentTimeMillis();
-      if (now - lastCheck > 100) {
-        lastCheck = now;
-        if (executor.terminal().checkInterrupt()) {
-          state.setRunning(false);
-          throw new ReportException(
-              ReportCode.BREAK_CONT_REPEATS,
-              entry.getKey(),
-              ReportCode.BREAK_CONT_REPEATS.getMessage());
-        }
+      if (executor.terminal().pollForBreak()) {
+        state.setRunning(false);
+        throw new ReportException(
+            ReportCode.BREAK_CONT_REPEATS,
+            entry.getKey(),
+            ReportCode.BREAK_CONT_REPEATS.getMessage());
       }
       state.setCurrentLineLabel(entry.getKey());
       try {

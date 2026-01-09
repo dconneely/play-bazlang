@@ -1,5 +1,5 @@
 #!/bin/bash
-# Bazlang runner script
+# BazLang runner script
 
 JAR_FILE="build/libs/play-bazlang-1.0-SNAPSHOT.jar"
 

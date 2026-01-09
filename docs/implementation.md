@@ -1,84 +1,39 @@
 # Implementation Details
 
-This document explains how the BazLang interpreter is built in Java.
+This document explains how the BazLang interpreter is built using Java.
 
 ## Code Structure
 
-The code is built around two main types: `Statement` and `Expression`.
+The code represents the BASIC language using two main categories: `Statement` (commands) and `Expression` (values).
 
-### Statements
+### Main Components
 
-Statements are the commands the program executes. Some key details:
+- **`Lexer`**: Reads the source text and turns it into a list of tokens. It handles case-insensitivity for keywords.
+- **`Parser`**: Takes tokens and builds the `Statement` and `Expression` objects. It catches syntax errors and ensures the program structure is valid.
+- **`EvalState`**: The program's memory. It stores the lines of code, the variables (scalars and arrays), and the state of any active `FOR` loops.
+- **`Evaluator`**: Calculates the results of expressions, such as math (`1+2`) or string operations (`A$ + B$`). It also handles complex logic like array indexing and string slicing.
+- **`Executor`**: Performs the action of a single `Statement` (like `LET` or `PRINT`). It updates the `EvalState` or sends output to the `Display`.
+- **`Interpreter`**: Manages the overall flow. It decides which line to run next, handles jumps, and loops until the program stops.
 
-- **Assignments (`LET`)**: Handles both numbers and strings, and works for single variables or array elements.
-- **Input (`INPUT`)**: Reads user input into variables or array elements.
-- **Flow Control**: Commands like `GOTO` and `FOR` use the `EvalState` to find which line to run next.
+## I/O System (The `io` Package)
 
-### Expressions
+Input and output are handled by a set of classes that share a common `Display` interface, isolating the interpreter from the specific device.
 
-Expressions represent values or calculations. They are strictly divided into Numeric and String types to prevent mixing them up improperly.
-
-## Main Components
-
-### `Lexer`
-
-This reads the source code string.
-- It scans through characters one by one.
-- It looks up keywords (which are case-insensitive).
-- It produces a list of tokens.
-
-### `Parser`
-
-This turns the list of tokens into a structured program.
-- It matches the tokens against the rules of the language.
-- It handles complex things like assignment targets (variables vs arrays).
-- It catches syntax errors and reports the line number.
-
-### `EvalState`
-
-This holds the memory of the running program.
-- **Program**: Stores the lines of code so they can be looked up by line number.
-- **Variables**: Stores numbers, strings, and arrays in separate maps.
-- **Loops**: Keeps track of active `FOR` loops so `NEXT` knows where to go back to.
-
-### `Executor` / `Interpreter`
-
-- **Executor**: Runs a single statement. It looks at what the statement is and updates the `EvalState` or the screen.
-- **Interpreter**: Controls the flow. It keeps track of the current line number and moves to the next one. It also handles logic for skipping loops if they shouldn't run.
-
-### `Evaluator`
-
-This calculates values.
-- It takes an expression (like `1 + 2` or `LEN("A")`) and returns the result.
-- It handles array indexing and string slicing logic.
-
-## ZX81 Differences
-
-BazLang is similar to ZX81 BASIC but has some modern changes:
-
-- **Keywords**: You can type them in any case (e.g., `print`, `PRINT`).
-- **Typing**: You type the full word, not a special token.
-- **Files**: Source code is just standard UTF-8 text.
-- **Graphics**: Uses the Unicode block character (█) for `PLOT`.
-- **Screen**: Uses standard terminal codes (ANSI) to move the cursor and clear the screen.
+- **`BufferedDisplay`**: An abstract class that maintains a virtual `char[24][32]` screen buffer. It implements the logic for `PLOT` and `UNPLOT` by merging pixels into Unicode 2x2 quadrant characters.
+- **`TerminalDisplay`**: The standard version for interactive use. It uses the JLine library to handle raw keyboard input (`INKEY$`) and ANSI escape codes for precise cursor positioning.
+- **`StreamDisplay`**: A simpler version used for pipes or non-interactive environments. It uses standard Java `System.in` and `System.out`.
 
 ## Specific Logic
 
-### `INPUT`
+- **Graphics**: `PLOT` coordinates (0-63, 0-47) are mapped to the character buffer (0-31, 0-23). The system calculates which bit in a quadrant character needs to change, updates the buffer, and prints the new character.
+- **`FOR-NEXT`**: The `FOR` statement saves its state (target variable, limit, step, and return line) in `EvalState`. The `NEXT` statement increments the variable and checks if the loop should continue.
+- **`INPUT`**: This uses the `Display` to read a full line of text from the user. It then parses this text to assign it to the target variable, handling type conversion for numbers.
 
-The `INPUT` command shares logic with `LET`.
-1. It reads a line of text from the user.
-2. If the variable is a number, it tries to convert the text to a number (defaulting to 0 if it fails).
-3. If the variable is a string, it takes the text as-is.
+## To Do
 
-### `FOR-NEXT` Loop
-
-- **Start**: `FOR` sets up the loop. If the start is past the end (and step is positive), it searches ahead for `NEXT` and skips the loop entirely.
-- **End**: `NEXT` adds the step to the variable. If the loop isn't finished, it jumps back to the line after `FOR`.
-- **Nesting**: Nested loops work naturally because they use the variable name to store state.
-
-## I/O
-
-- The `Display` class handles printing and reading text.
-- It abstracts away the details of `System.in` and `System.out`.
-- It buffers input to allow for line editing if needed.
+- Improve example programs (Lunar Lander, Mastermind).
+- Create a 3D maze or adventure game example.
+- Add more games like "Life", Rubik's Cube, or Checkers.
+- Implement line editing in the REPL (currently just overwrites).
+- Implement bulk line deletion and line renumbering.
+- Consider if `INPUT` should always happen at the bottom of the screen (ZX81 style).

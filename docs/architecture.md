@@ -1,44 +1,26 @@
 # Architecture
 
-BazLang works by transforming source code into executable actions through three main stages. This document describes how the interpreter processes code.
+BazLang follows a simple design where a program is a list of numbered lines. It processes and runs code in three main steps.
 
-## How It Works
+## The Three Stages
 
-1.  **Scanning and Parsing**: The interpreter reads the source code character by character. It ignores comments and blank lines, then groups the remaining characters into tokens (like keywords, numbers, and strings). It checks that the code follows basic rules, like having correct line numbers.
-2.  **Type Checking**: The tokens are turned into a structured representation of the code. During this step, the interpreter checks for type errors—like trying to add a number to a string—before running the code.
-3.  **Execution**: The structured code is loaded into the engine. The engine runs the program line by line, managing variables, loops, and screen output.
+1.  **Reading (Lexing)**: The code is read and broken into small pieces like keywords, numbers, and strings.
+2.  **Structuring (Parsing)**: These pieces are organized into commands (statements) and values (expressions). This is where the interpreter checks if the code makes sense (for example, making sure an `IF` has a condition).
+3.  **Running (Execution)**: The interpreter goes through the lines one by one. It keeps track of variables in memory and sends output to the screen or printer.
 
-## Key Components
+## Key Design Ideas
 
-### Normalization
+### Line-Based Flow
+Everything depends on line numbers. The interpreter usually goes from one line to the next highest number. Commands like `GOTO` or `FOR` change this order by telling the interpreter to jump to a different line.
 
-The first step is to clean up the source code. The interpreter ensures that every line has a valid, unique, and increasing line number. This makes sure the program runs in the correct order.
+### Memory & Persistence
+Variables are stored in a central "state" while the program runs. Numbers and strings are kept separate. This state persists even if the program stops (via `STOP`), allowing you to check variables and then `CONT`inue.
 
-### Logic Analysis
+### Screen and Graphics
+The display is handled as a 32x24 grid for graphics (`PLOT` and `UNPLOT`), mapped to the terminal window. Text can be printed anywhere on the terminal (even outside this grid), but graphics are constrained to the buffer to allow for pixel-level manipulation.
 
-The interpreter maps out the program's logic. It handles mathematical operations (like strict order of operations) and ensures that numeric and string operations are kept separate.
+### Error Handling
+If something goes wrong (like dividing by zero), the interpreter stops and reports a code (e.g., `6/100`) indicating the error type and the line number, helping you find bugs quickly.
 
-### Execution Engine
-
-This is the core of the interpreter. It:
-*   Allocates memory for variables and arrays.
-*   Handles jumps (`GOTO`, `GOSUB`) and loops (`FOR`/`NEXT`).
-*   Maintains the state of the program as it runs.
-
-### Interface
-
-The interface manages interaction with the user. It tracks where the cursor is on the screen, clears the screen when needed, and separates normal output from "printer" output.
-
-## How it Runs
-
-### Line Numbers
-
-Everything in BazLang is driven by line numbers. When the code says `GOTO 100`, the interpreter jumps directly to line 100. If line 100 doesn't exist, it jumps to the next available line number.
-
-### State
-
-Variables (like `A` or `A$`) stay in memory as long as the program runs. This means you can stop a program, check a variable, and continue (if supported by the implementation).
-
-### Errors
-
-If something goes wrong, the interpreter reports an error code and the line number where it happened (e.g., `2/100` means error type 2 at line 100). This helps in finding bugs quickly.
+### Device Independence
+The core logic of the interpreter is separate from the terminal. This allows the same code to run in a real terminal, a simple text stream, or a testing environment.

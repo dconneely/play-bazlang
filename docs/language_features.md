@@ -91,8 +91,12 @@ Returns `1` for True, `0` for False.
 - **`INPUT var`**: Ask user for input.
 - **`CLS`**: Clear screen.
 - **`SCROLL`**: Scroll screen up.
-- **`PLOT x, y`**: Draw a block.
-- **`UNPLOT x, y`**: Erase a block.
+- **`PLOT x, y`**: Draw a block at coordinates `(x, y)`.
+    - Coordinates range from `0,0` (bottom-left) to `63,47` (top-right).
+    - Uses Unicode 2x2 block characters (quadrants) to simulate higher resolution.
+    - Modifies the underlying character cell without overwriting the entire character if possible.
+- **`UNPLOT x, y`**: Erase a block at coordinates `(x, y)`.
+    - Same coordinate system as `PLOT`.
 - **`LIST`**: Show program code.
 
 ### Data
