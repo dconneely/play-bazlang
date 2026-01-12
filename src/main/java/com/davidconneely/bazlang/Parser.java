@@ -481,9 +481,13 @@ public class Parser {
       } else if (type == TokenType.VAL || type == TokenType.CODE || type == TokenType.LEN) {
         advance();
         return new Expression.NumExpr.StrFunc(type, parseStrPrimary());
+      } else if (type == TokenType.CHR_STR
+          || type == TokenType.STR_STR
+          || type == TokenType.INKEY_STR) {
+        throw codedException("String function used in numeric context: " + type);
       } else {
         advance();
-        return new Expression.NumExpr.NumFunc(type, parseNumUnary());
+        return new Expression.NumExpr.NumFunc(type, parseNumPrimary());
       }
     }
     if (match(TokenType.IDENTIFIER)) {
@@ -524,7 +528,7 @@ public class Parser {
       }
       if (type == TokenType.CHR_STR || type == TokenType.STR_STR) {
         advance();
-        return new Expression.StrExpr.NumFunc(type, parseNumExpr());
+        return new Expression.StrExpr.NumFunc(type, parseNumPrimary());
       }
     }
     if (match(TokenType.IDENTIFIER)) {

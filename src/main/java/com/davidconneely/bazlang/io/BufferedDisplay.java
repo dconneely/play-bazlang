@@ -3,8 +3,8 @@ package com.davidconneely.bazlang.io;
 import java.util.Arrays;
 
 abstract class BufferedDisplay implements Display {
-  private static final int ROWS = 24;
-  private static final int COLS = 32;
+  protected static final int ROWS = 24;
+  protected static final int COLS = 32;
   private static final int PLOT_X_SIZE = COLS * 2;
   private static final int PLOT_Y_SIZE = ROWS * 2;
 
@@ -63,16 +63,24 @@ abstract class BufferedDisplay implements Display {
     rawLocate(row, col);
   }
 
-  @Override
-  public void print(String text) {
+  protected void updateBuffer(String text) {
     for (char c : text.toCharArray()) {
       if (c < 32 || c == 127) continue;
       if (currentRow >= 0 && currentRow < ROWS && currentCol >= 0 && currentCol < COLS) {
         buffer[currentRow][currentCol] = c;
       }
-      rawPrint(String.valueOf(c));
       currentCol++;
     }
+  }
+
+  @Override
+  public void print(String text) {
+    updateBuffer(text);
+    StringBuilder clean = new StringBuilder();
+    for (char c : text.toCharArray()) {
+      if (c >= 32 && c != 127) clean.append(c);
+    }
+    rawPrint(clean.toString());
   }
 
   @Override
@@ -88,13 +96,21 @@ abstract class BufferedDisplay implements Display {
     rawPrint("\n");
   }
 
-  @Override
-  public void scroll() {
-    // Shift buffer up
+  protected void scrollBuffer() {
+
     for (int r = 0; r < ROWS - 1; r++) {
+
       System.arraycopy(buffer[r + 1], 0, buffer[r], 0, COLS);
     }
+
     Arrays.fill(buffer[ROWS - 1], ' ');
+  }
+
+  @Override
+  public void scroll() {
+
+    scrollBuffer();
+
     rawScroll();
   }
 

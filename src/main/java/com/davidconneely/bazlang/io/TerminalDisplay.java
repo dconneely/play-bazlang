@@ -77,7 +77,6 @@ public class TerminalDisplay extends BufferedDisplay {
   @Override
   protected void rawLocate(int row, int col) {
     terminal.writer().print("\033[" + (row + 1) + ";" + (col + 1) + "H");
-    terminal.flush();
   }
 
   @Override
@@ -142,8 +141,14 @@ public class TerminalDisplay extends BufferedDisplay {
           cachedLineReader.readLine(
               prompt != null ? prompt : "", null, (MaskingCallback) null, initial);
 
-      // BufferedDisplay.print will handle wrapping and scrolling automatically
-      println(line);
+      // Update buffer manually to match LineReader's output without double-printing
+      updateBuffer(line);
+      currentRow++;
+      currentCol = 0;
+      if (currentRow >= ROWS) {
+        scrollBuffer();
+        currentRow = ROWS - 1;
+      }
 
       enableRawMode();
       return line;

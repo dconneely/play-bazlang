@@ -33,7 +33,10 @@ Input and output are handled by a set of classes that share a common `Display` i
 
 - Improve example programs (Lunar Lander, Mastermind).
 - Create a 3D maze or adventure game example.
-- Add more games like "Life", Rubik's Cube, or Checkers.
+- Add more games like Rubik's Cube, One-Armed Bandit, Backgammon.
 - Implement line editing in the REPL (currently just overwrites).
 - Implement bulk line deletion and line renumbering.
-- Consider if `INPUT` should always happen at the bottom of the screen (ZX81 style).
+- Maybe '!' to call out to shell, and '*' to introduce REPL command?
+- Consider if `INPUT` should always happen at the bottom of the screen
+  (ZX81 style) rather than at the current print position.
+- `VAL` (and numeric `INPUT`) can evaluate text as an expression
