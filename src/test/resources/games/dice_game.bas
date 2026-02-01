@@ -1,4 +1,6 @@
-# Dice Game
+# Dice Game - Higher or Lower
+# Guess if the next dice roll will be higher or lower
+5 RAND 0
 10 PRINT "DICE GAME: HIGHER OR LOWER"
 20 LET D = INT(RND * 6) + 1
 30 PRINT "CURRENT DIE: "; D

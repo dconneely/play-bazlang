@@ -42,7 +42,7 @@ public class TerminalDisplay extends BufferedDisplay {
       this.reader = terminal.reader();
       Runtime.getRuntime().addShutdownHook(new Thread(this::close));
     } catch (IOException e) {
-      throw new RuntimeException("Failed to initialize terminal", e);
+      throw new RuntimeException("Failed to initialise terminal", e);
     }
   }
 
@@ -169,7 +169,7 @@ public class TerminalDisplay extends BufferedDisplay {
 
   @Override
   public String inkey() {
-    if (typeAheadBuffer.length() > 0) {
+    if (!typeAheadBuffer.isEmpty()) {
       char c = typeAheadBuffer.charAt(0);
       typeAheadBuffer.deleteCharAt(0);
       return String.valueOf(c);

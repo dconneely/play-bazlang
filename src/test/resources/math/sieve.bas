@@ -1,4 +1,5 @@
 # Sieve of Eratosthenes
+# Finds all primes up to 100 using the classic algorithm
 10 PRINT "SIEVE OF ERATOSTHENES"
 20 DIM A(100)
 30 FOR I = 1 TO 100

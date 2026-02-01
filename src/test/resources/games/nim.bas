@@ -1,4 +1,5 @@
-# ADVANCED 3-PILE NIM
+# Nim
+# Take sticks from piles - last one to take loses
 10 DIM P(3)
 20 LET P(1)=3
 30 LET P(2)=5

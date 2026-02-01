@@ -4,16 +4,16 @@ This document explains how the BazLang interpreter is built using Java.
 
 ## Code Structure
 
-The code represents the BASIC language using two main categories: `Statement` (commands) and `Expression` (values).
+The interpreter executes directly from ANTLR's parse tree using a visitor pattern.
 
 ### Main Components
 
-- **`Lexer`**: Reads the source text and turns it into a list of tokens. It handles case-insensitivity for keywords.
-- **`Parser`**: Takes tokens and builds the `Statement` and `Expression` objects. It catches syntax errors and ensures the program structure is valid.
+- **ANTLR Grammar (`BazLang.g4`)**: Defines the lexer and parser rules declaratively. ANTLR generates `BazLangLexer` and `BazLangParser` from this grammar.
+- **`AntlrParser`**: A facade that wraps the ANTLR parser, providing simple `parseProgramLines()` and `parseReplLine()` methods.
+- **`BazLangExecutor`**: A visitor that executes statements directly from the parse tree. It handles expression evaluation, variable assignment, and all statement execution.
 - **`EvalState`**: The program's memory. It stores the lines of code, the variables (scalars and arrays), and the state of any active `FOR` loops.
-- **`Evaluator`**: Calculates the results of expressions, such as math (`1+2`) or string operations (`A$ + B$`). It also handles complex logic like array indexing and string slicing.
-- **`Executor`**: Performs the action of a single `Statement` (like `LET` or `PRINT`). It updates the `EvalState` or sends output to the `Display`.
 - **`Interpreter`**: Manages the overall flow. It decides which line to run next, handles jumps, and loops until the program stops.
+- **`ProgramLine`**: Stores the source text of each line and lazily parses to a parse tree on first execution.
 
 ## I/O System (The `io` Package)
 

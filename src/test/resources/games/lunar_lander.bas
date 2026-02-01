@@ -1,4 +1,6 @@
-# HARDCORE LUNAR LANDER
+# Lunar Lander
+# Land the spacecraft safely on the moon
+5 RAND 0
 10 LET H=150+INT(RND*100)
 20 LET V=-10-INT(RND*10)
 30 LET F=100

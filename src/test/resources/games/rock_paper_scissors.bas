@@ -1,4 +1,6 @@
 # Rock Paper Scissors
+# Classic game against the computer
+5 RAND 0
 10 PRINT "ROCK, PAPER, SCISSORS"
 20 PRINT "1=ROCK, 2=PAPER, 3=SCISSORS"
 30 PRINT "YOUR CHOICE? ";

@@ -1,4 +1,6 @@
-# HANGMAN WITH IMPROVED GRAPHICS
+# Hangman
+# Guess the hidden word before the man is hanged
+5 RAND 0
 10 DIM W$(16, 9)
 20 LET W$(1) = "COMPUTER"
 30 LET W$(2) = "BASIC"

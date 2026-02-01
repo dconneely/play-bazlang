@@ -3,22 +3,19 @@ package com.davidconneely.bazlang;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import java.util.List;
+import com.davidconneely.bazlang.antlr.AntlrParser;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 class StrTest {
+  private static final AntlrParser parser = new AntlrParser();
 
   private void runProgram(String source, String expectedOutput) {
-    Lexer lexer = new Lexer(source);
-    List<Token> tokens = lexer.tokenize();
-    Parser parser = new Parser(tokens);
-    Map<Integer, Statement> program = parser.parseProgram();
+    Map<Integer, ProgramLine> program = parser.parseProgramLines(source);
 
     EvalState state = new EvalState();
     MockDisplay display = new MockDisplay();
-    Evaluator evaluator = new Evaluator(state, display);
-    Executor executor = new Executor(state, evaluator, display);
+    BazLangExecutor executor = new BazLangExecutor(state, display);
     Interpreter interpreter = new Interpreter(state, executor);
 
     interpreter.execute(program);
@@ -29,15 +26,11 @@ class StrTest {
   private void runProgram(String source) {
     // Overloaded for cases where we don't check output immediately in runProgram
     // or when we expect an exception.
-    Lexer lexer = new Lexer(source);
-    List<Token> tokens = lexer.tokenize();
-    Parser parser = new Parser(tokens);
-    Map<Integer, Statement> program = parser.parseProgram();
+    Map<Integer, ProgramLine> program = parser.parseProgramLines(source);
 
     EvalState state = new EvalState();
     MockDisplay display = new MockDisplay();
-    Evaluator evaluator = new Evaluator(state, display);
-    Executor executor = new Executor(state, evaluator, display);
+    BazLangExecutor executor = new BazLangExecutor(state, display);
     Interpreter interpreter = new Interpreter(state, executor);
 
     interpreter.execute(program);
@@ -262,6 +255,171 @@ class StrTest {
   void testTypeMismatchUnaryFunction() {
     String source = "10 PRINT LEN(1)";
     assertThrows(ReportException.class, () -> runProgram(source));
+  }
+
+  @Test
+  void testMultiDimCharArraySliceAssignment() {
+    // 2D character array: assign to slice of element
+    String source =
+        """
+        10 DIM A$(3, 10)
+        20 LET A$(2) = "ABCDEFGHIJ"
+        30 LET A$(2, 3 TO 6) = "XY"
+        40 PRINT A$(2)
+        """;
+    runProgram(source, "ABXY  GHIJ" + System.lineSeparator());
+  }
+
+  @Test
+  void testCharArraySliceRead() {
+    // Read a slice from a character array element
+    String source =
+        """
+        10 DIM A$(2, 10)
+        20 LET A$(1) = "HELLO WRLD"
+        30 PRINT A$(1, 1 TO 5)
+        """;
+    runProgram(source, "HELLO" + System.lineSeparator());
+  }
+
+  @Test
+  void testCharArraySliceWithOpenEnd() {
+    // Slice with open end (TO end of string)
+    String source =
+        """
+        10 DIM A$(2, 10)
+        20 LET A$(1) = "ABCDEFGHIJ"
+        30 PRINT A$(1, 6 TO )
+        """;
+    runProgram(source, "FGHIJ" + System.lineSeparator());
+  }
+
+  @Test
+  void testCharArraySliceWithOpenStart() {
+    // Slice with open start (from beginning) - uses explicit "1 TO 3"
+    String source =
+        """
+        10 DIM A$(2, 10)
+        20 LET A$(1) = "ABCDEFGHIJ"
+        30 PRINT A$(1, 1 TO 3)
+        """;
+    runProgram(source, "ABC" + System.lineSeparator());
+  }
+
+  @Test
+  void testStringConcatenation() {
+    runProgram(
+        "10 LET A$ = \"HELLO\" + \" \" + \"WORLD\"\n20 PRINT A$",
+        "HELLO WORLD" + System.lineSeparator());
+  }
+
+  @Test
+  void testStringSliceAssignmentWithConcatenation() {
+    // Assign concatenated string to slice
+    String source =
+        """
+        10 LET A$ = "XXXXXXXXXXXX"
+        20 LET A$(3 TO 9) = "HI" + " " + "THERE"
+        30 PRINT A$
+        """;
+    runProgram(source, "XXHI THERXXX" + System.lineSeparator());
+  }
+
+  @Test
+  void testStringIndexOutOfBoundsHigh() {
+    // Accessing beyond string length
+    assertThrows(ReportException.class, () -> runProgram("10 LET A$=\"HI\"\n20 PRINT A$(5)"));
+  }
+
+  @Test
+  void testStringIndexOutOfBoundsZero() {
+    // Index 0 is invalid (1-based indexing)
+    assertThrows(ReportException.class, () -> runProgram("10 LET A$=\"HI\"\n20 PRINT A$(0)"));
+  }
+
+  @Test
+  void testStringSliceOutOfBounds() {
+    // Slice end beyond string length - throws error
+    assertThrows(ReportException.class, () -> runProgram("10 LET A$=\"HI\"\n20 PRINT A$(1 TO 10)"));
+  }
+
+  @Test
+  void testEmptyStringOperations() {
+    // Empty string LEN
+    runProgram("10 LET A$=\"\"\n20 PRINT LEN(A$)", "0" + System.lineSeparator());
+  }
+
+  @Test
+  void testSingleCharacterStringSlice() {
+    // Single character accessed as slice
+    runProgram("10 LET A$=\"X\"\n20 PRINT A$(1 TO 1)", "X" + System.lineSeparator());
+  }
+
+  @Test
+  void testCharArrayIndexOutOfBoundsHigh() {
+    // Accessing beyond array bounds
+    assertThrows(ReportException.class, () -> runProgram("10 DIM A$(3, 5)\n20 PRINT A$(5)"));
+  }
+
+  @Test
+  void testCharArrayIndexOutOfBoundsZero() {
+    // Index 0 is invalid
+    assertThrows(ReportException.class, () -> runProgram("10 DIM A$(3, 5)\n20 PRINT A$(0)"));
+  }
+
+  @Test
+  void testCharArrayCharacterIndexOutOfBounds() {
+    // Character index beyond element width
+    assertThrows(
+        ReportException.class,
+        () -> runProgram("10 DIM A$(3, 5)\n20 LET A$(1)=\"HELLO\"\n30 PRINT A$(1, 10)"));
+  }
+
+  @Test
+  void testStringAssignmentToIndex() {
+    // Assign single character to string index
+    String source =
+        """
+        10 LET A$="HELLO"
+        20 LET A$(1)="X"
+        30 PRINT A$
+        """;
+    runProgram(source, "XELLO" + System.lineSeparator());
+  }
+
+  @Test
+  void testStringAssignmentToIndexMultiChar() {
+    // Assign multi-char to single index - only first char used
+    String source =
+        """
+        10 LET A$="HELLO"
+        20 LET A$(1)="XYZ"
+        30 PRINT A$
+        """;
+    runProgram(source, "XELLO" + System.lineSeparator());
+  }
+
+  @Test
+  void testCharArraySliceAssignmentOutOfBounds() {
+    // Slice assignment with out-of-bounds end - throws error
+    assertThrows(
+        ReportException.class,
+        () ->
+            runProgram(
+                "10 DIM A$(5)\n20 LET A$=\"12345\"\n30 LET A$(3 TO 10)=\"ABCDEFGH\"\n40 PRINT A$"));
+  }
+
+  @Test
+  void testStringSliceReversedIndices() {
+    // Start > End should return empty or error
+    assertThrows(
+        ReportException.class, () -> runProgram("10 LET A$=\"HELLO\"\n20 PRINT A$(4 TO 2)"));
+  }
+
+  @Test
+  void testNumericArraySliceNotAllowed() {
+    // Slices not allowed on numeric arrays
+    assertThrows(ReportException.class, () -> runProgram("10 DIM A(5)\n20 PRINT A(1 TO 3)"));
   }
 
   private void assertDoesNotThrow(Runnable runnable) {

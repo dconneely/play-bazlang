@@ -1,12 +1,11 @@
 # Architecture
 
-BazLang follows a simple design where a program is a list of numbered lines. It processes and runs code in three main steps.
+BazLang follows a simple design where a program is a list of numbered lines. It processes and runs code in two main steps.
 
-## The Three Stages
+## The Two Stages
 
-1.  **Reading (Lexing)**: The code is read and broken into small pieces like keywords, numbers, and strings.
-2.  **Structuring (Parsing)**: These pieces are organized into commands (statements) and values (expressions). This is where the interpreter checks if the code makes sense (for example, making sure an `IF` has a condition).
-3.  **Running (Execution)**: The interpreter goes through the lines one by one. It keeps track of variables in memory and sends output to the screen or printer.
+1.  **Lexing & Parsing**: The ANTLR-generated lexer breaks code into tokens (keywords, numbers, strings), and the parser organizes them into a parse tree. This is defined declaratively in `BazLang.g4`. Parsing is lazy: each line is parsed on first execution and cached.
+2.  **Execution**: The `BazLangExecutor` visitor walks the parse tree directly, evaluating expressions and executing statements. The interpreter goes through the lines one by one, keeping track of variables in memory and sending output to the screen or printer.
 
 ## Key Design Ideas
 

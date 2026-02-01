@@ -9,13 +9,10 @@ public enum ReportCode {
   OUT_OF_SCREEN('5', "Out of screen"),
   NUMBER_TOO_BIG('6', "Number too big"),
   RETURN_WITHOUT_GOSUB('7', "RETURN without GOSUB"),
-  END_OF_FILE('8', "End of file"),
   STOP_STATEMENT('9', "STOP statement"),
-  INVALID_ARGUMENT('A', "Invalid argument"),
   INTEGER_OUT_OF_RANGE('B', "Integer out of range"),
   NONSENSE_IN_BASIC('C', "Nonsense in BASIC"),
   BREAK_CONT_REPEATS('D', "BREAK - CONT repeats"),
-  OUT_OF_DATA('E', "Out of data"),
   INVALID_FILE_NAME('F', "Invalid file name");
 
   private final char code;

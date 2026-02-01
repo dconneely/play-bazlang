@@ -1,4 +1,5 @@
-# Numeric Array Grid Demo
+# Array Grid
+# Demonstrates 2D numeric arrays with a multiplication table
 10 DIM G(5, 5)
 20 FOR R = 1 TO 5
 30   FOR C = 1 TO 5

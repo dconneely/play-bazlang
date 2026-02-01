@@ -4,28 +4,26 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.davidconneely.bazlang.antlr.AntlrParser;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 /** Ensures that specific documented behaviors are tested. */
 class BehaviourTest {
+  private static final AntlrParser parser = new AntlrParser();
 
   private EvalState runProgram(String source) {
     return runProgram(source, List.of());
   }
 
   private EvalState runProgram(String source, List<String> inputs) {
-    Lexer lexer = new Lexer(source);
-    List<Token> tokens = lexer.tokenize();
-    Parser parser = new Parser(tokens);
-    Map<Integer, Statement> program = parser.parseProgram();
+    Map<Integer, ProgramLine> program = parser.parseProgramLines(source);
     EvalState state = new EvalState();
 
     MockDisplay display = new MockDisplay(inputs);
 
-    Evaluator evaluator = new Evaluator(state, display);
-    Executor executor = new Executor(state, evaluator, display);
+    BazLangExecutor executor = new BazLangExecutor(state, display);
     Interpreter interpreter = new Interpreter(state, executor);
     try {
       interpreter.execute(program);
@@ -38,16 +36,12 @@ class BehaviourTest {
   }
 
   private String runProgramCapture(String source) {
-    Lexer lexer = new Lexer(source);
-    List<Token> tokens = lexer.tokenize();
-    Parser parser = new Parser(tokens);
-    Map<Integer, Statement> program = parser.parseProgram();
+    Map<Integer, ProgramLine> program = parser.parseProgramLines(source);
     EvalState state = new EvalState();
 
     MockDisplay display = new MockDisplay();
 
-    Evaluator evaluator = new Evaluator(state, display);
-    Executor executor = new Executor(state, evaluator, display);
+    BazLangExecutor executor = new BazLangExecutor(state, display);
     Interpreter interpreter = new Interpreter(state, executor);
     try {
       interpreter.execute(program);
@@ -190,6 +184,80 @@ class BehaviourTest {
     assertEquals("SKIP" + System.lineSeparator() + "TARGET" + System.lineSeparator(), output);
   }
 
+  @Test
+  void testZx81AndOperator() {
+    // ZX81: A AND B = A if B ≠ 0, 0 if B = 0 (numeric)
+    EvalState state =
+        runProgram(
+            """
+        10 LET A = 5 AND 1
+        20 LET B = 5 AND 0
+        30 LET C = 0 AND 1
+        40 LET D = 3.5 AND 2
+        """);
+    assertEquals(5.0, state.numScalars().get("A")); // 5 AND 1 = 5
+    assertEquals(0.0, state.numScalars().get("B")); // 5 AND 0 = 0
+    assertEquals(0.0, state.numScalars().get("C")); // 0 AND 1 = 0
+    assertEquals(3.5, state.numScalars().get("D")); // 3.5 AND 2 = 3.5
+  }
+
+  @Test
+  void testZx81AndOperatorWithStrings() {
+    // ZX81: str AND n = str if n ≠ 0, "" if n = 0
+    String output =
+        runProgramCapture(
+            """
+        10 PRINT "A" AND 1
+        20 PRINT "[" + ("A" AND 0) + "]"
+        30 PRINT "HELLO" AND 5
+        40 PRINT "[" + ("HELLO" AND 0) + "]"
+        """);
+    String[] lines = output.split(System.lineSeparator());
+    assertEquals("A", lines[0]); // "A" AND 1 = "A"
+    assertEquals("[]", lines[1]); // "A" AND 0 = "" (wrapped in brackets)
+    assertEquals("HELLO", lines[2]); // "HELLO" AND 5 = "HELLO"
+    assertEquals("[]", lines[3]); // "HELLO" AND 0 = "" (wrapped in brackets)
+  }
+
+  @Test
+  void testZx81OrOperator() {
+    // ZX81: A OR B = 1 if B ≠ 0, A if B = 0
+    EvalState state =
+        runProgram(
+            """
+        10 LET A = 5 OR 1
+        20 LET B = 5 OR 0
+        30 LET C = 0 OR 1
+        40 LET D = 3.5 OR 0
+        """);
+    assertEquals(1.0, state.numScalars().get("A")); // 5 OR 1 = 1
+    assertEquals(5.0, state.numScalars().get("B")); // 5 OR 0 = 5
+    assertEquals(1.0, state.numScalars().get("C")); // 0 OR 1 = 1
+    assertEquals(3.5, state.numScalars().get("D")); // 3.5 OR 0 = 3.5
+  }
+
+  @Test
+  void testValEvaluatesExpression() {
+    // ZX81: VAL evaluates a string as a numeric expression
+    String output =
+        runProgramCapture(
+            """
+        10 PRINT VAL "6-4"
+        20 PRINT VAL "2*3+1"
+        30 PRINT VAL (STR$ LEN "123456" + "-4")
+        """);
+    String[] lines = output.trim().split(System.lineSeparator());
+    assertEquals("2", lines[0]); // 6-4 = 2
+    assertEquals("7", lines[1]); // 2*3+1 = 7
+    assertEquals("2", lines[2]); // STR$ 6 + "-4" = "6-4" -> 6-4 = 2
+  }
+
+  @Test
+  void testLetKeywordMandatory() {
+    // ZX81: LET cannot be omitted
+    assertThrows(ReportException.class, () -> runProgram("10 A = 5"));
+  }
+
   private void assertThrows(Class<? extends Throwable> exceptionClass, Runnable runnable) {
     try {
       runnable.run();
@@ -199,5 +267,88 @@ class BehaviourTest {
         throw t;
       }
     }
+  }
+
+  @Test
+  void testZx81NumberFormatting() {
+    // ZX81 rules:
+    // - 0 prints as "0"
+    // - Integers print without decimal point
+    // - Scientific notation for |x| < 10^-5 or |x| >= 10^13
+    // - Up to 8 significant digits, no trailing zeros
+    // - Leading zero dropped for |x| < 0.1 (e.g., 0.03 -> .03)
+    String output =
+        runProgramCapture(
+            """
+        10 PRINT 0
+        20 PRINT 1
+        30 PRINT 42
+        40 PRINT -7
+        50 PRINT 3.14159
+        60 PRINT 0.5
+        70 PRINT 0.03
+        80 PRINT -0.03
+        """);
+    String[] lines = output.trim().split(System.lineSeparator());
+    assertEquals("0", lines[0]);
+    assertEquals("1", lines[1]);
+    assertEquals("42", lines[2]);
+    assertEquals("-7", lines[3]);
+    assertEquals("3.14159", lines[4]);
+    assertEquals("0.5", lines[5]); // |x| >= 0.1, keep leading zero
+    assertEquals(".03", lines[6]); // |x| < 0.1, drop leading zero
+    assertEquals("-.03", lines[7]); // negative, |x| < 0.1
+  }
+
+  @Test
+  void testZx81ScientificNotation() {
+    // Scientific notation for very small or very large numbers
+    String output =
+        runProgramCapture(
+            """
+        10 PRINT 1E13
+        20 PRINT 1E-6
+        30 PRINT 1.23E15
+        40 PRINT -5E14
+        """);
+    String[] lines = output.trim().split(System.lineSeparator());
+    assertTrue(lines[0].contains("E+") || lines[0].equals("10000000000000")); // 1E13
+    assertTrue(lines[1].contains("E-")); // 1E-6 should be scientific
+    assertTrue(lines[2].contains("E+")); // 1.23E15
+    assertTrue(lines[3].contains("E+") && lines[3].startsWith("-")); // -5E14
+  }
+
+  @Test
+  void testStrDollarUsesZx81Formatting() {
+    // STR$ should use the same formatting as PRINT
+    String output =
+        runProgramCapture(
+            """
+        10 PRINT STR$ 0
+        20 PRINT STR$ 42
+        30 PRINT STR$ 3.14159
+        40 PRINT STR$ (-7)
+        """);
+    String[] lines = output.trim().split(System.lineSeparator());
+    assertEquals("0", lines[0]);
+    assertEquals("42", lines[1]);
+    assertEquals("3.14159", lines[2]);
+    assertEquals("-7", lines[3]);
+  }
+
+  @Test
+  void testNoTrailingZeros() {
+    // Numbers should not have trailing zeros after decimal point
+    String output =
+        runProgramCapture(
+            """
+        10 PRINT 1.5
+        20 PRINT 2.25
+        30 PRINT 10.0
+        """);
+    String[] lines = output.trim().split(System.lineSeparator());
+    assertEquals("1.5", lines[0]);
+    assertEquals("2.25", lines[1]);
+    assertEquals("10", lines[2]); // Integer, no decimal point
   }
 }

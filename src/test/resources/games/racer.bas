@@ -1,3 +1,6 @@
+# Racer
+# Avoid the walls as the road twists and turns
+5 RAND 0
 10 REM Racer Game Enhanced (Renumbered)
 20 DIM P(24)
 30 LET FULL$ = CHR$(9608)

@@ -2,23 +2,22 @@ package com.davidconneely.bazlang;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.util.List;
+import com.davidconneely.bazlang.antlr.AntlrParser;
 import org.junit.jupiter.api.Test;
 
 class InterpreterTest {
+  private static final AntlrParser parser = new AntlrParser();
 
   private void runProgram(String source, String expectedOutput) {
-    Lexer lexer = new Lexer(source);
-    List<Token> tokens = lexer.tokenize();
-    Parser parser = new Parser(tokens);
-    var program = parser.parseProgram();
+    var program = parser.parseProgramLines(source);
 
     EvalState state = new EvalState();
     MockDisplay display = new MockDisplay();
-    Evaluator evaluator = new Evaluator(state, display);
-    Executor executor = new Executor(state, evaluator, display);
+    BazLangExecutor executor = new BazLangExecutor(state, display);
     Interpreter interpreter = new Interpreter(state, executor);
 
     try {
@@ -33,15 +32,11 @@ class InterpreterTest {
 
   private void runProgram(String source) {
     // Overloaded for exception tests
-    Lexer lexer = new Lexer(source);
-    List<Token> tokens = lexer.tokenize();
-    Parser parser = new Parser(tokens);
-    var program = parser.parseProgram();
+    var program = parser.parseProgramLines(source);
 
     EvalState state = new EvalState();
     MockDisplay display = new MockDisplay();
-    Evaluator evaluator = new Evaluator(state, display);
-    Executor executor = new Executor(state, evaluator, display);
+    BazLangExecutor executor = new BazLangExecutor(state, display);
     Interpreter interpreter = new Interpreter(state, executor);
 
     try {
@@ -55,15 +50,11 @@ class InterpreterTest {
 
   // Overloaded for arithmetic test that does custom split check
   private String runProgramCapture(String source) {
-    Lexer lexer = new Lexer(source);
-    List<Token> tokens = lexer.tokenize();
-    Parser parser = new Parser(tokens);
-    var program = parser.parseProgram();
+    var program = parser.parseProgramLines(source);
 
     EvalState state = new EvalState();
     MockDisplay display = new MockDisplay();
-    Evaluator evaluator = new Evaluator(state, display);
-    Executor executor = new Executor(state, evaluator, display);
+    BazLangExecutor executor = new BazLangExecutor(state, display);
     Interpreter interpreter = new Interpreter(state, executor);
 
     try {
@@ -90,6 +81,38 @@ class InterpreterTest {
   @Test
   void testPrintWithTrailingSemicolon() {
     runProgram("10 PRINT \"HELLO\";", "HELLO");
+  }
+
+  @Test
+  void testPrintWithTrailingComma() {
+    // Trailing comma suppresses newline but adds tab spacing
+    String output = runProgramCapture("10 PRINT \"A\",");
+    assertFalse(output.endsWith(System.lineSeparator()));
+    assertTrue(output.length() >= 16); // "A" plus padding to tab stop
+  }
+
+  @Test
+  void testPrintCommaSeparators() {
+    // Comma moves to next tab stop (16 chars)
+    String output = runProgramCapture("10 PRINT \"X\", \"Y\", \"Z\"");
+    assertEquals(0, output.indexOf("X"));
+    assertEquals(16, output.indexOf("Y"));
+    assertEquals(32, output.indexOf("Z"));
+  }
+
+  @Test
+  void testPrintSemicolonConcatenates() {
+    // Semicolon concatenates without spacing
+    runProgram("10 PRINT \"A\"; \"B\"; \"C\"", "ABC" + System.lineSeparator());
+  }
+
+  @Test
+  void testPrintMixedSeparators() {
+    // Mixed separators
+    String output = runProgramCapture("10 PRINT \"A\"; \"B\", \"C\"");
+    assertEquals(0, output.indexOf("A"));
+    assertEquals(1, output.indexOf("B"));
+    assertEquals(16, output.indexOf("C"));
   }
 
   @Test
@@ -183,13 +206,9 @@ class InterpreterTest {
     // If we want to check output before crash, we'd need to catch inside test.
     MockDisplay display = new MockDisplay();
     try {
-      Lexer lexer = new Lexer(source);
-      List<Token> tokens = lexer.tokenize();
-      Parser parser = new Parser(tokens);
-      var program = parser.parseProgram();
+      var program = parser.parseProgramLines(source);
       EvalState state = new EvalState();
-      Evaluator evaluator = new Evaluator(state, display);
-      Executor executor = new Executor(state, evaluator, display);
+      BazLangExecutor executor = new BazLangExecutor(state, display);
       Interpreter interpreter = new Interpreter(state, executor);
       interpreter.execute(program);
     } catch (ReportException re) {
@@ -205,5 +224,24 @@ class InterpreterTest {
             + "M=4"
             + System.lineSeparator();
     assertEquals(expected, display.getOutput());
+  }
+
+  @Test
+  void testEmptyPrint() {
+    // PRINT with no arguments just prints a newline
+    runProgram("10 PRINT", System.lineSeparator());
+  }
+
+  @Test
+  void testRemStatement() {
+    // REM should be ignored
+    runProgram("10 REM This is a comment\n20 PRINT \"OK\"", "OK" + System.lineSeparator());
+  }
+
+  @Test
+  void testMultiplePrintOnSameLine() {
+    // Multiple PRINTs across lines with semicolons should accumulate
+    String output = runProgramCapture("10 PRINT \"A\";\n20 PRINT \"B\";\n30 PRINT \"C\"");
+    assertEquals("ABC" + System.lineSeparator(), output);
   }
 }

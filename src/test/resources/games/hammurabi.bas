@@ -1,12 +1,14 @@
-# Hammurabi - Resource Management Game
-# Based on the 1968 classic by Doug Dyment
+# Hammurabi
+# Resource management game based on the 1968 classic by Doug Dyment
+# Rule ancient Sumeria for 10 years
+5 RAND 0
 10 PRINT "HAMMURABI"
 20 PRINT "========="
 30 PRINT
 40 PRINT "Rule ancient Sumeria for 10 years"
 50 PRINT "Manage land, grain, and population"
 60 PRINT
-70 REM Initialize game state
+70 REM Initialise game state
 80 LET Y = 1
 90 LET P = 100
 100 LET A = 1000

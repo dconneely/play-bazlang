@@ -1,5 +1,7 @@
 package com.davidconneely.bazlang;
 
+import com.davidconneely.bazlang.antlr.AntlrParser;
+import com.davidconneely.bazlang.antlr.BazLangParser.*;
 import com.davidconneely.bazlang.io.Display;
 import com.davidconneely.bazlang.io.StreamDisplay;
 import com.davidconneely.bazlang.io.TerminalDisplay;
@@ -8,6 +10,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 public class MainClass {
+  private static final AntlrParser parser = new AntlrParser();
+
   public static void main(String[] args) {
     Display display;
     try {
@@ -20,7 +24,6 @@ public class MainClass {
     } catch (Exception e) {
       display = new StreamDisplay();
     }
-
     if (args.length == 0) {
       runRepl(display);
     } else if (args.length == 1) {
@@ -34,13 +37,9 @@ public class MainClass {
   private static void runFile(String sourceFile, Display display) {
     try {
       String source = Files.readString(Path.of(sourceFile));
-      Lexer lexer = new Lexer(source);
-      var tokens = lexer.tokenize();
-      Parser parser = new Parser(tokens);
-      var program = parser.parseProgram();
+      var program = parser.parseProgramLines(source);
       EvalState state = new EvalState();
-      Evaluator evaluator = new Evaluator(state, display);
-      Executor executor = new Executor(state, evaluator, display);
+      BazLangExecutor executor = new BazLangExecutor(state, display);
       Interpreter interpreter = new Interpreter(state, executor);
       interpreter.execute(program);
     } catch (IOException e) {
@@ -57,8 +56,7 @@ public class MainClass {
 
   private static void runRepl(Display display) {
     EvalState state = new EvalState();
-    Evaluator evaluator = new Evaluator(state, display);
-    Executor executor = new Executor(state, evaluator, display);
+    BazLangExecutor executor = new BazLangExecutor(state, display);
     Interpreter interpreter = new Interpreter(state, executor);
     display.println("BazLang REPL. Type 'STOP' or Ctrl+D at the prompt to exit.");
     while (true) {
@@ -69,7 +67,6 @@ public class MainClass {
         // Ctrl+C at prompt: just reprint prompt
         continue;
       }
-
       if (line == null) {
         break; // EOF
       }
@@ -77,40 +74,27 @@ public class MainClass {
         continue;
       }
       try {
-        Lexer lexer = new Lexer(line);
-        var tokens = lexer.tokenize();
-        // Filter out NEWLINE/EOF for checking token count
-        var significantTokens =
-            tokens.stream()
-                .filter(t -> t.type() != TokenType.NEWLINE && t.type() != TokenType.EOF)
-                .toList();
-        if (significantTokens.isEmpty()) {
-          continue;
-        }
-        if (significantTokens.getFirst().type() == TokenType.NUM_LITERAL) {
-          // Line editing
-          int label = Integer.parseInt(significantTokens.getFirst().rep());
-          if (significantTokens.size() == 1) {
-            // Deletion
-            state.program().remove(label);
+        AntlrParser.ParsedLine parsed = parser.parseReplLine(line);
+        if (parsed
+            instanceof AntlrParser.ParsedLine.Numbered(int lineNumber, String statementText)) {
+          // Line editing - check if it's just a line number (deletion)
+          String trimmed = line.trim();
+          if (trimmed.matches("^\\d+\\s*$")) {
+            // Just a number - delete the line
+            state.program().remove(lineNumber);
           } else {
-            // Insertion/Update
-            Parser parser = new Parser(tokens);
-            var newLines = parser.parseProgram();
-            state.program().putAll(newLines);
+            // Insertion/Update - store as ProgramLine with source text
+            state.program().put(lineNumber, new ProgramLine(lineNumber, statementText));
           }
-        } else {
-          // Immediate execution
-          Parser parser = new Parser(tokens);
-          Statement stmt = parser.parseReplStatement();
-          if (stmt instanceof Statement.Stop) {
+        } else if (parsed instanceof AntlrParser.ParsedLine.Immediate(StatementContext statement)) {
+          if (statement instanceof StopStmtContext) {
             break;
           }
-          executor.executeStatement(stmt);
-          if (stmt instanceof Statement.Cont
-              || stmt instanceof Statement.Gosub
-              || stmt instanceof Statement.Goto
-              || stmt instanceof Statement.Run) {
+          executor.visit(statement);
+          if (statement instanceof ContStmtContext
+              || statement instanceof GosubStmtContext
+              || statement instanceof GotoStmtContext
+              || statement instanceof RunStmtContext) {
             interpreter.resume();
           }
         }

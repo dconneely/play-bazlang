@@ -1,4 +1,5 @@
 # Graphics Demo
+# Demonstrates PLOT and screen positioning
 10 CLS
 20 PRINT "GRAPHICS DEMO"
 30 FOR X = 0 TO 39 STEP 2

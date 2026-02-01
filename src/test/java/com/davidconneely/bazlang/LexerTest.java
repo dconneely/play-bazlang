@@ -2,38 +2,36 @@ package com.davidconneely.bazlang;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 
+import com.davidconneely.bazlang.antlr.AntlrParser;
 import org.junit.jupiter.api.Test;
 
 /**
- * Behavior-biased tests for the Lexer. These tests ensure that the lexer correctly identifies basic
- * tokens without enforcing structural program rules (which are now in the Parser).
+ * Behaviour-biased tests for the Lexer/Parser. These tests ensure that basic tokens are correctly
+ * identified and parsed.
  */
 class LexerTest {
+  private final AntlrParser parser = new AntlrParser();
 
   @Test
   void testValidTokens() {
-    assertTokenizes("10 PRINT 10");
-    assertTokenizes("20 LET A$ = \"HELLO\"");
-    assertTokenizes("# This is a comment\n30 REM BASIC COMMENT");
-    assertTokenizes("40 PRINT \"a \"\"b\"\" c\"");
+    assertParses("10 PRINT 10");
+    assertParses("20 LET A$ = \"HELLO\"");
+    assertParses("# This is a comment\n30 REM BASIC COMMENT");
+    assertParses("40 PRINT \"a \"\"b\"\" c\"");
   }
 
   @Test
   void testCaseInsensitivity() {
-    assertTokenizes("10 print PRINT Print");
+    assertParses("10 print 1\n20 PRINT 2\n30 Print 3");
   }
 
   @Test
   void testIdentifiersAndNumbers() {
-    assertTokenizes("100 A A1 A$ 123.45 1E10");
+    assertParses("100 LET A = 123.45\n110 LET A1 = 1E10");
   }
 
-  private void assertTokenizes(String source) {
+  private void assertParses(String source) {
     assertDoesNotThrow(
-        () -> {
-          Lexer lexer = new Lexer(source);
-          lexer.tokenize();
-        },
-        "Source should tokenize successfully: " + source);
+        () -> parser.parseProgramLines(source), "Source should parse successfully: " + source);
   }
 }

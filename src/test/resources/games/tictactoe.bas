@@ -1,11 +1,12 @@
-# Tic-Tac-Toe Game
+# Tic-Tac-Toe
+# Play against the computer
 10 DIM B(9)
 20 PRINT "TIC-TAC-TOE"
 30 PRINT "==========="
 40 PRINT
 50 PRINT "You are X, Computer is O"
 60 PRINT
-70 REM Initialize board
+70 REM Initialise board
 80 FOR I = 1 TO 9
 90   LET B(I) = 0
 100 NEXT I
@@ -92,7 +93,7 @@
 922   IF CP = 1 THEN LET CM = I
 923   IF CP = 1 THEN RETURN
 935 NEXT I
-940 REM Take center
+940 REM Take centre
 950 IF B(5) = 0 THEN LET CM = 5
 951 IF B(5) = 0 THEN RETURN
 960 REM Take first available

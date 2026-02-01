@@ -2,6 +2,7 @@ plugins {
     id 'java'
     id 'application'
     id 'com.diffplug.spotless' version '8.1.0'
+    id 'antlr'
 }
 
 group = 'com.davidconneely'
@@ -23,6 +24,8 @@ java {
 }
 
 dependencies {
+    antlr 'org.antlr:antlr4:4.13.1'
+    implementation 'org.antlr:antlr4-runtime:4.13.1'
     implementation 'org.jline:jline:3.29.0'
     testImplementation platform('org.junit:junit-bom:5.10.1')
     testImplementation 'org.junit.jupiter:junit-jupiter'
@@ -50,8 +53,28 @@ tasks.register('copyDependencies', Copy) {
 
 build.dependsOn copyDependencies
 
+// Configure ANTLR
+generateGrammarSource {
+    maxHeapSize = '64m'
+    arguments += ['-visitor']
+    packageName = 'com.davidconneely.bazlang.antlr'
+}
+
+// Make sure ANTLR generation happens before Java compilation
+compileJava.dependsOn generateGrammarSource
+
+// Make sure generated sources are on the classpath
+sourceSets {
+    main {
+        java {
+            srcDirs += "${buildDir}/generated-src/antlr/main"
+        }
+    }
+}
+
 spotless {
     java {
         googleJavaFormat()
+        targetExclude 'build/generated-src/**'
     }
 }

@@ -1,4 +1,5 @@
 # Fibonacci Sequence
+# Generates the Fibonacci sequence up to N terms
 10 PRINT "FIBONACCI SEQUENCE"
 20 PRINT "ENTER NUMBER OF TERMS: ";
 30 INPUT N

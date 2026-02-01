@@ -1,4 +1,4 @@
-# Maze Escape Game
+# Maze Escape
 # Navigate through a 5x5 maze to reach the exit
 10 PRINT "MAZE ESCAPE"
 20 PRINT "==========="
@@ -61,7 +61,7 @@
 640 PRINT "Moves: "; MOVES
 650 PRINT "Goal: (5,5)"
 660 RETURN
-1000 REM Initialize maze (0=path, 1=wall)
+1000 REM Initialise maze (0=path, 1=wall)
 1010 FOR I = 1 TO 25
 1020   LET M(I) = 0
 1030 NEXT I

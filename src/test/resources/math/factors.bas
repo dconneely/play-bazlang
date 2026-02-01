@@ -1,4 +1,5 @@
-# Factors Finder
+# Factors
+# Finds all factors of a given number
 10 PRINT "FIND ALL FACTORS"
 20 PRINT "ENTER A NUMBER: ";
 30 INPUT N

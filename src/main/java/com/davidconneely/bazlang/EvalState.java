@@ -16,7 +16,7 @@ public class EvalState {
 
   public record ForLoopData(double limit, double step, int loopPc) {}
 
-  private final NavigableMap<Integer, Statement> program = new TreeMap<>();
+  private final NavigableMap<Integer, ProgramLine> program = new TreeMap<>();
   private final Map<String, Double> numScalars = new HashMap<>();
   private final Map<String, NumArray> numArrays = new HashMap<>();
   private final Map<String, String> strVars = new HashMap<>();
@@ -30,11 +30,11 @@ public class EvalState {
   private ReportCode lastReportCode = ReportCode.OK;
   private int lastReportLabel = 0;
 
-  public NavigableMap<Integer, Statement> program() {
+  public NavigableMap<Integer, ProgramLine> program() {
     return program;
   }
 
-  public void setProgram(Map<Integer, Statement> program) {
+  public void setProgram(Map<Integer, ProgramLine> program) {
     this.program.clear();
     this.program.putAll(program);
   }

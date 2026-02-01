@@ -11,3 +11,6 @@
 !src/**/build/
 !gradle-wrapper.jar
 !gradle-wrapper.properties
+
+# Local-only Copilot instructions
+.github/instructions/localonly.instructions.md

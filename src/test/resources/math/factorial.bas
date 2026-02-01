@@ -1,4 +1,5 @@
-# Factorial calculator
+# Factorial
+# Calculates N! using iteration
 10 PRINT "Factorial Calculator"
 20 PRINT "Enter a number: ";
 30 INPUT N

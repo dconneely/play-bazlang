@@ -1,4 +1,6 @@
-# Number Guess Game
+# Number Guessing Game
+# Guess the computer's secret number between 1 and 100
+5 RAND 0
 10 PRINT "NUMBER GUESSING GAME"
 20 PRINT "==================="
 30 PRINT

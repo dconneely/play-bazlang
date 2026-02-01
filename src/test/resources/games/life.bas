@@ -1,3 +1,5 @@
+# Game of Life
+# Conway's cellular automaton simulation
 10 REM Game of Life (Full Screen & Edit)
 20 LET W = 64
 30 LET H = 48

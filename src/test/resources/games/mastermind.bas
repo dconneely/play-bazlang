@@ -1,7 +1,8 @@
-# Mastermind Game
+# Mastermind
 # Guess the secret 4-digit code (digits 1-6)
 # Black pegs = correct digit in correct position
 # White pegs = correct digit in wrong position
+5 RAND 0
 10 PRINT "MASTERMIND"
 20 PRINT "=========="
 30 PRINT

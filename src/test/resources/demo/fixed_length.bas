@@ -1,4 +1,5 @@
-# Fixed-Length Semantics Demo
+# Fixed-Length Strings
+# Demonstrates truncation and padding with DIM'd strings
 10 PRINT "FIXED-LENGTH STRING DEMO"
 20 DIM A$(10)
 30 LET A$ = "1234567890ABC"

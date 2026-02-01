@@ -1,4 +1,5 @@
-# Trig Table
+# Trigonometry Table
+# Displays sine, cosine, and tangent values for common angles
 10 PRINT "DEG", "SIN", "COS", "TAN"
 20 PRINT "---", "---", "---", "---"
 30 FOR D = 0 TO 90 STEP 15

@@ -1,3 +1,6 @@
+# Blackjack
+# Classic card game - try to get 21 without going bust
+5 RAND 0
 10 REM Blackjack
 20 LET M = 1000
 30 DIM D(52)

@@ -1,4 +1,5 @@
 # Decimal to Binary
+# Converts a decimal number (0-255) to binary
 10 PRINT "DECIMAL TO BINARY"
 20 PRINT "ENTER NUMBER (0-255): ";
 30 INPUT N

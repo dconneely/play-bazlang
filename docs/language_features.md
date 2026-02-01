@@ -59,9 +59,9 @@ Returns `1` for True, `0` for False.
 
 ### Logic
 
-- `NOT`
-- `AND`
-- `OR`
+- `NOT` - Returns 1 if operand is 0, else 0
+- `AND` - `A AND B` returns A if B≠0, else 0 for numeric A; `S$ AND B` returns S$ if B≠0, else "" for string S$ (ZX81 style)
+- `OR` - `A OR B` returns 1 if B≠0, else A (ZX81 style, numeric operands only)
 
 ### Strings
 
@@ -88,7 +88,7 @@ Returns `1` for True, `0` for False.
     - `AT y, x`: Move cursor.
     - `TAB n`: Move to column `n`.
 - **`LPRINT`**: Print to "printer" (standard error).
-- **`INPUT var`**: Ask user for input.
+- **`INPUT var`**: Ask user for input. For numeric variables, the input is evaluated as an expression.
 - **`CLS`**: Clear screen.
 - **`SCROLL`**: Scroll screen up.
 - **`PLOT x, y`**: Draw a block at coordinates `(x, y)`.
@@ -98,6 +98,11 @@ Returns `1` for True, `0` for False.
 - **`UNPLOT x, y`**: Erase a block at coordinates `(x, y)`.
     - Same coordinate system as `PLOT`.
 - **`LIST`**: Show program code.
+    - `LIST` - show all lines
+    - `LIST 10` - show just line 10
+    - `LIST 10 TO 100` - show lines 10 to 100
+    - `LIST TO 100` - show lines up to 100
+    - `LIST 10 TO` - show lines from 10 onwards
 
 ### Data
 
@@ -118,7 +123,7 @@ Returns `1` for True, `0` for False.
 - **`SQR(x)`**: Square root.
 - **`PI`**: 3.14159...
 - **`LEN(s)`**: String length.
-- **`VAL(s)`**: Convert string to number.
+- **`VAL(s)`**: Evaluate string as numeric expression (not just parse a literal).
 - **`CODE(s)`**: Unicode value of first char.
 - **Trig**: `SIN`, `COS`, `TAN`, `ASN`, `ACS`, `ATN`.
 - **Logs**: `EXP`, `LN`.
@@ -138,3 +143,26 @@ You can slice strings and arrays.
 - **`A$(i, x TO y)`**: Slice of `i`-th string in an array.
 
 **Rule**: The `TO` slice must always be the last part of the index.
+
+## 7. Number Formatting
+
+Numbers are displayed in ZX81 style:
+- Up to 8 significant digits
+- Scientific notation (E notation) for very small or very large values
+- No trailing zeros after decimal point
+- Integers display without a decimal point
+
+Examples: `42`, `3.14159`, `1.23E+15`, `-5E-8`
+
+## 8. Divergences from ZX81 BASIC
+
+BazLang follows ZX81 BASIC semantics where practical, with these intentional differences:
+
+| Feature | BazLang | ZX81 BASIC |
+| :------ | :------ | :--------- |
+| Character set | UTF-8 | Proprietary ZX81 charset |
+| Variable names | Multi-character allowed | Single letters for arrays/FOR |
+| PAUSE >= 32767 | Waits that many frames | Waits forever until keypress |
+| File I/O | File system | Tape |
+| RND algorithm | Java Random | Linear feedback shift register |
+| Report codes | Similar convention | Same codes, different messages |

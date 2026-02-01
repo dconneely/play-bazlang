@@ -1,4 +1,5 @@
-# Prime number finder
+# Prime Finder
+# Finds all prime numbers up to a given limit
 10 PRINT "Prime Number Finder"
 20 PRINT "Enter upper limit: ";
 30 INPUT LIMIT

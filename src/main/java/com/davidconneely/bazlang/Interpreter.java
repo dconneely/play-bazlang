@@ -1,13 +1,16 @@
 package com.davidconneely.bazlang;
 
+import com.davidconneely.bazlang.antlr.AntlrParser;
+import com.davidconneely.bazlang.antlr.BazLangParser.StatementContext;
 import com.davidconneely.bazlang.io.Display;
 import com.davidconneely.bazlang.io.StreamDisplay;
 import com.davidconneely.bazlang.io.TerminalDisplay;
 import java.util.Map;
 
 public class Interpreter {
+  private static final AntlrParser parser = new AntlrParser();
   private final EvalState state;
-  private final Executor executor;
+  private final BazLangExecutor executor;
 
   public Interpreter() {
     this.state = new EvalState();
@@ -17,16 +20,15 @@ public class Interpreter {
     } catch (Exception e) {
       terminal = new StreamDisplay();
     }
-    final var evaluator = new Evaluator(state, terminal);
-    this.executor = new Executor(state, evaluator, terminal);
+    this.executor = new BazLangExecutor(state, terminal);
   }
 
-  public Interpreter(EvalState state, Executor executor) {
+  public Interpreter(EvalState state, BazLangExecutor executor) {
     this.state = state;
     this.executor = executor;
   }
 
-  public void execute(Map<Integer, Statement> program) {
+  public void execute(Map<Integer, ProgramLine> program) {
     state.setProgram(program);
     state.setCurrentLineLabel(-1);
     resume();
@@ -48,10 +50,14 @@ public class Interpreter {
       }
       state.setCurrentLineLabel(entry.getKey());
       try {
-        executor.executeStatement(entry.getValue());
-      } catch (ReportException e) {
-        throw e;
+        // Lazy parse: ParseTree is built on first execution, cached for loops
+        ProgramLine line = entry.getValue();
+        StatementContext stmt = line.getStatement(parser);
+        executor.visit(stmt);
       } catch (Exception e) {
+        if (e instanceof ReportException re) {
+          throw re;
+        }
         throw codedException(ReportCode.NONSENSE_IN_BASIC, e.getMessage());
       }
     }
