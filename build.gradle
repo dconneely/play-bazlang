@@ -24,10 +24,10 @@ java {
 }
 
 dependencies {
-    antlr 'org.antlr:antlr4:4.13.1'
-    implementation 'org.antlr:antlr4-runtime:4.13.1'
+    antlr 'org.antlr:antlr4:4.13.2'
+    implementation 'org.antlr:antlr4-runtime:4.13.2'
     implementation 'org.jline:jline:3.29.0'
-    testImplementation platform('org.junit:junit-bom:5.10.1')
+    testImplementation platform('org.junit:junit-bom:6.0.3')
     testImplementation 'org.junit.jupiter:junit-jupiter'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }

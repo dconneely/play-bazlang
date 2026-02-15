@@ -1,6 +1,7 @@
 # BazLang Reference
 
-BazLang is a BASIC dialect based on the Sinclair ZX81. This file lists the available commands, functions, and syntax rules.
+BazLang is a BASIC dialect based on the Sinclair ZX81. This file lists the available
+commands, functions, and syntax rules.
 
 ## 1. Structure
 
@@ -36,7 +37,9 @@ BazLang is a BASIC dialect based on the Sinclair ZX81. This file lists the avail
 
 ### Namespaces
 
-Variables with different types don't clash. `A`, `A(1)`, and `A$` are all different variables.
+Variables with different types don't clash. `A`, `A(1)`, and `A$` are all different
+variables. However, the names of strings and character arrays would clash. So there
+cannot be a string, say `A$`, and a character array, say `A$()` with the same name.
 
 ## 3. Operators
 
@@ -60,7 +63,8 @@ Returns `1` for True, `0` for False.
 ### Logic
 
 - `NOT` - Returns 1 if operand is 0, else 0
-- `AND` - `A AND B` returns A if B≠0, else 0 for numeric A; `S$ AND B` returns S$ if B≠0, else "" for string S$ (ZX81 style)
+- `AND` - `A AND B` returns A if B≠0, else 0 for numeric A;
+  `S$ AND B` returns S$ if B≠0, else "" for string S$ (ZX81 style)
 - `OR` - `A OR B` returns 1 if B≠0, else A (ZX81 style, numeric operands only)
 
 ### Strings
@@ -100,9 +104,9 @@ Returns `1` for True, `0` for False.
 - **`LIST`**: Show program code.
     - `LIST` - show all lines
     - `LIST 10` - show just line 10
-    - `LIST 10 TO 100` - show lines 10 to 100
-    - `LIST TO 100` - show lines up to 100
-    - `LIST 10 TO` - show lines from 10 onwards
+    - `LIST 10 TO 100` - show lines 10 to 100 (extension)
+    - `LIST TO 100` - show lines up to 100 (extension)
+    - `LIST 10 TO` - show lines from 10 onwards (extension)
 
 ### Data
 
@@ -116,22 +120,22 @@ Returns `1` for True, `0` for False.
 
 ### Math Functions
 
-- **`ABS(x)`**: Absolute value.
-- **`INT(x)`**: Round down to integer.
+- **`ABS x`**: Absolute value.
+- **`INT x`**: Round down to integer.
 - **`RND`**: Random number between 0 and 1.
-- **`SGN(x)`**: Sign (-1, 0, 1).
-- **`SQR(x)`**: Square root.
+- **`SGN x`**: Sign (-1, 0, 1).
+- **`SQR x`**: Square root.
 - **`PI`**: 3.14159...
-- **`LEN(s)`**: String length.
-- **`VAL(s)`**: Evaluate string as numeric expression (not just parse a literal).
-- **`CODE(s)`**: Unicode value of first char.
+- **`LEN s`**: String length.
+- **`VAL s`**: Evaluate string as numeric expression (not just parse a literal).
+- **`CODE s`**: Unicode value of first char.
 - **Trig**: `SIN`, `COS`, `TAN`, `ASN`, `ACS`, `ATN`.
 - **Logs**: `EXP`, `LN`.
 
 ### String Functions
 
-- **`CHR$(x)`**: Character from code `x`.
-- **`STR$(x)`**: Convert number to string.
+- **`CHR$ x`**: Character from code `x`.
+- **`STR$ x`**: Convert number to string.
 - **`INKEY$`**: Check key press.
 
 ## 6. Slicing
@@ -158,11 +162,11 @@ Examples: `42`, `3.14159`, `1.23E+15`, `-5E-8`
 
 BazLang follows ZX81 BASIC semantics where practical, with these intentional differences:
 
-| Feature | BazLang | ZX81 BASIC |
-| :------ | :------ | :--------- |
-| Character set | UTF-8 | Proprietary ZX81 charset |
-| Variable names | Multi-character allowed | Single letters for arrays/FOR |
-| PAUSE >= 32767 | Waits that many frames | Waits forever until keypress |
-| File I/O | File system | Tape |
-| RND algorithm | Java Random | Linear feedback shift register |
-| Report codes | Similar convention | Same codes, different messages |
+| Feature        | BazLang                 | ZX81 BASIC                     |
+|:---------------|:------------------------|:-------------------------------|
+| Character set  | UTF-8                   | Proprietary ZX81 charset       |
+| Variable names | Multi-character allowed | Single letters for arrays/FOR  |
+| PAUSE >= 32767 | Waits that many frames  | Waits forever until keypress   |
+| File I/O       | File system             | Tape                           |
+| RND algorithm  | Java Random             | Linear feedback shift register |
+| Report codes   | Similar convention      | Same codes, different messages |

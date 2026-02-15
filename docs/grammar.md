@@ -1,16 +1,17 @@
 # ANTLR Grammar Implementation
 
-BazLang uses ANTLR 4 to generate its lexer and parser from a declarative grammar file (`BazLang.g4`).
+BazLang uses ANTLR 4 to generate its lexer and parser from a declarative grammar file
+(`BazLang.g4`).
 
 ## Why ANTLR?
 
-| Aspect | Hand-Written | ANTLR |
-|--------|--------------|-------|
-| **Style** | Imperative (how to parse) | Declarative (what to parse) |
-| **Precedence** | Manual climbing | Automatic from structure |
-| **Maintainability** | Tedious changes | Update grammar rules |
-| **Error Recovery** | Basic | Sophisticated built-in |
-| **Documentation** | Comments + separate docs | Grammar IS the documentation |
+| Aspect              | Hand-Written              | ANTLR                        |
+|---------------------|---------------------------|------------------------------|
+| **Style**           | Imperative (how to parse) | Declarative (what to parse)  |
+| **Precedence**      | Manual climbing           | Automatic from structure     |
+| **Maintainability** | Tedious changes           | Update grammar rules         |
+| **Error Recovery**  | Basic                     | Sophisticated built-in       |
+| **Documentation**   | Comments + separate docs  | Grammar IS the documentation |
 
 ## Key Grammar Patterns
 
@@ -49,7 +50,9 @@ options { caseInsensitive=true; }
 PRINT : 'PRINT';  // Matches PRINT, print, Print, etc.
 ```
 
-This allows `PRINT`, `print`, and `Print` to all match the same token. Variable names are normalized to uppercase when building the AST, so `myVar`, `MYVAR`, and `MyVar` all refer to the same variable.
+This allows `PRINT`, `print`, and `Print` to all match the same token. Variable names are
+normalized to uppercase when building the AST, so `myVar`, `MYVAR`, and `MyVar` all refer
+to the same variable.
 
 String literal *contents* remain case-sensitive since they're captured as-is between quotes.
 
@@ -62,7 +65,8 @@ STR_IDENTIFIER : [A-Z][A-Z0-9_]*'$' ;
 NUM_IDENTIFIER : [A-Z][A-Z0-9_]* ;
 ```
 
-This ensures `A` is always a numeric variable and `A$` is always a string variable, without ambiguity. (The pattern uses `[A-Z]` but matches case-insensitively due to the grammar option.)
+This ensures `A` is always a numeric variable and `A$` is always a string variable, without
+ambiguity. (The pattern uses `[A-Z]` but matches case-insensitively due to the grammar option.)
 
 ### Function Binding
 
@@ -97,7 +101,8 @@ strSubscript
     ;
 ```
 
-This supports: `A$(1)`, `A$(1,2)`, `A$(1 TO 5)`, `A$(TO 5)`, `A$(1 TO)`, `A$(TO)`, `A$(1, 2 TO 5)`, etc.
+This supports: `A$(1)`, `A$(1,2)`, `A$(1 TO 5)`, `A$(TO 5)`, `A$(1 TO)`, `A$(TO)`,
+`A$(1, 2 TO 5)`, etc.
 
 ## Adding New Features
 
