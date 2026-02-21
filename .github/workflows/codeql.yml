@@ -2,40 +2,37 @@ name: "CodeQL"
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [main]
   pull_request:
-    branches: [ "main" ]
+    branches: [main]
   schedule:
     - cron: "36 7 * * 0"
 
 jobs:
   analyze:
     name: "Analyze"
-    runs-on: "ubuntu-latest"
+    runs-on: ubuntu-latest
     timeout-minutes: 360
-
     permissions:
-      security-events: write # required for all workflows
-      actions: read # only required for workflows in private repositories
-      contents: read # only required for workflows in private repositories
-
-    strategy:
-      fail-fast: false
-      matrix:
-        language: [ "java-kotlin" ]
-
+      security-events: write
+      actions: read
+      contents: read
     steps:
-    - uses: actions/checkout@v6
-    - uses: gradle/actions/wrapper-validation@v5
-    - uses: github/codeql-action/init@v4
-      with:
-        languages: ${{ matrix.language }}
-    - uses: actions/setup-java@v5
-      with:
-        java-version: "25"
-        distribution: "temurin"
-        cache: gradle
-    - run: "./gradlew build --no-daemon"
-    - uses: github/codeql-action/analyze@v4
-      with:
-        category: "/language:${{matrix.language}}"
+      - uses: actions/checkout@v6
+
+      - uses: github/codeql-action/init@v4
+        with:
+          languages: java-kotlin
+
+      - uses: actions/setup-java@v5
+        with:
+          java-version: "25"
+          distribution: temurin
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - run: ./gradlew build
+
+      - uses: github/codeql-action/analyze@v4
+        with:
+          category: /language:java-kotlin
