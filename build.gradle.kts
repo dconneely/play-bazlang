@@ -38,6 +38,7 @@ tasks.test {
 }
 
 tasks.jar {
+    archiveBaseName = "bazlang"
     manifest {
         attributes(
             "Main-Class" to "com.davidconneely.bazlang.MainClass",

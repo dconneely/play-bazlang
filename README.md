@@ -32,7 +32,7 @@ Use the shell script:
 Or run the JAR directly:
 
 ```bash
-java -jar build/libs/play-bazlang-1.0.0-SNAPSHOT.jar <optional-source-file.bas>
+java -jar build/libs/bazlang-1.0.0-SNAPSHOT.jar <optional-source-file.bas>
 ```
 
 ## Examples
