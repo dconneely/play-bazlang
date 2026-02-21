@@ -2,7 +2,7 @@ plugins {
     java
     application
     antlr
-    id("com.diffplug.spotless") version "8.1.0"
+    id("com.diffplug.spotless") version "8.2.1"
 }
 
 group = "com.davidconneely"
