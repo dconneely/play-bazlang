@@ -1,7 +1,7 @@
 #!/bin/bash
 # BazLang runner script
 
-JAR_FILE="build/libs/play-bazlang-1.0-SNAPSHOT.jar"
+JAR_FILE="build/libs/play-bazlang-1.0.0-SNAPSHOT.jar"
 
 # Build if JAR is missing
 if [ ! -f "$JAR_FILE" ]; then
