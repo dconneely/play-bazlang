@@ -1,12 +1,11 @@
-#!/bin/bash
-# BazLang runner script
+#!/bin/sh
+cd "$(dirname "$0")"
 
 JAR_FILE="build/libs/play-bazlang-1.0.0-SNAPSHOT.jar"
 
-# Build if JAR is missing
 if [ ! -f "$JAR_FILE" ]; then
     echo "Building project..."
-    ./gradlew clean build -x test -q --console=plain
+    ./gradlew -q --console=plain jar
 fi
 
 if [ $# -eq 0 ]; then
