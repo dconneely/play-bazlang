@@ -1,15 +1,17 @@
 package com.davidconneely.bazlang.io;
 
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.PrintStream;
-import java.util.Scanner;
+import java.nio.charset.StandardCharsets;
 
 public class StreamDisplay extends BufferedDisplay {
   private final InputStream in;
   private final PrintStream out;
   private final PrintStream err;
-  private Scanner scanner;
+  private BufferedReader reader;
 
   public StreamDisplay(InputStream in, PrintStream out, PrintStream err) {
     super();
@@ -62,16 +64,19 @@ public class StreamDisplay extends BufferedDisplay {
     if (prompt != null) {
       print(prompt);
     }
-    if (scanner == null) {
-      scanner = new Scanner(in);
+    if (reader == null) {
+      reader = new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8));
     }
-    if (scanner.hasNextLine()) {
-      String line = scanner.nextLine();
-      currentRow++;
-      currentCol = 0;
+    try {
+      String line = reader.readLine();
+      if (line != null) {
+        currentRow++;
+        currentCol = 0;
+      }
       return line;
+    } catch (IOException e) {
+      return null;
     }
-    return null;
   }
 
   @Override

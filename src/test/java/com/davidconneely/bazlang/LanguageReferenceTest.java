@@ -8,10 +8,10 @@ import org.junit.jupiter.api.Test;
 
 /** Tests covering the language features described in docs/language_features.md. */
 class LanguageReferenceTest {
-  private static final AntlrParser parser = new AntlrParser();
+  private static final AntlrParser PARSER = new AntlrParser();
 
   private EvalState runProgram(String source) {
-    Map<Integer, ProgramLine> program = parser.parseProgramLines(source);
+    Map<Integer, ProgramLine> program = PARSER.parseProgramLines(source);
     EvalState state = new EvalState();
     MockDisplay display = new MockDisplay();
     BazLangExecutor executor = new BazLangExecutor(state, display);

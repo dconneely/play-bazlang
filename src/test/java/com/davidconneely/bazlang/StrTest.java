@@ -1,5 +1,6 @@
 package com.davidconneely.bazlang;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -8,10 +9,10 @@ import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 class StrTest {
-  private static final AntlrParser parser = new AntlrParser();
+  private static final AntlrParser PARSER = new AntlrParser();
 
   private void runProgram(String source, String expectedOutput) {
-    Map<Integer, ProgramLine> program = parser.parseProgramLines(source);
+    Map<Integer, ProgramLine> program = PARSER.parseProgramLines(source);
 
     EvalState state = new EvalState();
     MockDisplay display = new MockDisplay();
@@ -26,7 +27,7 @@ class StrTest {
   private void runProgram(String source) {
     // Overloaded for cases where we don't check output immediately in runProgram
     // or when we expect an exception.
-    Map<Integer, ProgramLine> program = parser.parseProgramLines(source);
+    Map<Integer, ProgramLine> program = PARSER.parseProgramLines(source);
 
     EvalState state = new EvalState();
     MockDisplay display = new MockDisplay();
@@ -420,13 +421,5 @@ class StrTest {
   void testNumericArraySliceNotAllowed() {
     // Slices not allowed on numeric arrays
     assertThrows(ReportException.class, () -> runProgram("10 DIM A(5)\n20 PRINT A(1 TO 3)"));
-  }
-
-  private void assertDoesNotThrow(Runnable runnable) {
-    try {
-      runnable.run();
-    } catch (Throwable t) {
-      org.junit.jupiter.api.Assertions.fail("Expected no exception, but caught: " + t);
-    }
   }
 }

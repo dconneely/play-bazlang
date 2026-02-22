@@ -10,10 +10,10 @@ import com.davidconneely.bazlang.antlr.AntlrParser;
 import org.junit.jupiter.api.Test;
 
 class InterpreterTest {
-  private static final AntlrParser parser = new AntlrParser();
+  private static final AntlrParser PARSER = new AntlrParser();
 
   private void runProgram(String source, String expectedOutput) {
-    var program = parser.parseProgramLines(source);
+    var program = PARSER.parseProgramLines(source);
 
     EvalState state = new EvalState();
     MockDisplay display = new MockDisplay();
@@ -32,7 +32,7 @@ class InterpreterTest {
 
   private void runProgram(String source) {
     // Overloaded for exception tests
-    var program = parser.parseProgramLines(source);
+    var program = PARSER.parseProgramLines(source);
 
     EvalState state = new EvalState();
     MockDisplay display = new MockDisplay();
@@ -50,7 +50,7 @@ class InterpreterTest {
 
   // Overloaded for arithmetic test that does custom split check
   private String runProgramCapture(String source) {
-    var program = parser.parseProgramLines(source);
+    var program = PARSER.parseProgramLines(source);
 
     EvalState state = new EvalState();
     MockDisplay display = new MockDisplay();
@@ -95,9 +95,9 @@ class InterpreterTest {
   void testPrintCommaSeparators() {
     // Comma moves to next tab stop (16 chars)
     String output = runProgramCapture("10 PRINT \"X\", \"Y\", \"Z\"");
-    assertEquals(0, output.indexOf("X"));
-    assertEquals(16, output.indexOf("Y"));
-    assertEquals(32, output.indexOf("Z"));
+    assertEquals(0, output.indexOf('X'));
+    assertEquals(16, output.indexOf('Y'));
+    assertEquals(32, output.indexOf('Z'));
   }
 
   @Test
@@ -110,9 +110,9 @@ class InterpreterTest {
   void testPrintMixedSeparators() {
     // Mixed separators
     String output = runProgramCapture("10 PRINT \"A\"; \"B\", \"C\"");
-    assertEquals(0, output.indexOf("A"));
-    assertEquals(1, output.indexOf("B"));
-    assertEquals(16, output.indexOf("C"));
+    assertEquals(0, output.indexOf('A'));
+    assertEquals(1, output.indexOf('B'));
+    assertEquals(16, output.indexOf('C'));
   }
 
   @Test
@@ -206,7 +206,7 @@ class InterpreterTest {
     // If we want to check output before crash, we'd need to catch inside test.
     MockDisplay display = new MockDisplay();
     try {
-      var program = parser.parseProgramLines(source);
+      var program = PARSER.parseProgramLines(source);
       EvalState state = new EvalState();
       BazLangExecutor executor = new BazLangExecutor(state, display);
       Interpreter interpreter = new Interpreter(state, executor);

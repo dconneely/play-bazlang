@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ruleset name="BazLang PMD Rules"
+         xmlns="http://pmd.sourceforge.net/ruleset/2.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://pmd.sourceforge.net/ruleset/2.0.0 https://pmd.sourceforge.io/ruleset_2_0_0.xsd">
+
+    <description>PMD rules for BazLang project</description>
+
+    <!-- Exclude ANTLR generated code -->
+    <exclude-pattern>.*/com/davidconneely/bazlang/antlr/.*</exclude-pattern>
+
+    <!-- Best Practices -->
+    <rule ref="category/java/bestpractices.xml">
+        <!-- Style preferences -->
+        <exclude name="AvoidStringBufferField"/>
+        <exclude name="ConstantsInInterface"/>
+        <exclude name="LiteralsFirstInComparisons"/>
+        <!-- Exception translation: domain exception replaces original -->
+        <exclude name="PreserveStackTrace"/>
+        <exclude name="SimplifiableTestAssertion"/>
+        <exclude name="SystemPrintln"/>
+        <!-- Test rules - not applicable to this test style -->
+        <exclude name="UnitTestAssertionsShouldIncludeMessage"/>
+        <exclude name="UnitTestContainsTooManyAsserts"/>
+        <exclude name="UnitTestShouldIncludeAssert"/>
+    </rule>
+
+    <!-- Code Style -->
+    <rule ref="category/java/codestyle.xml">
+        <!-- These are stylistic preferences, not errors -->
+        <exclude name="AtLeastOneConstructor"/>
+        <exclude name="CallSuperInConstructor"/>
+        <exclude name="CommentDefaultAccessModifier"/>
+        <exclude name="ConfusingTernary"/>
+        <exclude name="FieldDeclarationsShouldBeAtStartOfClass"/>
+        <exclude name="LocalVariableCouldBeFinal"/>
+        <exclude name="LongVariable"/>
+        <exclude name="MethodArgumentCouldBeFinal"/>
+        <exclude name="OnlyOneReturn"/>
+        <exclude name="ShortClassName"/>
+        <exclude name="ShortMethodName"/>
+        <exclude name="ShortVariable"/>
+        <exclude name="TooManyStaticImports"/>
+        <exclude name="UnnecessaryCast"/>
+        <exclude name="UseExplicitTypes"/>
+        <exclude name="UselessParentheses"/>
+    </rule>
+
+    <!-- Design - interpreter classes are inherently complex -->
+    <rule ref="category/java/design.xml">
+        <!-- Complexity: BazLangExecutor is a visitor with 50+ methods -->
+        <exclude name="CognitiveComplexity"/>
+        <exclude name="CouplingBetweenObjects"/>
+        <exclude name="CyclomaticComplexity"/>
+        <exclude name="ExcessivePublicCount"/>
+        <exclude name="GodClass"/>
+        <exclude name="NPathComplexity"/>
+        <exclude name="TooManyMethods"/>
+        <!-- Interpreter logic requires nested conditionals -->
+        <exclude name="AvoidDeeplyNestedIfStmts"/>
+        <!-- Valid patterns: records, data holders, entry point class -->
+        <exclude name="DataClass"/>
+        <exclude name="LawOfDemeter"/>
+        <exclude name="LoosePackageCoupling"/>
+        <exclude name="SingularField"/>
+        <exclude name="UseUtilityClass"/>
+    </rule>
+
+    <!-- Error Prone -->
+    <rule ref="category/java/errorprone.xml">
+        <!-- Idiomatic: while ((line = read()) != null) -->
+        <exclude name="AssignmentInOperand"/>
+        <!-- Error messages naturally share text -->
+        <exclude name="AvoidDuplicateLiterals"/>
+        <!-- Common pattern: field foo, method foo() -->
+        <exclude name="AvoidFieldNameMatchingMethodName"/>
+        <!-- if (x == 0) is clear -->
+        <exclude name="AvoidLiteralsInIfCondition"/>
+        <!-- False positives on Display (closed elsewhere) -->
+        <exclude name="CloseResource"/>
+        <!-- BufferedDisplay intentionally initializes in constructor -->
+        <exclude name="ConstructorCallsOverridableMethod"/>
+        <!-- CLI app uses System.exit() -->
+        <exclude name="DoNotTerminateVM"/>
+        <!-- Intentional: ignoring non-critical exceptions -->
+        <exclude name="EmptyCatchBlock"/>
+        <!-- Exceptions don't need serialization -->
+        <exclude name="MissingSerialVersionUID"/>
+        <!-- Sometimes necessary to clear references -->
+        <exclude name="NullAssignment"/>
+        <!-- Helper/base test classes -->
+        <exclude name="TestClassWithoutTestCases"/>
+        <!-- BASIC identifiers are ASCII-only -->
+        <exclude name="UseLocaleWithCaseConversions"/>
+    </rule>
+
+    <!-- Multithreading -->
+    <rule ref="category/java/multithreading.xml">
+        <exclude name="DoNotUseThreads"/>
+        <exclude name="UseConcurrentHashMap"/>
+    </rule>
+
+    <!-- Performance -->
+    <rule ref="category/java/performance.xml">
+        <!-- Creating records in loops is unavoidable and cheap -->
+        <exclude name="AvoidInstantiatingObjectsInLoops"/>
+        <!-- Explicit = 0 on int fields improves readability -->
+        <exclude name="RedundantFieldInitializer"/>
+    </rule>
+
+    <!-- Security -->
+    <rule ref="category/java/security.xml"/>
+</ruleset>

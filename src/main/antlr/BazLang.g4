@@ -77,8 +77,11 @@ lineRange
     ;
 
 // RENUM arguments: [new_start] [STEP new_step] [, [old_start] TO [old_end]]
+// At least one component required to avoid ANTLR warning about matching empty string
 renumArgs
-    : numExpr? (STEP numExpr)? (',' numExpr? TO numExpr?)?
+    : numExpr (STEP numExpr)? (',' numExpr? TO numExpr?)?   // new_start with optional STEP and range
+    | STEP numExpr (',' numExpr? TO numExpr?)?              // STEP without new_start
+    | ',' numExpr? TO numExpr?                              // just the range part
     ;
 
 assignmentTarget

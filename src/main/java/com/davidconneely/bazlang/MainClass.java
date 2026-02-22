@@ -11,7 +11,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 public class MainClass {
-  private static final AntlrParser parser = new AntlrParser();
+  private static final AntlrParser PARSER = new AntlrParser();
 
   public static void main(String[] args) {
     Display display;
@@ -22,7 +22,7 @@ public class MainClass {
       } else {
         display = new TerminalDisplay();
       }
-    } catch (Exception e) {
+    } catch (IOException e) {
       display = new StreamDisplay();
     }
     if (args.length == 0) {
@@ -38,7 +38,7 @@ public class MainClass {
   private static void runFile(String sourceFile, Display display) {
     try {
       String source = Files.readString(Path.of(sourceFile));
-      var program = parser.parseProgramLines(source);
+      var program = PARSER.parseProgramLines(source);
       EvalState state = new EvalState();
       BazLangExecutor executor = new BazLangExecutor(state, display);
       Interpreter interpreter = new Interpreter(state, executor);
@@ -48,9 +48,6 @@ public class MainClass {
       System.exit(1);
     } catch (ReportException e) {
       display.println(e.prefix() + " " + e.getMessage());
-      System.exit(1);
-    } catch (Exception e) {
-      display.println("Error: " + e.getMessage());
       System.exit(1);
     }
   }
@@ -75,7 +72,7 @@ public class MainClass {
         continue;
       }
       try {
-        AntlrParser.ParsedLine parsed = parser.parseReplLine(line);
+        AntlrParser.ParsedLine parsed = PARSER.parseReplLine(line);
         if (parsed
             instanceof AntlrParser.ParsedLine.Numbered(int lineNumber, String statementText)) {
           // Line editing - check if it's just a line number (deletion)
@@ -105,8 +102,6 @@ public class MainClass {
         state.setLastReportCode(e.reportCode());
         state.setLastReportLabel(e.lineLabel());
         display.println(e.prefix() + " " + e.getMessage());
-      } catch (Exception e) {
-        display.println("Error: " + e.getMessage());
       }
     }
   }

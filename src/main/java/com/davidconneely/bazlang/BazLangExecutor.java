@@ -5,6 +5,7 @@ import com.davidconneely.bazlang.antlr.BazLangBaseVisitor;
 import com.davidconneely.bazlang.antlr.BazLangParser;
 import com.davidconneely.bazlang.antlr.BazLangParser.*;
 import com.davidconneely.bazlang.io.Display;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -19,7 +20,7 @@ import java.util.regex.Pattern;
 
 /** Executes BazLang from the ANTLR ParseTree. */
 public class BazLangExecutor extends BazLangBaseVisitor<Object> {
-  private static final AntlrParser parser = new AntlrParser();
+  private static final AntlrParser PARSER = new AntlrParser();
   private final EvalState state;
   private final Display display;
 
@@ -49,7 +50,9 @@ public class BazLangExecutor extends BazLangBaseVisitor<Object> {
   @Override
   public Object visitContStmt(ContStmtContext ctx) {
     int m = state.lastReportLabel();
-    if (m <= 0) return null;
+    if (m <= 0) {
+      return null;
+    }
     if (state.lastReportCode() == ReportCode.STOP_STATEMENT) {
       state.setCurrentLineLabel(m);
     } else {
@@ -81,7 +84,8 @@ public class BazLangExecutor extends BazLangBaseVisitor<Object> {
         throw codedException(ReportCode.NONSENSE_IN_BASIC, "Already DIMensioned");
       }
       state.strVars().remove(name);
-      int flen = dims.removeLast(), total = 1;
+      int flen = dims.removeLast();
+      int total = 1;
       for (int d : dims) {
         total *= d;
       }
@@ -96,7 +100,9 @@ public class BazLangExecutor extends BazLangBaseVisitor<Object> {
         throw codedException(ReportCode.NONSENSE_IN_BASIC, "Already DIMensioned");
       }
       int total = 1;
-      for (int d : dims) total *= d;
+      for (int d : dims) {
+        total *= d;
+      }
       if (total <= 0 || total > Limits.MAX_ARRAY_ELEMENTS) {
         throw codedException(ReportCode.OUT_OF_MEMORY, "Array too large");
       }
@@ -123,7 +129,7 @@ public class BazLangExecutor extends BazLangBaseVisitor<Object> {
       Integer nextLabel = state.program().higherKey(state.currentLineLabel());
       while (nextLabel != null) {
         ProgramLine line = state.program().get(nextLabel);
-        StatementContext stmt = line.getStatement(parser);
+        StatementContext stmt = line.getStatement(PARSER);
         if (stmt instanceof NextStmtContext nextCtx
             && nextCtx.NUM_IDENTIFIER().getText().equalsIgnoreCase(var)) {
           state.setCurrentLineLabel(nextLabel);
@@ -495,11 +501,8 @@ public class BazLangExecutor extends BazLangBaseVisitor<Object> {
       } else {
         source = Files.readString(Path.of(filename));
       }
-      state.setProgram(parser.parseProgramLines(source));
-    } catch (Exception e) {
-      if (e instanceof ReportException re) {
-        throw re;
-      }
+      state.setProgram(PARSER.parseProgramLines(source));
+    } catch (IOException e) {
       throw codedException(ReportCode.INVALID_FILE_NAME, "Failed to load: " + e.getMessage());
     }
     return null;
@@ -730,7 +733,7 @@ public class BazLangExecutor extends BazLangBaseVisitor<Object> {
         writer.write(line.lineNumber() + " " + line.sourceText());
         writer.newLine();
       }
-    } catch (Exception e) {
+    } catch (IOException e) {
       throw codedException(ReportCode.INVALID_FILE_NAME, "Failed to save: " + e.getMessage());
     }
     return null;
@@ -920,26 +923,58 @@ public class BazLangExecutor extends BazLangBaseVisitor<Object> {
   @Override
   public Double visitNumFunc(NumFuncContext ctx) {
     // Dispatch to specific function handling
-    if (ctx.ABS() != null) return Math.abs(evalNumAtom(ctx.numAtom()));
-    if (ctx.ACS() != null) return Math.acos(evalNumAtom(ctx.numAtom()));
-    if (ctx.ASN() != null) return Math.asin(evalNumAtom(ctx.numAtom()));
-    if (ctx.ATN() != null) return Math.atan(evalNumAtom(ctx.numAtom()));
-    if (ctx.CODE() != null) return (double) evalStrAtom(ctx.strAtom()).codePointAt(0);
-    if (ctx.COS() != null) return Math.cos(evalNumAtom(ctx.numAtom()));
-    if (ctx.EXP() != null) return Math.exp(evalNumAtom(ctx.numAtom()));
-    if (ctx.INT() != null) return Math.floor(evalNumAtom(ctx.numAtom()));
-    if (ctx.LEN() != null) return (double) evalStrAtom(ctx.strAtom()).length();
-    if (ctx.LN() != null) return Math.log(evalNumAtom(ctx.numAtom()));
+    if (ctx.ABS() != null) {
+      return Math.abs(evalNumAtom(ctx.numAtom()));
+    }
+    if (ctx.ACS() != null) {
+      return Math.acos(evalNumAtom(ctx.numAtom()));
+    }
+    if (ctx.ASN() != null) {
+      return Math.asin(evalNumAtom(ctx.numAtom()));
+    }
+    if (ctx.ATN() != null) {
+      return Math.atan(evalNumAtom(ctx.numAtom()));
+    }
+    if (ctx.CODE() != null) {
+      return (double) evalStrAtom(ctx.strAtom()).codePointAt(0);
+    }
+    if (ctx.COS() != null) {
+      return Math.cos(evalNumAtom(ctx.numAtom()));
+    }
+    if (ctx.EXP() != null) {
+      return Math.exp(evalNumAtom(ctx.numAtom()));
+    }
+    if (ctx.INT() != null) {
+      return Math.floor(evalNumAtom(ctx.numAtom()));
+    }
+    if (ctx.LEN() != null) {
+      return (double) evalStrAtom(ctx.strAtom()).length();
+    }
+    if (ctx.LN() != null) {
+      return Math.log(evalNumAtom(ctx.numAtom()));
+    }
     if (ctx.PEEK() != null) {
       evalNumAtom(ctx.numAtom()); // consume arg
       return 0.0;
     }
-    if (ctx.PI() != null) return Math.PI;
-    if (ctx.RND() != null) return state.random().nextDouble();
-    if (ctx.SGN() != null) return Math.signum(evalNumAtom(ctx.numAtom()));
-    if (ctx.SIN() != null) return Math.sin(evalNumAtom(ctx.numAtom()));
-    if (ctx.SQR() != null) return Math.sqrt(evalNumAtom(ctx.numAtom()));
-    if (ctx.TAN() != null) return Math.tan(evalNumAtom(ctx.numAtom()));
+    if (ctx.PI() != null) {
+      return Math.PI;
+    }
+    if (ctx.RND() != null) {
+      return state.random().nextDouble();
+    }
+    if (ctx.SGN() != null) {
+      return Math.signum(evalNumAtom(ctx.numAtom()));
+    }
+    if (ctx.SIN() != null) {
+      return Math.sin(evalNumAtom(ctx.numAtom()));
+    }
+    if (ctx.SQR() != null) {
+      return Math.sqrt(evalNumAtom(ctx.numAtom()));
+    }
+    if (ctx.TAN() != null) {
+      return Math.tan(evalNumAtom(ctx.numAtom()));
+    }
     if (ctx.USR() != null) {
       evalNumAtom(ctx.numAtom()); // consume arg
       return 0.0;
@@ -1020,7 +1055,8 @@ public class BazLangExecutor extends BazLangBaseVisitor<Object> {
   private String evalStrSubscript(String name, StrSubscriptContext subscript) {
     // Parse indices and slice from subscript
     List<Integer> indices = new ArrayList<>();
-    Integer sliceStart = null, sliceEnd = null;
+    Integer sliceStart = null;
+    Integer sliceEnd = null;
     boolean hasSlice = subscript.TO() != null;
     var numExprs = subscript.numExpr();
     if (hasSlice) {
@@ -1039,7 +1075,7 @@ public class BazLangExecutor extends BazLangBaseVisitor<Object> {
       if (sliceExprStart < numExprs.size()) {
         // Check if there's content before TO (slice start)
         String trimBefore = beforeTo.substring(beforeTo.lastIndexOf(',') + 1).trim();
-        if (!trimBefore.isEmpty() || (commaCount == 0 && !beforeTo.trim().isEmpty())) {
+        if (!trimBefore.isEmpty() || (commaCount == 0 && !beforeTo.isBlank())) {
           sliceStart = (int) evalNum(numExprs.get(sliceExprStart));
           sliceExprStart++;
         }
@@ -1135,7 +1171,9 @@ public class BazLangExecutor extends BazLangBaseVisitor<Object> {
       String name = ctx.STR_IDENTIFIER().getText().toUpperCase();
       if (state.charArrays().containsKey(name)) {
         EvalState.CharArray ca = state.charArrays().get(name);
-        if (ca.dimensions().isEmpty()) return new String(ca.data());
+        if (ca.dimensions().isEmpty()) {
+          return new String(ca.data());
+        }
       }
       if (state.strVars().containsKey(name)) {
         return state.strVars().get(name);
@@ -1189,7 +1227,8 @@ public class BazLangExecutor extends BazLangBaseVisitor<Object> {
     }
     // Subscripted assignment - parse subscript
     List<Integer> indices = new ArrayList<>();
-    Integer sliceStart = null, sliceEnd = null;
+    Integer sliceStart = null;
+    Integer sliceEnd = null;
     boolean hasSlice = subscript.TO() != null;
     var numExprs = subscript.numExpr();
     if (hasSlice) {
@@ -1203,7 +1242,7 @@ public class BazLangExecutor extends BazLangBaseVisitor<Object> {
       int sliceExprStart = commaCount;
       if (sliceExprStart < numExprs.size()) {
         String trimBefore = beforeTo.substring(beforeTo.lastIndexOf(',') + 1).trim();
-        if (!trimBefore.isEmpty() || (commaCount == 0 && !beforeTo.trim().isEmpty())) {
+        if (!trimBefore.isEmpty() || (commaCount == 0 && !beforeTo.isBlank())) {
           sliceStart = (int) evalNum(numExprs.get(sliceExprStart));
           sliceExprStart++;
         }
@@ -1254,9 +1293,11 @@ public class BazLangExecutor extends BazLangBaseVisitor<Object> {
     if (indices.size() != n) {
       throw codedException(ReportCode.SUBSCRIPT_WRONG, "Incorrect dimensions");
     }
-    int idx = 0, m = 1;
+    int idx = 0;
+    int m = 1;
     for (int i = n - 1; i >= 0; i--) {
-      int sz = dimensions.get(i), v = indices.get(i);
+      int sz = dimensions.get(i);
+      int v = indices.get(i);
       if (v < 1 || v > sz) {
         throw codedException(ReportCode.SUBSCRIPT_WRONG, "Index out of bounds");
       }
@@ -1322,99 +1363,39 @@ public class BazLangExecutor extends BazLangBaseVisitor<Object> {
     if (exprStr.isEmpty()) {
       throw codedException(ReportCode.NONSENSE_IN_BASIC, "Empty expression");
     }
-    try {
-      BazLangParser.NumExprContext exprCtx = parser.parseNumExpr(exprStr);
-      return evalNum(exprCtx);
-    } catch (ReportException e) {
-      throw e;
-    } catch (Exception e) {
-      throw codedException(ReportCode.NONSENSE_IN_BASIC, "Invalid expression: " + exprStr);
-    }
+    BazLangParser.NumExprContext exprCtx = PARSER.parseNumExpr(exprStr);
+    return evalNum(exprCtx);
   }
 
-  /**
-   * Formats a number in ZX81 BASIC style. Used by PRINT statement and STR$ function.
-   *
-   * <p>ZX81 rules: - 0 prints as "0" - If |x| < 10^-5 or |x| >= 10^13, use scientific notation
-   * (E+nn or E-nn) - Scientific notation: up to 8 significant digits, decimal after first digit -
-   * Otherwise: ordinary decimal, up to 8 significant digits, no trailing zeros - Negative numbers
-   * have leading minus sign
-   */
+  private static final double ULP0 = 1e-39;
+
+  /** Formats a number with up to 8 decimal digits, scientific notation for extreme values. */
   private String formatNum(double d) {
-    if (d == 0.0) {
+    if (Math.abs(d) < ULP0) {
       return "0";
     }
     if (Double.isNaN(d)) {
       return "NaN";
     }
     if (Double.isInfinite(d)) {
-      return d > 0 ? "Infinity" : "-Infinity";
+      return d > 0.0 ? "Infinity" : "-Infinity";
     }
-    StringBuilder sb = new StringBuilder();
-    if (d < 0) {
-      sb.append("-");
-      d = -d;
-    }
-    // Use E notation if x <= 10^-5 or x >= 10^13
-    boolean useScientific = (d < 1e-5 || d >= 1e13);
-    if (useScientific) {
-      // Scientific notation with up to 8 significant digits
-      int exp = (int) Math.floor(Math.log10(d));
-      double mantissa = d / Math.pow(10, exp);
-      // Round to 8 significant digits
-      mantissa = Math.round(mantissa * 1e7) / 1e7;
-      // Handle rounding that might push mantissa to 10
-      if (mantissa >= 10.0) {
-        mantissa /= 10.0;
-        exp++;
+    double abs = Math.abs(d);
+    if (abs < 1e-5 || abs >= 1e13) {
+      // Scientific notation for extreme values
+      java.text.DecimalFormat df = new java.text.DecimalFormat("0.########E0");
+      String result = df.format(d);
+      // Add + sign for positive exponents (e.g., 1E15 -> 1E+15)
+      int ePos = result.indexOf('E');
+      if (ePos >= 0 && ePos + 1 < result.length() && result.charAt(ePos + 1) != '-') {
+        result = result.substring(0, ePos + 1) + "+" + result.substring(ePos + 1);
       }
-      // Format mantissa (up to 8 digits, no trailing zeros)
-      String mantStr = formatMantissa(mantissa, 8);
-      sb.append(mantStr);
-      // Format exponent
-      sb.append("E");
-      sb.append(exp >= 0 ? "+" : "");
-      sb.append(exp);
+      return result;
     } else {
-      // Ordinary decimal notation with up to 8 significant digits
-      // Round to 8 significant digits
-      int exp = (d >= 1) ? (int) Math.floor(Math.log10(d)) : 0;
-      double scale = Math.pow(10, 7 - exp);
-      double rounded = Math.round(d * scale) / scale;
-      // Check if it's an integer
-      if (rounded == Math.floor(rounded) && rounded < 1e15) {
-        sb.append((long) rounded);
-      } else {
-        // Format with appropriate decimal places, strip trailing zeros
-        String str = String.format("%.15g", rounded);
-        // Clean up: remove trailing zeros after decimal point
-        if (str.contains(".")) {
-          str = str.replaceAll("0+$", "").replaceAll("\\.$", "");
-        }
-        // Handle scientific notation that Java might produce
-        if (str.contains("e") || str.contains("E")) {
-          // Reformat without scientific notation for this range
-          str = new java.math.BigDecimal(rounded).stripTrailingZeros().toPlainString();
-        }
-        // ZX81: drop leading zero for |x| < 0.1 (e.g., 0.03 -> .03)
-        if (str.startsWith("0.") && d < 0.1) {
-          str = str.substring(1);
-        }
-        sb.append(str);
-      }
+      // Normal decimal notation with up to 8 decimal places
+      java.text.DecimalFormat df = new java.text.DecimalFormat("0.########");
+      return df.format(d);
     }
-    return sb.toString();
-  }
-
-  /** Format mantissa with up to maxDigits significant digits, no trailing zeros. */
-  private String formatMantissa(double mantissa, int maxDigits) {
-    // Format with enough precision
-    String str = String.format("%." + (maxDigits - 1) + "f", mantissa);
-    // Strip trailing zeros after decimal point
-    if (str.contains(".")) {
-      str = str.replaceAll("0+$", "").replaceAll("\\.$", "");
-    }
-    return str;
   }
 
   private ReportException codedException(ReportCode rc, String msg) {

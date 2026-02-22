@@ -20,30 +20,26 @@ public class TerminalDisplay extends BufferedDisplay {
   private final AtomicBoolean breakFlag = new AtomicBoolean(false);
   private LineReader cachedLineReader;
 
-  public TerminalDisplay() {
+  public TerminalDisplay() throws IOException {
     super();
-    try {
-      this.terminal =
-          TerminalBuilder.builder()
-              .system(true)
-              .streams(System.in, System.out)
-              .nativeSignals(true)
-              .signalHandler(
-                  sig -> {
-                    if (sig == Terminal.Signal.INT) {
-                      breakFlag.set(true);
-                    }
-                  })
-              .build();
+    this.terminal =
+        TerminalBuilder.builder()
+            .system(true)
+            .streams(System.in, System.out)
+            .nativeSignals(true)
+            .signalHandler(
+                sig -> {
+                  if (sig == Terminal.Signal.INT) {
+                    breakFlag.set(true);
+                  }
+                })
+            .build();
 
-      if (isValidTerminal()) {
-        enableRawMode();
-      }
-      this.reader = terminal.reader();
-      Runtime.getRuntime().addShutdownHook(new Thread(this::close));
-    } catch (IOException e) {
-      throw new RuntimeException("Failed to initialise terminal", e);
+    if (isValidTerminal()) {
+      enableRawMode();
     }
+    this.reader = terminal.reader();
+    Runtime.getRuntime().addShutdownHook(new Thread(this::close));
   }
 
   private boolean isValidTerminal() {
@@ -117,13 +113,17 @@ public class TerminalDisplay extends BufferedDisplay {
   @Override
   public String readln(String prompt) {
     int newlineIdx = typeAheadBuffer.indexOf("\r");
-    if (newlineIdx == -1) newlineIdx = typeAheadBuffer.indexOf("\n");
+    if (newlineIdx == -1) {
+      newlineIdx = typeAheadBuffer.indexOf("\n");
+    }
 
     if (newlineIdx != -1) {
       String line = typeAheadBuffer.substring(0, newlineIdx);
       typeAheadBuffer.delete(0, newlineIdx + 1);
 
-      if (prompt != null) print(prompt);
+      if (prompt != null) {
+        print(prompt);
+      }
       println(line);
 
       return line;

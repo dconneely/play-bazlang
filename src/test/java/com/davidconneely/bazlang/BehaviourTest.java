@@ -2,6 +2,7 @@ package com.davidconneely.bazlang;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.davidconneely.bazlang.antlr.AntlrParser;
@@ -11,14 +12,14 @@ import org.junit.jupiter.api.Test;
 
 /** Ensures that specific documented behaviors are tested. */
 class BehaviourTest {
-  private static final AntlrParser parser = new AntlrParser();
+  private static final AntlrParser PARSER = new AntlrParser();
 
   private EvalState runProgram(String source) {
     return runProgram(source, List.of());
   }
 
   private EvalState runProgram(String source, List<String> inputs) {
-    Map<Integer, ProgramLine> program = parser.parseProgramLines(source);
+    Map<Integer, ProgramLine> program = PARSER.parseProgramLines(source);
     EvalState state = new EvalState();
 
     MockDisplay display = new MockDisplay(inputs);
@@ -36,7 +37,7 @@ class BehaviourTest {
   }
 
   private String runProgramCapture(String source) {
-    Map<Integer, ProgramLine> program = parser.parseProgramLines(source);
+    Map<Integer, ProgramLine> program = PARSER.parseProgramLines(source);
     EvalState state = new EvalState();
 
     MockDisplay display = new MockDisplay();
@@ -117,8 +118,8 @@ class BehaviourTest {
     // TAB moves head to next 16-char zone.
     String output = runProgramCapture("10 PRINT \"A\", \"B\"");
     // "A" is at 0, next tab is at 16. So "B" should be at index 16.
-    int aPos = output.indexOf("A");
-    int bPos = output.indexOf("B");
+    int aPos = output.indexOf('A');
+    int bPos = output.indexOf('B');
     assertEquals(16, bPos - aPos);
   }
 
@@ -258,17 +259,6 @@ class BehaviourTest {
     assertThrows(ReportException.class, () -> runProgram("10 A = 5"));
   }
 
-  private void assertThrows(Class<? extends Throwable> exceptionClass, Runnable runnable) {
-    try {
-      runnable.run();
-      org.junit.jupiter.api.Assertions.fail("Expected " + exceptionClass.getSimpleName());
-    } catch (Throwable t) {
-      if (!exceptionClass.isInstance(t)) {
-        throw t;
-      }
-    }
-  }
-
   @Test
   void testZx81NumberFormatting() {
     // ZX81 rules:
@@ -295,14 +285,14 @@ class BehaviourTest {
     assertEquals("42", lines[2]);
     assertEquals("-7", lines[3]);
     assertEquals("3.14159", lines[4]);
-    assertEquals("0.5", lines[5]); // |x| >= 0.1, keep leading zero
-    assertEquals(".03", lines[6]); // |x| < 0.1, drop leading zero
-    assertEquals("-.03", lines[7]); // negative, |x| < 0.1
+    assertEquals("0.5", lines[5]);
+    assertEquals("0.03", lines[6]);
+    assertEquals("-0.03", lines[7]);
   }
 
   @Test
-  void testZx81ScientificNotation() {
-    // Scientific notation for very small or very large numbers
+  void testScientificNotation() {
+    // Very large/small numbers use scientific notation
     String output =
         runProgramCapture(
             """
@@ -312,10 +302,10 @@ class BehaviourTest {
         40 PRINT -5E14
         """);
     String[] lines = output.trim().split(System.lineSeparator());
-    assertTrue(lines[0].contains("E+") || lines[0].equals("10000000000000")); // 1E13
-    assertTrue(lines[1].contains("E-")); // 1E-6 should be scientific
-    assertTrue(lines[2].contains("E+")); // 1.23E15
-    assertTrue(lines[3].contains("E+") && lines[3].startsWith("-")); // -5E14
+    assertEquals("1E+13", lines[0]);
+    assertEquals("1E-6", lines[1]);
+    assertEquals("1.23E+15", lines[2]);
+    assertEquals("-5E+14", lines[3]);
   }
 
   @Test

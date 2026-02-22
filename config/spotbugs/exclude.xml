@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<FindBugsFilter>
+    <!-- Exclude ANTLR generated code -->
+    <Match>
+        <Package name="com.davidconneely.bazlang.antlr"/>
+    </Match>
+
+    <!-- Records expose their fields intentionally (no defensive copying needed) -->
+    <Match>
+        <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+    </Match>
+
+    <!-- Allow constructors that throw exceptions (validation) -->
+    <Match>
+        <Bug pattern="CT_CONSTRUCTOR_THROW"/>
+    </Match>
+</FindBugsFilter>

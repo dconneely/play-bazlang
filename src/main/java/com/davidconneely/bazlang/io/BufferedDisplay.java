@@ -65,7 +65,9 @@ abstract class BufferedDisplay implements Display {
 
   protected void updateBuffer(String text) {
     for (char c : text.toCharArray()) {
-      if (c < 32 || c == 127) continue;
+      if (c < 32 || c == 127) {
+        continue;
+      }
       if (currentRow >= 0 && currentRow < ROWS && currentCol >= 0 && currentCol < COLS) {
         buffer[currentRow][currentCol] = c;
       }
@@ -78,7 +80,9 @@ abstract class BufferedDisplay implements Display {
     updateBuffer(text);
     StringBuilder clean = new StringBuilder();
     for (char c : text.toCharArray()) {
-      if (c >= 32 && c != 127) clean.append(c);
+      if (c >= 32 && c != 127) {
+        clean.append(c);
+      }
     }
     rawPrint(clean.toString());
   }
@@ -116,7 +120,9 @@ abstract class BufferedDisplay implements Display {
 
   private int getQuadState(char c) {
     for (int i = 0; i < QUADRANTS.length; i++) {
-      if (QUADRANTS[i] == c) return i;
+      if (QUADRANTS[i] == c) {
+        return i;
+      }
     }
     return 0;
   }
@@ -132,23 +138,28 @@ abstract class BufferedDisplay implements Display {
   }
 
   private void updateBlock(int x, int y, boolean set) {
-    x = Math.abs(x);
-    y = Math.abs(y);
-    if (x >= PLOT_X_SIZE || y >= PLOT_Y_SIZE) {
+    int absX = Math.abs(x);
+    int absY = Math.abs(y);
+    if (absX >= PLOT_X_SIZE || absY >= PLOT_Y_SIZE) {
       throw new IllegalArgumentException("Integer out of range");
     }
 
-    int col = x / 2;
-    int row = (ROWS - 1) - (y / 2);
+    int col = absX / 2;
+    int row = (ROWS - 1) - (absY / 2);
 
-    int subX = x % 2;
-    int subY = y % 2;
+    int subX = absX % 2;
+    int subY = absY % 2;
 
     int mask = 0;
-    if (subX == 0 && subY == 1) mask = 1; // UL
-    else if (subX == 1 && subY == 1) mask = 2; // UR
-    else if (subX == 0 && subY == 0) mask = 4; // LL
-    else if (subX == 1 && subY == 0) mask = 8; // LR
+    if (subX == 0 && subY == 1) {
+      mask = 1; // UL
+    } else if (subX == 1 && subY == 1) {
+      mask = 2; // UR
+    } else if (subX == 0 && subY == 0) {
+      mask = 4; // LL
+    } else if (subX == 1 && subY == 0) {
+      mask = 8; // LR
+    }
 
     char current = buffer[row][col];
     int state = getQuadState(current);

@@ -5,10 +5,11 @@ import com.davidconneely.bazlang.antlr.BazLangParser.StatementContext;
 import com.davidconneely.bazlang.io.Display;
 import com.davidconneely.bazlang.io.StreamDisplay;
 import com.davidconneely.bazlang.io.TerminalDisplay;
+import java.io.IOException;
 import java.util.Map;
 
 public class Interpreter {
-  private static final AntlrParser parser = new AntlrParser();
+  private static final AntlrParser PARSER = new AntlrParser();
   private final EvalState state;
   private final BazLangExecutor executor;
 
@@ -17,7 +18,7 @@ public class Interpreter {
     Display terminal;
     try {
       terminal = new TerminalDisplay();
-    } catch (Exception e) {
+    } catch (IOException e) {
       terminal = new StreamDisplay();
     }
     this.executor = new BazLangExecutor(state, terminal);
@@ -49,21 +50,10 @@ public class Interpreter {
             ReportCode.BREAK_CONT_REPEATS.getMessage());
       }
       state.setCurrentLineLabel(entry.getKey());
-      try {
-        // Lazy parse: ParseTree is built on first execution, cached for loops
-        ProgramLine line = entry.getValue();
-        StatementContext stmt = line.getStatement(parser);
-        executor.visit(stmt);
-      } catch (Exception e) {
-        if (e instanceof ReportException re) {
-          throw re;
-        }
-        throw codedException(ReportCode.NONSENSE_IN_BASIC, e.getMessage());
-      }
+      // Lazy parse: ParseTree is built on first execution, cached for loops
+      ProgramLine line = entry.getValue();
+      StatementContext stmt = line.getStatement(PARSER);
+      executor.visit(stmt);
     }
-  }
-
-  private ReportException codedException(ReportCode reportCode, String message) {
-    return new ReportException(reportCode, state.currentLineLabel(), message);
   }
 }
