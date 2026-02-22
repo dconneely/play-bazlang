@@ -37,10 +37,10 @@ java -jar build/libs/bazlang-1.0.0-SNAPSHOT.jar <optional-source-file.bas>
 
 ## Examples
 
-You can find example programs in `src/test/resources/`. Run one like this:
+You can find example programs in `examples/`. Run one like this:
 
 ```bash
-./run.sh "src/test/resources/games/mastermind.bas"
+./run.sh "examples/games/mastermind.bas"
 ```
 
 ## License
