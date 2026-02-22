@@ -262,7 +262,7 @@ public class BazLangExecutor extends BazLangBaseVisitor<Object> {
    * Parses lineRange for DELETE: single number means "just that line"; requires at least one
    * number.
    */
-  private int[] parseLineRangeForDelete(BazLangParser.LineRangeContext range) {
+  public int[] parseLineRangeForDelete(BazLangParser.LineRangeContext range) {
     if (range == null) {
       throw new ReportException(
           ReportCode.NONSENSE_IN_BASIC, 0, "DELETE requires at least one line number");
@@ -293,18 +293,17 @@ public class BazLangExecutor extends BazLangBaseVisitor<Object> {
     return new int[] {start, end};
   }
 
-  @Override
-  public Object visitDeleteStmt(DeleteStmtContext ctx) {
-    int[] range = parseLineRangeForDelete(ctx.lineRange());
-    state.program().subMap(range[0], true, range[1], true).clear();
-    return null;
+  /** Execute DELETE command with parsed line range. */
+  public void executeDelete(BazLangParser.LineRangeContext range) {
+    int[] bounds = parseLineRangeForDelete(range);
+    state.program().subMap(bounds[0], true, bounds[1], true).clear();
   }
 
-  @Override
-  public Object visitRenumStmt(RenumStmtContext ctx) {
+  /** Execute RENUM command with parsed arguments. */
+  public void executeRenum(BazLangParser.RenumArgsContext args) {
     NavigableMap<Integer, ProgramLine> program = state.program();
     if (program.isEmpty()) {
-      return null;
+      return;
     }
 
     // Parse renumArgs: [new_start] [STEP new_step] [, [old_start] TO [old_end]]
@@ -313,7 +312,6 @@ public class BazLangExecutor extends BazLangBaseVisitor<Object> {
     int oldStart = program.firstKey();
     int oldEnd = program.lastKey();
 
-    var args = ctx.renumArgs();
     if (args != null) {
       var nums = args.numExpr();
       int numIndex = 0;
@@ -322,7 +320,7 @@ public class BazLangExecutor extends BazLangBaseVisitor<Object> {
       if (!nums.isEmpty() && args.STEP() == null
           || !nums.isEmpty()
               && args.getText().toUpperCase().indexOf("STEP")
-                  > args.getText().indexOf(nums.get(0).getText())) {
+                  > args.getText().indexOf(nums.getFirst().getText())) {
         newStart = (int) evalNum(nums.get(numIndex++));
       }
 
@@ -366,7 +364,7 @@ public class BazLangExecutor extends BazLangBaseVisitor<Object> {
     // Get lines to renumber
     NavigableMap<Integer, ProgramLine> toRenumber = program.subMap(oldStart, true, oldEnd, true);
     if (toRenumber.isEmpty()) {
-      return null;
+      return;
     }
 
     int count = toRenumber.size();
@@ -416,8 +414,6 @@ public class BazLangExecutor extends BazLangBaseVisitor<Object> {
       ProgramLine oldLine = entry.getValue();
       program.put(newLineNum, new ProgramLine(newLineNum, oldLine.sourceText()));
     }
-
-    return null;
   }
 
   private static final Pattern GOTO_GOSUB_PATTERN =
@@ -434,7 +430,7 @@ public class BazLangExecutor extends BazLangBaseVisitor<Object> {
       int lineNum = entry.getKey();
       ProgramLine line = entry.getValue();
       String source = line.sourceText();
-      StringBuffer newSource = new StringBuffer();
+      StringBuilder newSource = new StringBuilder();
 
       Matcher m = GOTO_GOSUB_PATTERN.matcher(source);
       while (m.find()) {
@@ -774,7 +770,7 @@ public class BazLangExecutor extends BazLangBaseVisitor<Object> {
 
   // ===== Expression Evaluation =====
 
-  private double evalNum(NumExprContext ctx) {
+  public double evalNum(NumExprContext ctx) {
     return ((Number) visit(ctx)).doubleValue();
   }
 
@@ -1028,10 +1024,10 @@ public class BazLangExecutor extends BazLangBaseVisitor<Object> {
     boolean hasSlice = subscript.TO() != null;
     var numExprs = subscript.numExpr();
     if (hasSlice) {
-      // Has TO - need to figure out which exprs are indices vs slice bounds
+      // Has `TO` - need to figure out which exprs are indices vs slice bounds
       String text = subscript.getText().toUpperCase();
       int toPos = text.indexOf("TO");
-      // Count commas before TO to determine indices count
+      // Count commas before `TO` to determine indices count
       String beforeTo = text.substring(0, toPos);
       int commaCount = (int) beforeTo.chars().filter(c -> c == ',').count();
       // Indices are the expressions before the slice
@@ -1387,7 +1383,7 @@ public class BazLangExecutor extends BazLangBaseVisitor<Object> {
       double rounded = Math.round(d * scale) / scale;
       // Check if it's an integer
       if (rounded == Math.floor(rounded) && rounded < 1e15) {
-        sb.append(Long.toString((long) rounded));
+        sb.append((long) rounded);
       } else {
         // Format with appropriate decimal places, strip trailing zeros
         String str = String.format("%.15g", rounded);

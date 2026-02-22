@@ -19,8 +19,14 @@ lastLine
 
 replLine
     : NUM_LITERAL statement? EOF   # NumberedLine
-    | EDIT numExpr EOF             # EditLine
+    | replCommand EOF              # ReplCommandLine
     | statement EOF                # ImmediateLine
+    ;
+
+replCommand
+    : DELETE lineRange?            # DeleteCmd
+    | EDIT numExpr                 # EditCmd
+    | RENUM renumArgs?             # RenumCmd
     ;
 
 // Statements
@@ -29,7 +35,6 @@ statement
     | CLS                                                               # ClsStmt
     | CONT                                                              # ContStmt
     | COPY                                                              # CopyStmt
-    | DELETE lineRange?                                                 # DeleteStmt
     | DIM dimDecl                                                        # DimStmt
     | FAST                                                              # FastStmt
     | FOR NUM_IDENTIFIER '=' numExpr TO numExpr (STEP numExpr)?         # ForStmt
@@ -50,7 +55,6 @@ statement
     | PRINT printList?                                                  # PrintStmt
     | RAND numExpr?                                                     # RandStmt
     | REM                                                               # RemStmt
-    | RENUM renumArgs?                                                  # RenumStmt
     | RETURN                                                            # ReturnStmt
     | RUN numExpr?                                                      # RunStmt
     | SAVE strExpr                                                      # SaveStmt

@@ -70,8 +70,8 @@ public class AntlrParser {
       }
       String statementText = getStatementText(line, lineNumber);
       return new ParsedLine.Numbered(lineNumber, statementText);
-    } else if (tree instanceof BazLangParser.EditLineContext edit) {
-      return new ParsedLine.Edit(edit.numExpr());
+    } else if (tree instanceof BazLangParser.ReplCommandLineContext cmdLine) {
+      return new ParsedLine.ReplCommand(cmdLine.replCommand());
     } else if (tree instanceof BazLangParser.ImmediateLineContext immediate) {
       return new ParsedLine.Immediate(immediate.statement());
     }
@@ -136,13 +136,13 @@ public class AntlrParser {
     return parser;
   }
 
-  /** Result of parsing a REPL line - numbered (for program), immediate (for execution), or edit. */
+  /** Result of parsing a REPL line - numbered, immediate, or REPL-only command. */
   public sealed interface ParsedLine {
     record Numbered(int lineNumber, String statementText) implements ParsedLine {}
 
     record Immediate(StatementContext statement) implements ParsedLine {}
 
-    record Edit(BazLangParser.NumExprContext lineExpr) implements ParsedLine {}
+    record ReplCommand(BazLangParser.ReplCommandContext context) implements ParsedLine {}
   }
 
   /** ANTLR error listener that converts syntax errors to ReportException. */

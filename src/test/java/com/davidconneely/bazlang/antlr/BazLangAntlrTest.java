@@ -129,7 +129,21 @@ class BazLangAntlrTest {
   void testReplEditCommand() {
     // EDIT is REPL-only (not in statement rule, only in replLine rule)
     AntlrParser.ParsedLine result = parser.parseReplLine("EDIT 100");
-    assertInstanceOf(AntlrParser.ParsedLine.Edit.class, result);
+    assertInstanceOf(AntlrParser.ParsedLine.ReplCommand.class, result);
+  }
+
+  @Test
+  void testReplDeleteCommand() {
+    // DELETE is REPL-only (not in statement rule, only in replLine rule)
+    AntlrParser.ParsedLine result = parser.parseReplLine("DELETE 100");
+    assertInstanceOf(AntlrParser.ParsedLine.ReplCommand.class, result);
+  }
+
+  @Test
+  void testReplRenumCommand() {
+    // RENUM is REPL-only (not in statement rule, only in replLine rule)
+    AntlrParser.ParsedLine result = parser.parseReplLine("RENUM");
+    assertInstanceOf(AntlrParser.ParsedLine.ReplCommand.class, result);
   }
 
   @Test

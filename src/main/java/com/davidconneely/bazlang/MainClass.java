@@ -1,6 +1,7 @@
 package com.davidconneely.bazlang;
 
 import com.davidconneely.bazlang.antlr.AntlrParser;
+import com.davidconneely.bazlang.antlr.BazLangParser;
 import com.davidconneely.bazlang.antlr.BazLangParser.*;
 import com.davidconneely.bazlang.io.Display;
 import com.davidconneely.bazlang.io.StreamDisplay;
@@ -86,19 +87,8 @@ public class MainClass {
             // Insertion/Update - store as ProgramLine with source text
             state.program().put(lineNumber, new ProgramLine(lineNumber, statementText));
           }
-        } else if (parsed instanceof AntlrParser.ParsedLine.Edit(var lineExpr)) {
-          // EDIT command - prefill the input with the line to edit
-          int lineNum = ((Double) executor.visit(lineExpr)).intValue();
-          if (lineNum < Limits.MIN_LINE_LABEL || lineNum > Limits.MAX_LINE_LABEL) {
-            throw new ReportException(
-                ReportCode.INTEGER_OUT_OF_RANGE, 0, "Line number out of range");
-          }
-          ProgramLine programLine = state.program().get(lineNum);
-          if (programLine != null) {
-            display.prefillInput(lineNum + " " + programLine.sourceText());
-          } else {
-            display.prefillInput(lineNum + " ");
-          }
+        } else if (parsed instanceof AntlrParser.ParsedLine.ReplCommand(var ctx)) {
+          handleReplCommand(ctx, executor, display, state);
         } else if (parsed instanceof AntlrParser.ParsedLine.Immediate(StatementContext statement)) {
           if (statement instanceof StopStmtContext) {
             break;
@@ -118,6 +108,29 @@ public class MainClass {
       } catch (Exception e) {
         display.println("Error: " + e.getMessage());
       }
+    }
+  }
+
+  private static void handleReplCommand(
+      BazLangParser.ReplCommandContext ctx,
+      BazLangExecutor executor,
+      Display display,
+      EvalState state) {
+    if (ctx instanceof BazLangParser.DeleteCmdContext delete) {
+      executor.executeDelete(delete.lineRange());
+    } else if (ctx instanceof BazLangParser.EditCmdContext edit) {
+      int lineNum = (int) executor.evalNum(edit.numExpr());
+      if (lineNum < Limits.MIN_LINE_LABEL || lineNum > Limits.MAX_LINE_LABEL) {
+        throw new ReportException(ReportCode.INTEGER_OUT_OF_RANGE, 0, "Line number out of range");
+      }
+      ProgramLine programLine = state.program().get(lineNum);
+      if (programLine != null) {
+        display.prefillInput(lineNum + " " + programLine.sourceText());
+      } else {
+        display.prefillInput(lineNum + " ");
+      }
+    } else if (ctx instanceof BazLangParser.RenumCmdContext renum) {
+      executor.executeRenum(renum.renumArgs());
     }
   }
 }

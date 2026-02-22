@@ -105,13 +105,6 @@ Returns `1` for True, `0` for False.
 - **`LIST [n [TO [m]]]`**: Show program code. `LIST` shows all; `LIST n` shows from line `n` to end;
     `LIST TO m` shows from start to line `m`; `LIST n TO m` shows lines `n` through `m`.
 - **`LLIST [n [TO [m]]]`**: Same as `LIST` but outputs to standard error.
-- **`DELETE n [TO [m]]`**: Delete lines. Requires at least one line number. `DELETE n` deletes only
-    line `n`; `DELETE n TO` deletes from `n` to end; `DELETE TO m` deletes from start to `m`;
-    `DELETE n TO m` deletes lines `n` through `m`. Typing just a line number (e.g., `100`) at the
-    REPL also deletes that line.
-- **`RENUM [start] [STEP step] [, [from] TO [to]]`**: Renumber lines.
-    E.g., `RENUM`, `RENUM 100 STEP 5`, `RENUM 100, 50 TO 80`.
-    Updates `GOTO`/`GOSUB` literal targets. A comma introduces the range to renumber.
 
 ### Environment
 
@@ -191,9 +184,24 @@ BazLang follows ZX81 BASIC semantics where practical, with these intentional dif
 | RND algorithm  | Java Random             | Linear feedback shift register |
 | Report codes   | Similar convention      | Same codes, different messages |
 
-## 9. REPL-Only Command
+## 9. REPL-Only Commands
 
-The following command is only available in the REPL (interactive mode) and cannot be stored as part of a program.
+The following commands are only available in the REPL (interactive mode) and cannot be stored as part of a program.
+
+### DELETE
+
+Delete program lines:
+
+```
+DELETE 100
+DELETE 10 TO 50
+DELETE TO 100
+DELETE 100 TO
+```
+
+`DELETE n` deletes only line `n`; `DELETE n TO m` deletes lines `n` through `m`; `DELETE TO m`
+deletes from start to `m`; `DELETE n TO` deletes from `n` to end. Requires at least one line
+number. Typing just a line number (e.g., `100`) at the REPL also deletes that line.
 
 ### EDIT
 
@@ -204,3 +212,18 @@ EDIT 100
 ```
 
 Pre-fills the input with the contents of line 100 for editing. If the line doesn't exist, pre-fills with just the line number followed by a space.
+
+### RENUM
+
+Renumber program lines:
+
+```
+RENUM
+RENUM 100
+RENUM 100 STEP 5
+RENUM 100, 50 TO 80
+```
+
+`RENUM` renumbers all lines starting at 10 with step 10. `RENUM n` starts at `n`. `RENUM n STEP s`
+uses step `s`. A comma introduces a range: `RENUM n, from TO to` renumbers lines `from` through
+`to` starting at `n`. Updates `GOTO`/`GOSUB` literal targets automatically.

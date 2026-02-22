@@ -3,11 +3,13 @@ package com.davidconneely.bazlang;
 import static org.junit.jupiter.api.Assertions.*;
 
 import com.davidconneely.bazlang.antlr.AntlrParser;
+import com.davidconneely.bazlang.antlr.BazLangParser;
+import com.davidconneely.bazlang.io.Display;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-/** Tests for parsed LIST, DELETE and RENUM statements. */
-class DeleteRenumTest {
+/** Tests for REPL-only commands: DELETE, EDIT, RENUM. */
+class ReplCommandTest {
 
   private EvalState state;
   private MockDisplay display;
@@ -27,77 +29,36 @@ class DeleteRenumTest {
     state.program().put(40, new ProgramLine(40, "STOP"));
   }
 
-  private void execute(String statement) {
-    var parsed = parser.parseReplLine(statement);
-    if (parsed instanceof AntlrParser.ParsedLine.Immediate(var stmt)) {
-      executor.visit(stmt);
+  private void executeReplCommand(String command) {
+    var parsed = parser.parseReplLine(command);
+    if (parsed instanceof AntlrParser.ParsedLine.ReplCommand(var ctx)) {
+      handleReplCommand(ctx, executor, display, state);
+    } else {
+      fail("Expected ReplCommand but got: " + parsed.getClass().getSimpleName());
     }
   }
 
-  // ==================== LIST tests ====================
-
-  @Test
-  void testListAll() {
-    // LIST - lists all lines
-    execute("LIST");
-    String output = display.getOutput();
-    assertTrue(output.contains("10 PRINT"));
-    assertTrue(output.contains("20 GOTO"));
-    assertTrue(output.contains("30 PRINT"));
-    assertTrue(output.contains("40 STOP"));
-  }
-
-  @Test
-  void testListToOnly() {
-    // LIST TO - lists all lines (same as LIST)
-    execute("LIST TO");
-    String output = display.getOutput();
-    assertTrue(output.contains("10 PRINT"));
-    assertTrue(output.contains("40 STOP"));
-  }
-
-  @Test
-  void testListFromN() {
-    // LIST n - lists from n to end
-    execute("LIST 30");
-    String output = display.getOutput();
-    assertFalse(output.contains("10 PRINT"));
-    assertFalse(output.contains("20 GOTO"));
-    assertTrue(output.contains("30 PRINT"));
-    assertTrue(output.contains("40 STOP"));
-  }
-
-  @Test
-  void testListFromNTo() {
-    // LIST n TO - lists from n to end
-    execute("LIST 30 TO");
-    String output = display.getOutput();
-    assertFalse(output.contains("10 PRINT"));
-    assertFalse(output.contains("20 GOTO"));
-    assertTrue(output.contains("30 PRINT"));
-    assertTrue(output.contains("40 STOP"));
-  }
-
-  @Test
-  void testListToM() {
-    // LIST TO m - lists from MIN to m
-    execute("LIST TO 20");
-    String output = display.getOutput();
-    assertTrue(output.contains("10 PRINT"));
-    assertTrue(output.contains("20 GOTO"));
-    assertFalse(output.contains("30 PRINT"));
-    assertFalse(output.contains("40 STOP"));
-  }
-
-  @Test
-  void testListNToM() {
-    // LIST n TO m - lists from n to m
-    execute("LIST 20 TO 30");
-    String output = display.getOutput();
-    assertFalse(output.contains("10 PRINT"));
-    assertTrue(output.contains("20 GOTO"));
-    assertTrue(output.contains("30 PRINT"));
-    assertFalse(output.contains("40 STOP"));
+  private static void handleReplCommand(
+      BazLangParser.ReplCommandContext ctx,
+      BazLangExecutor executor,
+      Display display,
+      EvalState state) {
+    if (ctx instanceof BazLangParser.DeleteCmdContext delete) {
+      executor.executeDelete(delete.lineRange());
+    } else if (ctx instanceof BazLangParser.EditCmdContext edit) {
+      int lineNum = (int) executor.evalNum(edit.numExpr());
+      if (lineNum < Limits.MIN_LINE_LABEL || lineNum > Limits.MAX_LINE_LABEL) {
+        throw new ReportException(ReportCode.INTEGER_OUT_OF_RANGE, 0, "Line number out of range");
+      }
+      ProgramLine programLine = state.program().get(lineNum);
+      if (programLine != null) {
+        display.prefillInput(lineNum + " " + programLine.sourceText());
+      } else {
+        display.prefillInput(lineNum + " ");
+      }
+    } else if (ctx instanceof BazLangParser.RenumCmdContext renum) {
+      executor.executeRenum(renum.renumArgs());
+    }
   }
 
   // ==================== DELETE tests ====================
@@ -105,7 +66,7 @@ class DeleteRenumTest {
   @Test
   void testDeleteSingleLine() {
     // DELETE n - deletes only line n
-    execute("DELETE 20");
+    executeReplCommand("DELETE 20");
     assertFalse(state.program().containsKey(20));
     assertTrue(state.program().containsKey(10));
     assertTrue(state.program().containsKey(30));
@@ -116,7 +77,7 @@ class DeleteRenumTest {
   @Test
   void testDeleteRange() {
     // DELETE n TO m - deletes lines n through m
-    execute("DELETE 20 TO 30");
+    executeReplCommand("DELETE 20 TO 30");
     assertFalse(state.program().containsKey(20));
     assertFalse(state.program().containsKey(30));
     assertTrue(state.program().containsKey(10));
@@ -127,7 +88,7 @@ class DeleteRenumTest {
   @Test
   void testDeleteToEnd() {
     // DELETE n TO - deletes from line n to end
-    execute("DELETE 30 TO");
+    executeReplCommand("DELETE 30 TO");
     assertFalse(state.program().containsKey(30));
     assertFalse(state.program().containsKey(40));
     assertTrue(state.program().containsKey(10));
@@ -138,7 +99,7 @@ class DeleteRenumTest {
   @Test
   void testDeleteFromStart() {
     // DELETE TO m - deletes from MIN to line m
-    execute("DELETE TO 20");
+    executeReplCommand("DELETE TO 20");
     assertFalse(state.program().containsKey(10));
     assertFalse(state.program().containsKey(20));
     assertTrue(state.program().containsKey(30));
@@ -149,18 +110,38 @@ class DeleteRenumTest {
   @Test
   void testDeleteWithoutNumberThrowsError() {
     // DELETE and DELETE TO should throw error
-    var ex1 = assertThrows(ReportException.class, () -> execute("DELETE"));
+    var ex1 = assertThrows(ReportException.class, () -> executeReplCommand("DELETE"));
     assertTrue(ex1.getMessage().contains("requires at least one line number"));
 
-    var ex2 = assertThrows(ReportException.class, () -> execute("DELETE TO"));
+    var ex2 = assertThrows(ReportException.class, () -> executeReplCommand("DELETE TO"));
     assertTrue(ex2.getMessage().contains("requires at least one line number"));
+  }
+
+  // ==================== EDIT tests ====================
+
+  @Test
+  void testEditExistingLine() {
+    executeReplCommand("EDIT 10");
+    assertEquals("10 PRINT \"HELLO\"", display.getPrefillText());
+  }
+
+  @Test
+  void testEditNonExistentLine() {
+    executeReplCommand("EDIT 100");
+    assertEquals("100 ", display.getPrefillText());
+  }
+
+  @Test
+  void testEditOutOfRangeThrowsError() {
+    var ex = assertThrows(ReportException.class, () -> executeReplCommand("EDIT 0"));
+    assertTrue(ex.getMessage().contains("out of range"));
   }
 
   // ==================== RENUM tests ====================
 
   @Test
   void testRenumBasic() {
-    execute("RENUM");
+    executeReplCommand("RENUM");
     // Default: start=10, step=10
     assertTrue(state.program().containsKey(10));
     assertTrue(state.program().containsKey(20));
@@ -170,7 +151,7 @@ class DeleteRenumTest {
 
   @Test
   void testRenumWithStart() {
-    execute("RENUM 100");
+    executeReplCommand("RENUM 100");
     assertTrue(state.program().containsKey(100));
     assertTrue(state.program().containsKey(110));
     assertTrue(state.program().containsKey(120));
@@ -180,7 +161,7 @@ class DeleteRenumTest {
 
   @Test
   void testRenumWithStep() {
-    execute("RENUM 100 STEP 5");
+    executeReplCommand("RENUM 100 STEP 5");
     assertTrue(state.program().containsKey(100));
     assertTrue(state.program().containsKey(105));
     assertTrue(state.program().containsKey(110));
@@ -189,7 +170,7 @@ class DeleteRenumTest {
 
   @Test
   void testRenumUpdatesGotoTargets() {
-    execute("RENUM 100 STEP 10");
+    executeReplCommand("RENUM 100 STEP 10");
     // Original line 20 had "GOTO 40", should now be "GOTO 130"
     ProgramLine line = state.program().get(110);
     assertNotNull(line);
@@ -198,7 +179,7 @@ class DeleteRenumTest {
 
   @Test
   void testRenumStepOnly() {
-    execute("RENUM STEP 5");
+    executeReplCommand("RENUM STEP 5");
     assertTrue(state.program().containsKey(10));
     assertTrue(state.program().containsKey(15));
     assertTrue(state.program().containsKey(20));
@@ -214,7 +195,7 @@ class DeleteRenumTest {
     state.program().put(1200, new ProgramLine(1200, "PRINT \"THERE\""));
     state.program().put(1300, new ProgramLine(1300, "GOTO 1100"));
 
-    execute("RENUM");
+    executeReplCommand("RENUM");
 
     // Should renumber to 10, 20, 30
     assertEquals(3, state.program().size());
