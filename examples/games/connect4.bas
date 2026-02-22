@@ -2,6 +2,7 @@
 # Human (⚫) vs Computer (⚪)
 # Use number keys 1-7 to drop a piece in that column
 
+5 DIM B(6, 7)
 10 CLS
 20 GOSUB 9000
 30 LET TURN = 1
@@ -39,7 +40,7 @@
 440 STOP
 
 # Draw the board (GOSUB 1000)
-1000 PRINT AT 1, 0; "   1    2    3    4    5    6    7"
+1000 PRINT AT 1, 0; "  1    2    3    4    5    6    7"
 1010 PRINT AT 2, 0; "┌────┬────┬────┬────┬────┬────┬────┐"
 1020 FOR R = 1 TO 6
 1030 LET Y = R + 2
@@ -173,10 +174,9 @@
 5400 RETURN
 
 # Initialize board (GOSUB 9000)
-9000 DIM B(6, 7)
-9010 FOR R = 1 TO 6
-9020 FOR C = 1 TO 7
-9030 LET B(R, C) = 0
-9040 NEXT C
-9050 NEXT R
-9060 RETURN
+9000 FOR R = 1 TO 6
+9010 FOR C = 1 TO 7
+9020 LET B(R, C) = 0
+9030 NEXT C
+9040 NEXT R
+9050 RETURN

@@ -80,9 +80,6 @@ public class BazLangExecutor extends BazLangBaseVisitor<Object> {
       dims.add((int) evalNum(exprCtx));
     }
     if (isStr) {
-      if (state.charArrays().containsKey(name)) {
-        throw codedException(ReportCode.NONSENSE_IN_BASIC, "Already DIMensioned");
-      }
       state.strVars().remove(name);
       int flen = dims.removeLast();
       int total = 1;
@@ -96,9 +93,6 @@ public class BazLangExecutor extends BazLangBaseVisitor<Object> {
       Arrays.fill(data, ' ');
       state.charArrays().put(name, new EvalState.CharArray(dims, flen, data));
     } else {
-      if (state.numArrays().containsKey(name)) {
-        throw codedException(ReportCode.NONSENSE_IN_BASIC, "Already DIMensioned");
-      }
       int total = 1;
       for (int d : dims) {
         total *= d;
