@@ -10,7 +10,12 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.NavigableMap;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /** Executes BazLang from the ANTLR ParseTree. */
 public class BazLangExecutor extends BazLangBaseVisitor<Object> {
@@ -208,7 +213,7 @@ public class BazLangExecutor extends BazLangBaseVisitor<Object> {
 
   @Override
   public Object visitListStmt(ListStmtContext ctx) {
-    int[] range = parseListRange(ctx.listRange());
+    int[] range = parseLineRangeForList(ctx.lineRange());
     for (var entry : state.program().subMap(range[0], true, range[1], true).entrySet()) {
       ProgramLine line = entry.getValue();
       display.println(line.lineNumber() + " " + line.sourceText());
@@ -218,7 +223,7 @@ public class BazLangExecutor extends BazLangBaseVisitor<Object> {
 
   @Override
   public Object visitLListStmt(LListStmtContext ctx) {
-    int[] range = parseListRange(ctx.listRange());
+    int[] range = parseLineRangeForList(ctx.lineRange());
     for (var entry : state.program().subMap(range[0], true, range[1], true).entrySet()) {
       ProgramLine line = entry.getValue();
       display.lprintln(line.lineNumber() + " " + line.sourceText());
@@ -226,7 +231,10 @@ public class BazLangExecutor extends BazLangBaseVisitor<Object> {
     return null;
   }
 
-  private int[] parseListRange(BazLangParser.ListRangeContext range) {
+  /**
+   * Parses lineRange for LIST/LLIST: single number means "from n to end".
+   */
+  private int[] parseLineRangeForList(BazLangParser.LineRangeContext range) {
     int start = Limits.MIN_TARGET_LABEL;
     int end = Limits.MAX_TARGET_LABEL;
     if (range != null) {
@@ -242,12 +250,238 @@ public class BazLangExecutor extends BazLangBaseVisitor<Object> {
             start = (int) evalNum(nums.getFirst());
           }
         }
+        // TO with no numbers: start=MIN, end=MAX (already set)
       } else if (nums.size() == 1) {
+        // LIST n (no TO): from n to end
         start = (int) evalNum(nums.getFirst());
-        end = start;
+        // end stays MAX
       }
     }
     return new int[] {start, end};
+  }
+
+  /**
+   * Parses lineRange for DELETE: single number means "just that line"; requires at least one
+   * number.
+   */
+  private int[] parseLineRangeForDelete(BazLangParser.LineRangeContext range) {
+    if (range == null) {
+      throw new ReportException(
+          ReportCode.NONSENSE_IN_BASIC, 0, "DELETE requires at least one line number");
+    }
+    var nums = range.numExpr();
+    if (nums.isEmpty()) {
+      throw new ReportException(
+          ReportCode.NONSENSE_IN_BASIC, 0, "DELETE requires at least one line number");
+    }
+    int start = Limits.MIN_TARGET_LABEL;
+    int end = Limits.MAX_TARGET_LABEL;
+    if (range.TO() != null) {
+      if (nums.size() == 2) {
+        start = (int) evalNum(nums.get(0));
+        end = (int) evalNum(nums.get(1));
+      } else if (nums.size() == 1) {
+        if (range.getText().toUpperCase().startsWith("TO")) {
+          end = (int) evalNum(nums.getFirst());
+        } else {
+          start = (int) evalNum(nums.getFirst());
+        }
+      }
+    } else {
+      // DELETE n (no TO): just that single line
+      start = (int) evalNum(nums.getFirst());
+      end = start;
+    }
+    return new int[] {start, end};
+  }
+
+  @Override
+  public Object visitDeleteStmt(DeleteStmtContext ctx) {
+    int[] range = parseLineRangeForDelete(ctx.lineRange());
+    state.program().subMap(range[0], true, range[1], true).clear();
+    return null;
+  }
+
+  @Override
+  public Object visitRenumStmt(RenumStmtContext ctx) {
+    NavigableMap<Integer, ProgramLine> program = state.program();
+    if (program.isEmpty()) {
+      return null;
+    }
+
+    // Parse renumArgs: [new_start] [STEP new_step] [, [old_start] TO [old_end]]
+    int newStart = 10;
+    int newStep = 10;
+    int oldStart = program.firstKey();
+    int oldEnd = program.lastKey();
+
+    var args = ctx.renumArgs();
+    if (args != null) {
+      var nums = args.numExpr();
+      int numIndex = 0;
+
+      // First number is new_start (if present and not after STEP)
+      if (!nums.isEmpty() && args.STEP() == null
+          || !nums.isEmpty()
+              && args.getText().toUpperCase().indexOf("STEP")
+                  > args.getText().indexOf(nums.get(0).getText())) {
+        newStart = (int) evalNum(nums.get(numIndex++));
+      }
+
+      // STEP number
+      if (args.STEP() != null && numIndex < nums.size()) {
+        newStep = (int) evalNum(nums.get(numIndex++));
+      }
+
+      // After comma: [old_start] TO [old_end]
+      if (args.TO() != null) {
+        // Check if there's a number before TO
+        String argsText = args.getText().toUpperCase();
+        int commaPos = argsText.indexOf(',');
+        int toPos = argsText.indexOf("TO");
+
+        if (commaPos >= 0 && numIndex < nums.size()) {
+          // Check if next number is before or after TO
+          String numText = nums.get(numIndex).getText();
+          int numPos = argsText.indexOf(numText, commaPos);
+          if (numPos < toPos) {
+            oldStart = (int) evalNum(nums.get(numIndex++));
+          }
+        }
+
+        // Number after TO
+        if (numIndex < nums.size()) {
+          oldEnd = (int) evalNum(nums.get(numIndex));
+        }
+      }
+    }
+
+    // Validate
+    if (newStart < Limits.MIN_LINE_LABEL) {
+      throw codedException(
+          ReportCode.INTEGER_OUT_OF_RANGE, "New start must be >= " + Limits.MIN_LINE_LABEL);
+    }
+    if (newStep < 1) {
+      throw codedException(ReportCode.INTEGER_OUT_OF_RANGE, "Step must be >= 1");
+    }
+
+    // Get lines to renumber
+    NavigableMap<Integer, ProgramLine> toRenumber = program.subMap(oldStart, true, oldEnd, true);
+    if (toRenumber.isEmpty()) {
+      return null;
+    }
+
+    int count = toRenumber.size();
+    long newEndLong = (long) newStart + (long) (count - 1) * newStep;
+    if (newEndLong > Limits.MAX_LINE_LABEL) {
+      throw codedException(
+          ReportCode.INTEGER_OUT_OF_RANGE,
+          "Renumbering would exceed max line number " + Limits.MAX_LINE_LABEL);
+    }
+    int newEnd = (int) newEndLong;
+
+    // Check boundaries: preserve line order
+    Integer lineBefore = program.lowerKey(oldStart);
+    if (lineBefore != null && newStart <= lineBefore) {
+      throw codedException(
+          ReportCode.INTEGER_OUT_OF_RANGE,
+          "New start "
+              + newStart
+              + " must be greater than line "
+              + lineBefore
+              + " to preserve line order");
+    }
+    Integer lineAfter = program.higherKey(oldEnd);
+    if (lineAfter != null && newEnd >= lineAfter) {
+      throw codedException(
+          ReportCode.INTEGER_OUT_OF_RANGE,
+          "New end " + newEnd + " must be less than line " + lineAfter + " to preserve line order");
+    }
+
+    // Build old->new mapping
+    Map<Integer, Integer> mapping = new HashMap<>();
+    int newNum = newStart;
+    for (int oldNum : toRenumber.keySet()) {
+      mapping.put(oldNum, newNum);
+      newNum += newStep;
+    }
+
+    // Update GOTO/GOSUB targets in all lines
+    updateGotoGosubTargets(program, mapping, oldStart, oldEnd);
+
+    // Extract, remove, re-insert with new numbers
+    Map<Integer, ProgramLine> extracted = new HashMap<>(toRenumber);
+    toRenumber.clear();
+    for (Map.Entry<Integer, ProgramLine> entry : extracted.entrySet()) {
+      int oldLineNum = entry.getKey();
+      int newLineNum = mapping.get(oldLineNum);
+      ProgramLine oldLine = entry.getValue();
+      program.put(newLineNum, new ProgramLine(newLineNum, oldLine.sourceText()));
+    }
+
+    return null;
+  }
+
+  private static final Pattern GOTO_GOSUB_PATTERN =
+      Pattern.compile("\\b(GOTO|GOSUB)\\s+(\\d+)", Pattern.CASE_INSENSITIVE);
+
+  private void updateGotoGosubTargets(
+      NavigableMap<Integer, ProgramLine> program,
+      Map<Integer, Integer> mapping,
+      int oldStart,
+      int oldEnd) {
+    Map<Integer, String> updates = new HashMap<>();
+
+    for (Map.Entry<Integer, ProgramLine> entry : program.entrySet()) {
+      int lineNum = entry.getKey();
+      ProgramLine line = entry.getValue();
+      String source = line.sourceText();
+      StringBuffer newSource = new StringBuffer();
+
+      Matcher m = GOTO_GOSUB_PATTERN.matcher(source);
+      while (m.find()) {
+        String keyword = m.group(1);
+        int target = Integer.parseInt(m.group(2));
+
+        if (mapping.containsKey(target)) {
+          m.appendReplacement(newSource, keyword + " " + mapping.get(target));
+        } else if (target >= oldStart && target <= oldEnd) {
+          // Target in range but doesn't exist - use ceiling key
+          Integer ceilingKey = program.ceilingKey(target);
+          if (ceilingKey != null && mapping.containsKey(ceilingKey)) {
+            int newTarget = mapping.get(ceilingKey);
+            display.println(
+                "Warning: Line "
+                    + lineNum
+                    + " references non-existent line "
+                    + target
+                    + ", updated to "
+                    + newTarget);
+            m.appendReplacement(newSource, keyword + " " + newTarget);
+          } else {
+            display.println(
+                "Warning: Line "
+                    + lineNum
+                    + " references non-existent line "
+                    + target
+                    + " (not updated)");
+            m.appendReplacement(newSource, m.group(0));
+          }
+        }
+      }
+      m.appendTail(newSource);
+
+      String newSourceStr = newSource.toString();
+      if (!newSourceStr.equals(source)) {
+        updates.put(lineNum, newSourceStr);
+      }
+    }
+
+    for (Map.Entry<Integer, String> update : updates.entrySet()) {
+      int lineNum = update.getKey();
+      String newSource = update.getValue();
+      program.put(lineNum, new ProgramLine(lineNum, newSource));
+    }
   }
 
   @Override

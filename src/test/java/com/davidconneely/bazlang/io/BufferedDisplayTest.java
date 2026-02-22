@@ -35,6 +35,9 @@ class BufferedDisplayTest {
     }
 
     @Override
+    public void prefillInput(String text) {}
+
+    @Override
     public boolean pollForBreak() {
       return false;
     }

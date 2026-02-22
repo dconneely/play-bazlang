@@ -28,6 +28,7 @@ statement
     | CLS                                                               # ClsStmt
     | CONT                                                              # ContStmt
     | COPY                                                              # CopyStmt
+    | DELETE lineRange?                                                 # DeleteStmt
     | DIM dimDecl                                                        # DimStmt
     | FAST                                                              # FastStmt
     | FOR NUM_IDENTIFIER '=' numExpr TO numExpr (STEP numExpr)?         # ForStmt
@@ -36,8 +37,8 @@ statement
     | IF numExpr THEN statement                                         # IfStmt
     | INPUT assignmentTarget                                             # InputStmt
     | LET assignmentTarget '=' expression                               # LetStmt
-    | LIST listRange?                                                   # ListStmt
-    | LLIST listRange?                                                  # LListStmt
+    | LIST lineRange?                                                   # ListStmt
+    | LLIST lineRange?                                                  # LListStmt
     | LOAD strExpr                                                      # LoadStmt
     | LPRINT printList?                                                 # LPrintStmt
     | NEW                                                               # NewStmt
@@ -48,6 +49,7 @@ statement
     | PRINT printList?                                                  # PrintStmt
     | RAND numExpr?                                                     # RandStmt
     | REM                                                               # RemStmt
+    | RENUM renumArgs?                                                  # RenumStmt
     | RETURN                                                            # ReturnStmt
     | RUN numExpr?                                                      # RunStmt
     | SAVE strExpr                                                      # SaveStmt
@@ -62,11 +64,16 @@ dimDecl
     | STR_IDENTIFIER '(' numExpr (',' numExpr)* ')'    // string/char array
     ;
 
-// LIST/LLIST range using TO (consistent with slice syntax)
+// LIST/LLIST/DELETE line range using TO (consistent with slice syntax)
 // LIST, LIST 10, LIST 10 TO, LIST TO 100, LIST 10 TO 100, LIST TO
-listRange
+lineRange
     : numExpr (TO numExpr?)?    // start or start TO end or start TO
     | TO numExpr?               // TO end or just TO (all)
+    ;
+
+// RENUM arguments: [new_start] [STEP new_step] [, [old_start] TO [old_end]]
+renumArgs
+    : numExpr? (STEP numExpr)? (',' numExpr? TO numExpr?)?
     ;
 
 assignmentTarget
@@ -197,6 +204,7 @@ CLEAR   : 'CLEAR';
 CLS     : 'CLS';
 CONT    : 'CONT';
 COPY    : 'COPY';
+DELETE  : 'DELETE';
 DIM     : 'DIM';
 FAST    : 'FAST';
 FOR     : 'FOR';
@@ -216,6 +224,7 @@ PLOT    : 'PLOT';
 POKE    : 'POKE';
 PRINT   : 'PRINT';
 RAND    : 'RAND';
+RENUM   : 'RENUM';
 RETURN  : 'RETURN';
 RUN     : 'RUN';
 SAVE    : 'SAVE';

@@ -163,6 +163,14 @@ public class TerminalDisplay extends BufferedDisplay {
   }
 
   @Override
+  public void prefillInput(String text) {
+    typeAheadBuffer.setLength(0);
+    if (text != null) {
+      typeAheadBuffer.append(text);
+    }
+  }
+
+  @Override
   public boolean pollForBreak() {
     return breakFlag.compareAndSet(true, false);
   }

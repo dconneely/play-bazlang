@@ -64,7 +64,7 @@ Returns `1` for True, `0` for False.
 
 - `NOT` - Returns 1 if operand is 0, else 0
 - `AND` - `A AND B` returns A if B≠0, else 0 for numeric A;
-  `S$ AND B` returns S$ if B≠0, else "" for string S$ (ZX81 style)
+  `S$ AND B` returns S\$ if B≠0, else "" for string S\$ (ZX81 style)
 - `OR` - `A OR B` returns 1 if B≠0, else A (ZX81 style, numeric operands only)
 
 ### Strings
@@ -98,23 +98,41 @@ Returns `1` for True, `0` for False.
 - **`PLOT x, y`**: Draw a block at coordinates `(x, y)`.
     - Coordinates range from `0,0` (bottom-left) to `63,47` (top-right).
     - Uses Unicode 2x2 block characters (quadrants) to simulate higher resolution.
-    - Modifies the underlying character cell without overwriting the entire character if possible.
 - **`UNPLOT x, y`**: Erase a block at coordinates `(x, y)`.
-    - Same coordinate system as `PLOT`.
-- **`LIST`**: Show program code.
-    - `LIST` - show all lines
-    - `LIST 10` - show just line 10
-    - `LIST 10 TO 100` - show lines 10 to 100 (extension)
-    - `LIST TO 100` - show lines up to 100 (extension)
-    - `LIST 10 TO` - show lines from 10 onwards (extension)
+
+### Program Management
+
+- **`LIST [n [TO [m]]]`**: Show program code. `LIST` shows all; `LIST n` shows from line `n` to end;
+    `LIST TO m` shows from start to line `m`; `LIST n TO m` shows lines `n` through `m`.
+- **`LLIST [n [TO [m]]]`**: Same as `LIST` but outputs to standard error.
+- **`DELETE n [TO [m]]`**: Delete lines. Requires at least one line number. `DELETE n` deletes only
+    line `n`; `DELETE n TO` deletes from `n` to end; `DELETE TO m` deletes from start to `m`;
+    `DELETE n TO m` deletes lines `n` through `m`. Typing just a line number (e.g., `100`) at the
+    REPL also deletes that line.
+- **`RENUM [start] [STEP step] [, [from] TO [to]]`**: Renumber lines.
+    E.g., `RENUM`, `RENUM 100 STEP 5`, `RENUM 100, 50 TO 80`.
+    Updates `GOTO`/`GOSUB` literal targets. A comma introduces the range to renumber.
+
+### Environment
+
+- **`NEW`**: Clear program and all variables.
+- **`CLEAR`**: Clear all variables (keeps program).
+- **`SAVE "file"`**: Save program to file.
+- **`LOAD "file"`**: Load program from file.
 
 ### Data
 
 - **`LET var = value`**: Set a variable.
 - **`DIM var(size)`**: Create an array.
-- **`CLEAR`**: Delete all variables.
-- **`NEW`**: Delete program and variables.
-- **`SAVE "file"`, `LOAD "file"`**: Save or load a script.
+
+### ZX81 Compatibility Stubs
+
+These commands are recognized but have no effect (for source compatibility):
+
+- **`COPY`**: Would copy screen to printer on ZX81.
+- **`FAST`** / **`SLOW`**: Display modes on ZX81.
+- **`POKE addr, val`**: Memory access on ZX81.
+- **`RAND n`**: Seed random number generator (ignored; use for source compatibility).
 
 ## 5. Functions
 
@@ -131,6 +149,8 @@ Returns `1` for True, `0` for False.
 - **`CODE s`**: Unicode value of first char.
 - **Trig**: `SIN`, `COS`, `TAN`, `ASN`, `ACS`, `ATN`.
 - **Logs**: `EXP`, `LN`.
+- **`PEEK addr`**: Memory read (always returns 0, for compatibility).
+- **`USR addr`**: Machine code call (always returns 0, for compatibility).
 
 ### String Functions
 
@@ -170,3 +190,17 @@ BazLang follows ZX81 BASIC semantics where practical, with these intentional dif
 | File I/O       | File system             | Tape                           |
 | RND algorithm  | Java Random             | Linear feedback shift register |
 | Report codes   | Similar convention      | Same codes, different messages |
+
+## 9. REPL-Only Command
+
+The following command is only available in the REPL (interactive mode) and cannot be stored as part of a program.
+
+### EDIT
+
+Edit an existing line:
+
+```
+EDIT 100
+```
+
+Pre-fills the input with the contents of line 100 for editing. If the line doesn't exist, pre-fills with just the line number followed by a space.

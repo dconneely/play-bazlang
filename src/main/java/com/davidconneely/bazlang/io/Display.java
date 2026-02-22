@@ -29,6 +29,9 @@ public interface Display extends AutoCloseable {
 
   String readln(String prompt);
 
+  /** Pre-fill the input buffer so next readln() starts with this text. */
+  void prefillInput(String text);
+
   boolean pollForBreak();
 
   String inkey();

@@ -75,6 +75,14 @@ public class StreamDisplay extends BufferedDisplay {
   }
 
   @Override
+  public void prefillInput(String text) {
+    // StreamDisplay doesn't support pre-filling input; just print it as a hint
+    if (text != null && !text.isEmpty()) {
+      out.print(text);
+    }
+  }
+
+  @Override
   public boolean pollForBreak() {
     return false;
   }

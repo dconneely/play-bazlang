@@ -129,6 +129,17 @@ public class MockDisplay implements Display {
     return "";
   }
 
+  private String prefillText = null;
+
+  @Override
+  public void prefillInput(String text) {
+    this.prefillText = text;
+  }
+
+  public String getPrefillText() {
+    return prefillText;
+  }
+
   private boolean simulatedBreak = false;
 
   public void triggerBreak() {

@@ -5,6 +5,7 @@ import com.davidconneely.bazlang.antlr.BazLangParser.*;
 import com.davidconneely.bazlang.io.Display;
 import com.davidconneely.bazlang.io.StreamDisplay;
 import com.davidconneely.bazlang.io.TerminalDisplay;
+import com.davidconneely.bazlang.repl.ReplCommands;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -74,6 +75,10 @@ public class MainClass {
         continue;
       }
       try {
+        // Check for REPL-only commands first (EDIT, DELETE, RENUM)
+        if (ReplCommands.tryHandle(line, state, display)) {
+          continue;
+        }
         AntlrParser.ParsedLine parsed = parser.parseReplLine(line);
         if (parsed
             instanceof AntlrParser.ParsedLine.Numbered(int lineNumber, String statementText)) {
