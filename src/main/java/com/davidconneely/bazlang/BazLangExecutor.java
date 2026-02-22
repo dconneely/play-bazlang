@@ -231,9 +231,7 @@ public class BazLangExecutor extends BazLangBaseVisitor<Object> {
     return null;
   }
 
-  /**
-   * Parses lineRange for LIST/LLIST: single number means "from n to end".
-   */
+  /** Parses lineRange for LIST/LLIST: single number means "from n to end". */
   private int[] parseLineRangeForList(BazLangParser.LineRangeContext range) {
     int start = Limits.MIN_TARGET_LABEL;
     int end = Limits.MAX_TARGET_LABEL;

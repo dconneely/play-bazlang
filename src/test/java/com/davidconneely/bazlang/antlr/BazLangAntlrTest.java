@@ -116,6 +116,23 @@ class BazLangAntlrTest {
   }
 
   @Test
+  void testReplLineNumberOnlyDeletesLine() {
+    // Typing just a line number should parse as a Numbered line with empty statement
+    AntlrParser.ParsedLine result = parser.parseReplLine("100");
+    assertInstanceOf(AntlrParser.ParsedLine.Numbered.class, result);
+    AntlrParser.ParsedLine.Numbered numbered = (AntlrParser.ParsedLine.Numbered) result;
+    assertEquals(100, numbered.lineNumber());
+    assertEquals("", numbered.statementText());
+  }
+
+  @Test
+  void testReplEditCommand() {
+    // EDIT is REPL-only (not in statement rule, only in replLine rule)
+    AntlrParser.ParsedLine result = parser.parseReplLine("EDIT 100");
+    assertInstanceOf(AntlrParser.ParsedLine.Edit.class, result);
+  }
+
+  @Test
   void testCaseInsensitiveKeywords() {
     // All variations should parse successfully
     assertDoesNotThrow(

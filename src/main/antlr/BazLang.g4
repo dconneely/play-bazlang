@@ -18,7 +18,8 @@ lastLine
     ;
 
 replLine
-    : NUM_LITERAL statement EOF    # NumberedLine
+    : NUM_LITERAL statement? EOF   # NumberedLine
+    | EDIT numExpr EOF             # EditLine
     | statement EOF                # ImmediateLine
     ;
 
@@ -206,6 +207,7 @@ CONT    : 'CONT';
 COPY    : 'COPY';
 DELETE  : 'DELETE';
 DIM     : 'DIM';
+EDIT    : 'EDIT';
 FAST    : 'FAST';
 FOR     : 'FOR';
 GOSUB   : 'GOSUB';
