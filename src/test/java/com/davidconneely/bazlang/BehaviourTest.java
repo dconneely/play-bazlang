@@ -37,10 +37,14 @@ class BehaviourTest {
   }
 
   private String runProgramCapture(String source) {
+    return runProgramCapture(source, List.of());
+  }
+
+  private String runProgramCapture(String source, List<String> inputs) {
     Map<Integer, ProgramLine> program = PARSER.parseProgramLines(source);
     EvalState state = new EvalState();
 
-    MockDisplay display = new MockDisplay();
+    MockDisplay display = new MockDisplay(inputs);
 
     BazLangExecutor executor = new BazLangExecutor(state, display);
     Interpreter interpreter = new Interpreter(state, executor);
@@ -83,6 +87,35 @@ class BehaviourTest {
     assertEquals(42.0, state.numArrays().get("A").data()[4]); // 1-based index 5 is data[4]
     String b2 = new String(state.charArrays().get("B$").data(), 10, 10);
     assertTrue(b2.startsWith("HELLO"));
+  }
+
+  @Test
+  void testInputSyntaxErrorRetry() {
+    // Test that syntax errors in numeric INPUT re-prompt with "Syntax error? "
+    // First input "(1" is a syntax error (unbalanced parens), second input "42" is valid
+    String output =
+        runProgramCapture(
+            """
+        10 INPUT X
+        20 PRINT X
+        """,
+            List.of("(1", "42"));
+
+    assertTrue(output.contains("Syntax error?"));
+    assertTrue(output.contains("42"));
+  }
+
+  @Test
+  void testInputUndefinedVariableEndsProgram() {
+    // Undefined variable in INPUT should end program with error, not retry
+    assertThrows(
+        ReportException.class,
+        () ->
+            runProgram(
+                """
+            10 INPUT X
+            """,
+                List.of("NOTDEF")));
   }
 
   @Test

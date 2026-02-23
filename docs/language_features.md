@@ -92,7 +92,7 @@ Returns `1` for True, `0` for False.
     - `AT y, x`: Move cursor.
     - `TAB n`: Move to column `n`.
 - **`LPRINT`**: Print to "printer" (standard error).
-- **`INPUT var`**: Ask user for input. For numeric variables, the input is evaluated as an expression.
+- **`INPUT var`**: Ask user for input. For numeric variables, the input is evaluated as an expression. If the expression is invalid, the user is prompted with "Syntax error? " and can edit their input.
 - **`CLS`**: Clear screen.
 - **`SCROLL`**: Scroll screen up.
 - **`PLOT x, y`**: Draw a block at coordinates `(x, y)`.

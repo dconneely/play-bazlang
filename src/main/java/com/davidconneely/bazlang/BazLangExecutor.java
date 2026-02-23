@@ -174,27 +174,39 @@ public class BazLangExecutor extends BazLangBaseVisitor<Object> {
 
   @Override
   public Object visitInputStmt(InputStmtContext ctx) {
-    String line;
+    String line = readInputLine("");
+
+    var target = ctx.assignmentTarget();
+    if (target.NUM_IDENTIFIER() != null) {
+      // INPUT evaluates the input as a numeric expression; retry on syntax errors
+      while (true) {
+        try {
+          double val = evaluateNumericExpression(line.trim());
+          assignNumTarget(target, val);
+          break;
+        } catch (ReportException e) {
+          if (e.reportCode() != ReportCode.NONSENSE_IN_BASIC) {
+            throw e; // Other errors (undefined variable, division by zero) end program
+          }
+          display.prefillInput(line);
+          line = readInputLine("Syntax error? ");
+        }
+      }
+    } else {
+      assignStrTarget(target, line);
+    }
+    return null;
+  }
+
+  private String readInputLine(String prompt) {
     try {
-      line = display.readln("");
+      String line = display.readln(prompt);
+      return line != null ? line : "";
     } catch (Display.BreakException e) {
       state.setRunning(false);
       throw codedException(
           ReportCode.BREAK_CONT_REPEATS, ReportCode.BREAK_CONT_REPEATS.getMessage());
     }
-    if (line == null) {
-      line = "";
-    }
-
-    var target = ctx.assignmentTarget();
-    if (target.NUM_IDENTIFIER() != null) {
-      // INPUT evaluates the input as a numeric expression
-      double val = evaluateNumericExpression(line.trim());
-      assignNumTarget(target, val);
-    } else {
-      assignStrTarget(target, line);
-    }
-    return null;
   }
 
   @Override
