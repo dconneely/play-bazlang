@@ -10,6 +10,7 @@ import static org.junit.jupiter.api.Assertions.fail;
 import com.davidconneely.bazlang.antlr.AntlrParser;
 import com.davidconneely.bazlang.antlr.BazLangParser;
 import com.davidconneely.bazlang.io.Display;
+import com.davidconneely.bazlang.io.MockDisplay;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 

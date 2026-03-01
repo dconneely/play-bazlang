@@ -1,6 +1,5 @@
-package com.davidconneely.bazlang;
+package com.davidconneely.bazlang.io;
 
-import com.davidconneely.bazlang.io.Display;
 import java.util.Collections;
 import java.util.List;
 

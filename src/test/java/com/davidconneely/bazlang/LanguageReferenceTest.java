@@ -3,6 +3,7 @@ package com.davidconneely.bazlang;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import com.davidconneely.bazlang.antlr.AntlrParser;
+import com.davidconneely.bazlang.io.MockDisplay;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 
