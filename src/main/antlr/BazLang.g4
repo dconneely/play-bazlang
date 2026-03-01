@@ -27,6 +27,7 @@ replCommand
     : DELETE lineRange?            # DeleteCmd
     | EDIT numExpr                 # EditCmd
     | RENUM renumArgs?             # RenumCmd
+    | REFORMAT lineRange?          # ReformatCmd
     ;
 
 // Statements
@@ -233,6 +234,7 @@ PLOT    : 'PLOT';
 POKE    : 'POKE';
 PRINT   : 'PRINT';
 RAND    : 'RAND';
+REFORMAT: 'REFORMAT';
 RENUM   : 'RENUM';
 RETURN  : 'RETURN';
 RUN     : 'RUN';

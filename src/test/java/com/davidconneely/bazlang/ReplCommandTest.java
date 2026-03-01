@@ -114,13 +114,14 @@ class ReplCommandTest {
   }
 
   @Test
-  void testDeleteWithoutNumberThrowsError() {
-    // DELETE and DELETE TO should throw error
+  void testDeleteWithoutNumber() {
+    // DELETE (naked) should throw error
     var ex1 = assertThrows(ReportException.class, () -> executeReplCommand("DELETE"));
     assertTrue(ex1.getMessage().contains("requires at least one line number"));
 
-    var ex2 = assertThrows(ReportException.class, () -> executeReplCommand("DELETE TO"));
-    assertTrue(ex2.getMessage().contains("requires at least one line number"));
+    // DELETE TO should delete everything (matching LIST TO behavior)
+    executeReplCommand("DELETE TO");
+    assertTrue(state.program().isEmpty());
   }
 
   // ==================== EDIT tests ====================

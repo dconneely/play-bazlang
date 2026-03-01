@@ -197,11 +197,13 @@ DELETE 100
 DELETE 10 TO 50
 DELETE TO 100
 DELETE 100 TO
+DELETE TO
 ```
 
 `DELETE n` deletes only line `n`; `DELETE n TO m` deletes lines `n` through `m`; `DELETE TO m`
-deletes from start to `m`; `DELETE n TO` deletes from `n` to end. Requires at least one line
-number. Typing just a line number (e.g., `100`) at the REPL also deletes that line.
+deletes from start to `m`; `DELETE n TO` deletes from `n` to end; `DELETE TO` deletes all lines.
+Requires at least one line number or the `TO` keyword. Typing just a line number (e.g., `100`)
+at the REPL also deletes that line.
 
 ### EDIT
 
@@ -212,6 +214,22 @@ EDIT 100
 ```
 
 Pre-fills the input with the contents of line 100 for editing. If the line doesn't exist, pre-fills with just the line number followed by a space.
+
+### REFORMAT
+
+Normalize program formatting:
+
+```
+REFORMAT
+REFORMAT 100
+REFORMAT 10 TO 50
+REFORMAT TO 100
+REFORMAT 100 TO
+REFORMAT TO
+```
+
+Reformats the specified range of lines (or all lines if no range is given). It converts keywords
+and function names to uppercase and normalizes whitespace around operators and separators.
 
 ### RENUM
 

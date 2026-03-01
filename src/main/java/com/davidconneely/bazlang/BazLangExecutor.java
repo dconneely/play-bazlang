@@ -240,7 +240,7 @@ public class BazLangExecutor extends BazLangBaseVisitor<Object> {
 
   @Override
   public Object visitListStmt(ListStmtContext ctx) {
-    int[] range = parseLineRangeForList(ctx.lineRange());
+    int[] range = parseListLineRange(ctx.lineRange());
     for (var entry : state.program().subMap(range[0], true, range[1], true).entrySet()) {
       ProgramLine line = entry.getValue();
       display.println(line.lineNumber() + " " + line.sourceText());
@@ -250,7 +250,7 @@ public class BazLangExecutor extends BazLangBaseVisitor<Object> {
 
   @Override
   public Object visitLListStmt(LListStmtContext ctx) {
-    int[] range = parseLineRangeForList(ctx.lineRange());
+    int[] range = parseListLineRange(ctx.lineRange());
     for (var entry : state.program().subMap(range[0], true, range[1], true).entrySet()) {
       ProgramLine line = entry.getValue();
       display.lprintln(line.lineNumber() + " " + line.sourceText());
@@ -259,7 +259,7 @@ public class BazLangExecutor extends BazLangBaseVisitor<Object> {
   }
 
   /** Parses lineRange for LIST/LLIST: single number means "from n to end". */
-  private int[] parseLineRangeForList(BazLangParser.LineRangeContext range) {
+  private int[] parseListLineRange(BazLangParser.LineRangeContext range) {
     int start = Limits.MIN_TARGET_LABEL;
     int end = Limits.MAX_TARGET_LABEL;
     if (range != null) {
@@ -286,18 +286,18 @@ public class BazLangExecutor extends BazLangBaseVisitor<Object> {
   }
 
   /**
-   * Parses lineRange for DELETE: single number means "just that line"; requires at least one
-   * number.
+   * Parses lineRange for DELETE and REFORMAT: single number means "just that line"; requires at
+   * least one number.
    */
-  public int[] parseLineRangeForDelete(BazLangParser.LineRangeContext range) {
+  private int[] parseDeleteReformatLineRange(BazLangParser.LineRangeContext range) {
     if (range == null) {
       throw new ReportException(
-          ReportCode.NONSENSE_IN_BASIC, 0, "DELETE requires at least one line number");
+          ReportCode.NONSENSE_IN_BASIC, 0, "Command requires at least one line number");
     }
     var nums = range.numExpr();
-    if (nums.isEmpty()) {
+    if (nums.isEmpty() && range.TO() == null) {
       throw new ReportException(
-          ReportCode.NONSENSE_IN_BASIC, 0, "DELETE requires at least one line number");
+          ReportCode.NONSENSE_IN_BASIC, 0, "Command requires at least one line number or TO");
     }
     int start = Limits.MIN_TARGET_LABEL;
     int end = Limits.MAX_TARGET_LABEL;
@@ -312,8 +312,9 @@ public class BazLangExecutor extends BazLangBaseVisitor<Object> {
           start = (int) evalNum(nums.getFirst());
         }
       }
+      // Just TO: start=MIN, end=MAX (already set)
     } else {
-      // DELETE n (no TO): just that single line
+      // Command n (no TO): just that single line
       start = (int) evalNum(nums.getFirst());
       end = start;
     }
@@ -322,8 +323,38 @@ public class BazLangExecutor extends BazLangBaseVisitor<Object> {
 
   /** Execute DELETE command with parsed line range. */
   public void executeDelete(BazLangParser.LineRangeContext range) {
-    int[] bounds = parseLineRangeForDelete(range);
+    int[] bounds = parseDeleteReformatLineRange(range);
     state.program().subMap(bounds[0], true, bounds[1], true).clear();
+  }
+
+  /** Execute REFORMAT command with optional line range. */
+  public void executeReformat(BazLangParser.LineRangeContext range) {
+    int start = Limits.MIN_TARGET_LABEL;
+    int end = Limits.MAX_TARGET_LABEL;
+    if (range != null) {
+      int[] bounds = parseDeleteReformatLineRange(range);
+      start = bounds[0];
+      end = bounds[1];
+    }
+
+    NavigableMap<Integer, ProgramLine> toReformat = state.program().subMap(start, true, end, true);
+    if (toReformat.isEmpty()) {
+      return;
+    }
+
+    ReformatVisitor formatter = new ReformatVisitor();
+    // Use a temporary map to avoid ConcurrentModificationException if we were iterating
+    // differently,
+    // though for TreeMap/NavigableMap subMap(..).entrySet() it might be safe to put back into the
+    // main map.
+    // Actually, put() into the main map while iterating over the subMap entrySet is generally fine.
+    for (Map.Entry<Integer, ProgramLine> entry : toReformat.entrySet()) {
+      int lineNum = entry.getKey();
+      ProgramLine line = entry.getValue();
+      StatementContext stmt = line.getStatement(PARSER);
+      String formattedSource = formatter.visit(stmt);
+      state.program().put(lineNum, new ProgramLine(lineNum, formattedSource));
+    }
   }
 
   /** Execute RENUM command with parsed arguments. */

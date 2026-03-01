@@ -132,6 +132,8 @@ public class MainClass {
       }
     } else if (ctx instanceof BazLangParser.RenumCmdContext renum) {
       executor.executeRenum(renum.renumArgs());
+    } else if (ctx instanceof BazLangParser.ReformatCmdContext reformat) {
+      executor.executeReformat(reformat.lineRange());
     }
   }
 }
