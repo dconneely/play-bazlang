@@ -55,9 +55,7 @@ public class Interpreter {
       if (executor.terminal().pollForBreak()) {
         state.setRunning(false);
         throw new ReportException(
-            ReportCode.BREAK_CONT_REPEATS,
-            nextLabel,
-            ReportCode.BREAK_CONT_REPEATS.getMessage());
+            ReportCode.BREAK_CONT_REPEATS, nextLabel, ReportCode.BREAK_CONT_REPEATS.getMessage());
       }
       state.setCurrentLineLabel(nextLabel);
       // Lazy parse: ParseTree is built on first execution, cached for loops
