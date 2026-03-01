@@ -24,16 +24,12 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * <pre>
  * ┌─────────────────────────────────────────┐
  * │      Application Display Area           │  ← scrollable output
- * ├─────────────────────────────────────────┤  ← separator (when input visible)
- * │ ❯ input here                            │  ← input area (REPL: ❯, INPUT: bold #/$)
- * ├─────────────────────────────────────────┤  ← separator (when input visible)
  * │ status                                  │  ← status (when input visible)
+ * │ ❯ input here                            │  ← input area (REPL: ❯, INPUT: bold #/$)
  * └─────────────────────────────────────────┘
  * </pre>
  */
 public class TerminalDisplay implements Display {
-  private static final char SEPARATOR_CHAR = '─';
-
   // Quadrant block characters for 2x2 pixel graphics
   private static final char[] QUADRANTS = {
     ' ', '▘', '▝', '▀', '▖', '▌', '▞', '▛', '▗', '▚', '▐', '▜', '▄', '▙', '▟', '█'
@@ -104,8 +100,8 @@ public class TerminalDisplay implements Display {
     // Calculate display area size (terminal minus input/status when visible)
     int termHeight = backend.size().height();
     int termWidth = backend.size().width();
-    // Reserve space for separator + input + separator + status (4 lines)
-    bufferRows = Math.max(1, termHeight - 4);
+    // Reserve space for status + input (2 lines minimum)
+    bufferRows = Math.max(1, termHeight - 2);
     bufferCols = termWidth;
     displayBuffer = new char[bufferRows][bufferCols];
     clearBuffer();
@@ -157,7 +153,7 @@ public class TerminalDisplay implements Display {
 
           if (inputVisible) {
             int inputHeight = Math.max(1, inputLines.size());
-            int bottomHeight = 1 + inputHeight + 1 + 1; // sep + input + sep + status
+            int bottomHeight = 1 + inputHeight; // status + input
 
             List<Rect> regions =
                 Layout.vertical()
@@ -167,21 +163,15 @@ public class TerminalDisplay implements Display {
             Rect displayArea = regions.get(0);
             Rect bottomArea = regions.get(1);
 
-            // Split bottom into: separator, input, separator, status
+            // Split bottom into: status, input
             List<Rect> bottomRegions =
                 Layout.vertical()
-                    .constraints(
-                        Constraint.length(1),
-                        Constraint.length(inputHeight),
-                        Constraint.length(1),
-                        Constraint.length(1))
+                    .constraints(Constraint.length(1), Constraint.length(inputHeight))
                     .split(bottomArea);
 
             renderDisplayArea(frame, displayArea);
-            renderSeparator(frame, bottomRegions.get(0));
+            renderStatusArea(frame, bottomRegions.get(0));
             renderInputArea(frame, bottomRegions.get(1));
-            renderSeparator(frame, bottomRegions.get(2));
-            renderStatusArea(frame, bottomRegions.get(3));
           } else {
             renderDisplayArea(frame, area);
           }
@@ -198,14 +188,6 @@ public class TerminalDisplay implements Display {
         char ch = displayBuffer[r][c];
         buffer.set(area.x() + c, area.y() + r, new Cell(String.valueOf(ch), Style.EMPTY));
       }
-    }
-  }
-
-  private void renderSeparator(Frame frame, Rect area) {
-    Buffer buffer = frame.buffer();
-    String sep = String.valueOf(SEPARATOR_CHAR);
-    for (int x = 0; x < area.width(); x++) {
-      buffer.set(area.x() + x, area.y(), new Cell(sep, Style.EMPTY));
     }
   }
 
@@ -244,9 +226,10 @@ public class TerminalDisplay implements Display {
   private void positionCursorInInput() {
     try {
       // Calculate cursor position: after prompt + cursor position in input
-      // Input area is at: terminal height - 3 (status=1, separator=1, input=1 minimum)
+      // Input area is at the bottom of the screen
       int termHeight = backend.size().height();
-      int inputY = termHeight - 3; // separator, input, separator, status = input is 3 from bottom
+      int inputHeight = Math.max(1, inputLines.size());
+      int inputY = termHeight - inputHeight; // input is at the bottom
       // Both prompts display as 2 characters wide (symbol + space)
       int cursorX = 2 + inputCursorPos;
       backend.setCursorPosition(new Position(cursorX, inputY));
