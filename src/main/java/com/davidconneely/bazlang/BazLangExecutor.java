@@ -2,6 +2,7 @@ package com.davidconneely.bazlang;
 
 import com.davidconneely.bazlang.antlr.AntlrParser;
 import com.davidconneely.bazlang.antlr.BazLangBaseVisitor;
+import com.davidconneely.bazlang.antlr.BazLangLexer;
 import com.davidconneely.bazlang.antlr.BazLangParser;
 import com.davidconneely.bazlang.antlr.BazLangParser.*;
 import com.davidconneely.bazlang.io.Display;
@@ -15,8 +16,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.NavigableMap;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import org.antlr.v4.runtime.CharStream;
+import org.antlr.v4.runtime.CharStreams;
+import org.antlr.v4.runtime.CommonTokenStream;
+import org.antlr.v4.runtime.Token;
 
 /** Executes BazLang from the ANTLR ParseTree. */
 public class BazLangExecutor extends BazLangBaseVisitor<Object> {
@@ -440,9 +443,6 @@ public class BazLangExecutor extends BazLangBaseVisitor<Object> {
     }
   }
 
-  private static final Pattern GOTO_GOSUB_PATTERN =
-      Pattern.compile("\\b(GOTO|GOSUB)\\s+(\\d+)", Pattern.CASE_INSENSITIVE);
-
   private void updateGotoGosubTargets(
       NavigableMap<Integer, ProgramLine> program,
       Map<Integer, Integer> mapping,
@@ -454,44 +454,65 @@ public class BazLangExecutor extends BazLangBaseVisitor<Object> {
       int lineNum = entry.getKey();
       ProgramLine line = entry.getValue();
       String source = line.sourceText();
+      String upperSource = source.toUpperCase();
+
+      // Efficiency optimization: skip lines that definitely don't have GOTO/GOSUB
+      if (!upperSource.contains("GOTO") && !upperSource.contains("GOSUB")) {
+        continue;
+      }
+
+      // Use lexer to find GOTO/GOSUB keywords correctly (handles strings and comments)
+      CharStream input = CharStreams.fromString(source);
+      BazLangLexer lexer = new BazLangLexer(input);
+      CommonTokenStream tokens = new CommonTokenStream(lexer);
+      tokens.fill();
+      List<Token> tokenList = tokens.getTokens();
+
       StringBuilder newSource = new StringBuilder();
+      int lastCopiedPos = 0;
+      boolean modified = false;
 
-      Matcher m = GOTO_GOSUB_PATTERN.matcher(source);
-      while (m.find()) {
-        String keyword = m.group(1);
-        int target = Integer.parseInt(m.group(2));
+      for (int i = 0; i < tokenList.size(); i++) {
+        Token t = tokenList.get(i);
+        if ((t.getType() == BazLangLexer.GOTO || t.getType() == BazLangLexer.GOSUB)
+            && i + 1 < tokenList.size()) {
+          // Check for literal line number following the keyword
+          Token next = tokenList.get(i + 1);
+          if (next.getType() == BazLangLexer.NUM_LITERAL) {
+            double val = Double.parseDouble(next.getText());
+            int target = (int) Math.round(val);
 
-        if (mapping.containsKey(target)) {
-          m.appendReplacement(newSource, keyword + " " + mapping.get(target));
-        } else if (target >= oldStart && target <= oldEnd) {
-          // Target in range but doesn't exist - use ceiling key
-          Integer ceilingKey = program.ceilingKey(target);
-          if (ceilingKey != null && mapping.containsKey(ceilingKey)) {
-            int newTarget = mapping.get(ceilingKey);
-            display.println(
-                "Warning: Line "
-                    + lineNum
-                    + " references non-existent line "
-                    + target
-                    + ", updated to "
-                    + newTarget);
-            m.appendReplacement(newSource, keyword + " " + newTarget);
-          } else {
-            display.println(
-                "Warning: Line "
-                    + lineNum
-                    + " references non-existent line "
-                    + target
-                    + " (not updated)");
-            m.appendReplacement(newSource, m.group(0));
+            Integer newTarget = null;
+            if (mapping.containsKey(target)) {
+              newTarget = mapping.get(target);
+            } else if (target >= oldStart && target <= oldEnd) {
+              // Target in range but doesn't exist - use ceiling key (what GOTO would find)
+              Integer ceilingKey = program.ceilingKey(target);
+              if (ceilingKey != null && mapping.containsKey(ceilingKey)) {
+                newTarget = mapping.get(ceilingKey);
+                display.println(
+                    "Warning: Line "
+                        + lineNum
+                        + " references non-existent line "
+                        + target
+                        + ", updated to "
+                        + newTarget);
+              }
+            }
+
+            if (newTarget != null) {
+              // Suffix-preserve replacement: only change the literal part
+              newSource.append(source, lastCopiedPos, next.getStartIndex()).append(newTarget);
+              lastCopiedPos = next.getStopIndex() + 1;
+              modified = true;
+            }
           }
         }
       }
-      m.appendTail(newSource);
 
-      String newSourceStr = newSource.toString();
-      if (!newSourceStr.equals(source)) {
-        updates.put(lineNum, newSourceStr);
+      if (modified) {
+        newSource.append(source.substring(lastCopiedPos));
+        updates.put(lineNum, newSource.toString());
       }
     }
 
