@@ -1,6 +1,13 @@
 package com.davidconneely.bazlang.io;
 
 public interface Display extends AutoCloseable {
+  /** Input mode for readln(). */
+  enum InputMode {
+    REPL,
+    INPUT_NUMERIC,
+    INPUT_STRING
+  }
+
   int currentRow();
 
   int currentCol();
@@ -27,12 +34,27 @@ public interface Display extends AutoCloseable {
 
   void lprintln();
 
+  /** Read a line of input with mode-specific prompts and hints. */
+  default String readln(InputMode mode) {
+    return readln("");
+  }
+
   String readln(String prompt);
 
   /** Pre-fill the input buffer so next readln() starts with this text. */
   void prefillInput(String text);
 
+  /** Set the status bar text (shown until next input). */
+  default void setStatus(String status) {
+    // Default: no-op for displays without status area
+  }
+
   boolean pollForBreak();
+
+  /** Check for Ctrl+C with I/O - should be called periodically during long operations. */
+  default void checkForBreak() {
+    // Default: no-op for displays without I/O-based break detection
+  }
 
   String inkey();
 

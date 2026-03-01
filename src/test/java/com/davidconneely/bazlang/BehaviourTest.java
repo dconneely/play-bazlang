@@ -91,7 +91,7 @@ class BehaviourTest {
 
   @Test
   void testInputSyntaxErrorRetry() {
-    // Test that syntax errors in numeric INPUT re-prompt with "Syntax error? "
+    // Test that syntax errors in numeric INPUT re-prompt with error message
     // First input "(1" is a syntax error (unbalanced parens), second input "42" is valid
     String output =
         runProgramCapture(
@@ -101,7 +101,7 @@ class BehaviourTest {
         """,
             List.of("(1", "42"));
 
-    assertTrue(output.contains("Syntax error?"));
+    assertTrue(output.contains("Syntax error in expression"));
     assertTrue(output.contains("42"));
   }
 

@@ -7,14 +7,16 @@ import java.io.InputStreamReader;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 
-public class StreamDisplay extends BufferedDisplay {
+public class StreamDisplay implements Display {
   private final InputStream in;
   private final PrintStream out;
   private final PrintStream err;
   private BufferedReader reader;
 
+  // Simple cursor tracking for currentRow/currentCol
+  private int currentCol = 0;
+
   public StreamDisplay(InputStream in, PrintStream out, PrintStream err) {
-    super();
     this.in = in;
     this.out = out;
     this.err = err;
@@ -25,23 +27,60 @@ public class StreamDisplay extends BufferedDisplay {
   }
 
   @Override
-  protected void rawPrint(String text) {
-    out.print(text);
+  public int currentRow() {
+    return 0;
   }
 
   @Override
-  protected void rawLocate(int row, int col) {
-    // Cannot locate on standard stream
+  public int currentCol() {
+    return currentCol;
   }
 
   @Override
-  protected void rawScroll() {
+  public void cls() {
+    currentCol = 0;
+    // Cannot clear screen on standard stream
+  }
+
+  @Override
+  public void locate(int row, int col) {
+    currentCol = col;
+    // Cannot position cursor on standard stream
+  }
+
+  @Override
+  public void plot(int x, int y) {
+    // No-op for stream display
+  }
+
+  @Override
+  public void unplot(int x, int y) {
+    // No-op for stream display
+  }
+
+  @Override
+  public void scroll() {
     out.println();
   }
 
   @Override
-  protected void rawCls() {
-    // Cannot clear screen on standard stream
+  public void print(String text) {
+    if (text != null) {
+      out.print(text);
+      currentCol += text.length();
+    }
+  }
+
+  @Override
+  public void println(String text) {
+    print(text);
+    println();
+  }
+
+  @Override
+  public void println() {
+    out.println();
+    currentCol = 0;
   }
 
   @Override
@@ -70,7 +109,6 @@ public class StreamDisplay extends BufferedDisplay {
     try {
       String line = reader.readLine();
       if (line != null) {
-        currentRow++;
         currentCol = 0;
       }
       return line;

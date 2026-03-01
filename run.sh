@@ -5,18 +5,8 @@ JAR_FILE="build/libs/bazlang-1.0.0-SNAPSHOT.jar"
 
 if [ ! -f "$JAR_FILE" ]; then
     echo "Building project..."
-    ./gradlew -q --console=plain jar
+    ./gradlew -q --console=plain jar copyDependencies
 fi
 
-if [ $# -eq 0 ]; then
-    java --enable-native-access=ALL-UNNAMED -jar "$JAR_FILE"
-elif [ $# -eq 1 ]; then
-    if [ ! -f "$1" ]; then
-        echo "Error: File '$1' not found"
-        exit 1
-    fi
-    java --enable-native-access=ALL-UNNAMED -jar "$JAR_FILE" "$1"
-else
-    echo "Usage: $0 [source-file]"
-    exit 1
-fi
+# Pass all arguments through to the Java application
+java --enable-native-access=ALL-UNNAMED -jar "$JAR_FILE" "$@"

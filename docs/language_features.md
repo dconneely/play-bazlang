@@ -96,7 +96,7 @@ Returns `1` for True, `0` for False.
 - **`CLS`**: Clear screen.
 - **`SCROLL`**: Scroll screen up.
 - **`PLOT x, y`**: Draw a block at coordinates `(x, y)`.
-    - Coordinates range from `0,0` (bottom-left) to `63,47` (top-right).
+    - Coordinates start at `(0,0)` (bottom-left) and extend dynamically based on terminal size.
     - Uses Unicode 2x2 block characters (quadrants) to simulate higher resolution.
 - **`UNPLOT x, y`**: Erase a block at coordinates `(x, y)`.
 

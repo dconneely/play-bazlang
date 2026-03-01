@@ -14,24 +14,28 @@ public class MainClass {
   private static final AntlrParser PARSER = new AntlrParser();
 
   public static void main(String[] args) {
-    Display display;
-    try {
-      // Simple heuristic: if no console, use stream display
-      if (System.console() == null) {
-        display = new StreamDisplay();
+    Display display = createDisplay();
+    try (display) {
+      if (args.length == 0) {
+        runRepl(display);
+      } else if (args.length == 1) {
+        runFile(args[0], display);
       } else {
-        display = new TerminalDisplay();
+        display.println("Usage: java com.davidconneely.bazlang.MainClass [source-file]");
+        System.exit(1);
+      }
+    }
+  }
+
+  private static Display createDisplay() {
+    try {
+      if (System.console() == null) {
+        return new StreamDisplay();
+      } else {
+        return new TerminalDisplay();
       }
     } catch (IOException e) {
-      display = new StreamDisplay();
-    }
-    if (args.length == 0) {
-      runRepl(display);
-    } else if (args.length == 1) {
-      runFile(args[0], display);
-    } else {
-      display.println("Usage: java com.davidconneely.bazlang.MainClass [source-file]");
-      System.exit(1);
+      return new StreamDisplay();
     }
   }
 
@@ -60,7 +64,7 @@ public class MainClass {
     while (true) {
       String line;
       try {
-        line = display.readln("\033[7m>\033[27m ");
+        line = display.readln(Display.InputMode.REPL);
       } catch (Display.BreakException e) {
         // Ctrl+C at prompt: just reprint prompt
         continue;
@@ -80,9 +84,11 @@ public class MainClass {
           if (trimmed.matches("^\\d+\\s*$")) {
             // Just a number - delete the line
             state.program().remove(lineNumber);
+            display.println(lineNumber + " deleted");
           } else {
             // Insertion/Update - store as ProgramLine with source text
             state.program().put(lineNumber, new ProgramLine(lineNumber, statementText));
+            display.println(line.trim());
           }
         } else if (parsed instanceof AntlrParser.ParsedLine.ReplCommand(var ctx)) {
           handleReplCommand(ctx, executor, display, state);
@@ -101,7 +107,7 @@ public class MainClass {
       } catch (ReportException e) {
         state.setLastReportCode(e.reportCode());
         state.setLastReportLabel(e.lineLabel());
-        display.println(e.prefix() + " " + e.getMessage());
+        display.setStatus(e.prefix() + " " + e.getMessage());
       }
     }
   }

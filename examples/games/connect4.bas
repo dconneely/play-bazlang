@@ -63,9 +63,9 @@
 490 PRINT AT Y, 0; "│";
 500 FOR C = 1 TO 7
 510 LET V = B(R, C)
-520 IF V = 0 THEN PRINT " 🔵 │";
-530 IF V = 1 THEN PRINT " 🟡 │";
-540 IF V = 2 THEN PRINT " 🔴 │";
+520 IF V = 0 THEN PRINT " .. │";
+530 IF V = 1 THEN PRINT " OO │";
+540 IF V = 2 THEN PRINT " XX │";
 550 NEXT C
 560 NEXT R
 570 PRINT AT 9, 0; "└────┴────┴────┴────┴────┴────┴────┘"
@@ -73,8 +73,8 @@
 
 # Human turn
 590 PRINT AT 11, 0; "                                        "
-600 IF HUMAN = 1 THEN PRINT AT 11, 0; "Your turn (🟡). Column (1-7): ";
-610 IF HUMAN = 2 THEN PRINT AT 11, 0; "Your turn (🔴). Column (1-7): ";
+600 IF HUMAN = 1 THEN PRINT AT 11, 0; "Your turn (O). Column (1-7): ";
+610 IF HUMAN = 2 THEN PRINT AT 11, 0; "Your turn (X). Column (1-7): ";
 620 LET K$ = INKEY$
 630 IF K$ < "1" OR K$ > "7" THEN GOTO 620
 640 LET COL = VAL K$
@@ -170,13 +170,13 @@
 # Animate piece drop
 1410 LET C = COL
 1420 GOSUB 1350
-1430 LET P$ = "🟡"
-1440 IF TURN = 2 THEN LET P$ = "🔴"
+1430 LET P$ = "OO"
+1440 IF TURN = 2 THEN LET P$ = "XX"
 1450 FOR R = 1 TO TR
 1460 LET Y = R + 2
 1470 PRINT AT Y, COL * 5 - 4; " "; P$; " "
 1480 PAUSE 2
-1490 IF R < TR THEN PRINT AT Y, COL * 5 - 4; " 🔵 "
+1490 IF R < TR THEN PRINT AT Y, COL * 5 - 4; " .. "
 1500 NEXT R
 1510 LET B(TR, COL) = TURN
 1520 RETURN

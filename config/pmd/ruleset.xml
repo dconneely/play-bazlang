@@ -78,7 +78,7 @@
         <exclude name="AvoidLiteralsInIfCondition"/>
         <!-- False positives on Display (closed elsewhere) -->
         <exclude name="CloseResource"/>
-        <!-- BufferedDisplay intentionally initializes in constructor -->
+        <!-- TerminalDisplay intentionally initializes in constructor -->
         <exclude name="ConstructorCallsOverridableMethod"/>
         <!-- CLI app uses System.exit() -->
         <exclude name="DoNotTerminateVM"/>

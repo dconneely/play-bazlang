@@ -174,10 +174,13 @@ public class BazLangExecutor extends BazLangBaseVisitor<Object> {
 
   @Override
   public Object visitInputStmt(InputStmtContext ctx) {
-    String line = readInputLine("");
-
     var target = ctx.assignmentTarget();
-    if (target.NUM_IDENTIFIER() != null) {
+    boolean isNumeric = target.NUM_IDENTIFIER() != null;
+    Display.InputMode mode =
+        isNumeric ? Display.InputMode.INPUT_NUMERIC : Display.InputMode.INPUT_STRING;
+    String line = readInputLine(mode);
+
+    if (isNumeric) {
       // INPUT evaluates the input as a numeric expression; retry on syntax errors
       while (true) {
         try {
@@ -189,13 +192,24 @@ public class BazLangExecutor extends BazLangBaseVisitor<Object> {
             throw e; // Other errors (undefined variable, division by zero) end program
           }
           display.prefillInput(line);
-          line = readInputLine("Syntax error? ");
+          line = readInputLine("Syntax error in expression");
         }
       }
     } else {
       assignStrTarget(target, line);
     }
     return null;
+  }
+
+  private String readInputLine(Display.InputMode mode) {
+    try {
+      String line = display.readln(mode);
+      return line != null ? line : "";
+    } catch (Display.BreakException e) {
+      state.setRunning(false);
+      throw codedException(
+          ReportCode.BREAK_CONT_REPEATS, ReportCode.BREAK_CONT_REPEATS.getMessage());
+    }
   }
 
   private String readInputLine(String prompt) {
@@ -603,6 +617,7 @@ public class BazLangExecutor extends BazLangBaseVisitor<Object> {
         Thread.currentThread().interrupt();
         break;
       }
+      display.checkForBreak(); // Check for Ctrl+C with I/O
       if (display.pollForBreak()) {
         state.setRunning(false);
         throw codedException(

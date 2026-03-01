@@ -13,6 +13,12 @@ version = "1.0.0-SNAPSHOT"
 
 repositories {
     mavenCentral()
+    maven {
+        url = uri("https://central.sonatype.com/repository/maven-snapshots/")
+        mavenContent {
+            snapshotsOnly()
+        }
+    }
 }
 
 java {
@@ -30,6 +36,9 @@ dependencies {
     antlr("org.antlr:antlr4:4.13.2")
     implementation("org.antlr:antlr4-runtime:4.13.2")
     implementation("org.jline:jline:3.30.6")
+    implementation("dev.tamboui:tamboui-tui:0.1.0-SNAPSHOT")
+    implementation("dev.tamboui:tamboui-widgets:0.1.0-SNAPSHOT")
+    implementation("dev.tamboui:tamboui-jline3-backend:0.1.0-SNAPSHOT")
     testImplementation(platform("org.junit:junit-bom:6.0.3"))
     testImplementation("org.junit.jupiter:junit-jupiter")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")

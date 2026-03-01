@@ -25,14 +25,19 @@ Variables are stored in a central "state" while the program runs. Numbers and st
 kept separate. This state persists even if the program stops (via `STOP`), allowing you to
 check variables and then `CONT`inue.
 
-### Screen and Graphics
-The display is handled as a 32x24 grid for graphics (`PLOT` and `UNPLOT`), mapped to the
-terminal window. Text can be printed anywhere on the terminal (even outside this grid),
-but graphics are constrained to the buffer to allow for pixel-level manipulation.
+### Screen Layout
+The terminal display is divided into regions:
+- **Application display area**: Scrollable output at the top of the screen
+- **Input area**: Shows a prompt (`❯` for REPL, bold `#` for numeric input, bold `$` for string input)
+- **Status bar**: Shows mode ("READY"), input hints, or report codes after execution
+
+Graphics (`PLOT` and `UNPLOT`) operate on a dynamically sized pixel grid based on the
+terminal dimensions. Each character cell represents a 2x2 pixel block using Unicode
+quadrant characters (▘▝▀▖▌▞▛▗▚▐▜▄▙▟█). Coordinates (0,0) are at the bottom-left.
 
 ### Error Handling
 If something goes wrong (like dividing by zero), the interpreter stops and reports a code
-(e.g., `6/100`) indicating the error type and the line number.
+in the status bar (e.g., `6/100 Number too big`) indicating the error type and line number.
 
 ### Device Independence
 The core logic of the interpreter is separate from the terminal. This allows the same code

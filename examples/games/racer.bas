@@ -1,23 +1,23 @@
 # Racer
 # Avoid the walls as the road twists and turns
 5 RAND 0
-10 REM Racer Game Enhanced (Renumbered)
-20 DIM P(24)
+10 REM Racer Game Enhanced (80x25 terminal)
+20 DIM P(25)
 30 LET FULL$ = CHR$(9608)
 40 LET L_EDGE$ = CHR$(9612)
 50 LET R_EDGE$ = CHR$(9616)
 60 LET WALL$ = ""
-70 FOR K = 1 TO 40
+70 FOR K = 1 TO 80
 80 LET WALL$ = WALL$ + FULL$
 90 NEXT K
 100 LET SP$ = "                                                                                "
-110 LET L = 10
-120 LET W = 12
-130 FOR I = 1 TO 24
+110 LET L = 20
+120 LET W = 20
+130 FOR I = 1 TO 25
 140 LET P(I) = L
 150 NEXT I
 160 LET C = L + W / 2 - 1
-170 LET R_CAR = 15
+170 LET R_CAR = 20
 180 LET S = 0
 185 LET B = 0
 190 REM Main Loop
@@ -35,18 +35,21 @@
 250 LET L = L + B
 252 IF L < 2 THEN LET B = 0
 254 IF L < 2 THEN LET L = 2
-256 IF L > 24 THEN LET B = 0
-258 IF L > 24 THEN LET L = 24
-270 REM Shift History
-280 FOR I = 1 TO 23
-290 LET P(I) = P(I+1)
+256 IF L > 56 THEN LET B = 0
+258 IF L > 56 THEN LET L = 56
+270 REM Shift History (scroll down - new road at top)
+280 FOR I = 25 TO 2 STEP -1
+290 LET P(I) = P(I-1)
 300 NEXT I
-310 LET P(24) = L
+310 LET P(1) = L
+315 REM Move car up as score increases (less reaction time)
+316 LET R_CAR = 20 - INT(S / 500)
+317 IF R_CAR < 3 THEN LET R_CAR = 3
 320 REM Collision Check
 330 LET P_NOW = P(R_CAR + 1)
 340 IF C < P_NOW OR (C + 3) > (P_NOW + W) THEN GOTO 560
-350 REM Draw
-360 FOR I = 0 TO 23
+350 REM Draw (skip row 0 for score display)
+360 FOR I = 1 TO 24
 370 LET LI = P(I+1)
 380 LET IL = INT(LI)
 390 LET FR = LI - IL
@@ -60,18 +63,23 @@
 470 PRINT SP$(1 TO MW); DASH$; SP$(1 TO RW - MW - 1);
 480 IF FR < 0.5 THEN PRINT FULL$;
 490 IF FR >= 0.5 THEN PRINT R_EDGE$;
-500 PRINT WALL$(1 TO 40 - (IL + W));
+500 PRINT WALL$(1 TO 80 - (IL + W + 2));
 510 NEXT I
-520 PRINT AT R_CAR, C; " _ "; AT R_CAR + 1, C; "|H|";
-525 PRINT AT 0, 1; " SCORE: "; S; " "; AT 0, 22; " STEER WITH A & D ";
+515 REM Draw car (driving upward with H design)
+520 PRINT AT R_CAR, C; "|H|"; AT R_CAR + 1, C; " ¯ ";
+525 PRINT AT 0, 1; " SCORE: "; S; " "; AT 0, 40; " STEER WITH A & D ";
 530 LET S = S + 5 + INT(ABS(B) * 5)
-540 PAUSE 0
+REM Game runs at full speed - no artificial delay
 550 GOTO 190
-560 PRINT AT 20, 0; "CRASH! FINAL SCORE: "; S
+560 PRINT AT 21, 0; "CRASH! FINAL SCORE: "; S
 570 IF S < 500 THEN PRINT "Did you forget your glasses?"
 580 IF S >= 500 AND S < 1500 THEN PRINT "Not bad for a learner!"
 585 IF S >= 1500 AND S < 2500 THEN PRINT "Getting the hang of it!"
 590 IF S >= 2500 AND S < 3500 THEN PRINT "Vroom vroom! Professional driver!"
 595 IF S >= 3500 AND S < 5000 THEN PRINT "Speed demon! Almost there!"
 600 IF S >= 5000 THEN PRINT "Formula 1 Champion!"
-610 STOP
+610 PRINT AT 23, 0; "Play again? (Y/N) ";
+620 LET K$ = INKEY$
+630 IF K$ = "Y" OR K$ = "y" THEN GOTO 100
+640 IF K$ = "N" OR K$ = "n" THEN STOP
+650 GOTO 620
