@@ -1,0 +1,26 @@
+[versions]
+antlr = "4.13.2"
+tamboui = "0.1.0"
+junit = "6.0.3"
+spotless = "8.2.1"
+spotbugs = "6.4.8"
+checkstyle = "13.2.0"
+pmd = "7.21.0"
+spotbugs-tool = "4.9.8"
+
+[libraries]
+antlr-tool = { group = "org.antlr", name = "antlr4", version.ref = "antlr" }
+antlr-runtime = { group = "org.antlr", name = "antlr4-runtime", version.ref = "antlr" }
+tamboui-tui = { group = "dev.tamboui", name = "tamboui-tui", version.ref = "tamboui" }
+tamboui-widgets = { group = "dev.tamboui", name = "tamboui-widgets", version.ref = "tamboui" }
+tamboui-jline3 = { group = "dev.tamboui", name = "tamboui-jline3-backend", version.ref = "tamboui" }
+junit-bom = { group = "org.junit", name = "junit-bom", version.ref = "junit" }
+junit-jupiter = { group = "org.junit.jupiter", name = "junit-jupiter" }
+junit-launcher = { group = "org.junit.platform", name = "junit-platform-launcher" }
+
+[bundles]
+tamboui = ["tamboui-tui", "tamboui-widgets", "tamboui-jline3"]
+
+[plugins]
+spotless = { id = "com.diffplug.spotless", version.ref = "spotless" }
+spotbugs = { id = "com.github.spotbugs", version.ref = "spotbugs" }

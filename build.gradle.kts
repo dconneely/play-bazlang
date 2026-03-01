@@ -4,8 +4,8 @@ plugins {
     antlr
     checkstyle
     pmd
-    id("com.diffplug.spotless") version "8.2.1"
-    id("com.github.spotbugs") version "6.4.8"
+    alias(libs.plugins.spotless)
+    alias(libs.plugins.spotbugs)
 }
 
 group = "com.davidconneely"
@@ -13,12 +13,6 @@ version = "1.0.0-SNAPSHOT"
 
 repositories {
     mavenCentral()
-    maven {
-        url = uri("https://central.sonatype.com/repository/maven-snapshots/")
-        mavenContent {
-            snapshotsOnly()
-        }
-    }
 }
 
 java {
@@ -33,15 +27,12 @@ application {
 }
 
 dependencies {
-    antlr("org.antlr:antlr4:4.13.2")
-    implementation("org.antlr:antlr4-runtime:4.13.2")
-    implementation("org.jline:jline:3.30.6")
-    implementation("dev.tamboui:tamboui-tui:0.1.0-SNAPSHOT")
-    implementation("dev.tamboui:tamboui-widgets:0.1.0-SNAPSHOT")
-    implementation("dev.tamboui:tamboui-jline3-backend:0.1.0-SNAPSHOT")
-    testImplementation(platform("org.junit:junit-bom:6.0.3"))
-    testImplementation("org.junit.jupiter:junit-jupiter")
-    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+    antlr(libs.antlr.tool)
+    implementation(libs.antlr.runtime)
+    implementation(libs.bundles.tamboui)
+    testImplementation(platform(libs.junit.bom))
+    testImplementation(libs.junit.jupiter)
+    testRuntimeOnly(libs.junit.launcher)
 }
 
 tasks.test {
@@ -96,7 +87,7 @@ spotless {
 
 // Checkstyle - Google Java Style
 checkstyle {
-    toolVersion = "13.2.0"
+    toolVersion = libs.versions.checkstyle.get()
     configFile = file("config/checkstyle/checkstyle.xml")
     isIgnoreFailures = false
 }
@@ -107,7 +98,7 @@ tasks.withType<Checkstyle>().configureEach {
 
 // PMD
 pmd {
-    toolVersion = "7.21.0"
+    toolVersion = libs.versions.pmd.get()
     isConsoleOutput = true
     isIgnoreFailures = true  // Report violations but don't fail build
     ruleSets = emptyList()
@@ -120,7 +111,7 @@ tasks.withType<Pmd>().configureEach {
 
 // SpotBugs
 spotbugs {
-    toolVersion = "4.9.8"
+    toolVersion = libs.versions.spotbugs.tool.get()
     ignoreFailures = true  // Don't fail build - SpotBugs has issues with Java 25
 }
 
