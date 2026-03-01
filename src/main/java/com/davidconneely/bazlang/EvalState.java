@@ -27,6 +27,8 @@ public class EvalState {
 
   private boolean running = true;
   private int currentLineLabel = 0;
+  private Integer pendingJumpLabel = null;
+  private boolean hasPendingJump = false;
   private ReportCode lastReportCode = ReportCode.OK;
   private int lastReportLabel = 0;
 
@@ -83,6 +85,24 @@ public class EvalState {
     this.currentLineLabel = label;
   }
 
+  public Integer pendingJumpLabel() {
+    return pendingJumpLabel;
+  }
+
+  public boolean hasPendingJump() {
+    return hasPendingJump;
+  }
+
+  public void setPendingJumpLabel(Integer label) {
+    this.pendingJumpLabel = label;
+    this.hasPendingJump = true;
+  }
+
+  public void clearPendingJump() {
+    this.pendingJumpLabel = null;
+    this.hasPendingJump = false;
+  }
+
   public ReportCode lastReportCode() {
     return lastReportCode;
   }
@@ -106,6 +126,7 @@ public class EvalState {
     charArrays.clear();
     forLoops.clear();
     returnStack.clear();
+    clearPendingJump();
     lastReportCode = ReportCode.OK;
     lastReportLabel = 0;
   }

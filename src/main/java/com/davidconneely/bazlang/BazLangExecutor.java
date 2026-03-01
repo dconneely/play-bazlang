@@ -54,10 +54,9 @@ public class BazLangExecutor extends BazLangBaseVisitor<Object> {
       return null;
     }
     if (state.lastReportCode() == ReportCode.STOP_STATEMENT) {
-      state.setCurrentLineLabel(m);
+      state.setPendingJumpLabel(state.program().higherKey(m));
     } else {
-      Integer lower = state.program().lowerKey(m);
-      state.setCurrentLineLabel(lower != null ? lower : -1);
+      state.setPendingJumpLabel(m);
     }
     return null;
   }
@@ -126,7 +125,7 @@ public class BazLangExecutor extends BazLangBaseVisitor<Object> {
         StatementContext stmt = line.getStatement(PARSER);
         if (stmt instanceof NextStmtContext nextCtx
             && nextCtx.NUM_IDENTIFIER().getText().equalsIgnoreCase(var)) {
-          state.setCurrentLineLabel(nextLabel);
+          state.setPendingJumpLabel(state.program().higherKey(nextLabel));
           return null;
         }
         nextLabel = state.program().higherKey(nextLabel);
@@ -157,8 +156,7 @@ public class BazLangExecutor extends BazLangBaseVisitor<Object> {
     }
     Integer label = state.program().ceilingKey(target);
     if (label != null) {
-      Integer lower = state.program().lowerKey(label);
-      state.setCurrentLineLabel(lower != null ? lower : -1);
+      state.setPendingJumpLabel(label);
     } else {
       state.setRunning(false);
     }
@@ -602,7 +600,7 @@ public class BazLangExecutor extends BazLangBaseVisitor<Object> {
     double nv = state.numScalars().get(var) + d.step();
     state.numScalars().put(var, nv);
     if (d.step() >= 0 ? nv <= d.limit() : nv >= d.limit()) {
-      state.setCurrentLineLabel(d.loopPc());
+      state.setPendingJumpLabel(state.program().higherKey(d.loopPc()));
     }
     return null;
   }
@@ -729,7 +727,8 @@ public class BazLangExecutor extends BazLangBaseVisitor<Object> {
     if (state.returnStack().isEmpty()) {
       throw codedException(ReportCode.RETURN_WITHOUT_GOSUB, "RETURN without GOSUB");
     }
-    state.setCurrentLineLabel(state.returnStack().pop());
+    Integer gosubLine = state.returnStack().pop();
+    state.setPendingJumpLabel(state.program().higherKey(gosubLine));
     return null;
   }
 

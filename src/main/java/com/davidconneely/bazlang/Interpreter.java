@@ -31,27 +31,37 @@ public class Interpreter {
 
   public void execute(Map<Integer, ProgramLine> program) {
     state.setProgram(program);
-    state.setCurrentLineLabel(-1);
+    if (!state.program().isEmpty()) {
+      state.setPendingJumpLabel(state.program().firstKey());
+    }
     resume();
   }
 
   public void resume() {
     state.setRunning(true);
     while (state.isRunning()) {
-      var entry = state.program().higherEntry(state.currentLineLabel());
-      if (entry == null) {
+      Integer nextLabel;
+      if (state.hasPendingJump()) {
+        nextLabel = state.pendingJumpLabel();
+        state.clearPendingJump();
+      } else {
+        nextLabel = state.program().higherKey(state.currentLineLabel());
+      }
+
+      if (nextLabel == null) {
         break;
       }
+
       if (executor.terminal().pollForBreak()) {
         state.setRunning(false);
         throw new ReportException(
             ReportCode.BREAK_CONT_REPEATS,
-            entry.getKey(),
+            nextLabel,
             ReportCode.BREAK_CONT_REPEATS.getMessage());
       }
-      state.setCurrentLineLabel(entry.getKey());
+      state.setCurrentLineLabel(nextLabel);
       // Lazy parse: ParseTree is built on first execution, cached for loops
-      ProgramLine line = entry.getValue();
+      ProgramLine line = state.program().get(nextLabel);
       StatementContext stmt = line.getStatement(PARSER);
       executor.visit(stmt);
     }
