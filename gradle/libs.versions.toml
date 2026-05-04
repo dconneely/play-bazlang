@@ -2,7 +2,7 @@
 antlr = "4.13.2"
 jline = "3.25.1"
 junit = "6.0.3"
-spotless = "8.2.1"
+spotless = "8.4.0"
 spotbugs = "6.5.4"
 checkstyle = "13.2.0"
 pmd = "7.21.0"
