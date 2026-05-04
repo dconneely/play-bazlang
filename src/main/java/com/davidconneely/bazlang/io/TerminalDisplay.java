@@ -1,22 +1,18 @@
 package com.davidconneely.bazlang.io;
 
-import dev.tamboui.buffer.Buffer;
-import dev.tamboui.buffer.Cell;
-import dev.tamboui.layout.Constraint;
-import dev.tamboui.layout.Layout;
-import dev.tamboui.layout.Position;
-import dev.tamboui.layout.Rect;
-import dev.tamboui.style.Modifier;
-import dev.tamboui.style.Style;
-import dev.tamboui.terminal.Backend;
-import dev.tamboui.terminal.BackendFactory;
-import dev.tamboui.terminal.Frame;
-import dev.tamboui.terminal.Terminal;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
+import org.jline.terminal.Attributes;
+import org.jline.terminal.Terminal;
+import org.jline.terminal.TerminalBuilder;
+import org.jline.utils.AttributedString;
+import org.jline.utils.AttributedStringBuilder;
+import org.jline.utils.AttributedStyle;
+import org.jline.utils.InfoCmp.Capability;
+import org.jline.utils.NonBlockingReader;
 
 /**
  * Terminal-based Display implementation with dynamic screen regions:
@@ -35,8 +31,10 @@ public class TerminalDisplay implements Display {
     ' ', '▘', '▝', '▀', '▖', '▌', '▞', '▛', '▗', '▚', '▐', '▜', '▄', '▙', '▟', '█'
   };
 
-  private final Backend backend;
-  private final Terminal<Backend> terminal;
+  private final Terminal terminal;
+  private final NonBlockingReader reader;
+  private final Attributes savedAttributes;
+  private final org.jline.utils.Display screenDisplay;
 
   // Display buffer (character grid for display area)
   private char[][] displayBuffer;
@@ -70,15 +68,16 @@ public class TerminalDisplay implements Display {
   private final StringBuilder typeAheadBuffer = new StringBuilder();
 
   public TerminalDisplay() throws IOException {
-    this.backend = BackendFactory.create();
-    backend.enableRawMode();
-    backend.enterAlternateScreen();
-    backend.clear();
-    backend.hideCursor();
-    this.terminal = new Terminal<>(backend);
+    this.terminal = TerminalBuilder.builder().system(true).nativeSignals(true).build();
+    this.savedAttributes = terminal.enterRawMode();
+    terminal.puts(Capability.enter_ca_mode);
+    terminal.puts(Capability.clear_screen);
+    terminal.puts(Capability.cursor_invisible);
+    terminal.flush();
+    this.reader = terminal.reader();
+    this.screenDisplay = new org.jline.utils.Display(terminal, true);
 
-    // Set up Ctrl+C signal handler via JLine terminal
-    setupSignalHandler();
+    terminal.handle(Terminal.Signal.INT, _ -> breakFlag.set(true));
 
     // Ensure terminal is restored on JVM shutdown (e.g., if signal terminates the process)
     Runtime.getRuntime().addShutdownHook(new Thread(this::close));
@@ -87,22 +86,9 @@ public class TerminalDisplay implements Display {
     render();
   }
 
-  private void setupSignalHandler() {
-    if (backend instanceof dev.tamboui.backend.jline3.JLineBackend jlineBackend) {
-      jlineBackend
-          .jlineTerminal()
-          .handle(org.jline.terminal.Terminal.Signal.INT, _ -> breakFlag.set(true));
-    }
-    // Otherwise fall back to character-based detection in checkForBreak()
-  }
-
-  private void initBuffer() throws IOException {
-    // Calculate display area size (terminal minus input/status when visible)
-    int termHeight = backend.size().height();
-    int termWidth = backend.size().width();
-    // Reserve space for status + input (2 lines minimum)
-    bufferRows = Math.max(1, termHeight - 2);
-    bufferCols = termWidth;
+  private void initBuffer() {
+    bufferRows = Math.max(1, terminal.getHeight() - 2);
+    bufferCols = terminal.getWidth();
     displayBuffer = new char[bufferRows][bufferCols];
     clearBuffer();
   }
@@ -116,30 +102,26 @@ public class TerminalDisplay implements Display {
   }
 
   private void resizeBufferIfNeeded() {
-    try {
-      int newCols = backend.size().width();
-      int newRows = Math.max(1, backend.size().height() - 4);
+    int newCols = terminal.getWidth();
+    int newRows = Math.max(1, terminal.getHeight() - 4);
 
-      if (newRows != bufferRows || newCols != bufferCols) {
-        char[][] newBuffer = new char[newRows][newCols];
-        for (char[] row : newBuffer) {
-          Arrays.fill(row, ' ');
-        }
-        // Copy existing content, anchoring at top-left
-        int copyRows = Math.min(bufferRows, newRows);
-        int copyCols = Math.min(bufferCols, newCols);
-        for (int r = 0; r < copyRows; r++) {
-          System.arraycopy(displayBuffer[r], 0, newBuffer[r], 0, copyCols);
-        }
-        displayBuffer = newBuffer;
-        bufferRows = newRows;
-        bufferCols = newCols;
-        // Clamp cursor to new bounds
-        cursorRow = Math.min(cursorRow, bufferRows - 1);
-        cursorCol = Math.min(cursorCol, bufferCols - 1);
+    if (newRows != bufferRows || newCols != bufferCols) {
+      char[][] newBuffer = new char[newRows][newCols];
+      for (char[] row : newBuffer) {
+        Arrays.fill(row, ' ');
       }
-    } catch (IOException e) {
-      // Ignore resize errors
+      // Copy existing content, anchoring at top-left
+      int copyRows = Math.min(bufferRows, newRows);
+      int copyCols = Math.min(bufferCols, newCols);
+      for (int r = 0; r < copyRows; r++) {
+        System.arraycopy(displayBuffer[r], 0, newBuffer[r], 0, copyCols);
+      }
+      displayBuffer = newBuffer;
+      bufferRows = newRows;
+      bufferCols = newCols;
+      // Clamp cursor to new bounds
+      cursorRow = Math.min(cursorRow, bufferRows - 1);
+      cursorCol = Math.min(cursorCol, bufferCols - 1);
     }
   }
 
@@ -147,95 +129,64 @@ public class TerminalDisplay implements Display {
 
   private void render() {
     resizeBufferIfNeeded();
-    terminal.draw(
-        frame -> {
-          Rect area = frame.area();
+    int termWidth = terminal.getWidth();
+    int termHeight = terminal.getHeight();
+    List<AttributedString> lines = new ArrayList<>(termHeight);
 
-          if (inputVisible) {
-            int inputHeight = Math.max(1, inputLines.size());
-            int bottomHeight = 1 + inputHeight; // status + input
-
-            List<Rect> regions =
-                Layout.vertical()
-                    .constraints(Constraint.fill(), Constraint.length(bottomHeight))
-                    .split(area);
-
-            Rect displayArea = regions.get(0);
-            Rect bottomArea = regions.get(1);
-
-            // Split bottom into: status, input
-            List<Rect> bottomRegions =
-                Layout.vertical()
-                    .constraints(Constraint.length(1), Constraint.length(inputHeight))
-                    .split(bottomArea);
-
-            renderDisplayArea(frame, displayArea);
-            renderStatusArea(frame, bottomRegions.get(0));
-            renderInputArea(frame, bottomRegions.get(1));
-          } else {
-            renderDisplayArea(frame, area);
-          }
-        });
-  }
-
-  private void renderDisplayArea(Frame frame, Rect area) {
-    Buffer buffer = frame.buffer();
-    // Render our display buffer to the frame
-    int rowsToRender = Math.min(area.height(), bufferRows);
-    int colsToRender = Math.min(area.width(), bufferCols);
+    int rowsToRender = Math.min(bufferRows, termHeight);
     for (int r = 0; r < rowsToRender; r++) {
+      AttributedStringBuilder sb = new AttributedStringBuilder(termWidth);
+      int colsToRender = Math.min(bufferCols, termWidth);
       for (int c = 0; c < colsToRender; c++) {
-        char ch = displayBuffer[r][c];
-        buffer.set(area.x() + c, area.y() + r, new Cell(String.valueOf(ch), Style.EMPTY));
+        sb.append(displayBuffer[r][c]);
       }
+      lines.add(sb.toAttributedString());
     }
-  }
 
-  private void renderInputArea(Frame frame, Rect area) {
-    Buffer buffer = frame.buffer();
-    for (int row = 0; row < area.height() && row < inputLines.size(); row++) {
-      int x = area.x();
-      int y = area.y() + row;
-      if (row == 0) {
-        // Render prompt with mode-specific style
-        String promptChar =
-            switch (currentInputMode) {
-              case REPL -> "❯ ";
-              case INPUT_NUMERIC -> "# ";
-              case INPUT_STRING -> "$ ";
-            };
-        Style promptStyle =
-            currentInputMode == InputMode.REPL
-                ? Style.EMPTY
-                : Style.EMPTY.addModifier(Modifier.BOLD);
-        buffer.setString(x, y, promptChar, promptStyle);
-      } else {
-        buffer.setString(x, y, "  ", Style.EMPTY);
-      }
-      x += 2;
-      // Render input text
-      buffer.setString(x, y, inputLines.get(row), Style.EMPTY);
-    }
-  }
-
-  private void renderStatusArea(Frame frame, Rect area) {
-    Buffer buffer = frame.buffer();
-    buffer.setString(area.x(), area.y(), statusText, Style.EMPTY);
-  }
-
-  private void positionCursorInInput() {
-    try {
-      // Calculate cursor position: after prompt + cursor position in input
-      // Input area is at the bottom of the screen
-      int termHeight = backend.size().height();
+    int targetCursorPos = 0;
+    if (inputVisible) {
       int inputHeight = Math.max(1, inputLines.size());
-      int inputY = termHeight - inputHeight; // input is at the bottom
-      // Both prompts display as 2 characters wide (symbol + space)
-      int cursorX = 2 + inputCursorPos;
-      backend.setCursorPosition(new Position(cursorX, inputY));
-    } catch (IOException e) {
-      // Ignore
+
+      // Status line
+      lines.add(new AttributedString(statusText));
+
+      // Input lines
+      for (int row = 0; row < inputHeight; row++) {
+        AttributedStringBuilder inputSb = new AttributedStringBuilder(termWidth);
+        if (row == 0) {
+          String prompt =
+              switch (currentInputMode) {
+                case REPL -> "❯ ";
+                case INPUT_NUMERIC -> "# ";
+                case INPUT_STRING -> "$ ";
+              };
+          if (currentInputMode != InputMode.REPL) {
+            inputSb.style(AttributedStyle.BOLD);
+            inputSb.append(prompt);
+            inputSb.style(AttributedStyle.DEFAULT);
+          } else {
+            inputSb.append(prompt);
+          }
+        } else {
+          inputSb.append("  ");
+        }
+        inputSb.append(inputLines.get(row));
+        lines.add(inputSb.toAttributedString());
+      }
+
+      // Cursor: after display rows + status row, at the prompt offset + input cursor position
+      // targetCursorPos uses Display's internal encoding: row * (termWidth + 1) + col
+      targetCursorPos = (rowsToRender + 1) * (termWidth + 1) + (2 + inputCursorPos);
     }
+
+    // Pad to full terminal height so screenDisplay clears any leftover content
+    while (lines.size() < termHeight) {
+      lines.add(AttributedString.EMPTY);
+    }
+
+    screenDisplay.resize(termHeight, termWidth);
+    screenDisplay.update(lines, targetCursorPos);
+    terminal.writer().flush();
   }
 
   // === Display Interface Implementation ===
@@ -269,9 +220,19 @@ public class TerminalDisplay implements Display {
     }
 
     for (char c : text.toCharArray()) {
-      if (c >= 32 && c != 127 && cursorRow < bufferRows && cursorCol < bufferCols) {
-        displayBuffer[cursorRow][cursorCol] = c;
-        cursorCol++;
+      if (c >= 32 && c != 127) {
+        if (cursorCol >= bufferCols) {
+          cursorRow++;
+          cursorCol = 0;
+          if (cursorRow >= bufferRows) {
+            scrollBuffer();
+            cursorRow = bufferRows - 1;
+          }
+        }
+        if (cursorRow < bufferRows) {
+          displayBuffer[cursorRow][cursorCol] = c;
+          cursorCol++;
+        }
       }
     }
     render();
@@ -429,19 +390,15 @@ public class TerminalDisplay implements Display {
     if (prompt != null && !prompt.isEmpty()) {
       statusText = prompt.trim();
     }
-    render();
-    try {
-      backend.showCursor();
-      positionCursorInInput();
-    } catch (IOException e) {
-      // Ignore
-    }
+    render(); // positions cursor via targetCursorPos
+    terminal.puts(Capability.cursor_normal);
+    terminal.writer().flush();
 
     try {
       StringBuilder line = new StringBuilder(inputLines.getFirst());
       while (true) {
-        int ch = backend.read(0); // blocking read
-        if (ch == -1 || ch == '\n' || ch == '\r') {
+        int ch = reader.read(); // blocking read
+        if (ch < 0 || ch == '\n' || ch == '\r') {
           break;
         } else if (ch == 27) { // ESC - start of escape sequence
           handleEscapeSequence(line);
@@ -453,10 +410,10 @@ public class TerminalDisplay implements Display {
           }
         } else if (ch == 1) { // Ctrl+A - Home
           inputCursorPos = 0;
-          positionCursorInInput();
+          updateInputDisplay(line);
         } else if (ch == 5) { // Ctrl+E - End
           inputCursorPos = line.length();
-          positionCursorInInput();
+          updateInputDisplay(line);
         } else if (ch >= 32) {
           line.insert(inputCursorPos, (char) ch);
           inputCursorPos++;
@@ -475,11 +432,8 @@ public class TerminalDisplay implements Display {
     } catch (IOException e) {
       return null;
     } finally {
-      try {
-        backend.hideCursor();
-      } catch (IOException e) {
-        // Ignore
-      }
+      terminal.puts(Capability.cursor_invisible);
+      terminal.writer().flush();
       inputVisible = false;
       statusText = ""; // Clear status so next readln gets fresh default
       render();
@@ -487,36 +441,36 @@ public class TerminalDisplay implements Display {
   }
 
   private void handleEscapeSequence(StringBuilder line) throws IOException {
-    int ch2 = backend.read(100); // Short timeout for escape sequence
+    int ch2 = reader.read(100L); // Short timeout for escape sequence
     if (ch2 != '[') {
       return; // Not a CSI sequence
     }
-    int ch3 = backend.read(100);
+    int ch3 = reader.read(100L);
     switch (ch3) {
       case 'A' -> navigateHistory(line, 1); // Up arrow - go back in history
       case 'B' -> navigateHistory(line, -1); // Down arrow - go forward in history
       case 'C' -> { // Right arrow
         if (inputCursorPos < line.length()) {
           inputCursorPos++;
-          positionCursorInInput();
+          updateInputDisplay(line);
         }
       }
       case 'D' -> { // Left arrow
         if (inputCursorPos > 0) {
           inputCursorPos--;
-          positionCursorInInput();
+          updateInputDisplay(line);
         }
       }
       case 'H' -> { // Home
         inputCursorPos = 0;
-        positionCursorInInput();
+        updateInputDisplay(line);
       }
       case 'F' -> { // End
         inputCursorPos = line.length();
-        positionCursorInInput();
+        updateInputDisplay(line);
       }
       case '3' -> { // Delete key (ESC [ 3 ~)
-        int ch4 = backend.read(100);
+        int ch4 = reader.read(100L);
         if (ch4 == '~' && inputCursorPos < line.length()) {
           line.deleteCharAt(inputCursorPos);
           updateInputDisplay(line);
@@ -547,12 +501,8 @@ public class TerminalDisplay implements Display {
 
     if (newIndex != historyIndex) {
       historyIndex = newIndex;
-      String newContent;
-      if (historyIndex == -1) {
-        newContent = savedCurrentInput;
-      } else {
-        newContent = history.get(history.size() - 1 - historyIndex);
-      }
+      String newContent =
+          historyIndex == -1 ? savedCurrentInput : history.get(history.size() - 1 - historyIndex);
       line.setLength(0);
       line.append(newContent);
       inputCursorPos = newContent.length();
@@ -563,7 +513,6 @@ public class TerminalDisplay implements Display {
   private void updateInputDisplay(StringBuilder line) {
     inputLines.set(0, line.toString());
     render();
-    positionCursorInInput();
   }
 
   @Override
@@ -580,7 +529,7 @@ public class TerminalDisplay implements Display {
   @Override
   public void checkForBreak() {
     try {
-      int ch = backend.read(1); // 1ms timeout
+      int ch = reader.read(1L); // 1ms timeout
       if (ch == 3) {
         breakFlag.set(true);
       } else if (ch >= 0) {
@@ -600,7 +549,7 @@ public class TerminalDisplay implements Display {
       return String.valueOf(c);
     }
     try {
-      int ch = backend.read(1); // 1ms timeout read
+      int ch = reader.read(1L); // 1ms timeout read
       if (ch == 3) { // Ctrl+C
         breakFlag.set(true);
         return "";
@@ -620,10 +569,11 @@ public class TerminalDisplay implements Display {
       return; // Already closed
     }
     try {
-      backend.showCursor();
-      backend.leaveAlternateScreen();
-      backend.disableRawMode();
-      backend.close();
+      terminal.puts(Capability.cursor_normal);
+      terminal.puts(Capability.exit_ca_mode);
+      terminal.flush();
+      terminal.setAttributes(savedAttributes);
+      terminal.close();
     } catch (IOException e) {
       // Ignore - best effort cleanup
     }

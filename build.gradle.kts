@@ -26,7 +26,7 @@ application {
 dependencies {
   antlr(libs.antlr.tool)
   implementation(libs.antlr.runtime)
-  implementation(libs.bundles.tamboui)
+  implementation(libs.jline)
   testImplementation(platform(libs.junit.bom))
   testImplementation(libs.junit.jupiter)
   testRuntimeOnly(libs.junit.launcher)
