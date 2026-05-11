@@ -667,7 +667,6 @@ public class BazLangExecutor extends BazLangBaseVisitor<Object> {
         Thread.currentThread().interrupt();
         break;
       }
-      display.checkForBreak(); // Check for Ctrl+C with I/O
       if (display.pollForBreak()) {
         state.setRunning(false);
         throw codedException(
@@ -720,6 +719,7 @@ public class BazLangExecutor extends BazLangBaseVisitor<Object> {
     if (!suppressNewline) {
       display.println();
     }
+    display.flush(); // Ensure output is visible, including semicolon-terminated lines
     return null;
   }
 

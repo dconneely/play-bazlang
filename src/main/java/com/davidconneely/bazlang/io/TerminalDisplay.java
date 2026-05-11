@@ -31,23 +31,32 @@ public class TerminalDisplay implements Display {
     ' ', '▘', '▝', '▀', '▖', '▌', '▞', '▛', '▗', '▚', '▐', '▜', '▄', '▙', '▟', '█'
   };
 
+  /** Rows reserved for the status bar and input line. */
+  private static final int RESERVED_ROWS = 2;
+
+  /** Width of the input prompt ("❯ " or "# " or "$ " — always 2 columns). */
+  private static final int PROMPT_WIDTH = 2;
+
   private final Terminal terminal;
   private final NonBlockingReader reader;
   private final Attributes savedAttributes;
   private final org.jline.utils.Display screenDisplay;
 
-  // Display buffer (character grid for display area)
-  private char[][] displayBuffer;
+  // Display buffer (UTF-32 codepoint grid for display area)
+  private int[][] displayBuffer;
   private int bufferRows;
   private int bufferCols;
 
   // Input state
   private boolean inputVisible = false;
   private InputMode currentInputMode = InputMode.REPL;
-  private final List<String> inputLines = new ArrayList<>();
+  private String inputLine = "";
   private String statusText = "";
   private int inputCursorPos = 0; // Cursor position within input line
-  private String prefillText = null; // Type-ahead buffer
+  private String prefillText = null; // Pre-fill for next readln()
+
+  // Pending render: print() marks dirty; flush()/println()/cls() drive render()
+  private boolean dirty = false;
 
   // Command history (REPL mode only)
   private final List<String> history = new ArrayList<>();
@@ -68,6 +77,9 @@ public class TerminalDisplay implements Display {
   private final StringBuilder typeAheadBuffer = new StringBuilder();
 
   public TerminalDisplay() throws IOException {
+    // Disable JLine3's ACS remapping so Unicode box-drawing characters are sent as UTF-8
+    // rather than being converted to VT100 ACS letter codes (l/q/k/x/m/j etc.).
+    System.setProperty("org.jline.utils.disableAlternateCharset", "true");
     this.terminal = TerminalBuilder.builder().system(true).nativeSignals(true).build();
     this.savedAttributes = terminal.enterRawMode();
     terminal.puts(Capability.enter_ca_mode);
@@ -78,6 +90,7 @@ public class TerminalDisplay implements Display {
     this.screenDisplay = new org.jline.utils.Display(terminal, true);
 
     terminal.handle(Terminal.Signal.INT, _ -> breakFlag.set(true));
+    terminal.handle(Terminal.Signal.WINCH, _ -> render());
 
     // Ensure terminal is restored on JVM shutdown (e.g., if signal terminates the process)
     Runtime.getRuntime().addShutdownHook(new Thread(this::close));
@@ -87,14 +100,14 @@ public class TerminalDisplay implements Display {
   }
 
   private void initBuffer() {
-    bufferRows = Math.max(1, terminal.getHeight() - 2);
+    bufferRows = Math.max(1, terminal.getHeight() - RESERVED_ROWS);
     bufferCols = terminal.getWidth();
-    displayBuffer = new char[bufferRows][bufferCols];
+    displayBuffer = new int[bufferRows][bufferCols];
     clearBuffer();
   }
 
   private void clearBuffer() {
-    for (char[] row : displayBuffer) {
+    for (int[] row : displayBuffer) {
       Arrays.fill(row, ' ');
     }
     cursorRow = 0;
@@ -103,11 +116,11 @@ public class TerminalDisplay implements Display {
 
   private void resizeBufferIfNeeded() {
     int newCols = terminal.getWidth();
-    int newRows = Math.max(1, terminal.getHeight() - 4);
+    int newRows = Math.max(1, terminal.getHeight() - RESERVED_ROWS);
 
     if (newRows != bufferRows || newCols != bufferCols) {
-      char[][] newBuffer = new char[newRows][newCols];
-      for (char[] row : newBuffer) {
+      int[][] newBuffer = new int[newRows][newCols];
+      for (int[] row : newBuffer) {
         Arrays.fill(row, ' ');
       }
       // Copy existing content, anchoring at top-left
@@ -128,55 +141,44 @@ public class TerminalDisplay implements Display {
   // === Layout and Rendering ===
 
   private void render() {
+    dirty = false;
     resizeBufferIfNeeded();
     int termWidth = terminal.getWidth();
     int termHeight = terminal.getHeight();
     List<AttributedString> lines = new ArrayList<>(termHeight);
 
     int rowsToRender = Math.min(bufferRows, termHeight);
+    int colsToRender = Math.min(bufferCols, termWidth);
     for (int r = 0; r < rowsToRender; r++) {
-      AttributedStringBuilder sb = new AttributedStringBuilder(termWidth);
-      int colsToRender = Math.min(bufferCols, termWidth);
-      for (int c = 0; c < colsToRender; c++) {
-        sb.append(displayBuffer[r][c]);
-      }
-      lines.add(sb.toAttributedString());
+      lines.add(new AttributedString(new String(displayBuffer[r], 0, colsToRender)));
     }
 
     int targetCursorPos = 0;
     if (inputVisible) {
-      int inputHeight = Math.max(1, inputLines.size());
-
       // Status line
       lines.add(new AttributedString(statusText));
 
-      // Input lines
-      for (int row = 0; row < inputHeight; row++) {
-        AttributedStringBuilder inputSb = new AttributedStringBuilder(termWidth);
-        if (row == 0) {
-          String prompt =
-              switch (currentInputMode) {
-                case REPL -> "❯ ";
-                case INPUT_NUMERIC -> "# ";
-                case INPUT_STRING -> "$ ";
-              };
-          if (currentInputMode != InputMode.REPL) {
-            inputSb.style(AttributedStyle.BOLD);
-            inputSb.append(prompt);
-            inputSb.style(AttributedStyle.DEFAULT);
-          } else {
-            inputSb.append(prompt);
-          }
-        } else {
-          inputSb.append("  ");
-        }
-        inputSb.append(inputLines.get(row));
-        lines.add(inputSb.toAttributedString());
+      // Input line
+      AttributedStringBuilder inputSb = new AttributedStringBuilder(termWidth);
+      String prompt =
+          switch (currentInputMode) {
+            case REPL -> "❯ ";
+            case INPUT_NUMERIC -> "# ";
+            case INPUT_STRING -> "$ ";
+          };
+      if (currentInputMode != InputMode.REPL) {
+        inputSb.style(AttributedStyle.BOLD);
+        inputSb.append(prompt);
+        inputSb.style(AttributedStyle.DEFAULT);
+      } else {
+        inputSb.append(prompt);
       }
+      inputSb.append(inputLine);
+      lines.add(inputSb.toAttributedString());
 
-      // Cursor: after display rows + status row, at the prompt offset + input cursor position
+      // Cursor: after display rows + status row, at prompt offset + input cursor position
       // targetCursorPos uses Display's internal encoding: row * (termWidth + 1) + col
-      targetCursorPos = (rowsToRender + 1) * (termWidth + 1) + (2 + inputCursorPos);
+      targetCursorPos = (rowsToRender + 1) * (termWidth + 1) + (PROMPT_WIDTH + inputCursorPos);
     }
 
     // Pad to full terminal height so screenDisplay clears any leftover content
@@ -219,23 +221,32 @@ public class TerminalDisplay implements Display {
       return;
     }
 
-    for (char c : text.toCharArray()) {
-      if (c >= 32 && c != 127) {
-        if (cursorCol >= bufferCols) {
-          cursorRow++;
-          cursorCol = 0;
-          if (cursorRow >= bufferRows) {
-            scrollBuffer();
-            cursorRow = bufferRows - 1;
-          }
-        }
-        if (cursorRow < bufferRows) {
-          displayBuffer[cursorRow][cursorCol] = c;
-          cursorCol++;
-        }
-      }
+    text.codePoints()
+        .forEach(
+            cp -> {
+              if (cp >= 32 && cp != 127) {
+                if (cursorCol >= bufferCols) {
+                  cursorRow++;
+                  cursorCol = 0;
+                  if (cursorRow >= bufferRows) {
+                    scrollBuffer();
+                    cursorRow = bufferRows - 1;
+                  }
+                }
+                if (cursorRow < bufferRows) {
+                  displayBuffer[cursorRow][cursorCol] = cp;
+                  cursorCol++;
+                }
+              }
+            });
+    dirty = true; // Defer render to flush() or next println()
+  }
+
+  @Override
+  public void flush() {
+    if (dirty) {
+      render();
     }
-    render();
   }
 
   @Override
@@ -276,9 +287,9 @@ public class TerminalDisplay implements Display {
 
   // === Graphics (PLOT/UNPLOT) ===
 
-  private int getQuadState(char c) {
+  private int getQuadState(int cp) {
     for (int i = 0; i < QUADRANTS.length; i++) {
-      if (QUADRANTS[i] == c) {
+      if (QUADRANTS[i] == cp) {
         return i;
       }
     }
@@ -327,7 +338,7 @@ public class TerminalDisplay implements Display {
       mask = 8; // Lower-right
     }
 
-    char current = displayBuffer[row][col];
+    int current = displayBuffer[row][col];
     int state = getQuadState(current);
     int newState = set ? (state | mask) : (state & ~mask);
     displayBuffer[row][col] = QUADRANTS[newState];
@@ -372,15 +383,14 @@ public class TerminalDisplay implements Display {
   @Override
   public String readln(String prompt) {
     inputVisible = true;
-    inputLines.clear();
-    inputLines.add("");
+    inputLine = "";
     inputCursorPos = 0;
     historyIndex = -1;
     savedCurrentInput = "";
 
     // Handle prefill from previous syntax error
     if (prefillText != null) {
-      inputLines.set(0, prefillText);
+      inputLine = prefillText;
       inputCursorPos = prefillText.length();
       prefillText = null;
     }
@@ -395,10 +405,23 @@ public class TerminalDisplay implements Display {
     terminal.writer().flush();
 
     try {
-      StringBuilder line = new StringBuilder(inputLines.getFirst());
+      StringBuilder line = new StringBuilder(inputLine);
+      outer:
       while (true) {
-        int ch = reader.read(); // blocking read
+        // Poll with a short timeout so Ctrl+C (which sets breakFlag via the INT signal
+        // handler) is detected promptly without waiting for the next keypress.
+        int ch;
+        do {
+          ch = reader.read(50L);
+          if (breakFlag.get()) {
+            break outer;
+          }
+        } while (ch == NonBlockingReader.READ_EXPIRED);
+
         if (ch < 0 || ch == '\n' || ch == '\r') {
+          break;
+        } else if (ch == 3) { // Ctrl+C as raw byte (if ISIG disabled)
+          breakFlag.set(true);
           break;
         } else if (ch == 27) { // ESC - start of escape sequence
           handleEscapeSequence(line);
@@ -422,6 +445,9 @@ public class TerminalDisplay implements Display {
       }
 
       String result = line.toString();
+      if (breakFlag.compareAndSet(true, false)) {
+        throw new BreakException();
+      }
       // Add to history if non-empty and in REPL mode (avoiding duplicates)
       if (!result.isBlank()
           && currentInputMode == InputMode.REPL
@@ -511,7 +537,7 @@ public class TerminalDisplay implements Display {
   }
 
   private void updateInputDisplay(StringBuilder line) {
-    inputLines.set(0, line.toString());
+    inputLine = line.toString();
     render();
   }
 
@@ -522,22 +548,8 @@ public class TerminalDisplay implements Display {
 
   @Override
   public boolean pollForBreak() {
-    // Only check flag - I/O based detection happens in inkey() and readln()
+    // The INT signal handler sets breakFlag for Ctrl+C; no I/O read needed here.
     return breakFlag.compareAndSet(true, false);
-  }
-
-  @Override
-  public void checkForBreak() {
-    try {
-      int ch = reader.read(1L); // 1ms timeout
-      if (ch == 3) {
-        breakFlag.set(true);
-      } else if (ch >= 0) {
-        typeAheadBuffer.append((char) ch);
-      }
-    } catch (IOException e) {
-      // Ignore
-    }
   }
 
   @Override

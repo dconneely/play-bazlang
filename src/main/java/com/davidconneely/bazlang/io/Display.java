@@ -51,9 +51,9 @@ public interface Display extends AutoCloseable {
 
   boolean pollForBreak();
 
-  /** Check for Ctrl+C with I/O - should be called periodically during long operations. */
-  default void checkForBreak() {
-    // Default: no-op for displays without I/O-based break detection
+  /** Flush any pending output to the display (e.g. after semicolon-terminated PRINT). */
+  default void flush() {
+    // Default: no-op for displays that write through immediately
   }
 
   String inkey();

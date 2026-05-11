@@ -119,10 +119,7 @@ public class StreamDisplay implements Display {
 
   @Override
   public void prefillInput(String text) {
-    // StreamDisplay doesn't support pre-filling input; just print it as a hint
-    if (text != null && !text.isEmpty()) {
-      out.print(text);
-    }
+    // No-op: pre-filling is a REPL-specific hint; has no meaning in stream/batch mode
   }
 
   @Override
