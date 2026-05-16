@@ -5,7 +5,15 @@ import com.davidconneely.bazlang.antlr.BazLangBaseVisitor;
 import com.davidconneely.bazlang.antlr.BazLangLexer;
 import com.davidconneely.bazlang.antlr.BazLangParser;
 import com.davidconneely.bazlang.antlr.BazLangParser.*;
-import com.davidconneely.bazlang.io.Display;
+import com.davidconneely.bazlang.io.BazLangDisplay;
+import com.davidconneely.bazlang.io.BrailleMode;
+import com.davidconneely.bazlang.io.CellMode;
+import com.davidconneely.bazlang.io.HalfCellMode;
+import com.davidconneely.bazlang.io.PixelMode;
+import com.davidconneely.bazlang.io.QuadrantMode;
+import com.davidconneely.bazlang.io.SextantMode;
+import com.davidconneely.repl.BreakException;
+import com.davidconneely.repl.Display;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -25,14 +33,14 @@ import org.antlr.v4.runtime.Token;
 public class BazLangExecutor extends BazLangBaseVisitor<Object> {
   private static final AntlrParser PARSER = new AntlrParser();
   private final EvalState state;
-  private final Display display;
+  private final BazLangDisplay display;
 
-  public BazLangExecutor(EvalState state, Display display) {
+  public BazLangExecutor(EvalState state, BazLangDisplay display) {
     this.state = state;
     this.display = display;
   }
 
-  public Display terminal() {
+  public BazLangDisplay display() {
     return display;
   }
 
@@ -206,7 +214,7 @@ public class BazLangExecutor extends BazLangBaseVisitor<Object> {
     try {
       String line = display.readln(mode);
       return line != null ? line : "";
-    } catch (Display.BreakException e) {
+    } catch (BreakException e) {
       state.setRunning(false);
       throw codedException(
           ReportCode.BREAK_CONT_REPEATS, ReportCode.BREAK_CONT_REPEATS.getMessage());
@@ -217,7 +225,7 @@ public class BazLangExecutor extends BazLangBaseVisitor<Object> {
     try {
       String line = display.readln(prompt);
       return line != null ? line : "";
-    } catch (Display.BreakException e) {
+    } catch (BreakException e) {
       state.setRunning(false);
       throw codedException(
           ReportCode.BREAK_CONT_REPEATS, ReportCode.BREAK_CONT_REPEATS.getMessage());
@@ -659,14 +667,19 @@ public class BazLangExecutor extends BazLangBaseVisitor<Object> {
 
   @Override
   public Object visitPauseStmt(PauseStmtContext ctx) {
-    long frames = Math.round(evalNum(ctx.numExpr()));
-    for (long i = 0; i < frames; i++) {
+    double frames = evalNum(ctx.numExpr());
+    long totalMs = Math.max(0L, Math.round(frames * 20.0));
+    display.forceFlush();
+    long remaining = totalMs;
+    while (remaining > 0) {
+      long chunk = Math.min(remaining, 20L);
       try {
-        Thread.sleep(20L);
+        Thread.sleep(chunk);
       } catch (InterruptedException e) {
         Thread.currentThread().interrupt();
         break;
       }
+      remaining -= chunk;
       if (display.pollForBreak()) {
         state.setRunning(false);
         throw codedException(
@@ -685,6 +698,24 @@ public class BazLangExecutor extends BazLangBaseVisitor<Object> {
     } catch (IllegalArgumentException e) {
       throw codedException(ReportCode.INTEGER_OUT_OF_RANGE, e.getMessage());
     }
+    return null;
+  }
+
+  @Override
+  public Object visitPlotmodeStmt(PlotmodeStmtContext ctx) {
+    int mode = (int) evalNum(ctx.numExpr());
+    PixelMode pixelMode =
+        switch (mode) {
+          case 1 -> CellMode.INSTANCE;
+          case 2 -> HalfCellMode.INSTANCE;
+          case 4 -> QuadrantMode.INSTANCE;
+          case 6 -> SextantMode.INSTANCE;
+          case 8 -> BrailleMode.INSTANCE;
+          default ->
+              throw codedException(
+                  ReportCode.INVALID_ARGUMENT, "Invalid PLOTMODE (use 1, 2, 4, 6, or 8)");
+        };
+    display.setPlotMode(pixelMode);
     return null;
   }
 
@@ -906,7 +937,10 @@ public class BazLangExecutor extends BazLangBaseVisitor<Object> {
   public Double visitNumPowerExpr(NumPowerExprContext ctx) {
     double l = evalNum(ctx.numExpr(0));
     double r = evalNum(ctx.numExpr(1));
-    return Math.pow(l, r);
+    if (l < 0.0 && r != Math.floor(r)) {
+      throw codedException(ReportCode.INVALID_ARGUMENT, "Negative base with non-integer exponent");
+    }
+    return requireFinite(Math.pow(l, r));
   }
 
   @Override
@@ -920,7 +954,7 @@ public class BazLangExecutor extends BazLangBaseVisitor<Object> {
     double r = evalNum(ctx.numExpr(1));
     String op = ctx.getChild(1).getText();
     if (op.equals("*")) {
-      return l * r;
+      return requireFinite(l * r);
     } else {
       if (r == 0.0) {
         throw codedException(ReportCode.NUMBER_TOO_BIG, "Division by zero");
@@ -934,7 +968,7 @@ public class BazLangExecutor extends BazLangBaseVisitor<Object> {
     double l = evalNum(ctx.numExpr(0));
     double r = evalNum(ctx.numExpr(1));
     String op = ctx.getChild(1).getText();
-    return op.equals("+") ? l + r : l - r;
+    return requireFinite(op.equals("+") ? l + r : l - r);
   }
 
   @Override
@@ -999,10 +1033,18 @@ public class BazLangExecutor extends BazLangBaseVisitor<Object> {
       return Math.abs(evalNumAtom(ctx.numAtom()));
     }
     if (ctx.ACS() != null) {
-      return Math.acos(evalNumAtom(ctx.numAtom()));
+      double arg = evalNumAtom(ctx.numAtom());
+      if (Math.abs(arg) > 1.0) {
+        throw codedException(ReportCode.INVALID_ARGUMENT, "ACS requires argument in [-1, 1]");
+      }
+      return Math.acos(arg);
     }
     if (ctx.ASN() != null) {
-      return Math.asin(evalNumAtom(ctx.numAtom()));
+      double arg = evalNumAtom(ctx.numAtom());
+      if (Math.abs(arg) > 1.0) {
+        throw codedException(ReportCode.INVALID_ARGUMENT, "ASN requires argument in [-1, 1]");
+      }
+      return Math.asin(arg);
     }
     if (ctx.ATN() != null) {
       return Math.atan(evalNumAtom(ctx.numAtom()));
@@ -1014,7 +1056,7 @@ public class BazLangExecutor extends BazLangBaseVisitor<Object> {
       return Math.cos(evalNumAtom(ctx.numAtom()));
     }
     if (ctx.EXP() != null) {
-      return Math.exp(evalNumAtom(ctx.numAtom()));
+      return requireFinite(Math.exp(evalNumAtom(ctx.numAtom())));
     }
     if (ctx.INT() != null) {
       return Math.floor(evalNumAtom(ctx.numAtom()));
@@ -1023,7 +1065,11 @@ public class BazLangExecutor extends BazLangBaseVisitor<Object> {
       return (double) evalStrAtom(ctx.strAtom()).length();
     }
     if (ctx.LN() != null) {
-      return Math.log(evalNumAtom(ctx.numAtom()));
+      double arg = evalNumAtom(ctx.numAtom());
+      if (arg <= 0.0) {
+        throw codedException(ReportCode.INVALID_ARGUMENT, "LN requires a positive argument");
+      }
+      return Math.log(arg);
     }
     if (ctx.PEEK() != null) {
       evalNumAtom(ctx.numAtom()); // consume arg
@@ -1042,7 +1088,11 @@ public class BazLangExecutor extends BazLangBaseVisitor<Object> {
       return Math.sin(evalNumAtom(ctx.numAtom()));
     }
     if (ctx.SQR() != null) {
-      return Math.sqrt(evalNumAtom(ctx.numAtom()));
+      double arg = evalNumAtom(ctx.numAtom());
+      if (arg < 0.0) {
+        throw codedException(ReportCode.INVALID_ARGUMENT, "SQR requires a non-negative argument");
+      }
+      return Math.sqrt(arg);
     }
     if (ctx.TAN() != null) {
       return Math.tan(evalNumAtom(ctx.numAtom()));
@@ -1468,6 +1518,13 @@ public class BazLangExecutor extends BazLangBaseVisitor<Object> {
       java.text.DecimalFormat df = new java.text.DecimalFormat("0.########");
       return df.format(d);
     }
+  }
+
+  private double requireFinite(double d) {
+    if (!Double.isFinite(d)) {
+      throw codedException(ReportCode.NUMBER_TOO_BIG, "Arithmetic overflow");
+    }
+    return d;
   }
 
   private ReportException codedException(ReportCode rc, String msg) {

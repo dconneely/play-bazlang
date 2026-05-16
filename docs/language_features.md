@@ -81,7 +81,7 @@ Returns `1` for True, `0` for False.
 - **`FOR var = start TO end STEP step` ... `NEXT var`**: Loop.
 - **`STOP`**: Stop the program.
 - **`CONT`**: Continue after a `STOP`.
-- **`PAUSE n`**: Wait for `n` frames.
+- **`PAUSE n`**: Wait for `n` frames (each frame is 1/50 second = 20ms). Fractional values are accepted, e.g. `PAUSE 0.5` waits 10ms.
 - **`RUN n`**: Restart program from line `n`.
 
 ### Input / Output
@@ -97,8 +97,15 @@ Returns `1` for True, `0` for False.
 - **`SCROLL`**: Scroll screen up.
 - **`PLOT x, y`**: Draw a block at coordinates `(x, y)`.
     - Coordinates start at `(0,0)` (bottom-left) and extend dynamically based on terminal size.
-    - Uses Unicode 2x2 block characters (quadrants) to simulate higher resolution.
+    - Uses Unicode block characters; the resolution depends on the current pixel mode (see `PLOTMODE`).
 - **`UNPLOT x, y`**: Erase a block at coordinates `(x, y)`.
+- **`PLOTMODE n`**: Sets the pixel mode for `PLOT` and `UNPLOT`:
+    - `1` = full cell (1×1, each cell is blank or `█`)
+    - `2` = half cell — upper `▀` / lower `▄` (1×2)
+    - `4` = quadrant blocks (2×2, default)
+    - `6` = sextant blocks (2×3)
+    - `8` = braille patterns (2×4)
+    - Does not clear the display. Other values give an error.
 
 ### Program Management
 

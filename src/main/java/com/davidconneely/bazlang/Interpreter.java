@@ -2,7 +2,7 @@ package com.davidconneely.bazlang;
 
 import com.davidconneely.bazlang.antlr.AntlrParser;
 import com.davidconneely.bazlang.antlr.BazLangParser.StatementContext;
-import com.davidconneely.bazlang.io.Display;
+import com.davidconneely.bazlang.io.BazLangDisplay;
 import com.davidconneely.bazlang.io.StreamDisplay;
 import com.davidconneely.bazlang.io.TerminalDisplay;
 import java.io.IOException;
@@ -15,13 +15,13 @@ public class Interpreter {
 
   public Interpreter() {
     this.state = new EvalState();
-    Display terminal;
+    BazLangDisplay display;
     try {
-      terminal = new TerminalDisplay();
+      display = new TerminalDisplay();
     } catch (IOException e) {
-      terminal = new StreamDisplay();
+      display = new StreamDisplay();
     }
-    this.executor = new BazLangExecutor(state, terminal);
+    this.executor = new BazLangExecutor(state, display);
   }
 
   public Interpreter(EvalState state, BazLangExecutor executor) {
@@ -52,7 +52,7 @@ public class Interpreter {
         break;
       }
 
-      if (executor.terminal().pollForBreak()) {
+      if (executor.display().pollForBreak()) {
         state.setRunning(false);
         throw new ReportException(
             ReportCode.BREAK_CONT_REPEATS, nextLabel, ReportCode.BREAK_CONT_REPEATS.getMessage());

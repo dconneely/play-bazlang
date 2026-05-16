@@ -37,7 +37,6 @@
 180 NEXT X
 190 NEXT Y
 200 LET G = 0
-205 LET GC = 0
 300 REM Generation Loop
 310 PRINT AT 0, 0; "GENERATION: "; G; "  (PRESS E TO EDIT)"
 320 FOR Y = 1 TO H
@@ -73,13 +72,13 @@
 610 NEXT X
 620 NEXT Y
 630 LET G = G + 1
-631 LET GC = GC + 1
-632 IF GC < 25 THEN GOTO 640
-633 LET GC = 0
 634 LET K$ = INKEY$
 635 IF K$ = "e" OR K$ = "E" THEN GOSUB 1000
 640 GOTO 300
 1000 REM Edit Mode
+1002 REM Drain key buffer (key-repeat may have queued multiple E presses)
+1004 LET K$ = INKEY$
+1006 IF K$ <> "" THEN GOTO 1004
 1010 LET KX = 80
 1020 LET KY = 25
 1030 PRINT AT 0, 0; "EDIT: W/A/S/D MOVE, - CLEAR, + SET, E RUN"

@@ -52,6 +52,7 @@ statement
     | NEXT NUM_IDENTIFIER                                               # NextStmt
     | PAUSE numExpr                                                     # PauseStmt
     | PLOT numExpr ',' numExpr                                          # PlotStmt
+    | PLOTMODE numExpr                                                   # PlotmodeStmt
     | POKE numExpr ',' numExpr                                          # PokeStmt
     | PRINT printList?                                                  # PrintStmt
     | RAND numExpr?                                                     # RandStmt
@@ -231,6 +232,7 @@ NEW     : 'NEW';
 NEXT    : 'NEXT';
 PAUSE   : 'PAUSE';
 PLOT    : 'PLOT';
+PLOTMODE: 'PLOTMODE';
 POKE    : 'POKE';
 PRINT   : 'PRINT';
 RAND    : 'RAND';

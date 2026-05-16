@@ -9,8 +9,8 @@ import static org.junit.jupiter.api.Assertions.fail;
 
 import com.davidconneely.bazlang.antlr.AntlrParser;
 import com.davidconneely.bazlang.antlr.BazLangParser;
-import com.davidconneely.bazlang.io.Display;
 import com.davidconneely.bazlang.io.MockDisplay;
+import com.davidconneely.repl.Shell;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -45,10 +45,7 @@ class ReplCommandTest {
   }
 
   private static void handleReplCommand(
-      BazLangParser.ReplCommandContext ctx,
-      BazLangExecutor executor,
-      Display display,
-      EvalState state) {
+      BazLangParser.ReplCommandContext ctx, BazLangExecutor executor, Shell ui, EvalState state) {
     if (ctx instanceof BazLangParser.DeleteCmdContext delete) {
       executor.executeDelete(delete.lineRange());
     } else if (ctx instanceof BazLangParser.EditCmdContext edit) {
@@ -58,9 +55,9 @@ class ReplCommandTest {
       }
       ProgramLine programLine = state.program().get(lineNum);
       if (programLine != null) {
-        display.prefillInput(lineNum + " " + programLine.sourceText());
+        ui.prefillInput(lineNum + " " + programLine.sourceText());
       } else {
-        display.prefillInput(lineNum + " ");
+        ui.prefillInput(lineNum + " ");
       }
     } else if (ctx instanceof BazLangParser.RenumCmdContext renum) {
       executor.executeRenum(renum.renumArgs());

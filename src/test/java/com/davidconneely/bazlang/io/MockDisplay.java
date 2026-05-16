@@ -1,9 +1,10 @@
 package com.davidconneely.bazlang.io;
 
+import com.davidconneely.repl.Display;
 import java.util.Collections;
 import java.util.List;
 
-public class MockDisplay implements Display {
+public class MockDisplay implements BazLangDisplay {
   private final StringBuilder output = new StringBuilder();
   private final List<String> inputs;
   private int inputIdx = 0;
@@ -128,6 +129,31 @@ public class MockDisplay implements Display {
     return "";
   }
 
+  @Override
+  public void flush() {
+    // No-op in tests
+  }
+
+  @Override
+  public String readln(Display.InputMode mode) {
+    return readln("");
+  }
+
+  @Override
+  public String readReplLine() {
+    return readln((String) null);
+  }
+
+  @Override
+  public void systemPrintln(String text) {
+    println(text);
+  }
+
+  @Override
+  public void setStatus(String status) {
+    // No-op in tests
+  }
+
   private String prefillText = null;
 
   @Override
@@ -137,6 +163,17 @@ public class MockDisplay implements Display {
 
   public String getPrefillText() {
     return prefillText;
+  }
+
+  private PixelMode plotMode = QuadrantMode.INSTANCE;
+
+  @Override
+  public void setPlotMode(PixelMode mode) {
+    this.plotMode = mode;
+  }
+
+  public PixelMode getPlotMode() {
+    return plotMode;
   }
 
   private boolean simulatedBreak = false;

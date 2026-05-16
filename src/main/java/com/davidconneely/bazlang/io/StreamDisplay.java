@@ -7,7 +7,7 @@ import java.io.InputStreamReader;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 
-public class StreamDisplay implements Display {
+public class StreamDisplay implements BazLangDisplay {
   private final InputStream in;
   private final PrintStream out;
   private final PrintStream err;
@@ -118,8 +118,33 @@ public class StreamDisplay implements Display {
   }
 
   @Override
+  public void flush() {
+    // No-op: stream display writes through immediately
+  }
+
+  @Override
+  public String readln(com.davidconneely.repl.Display.InputMode mode) {
+    return readln("");
+  }
+
+  @Override
+  public String readReplLine() {
+    return readln((String) null);
+  }
+
+  @Override
   public void prefillInput(String text) {
     // No-op: pre-filling is a REPL-specific hint; has no meaning in stream/batch mode
+  }
+
+  @Override
+  public void setStatus(String status) {
+    // No-op: stream display has no status area
+  }
+
+  @Override
+  public void systemPrintln(String text) {
+    println(text);
   }
 
   @Override

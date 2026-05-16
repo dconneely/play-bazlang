@@ -10,6 +10,7 @@ public enum ReportCode {
   NUMBER_TOO_BIG('6', "Number too big"),
   RETURN_WITHOUT_GOSUB('7', "RETURN without GOSUB"),
   STOP_STATEMENT('9', "STOP statement"),
+  INVALID_ARGUMENT('A', "Invalid argument"),
   INTEGER_OUT_OF_RANGE('B', "Integer out of range"),
   NONSENSE_IN_BASIC('C', "Nonsense in BASIC"),
   BREAK_CONT_REPEATS('D', "BREAK - CONT repeats"),
