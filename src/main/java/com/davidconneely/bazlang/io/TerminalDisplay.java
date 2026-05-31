@@ -57,7 +57,11 @@ public class TerminalDisplay implements BazLangDisplay {
   // Pending render: print() marks dirty; flush()/println()/cls() drive render()
   private boolean dirty = false;
 
-  // Rate-limiting: avoid re-rendering more frequently than ~60fps (~16ms)
+  // Rate-limiting: frame-boundary renders (println, inkey, plot) cap at ~60fps (~16ms).
+  // flush()-driven renders use a longer threshold so that game drawing loops (which call flush()
+  // after every PRINT with a semicolon) do not trigger partial mid-frame renders.
+  private static final long FRAME_RENDER_INTERVAL_MS = 16L;
+  private static final long FLUSH_RENDER_INTERVAL_MS = 100L;
   private long lastRenderTimeMs = 0L;
 
   // Cursor tracking (logical position in display area)
@@ -154,12 +158,11 @@ public class TerminalDisplay implements BazLangDisplay {
 
   /**
    * Renders only if dirty and at least ~16ms have elapsed since the last render (~60fps cap). Used
-   * by flush(), println(), plot(), unplot(), and scroll() to avoid flooding the terminal with
-   * output when BASIC code calls these in tight loops (e.g. game main loops). inkey() also calls
-   * this first so that the completed frame is visible before polling input.
+   * by println(), plot(), unplot(), scroll(), and inkey() as frame-boundary render points.
    */
   private void renderIfDue() {
-    if ((dirty || resizePending.get()) && System.currentTimeMillis() - lastRenderTimeMs >= 16L) {
+    if ((dirty || resizePending.get())
+        && System.currentTimeMillis() - lastRenderTimeMs >= FRAME_RENDER_INTERVAL_MS) {
       render();
     }
   }
@@ -217,13 +220,14 @@ public class TerminalDisplay implements BazLangDisplay {
 
   @Override
   public void flush() {
-    // Intentionally not calling renderIfDue() here. In game loops, all PRINT statements use
-    // trailing semicolons (no newline), so flush() is called after every PRINT. Rendering in
-    // flush() causes a partial intermediate render mid-frame (after the rate-limit threshold
-    // elapses), followed immediately by the complete render in forceFlush()/inkey(), producing
-    // back-to-back PTY writes that can exceed the PTY buffer and stall the game loop.
-    // Rendering is driven by println() for text output, inkey() for INKEY$-based games, and
-    // forceFlush() for PAUSE-based games.
+    // Use a longer threshold than the frame-boundary renders: game drawing loops call flush()
+    // after every PRINT with a semicolon, and we must not trigger partial mid-frame renders.
+    // 100ms is large enough for drawing phases to complete, yet fast enough that pure
+    // PRINT-and-GOTO output loops display visibly (10 renders/sec).
+    if ((dirty || resizePending.get())
+        && System.currentTimeMillis() - lastRenderTimeMs >= FLUSH_RENDER_INTERVAL_MS) {
+      render();
+    }
   }
 
   @Override
