@@ -2,7 +2,6 @@ package com.davidconneely.bazlang;
 
 import com.davidconneely.bazlang.antlr.AntlrParser;
 import com.davidconneely.bazlang.antlr.BazLangBaseVisitor;
-import com.davidconneely.bazlang.antlr.BazLangLexer;
 import com.davidconneely.bazlang.antlr.BazLangParser;
 import com.davidconneely.bazlang.antlr.BazLangParser.*;
 import com.davidconneely.bazlang.io.BazLangDisplay;
@@ -14,30 +13,21 @@ import com.davidconneely.bazlang.io.QuadrantMode;
 import com.davidconneely.bazlang.io.SextantMode;
 import com.davidconneely.repl.BreakException;
 import com.davidconneely.repl.Display;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.NavigableMap;
-import org.antlr.v4.runtime.CharStream;
-import org.antlr.v4.runtime.CharStreams;
-import org.antlr.v4.runtime.CommonTokenStream;
-import org.antlr.v4.runtime.Token;
 
 /** Executes BazLang from the ANTLR ParseTree. */
 public class BazLangExecutor extends BazLangBaseVisitor<Object> {
   private static final AntlrParser PARSER = new AntlrParser();
   private final EvalState state;
   private final BazLangDisplay display;
+  private final ProgramStorage storage;
 
   public BazLangExecutor(EvalState state, BazLangDisplay display) {
     this.state = state;
     this.display = display;
+    this.storage = new ProgramStorage(state, PARSER);
   }
 
   public BazLangDisplay display() {
@@ -90,7 +80,7 @@ public class BazLangExecutor extends BazLangBaseVisitor<Object> {
       dims.add((int) evalNum(exprCtx));
     }
     if (isStr) {
-      state.strVars().remove(name);
+      state.removeStrVar(name);
       int flen = dims.removeLast();
       int total = 1;
       for (int d : dims) {
@@ -101,7 +91,7 @@ public class BazLangExecutor extends BazLangBaseVisitor<Object> {
       }
       byte[] data = new byte[total * flen];
       Arrays.fill(data, (byte) ' ');
-      state.strArrays().put(name, new EvalState.StrArray(dims, flen, data));
+      state.setStrArray(name, new EvalState.StrArray(dims, flen, data));
     } else {
       int total = 1;
       for (int d : dims) {
@@ -110,7 +100,7 @@ public class BazLangExecutor extends BazLangBaseVisitor<Object> {
       if (total <= 0 || total > Limits.MAX_ARRAY_ELEMENTS) {
         throw codedException(ReportCode.OUT_OF_MEMORY, "Array too large");
       }
-      state.numArrays().put(name, new EvalState.NumArray(dims, new double[total]));
+      state.setNumArray(name, new EvalState.NumArray(dims, new double[total]));
     }
     return null;
   }
@@ -126,8 +116,8 @@ public class BazLangExecutor extends BazLangBaseVisitor<Object> {
     double st = evalNum(ctx.numExpr(0));
     double en = evalNum(ctx.numExpr(1));
     double step = ctx.numExpr().size() > 2 ? evalNum(ctx.numExpr(2)) : 1.0;
-    state.numScalars().put(var, st);
-    state.forLoops().put(var, new EvalState.ForLoopData(en, step, state.currentLineLabel()));
+    state.setNumVar(var, st);
+    state.setForLoop(var, new EvalState.ForLoopData(en, step, state.currentLineLabel()));
     if ((step >= 0) ? (st > en) : (st < en)) {
       // Skip to matching NEXT
       Integer nextLabel = state.program().higherKey(state.currentLineLabel());
@@ -148,7 +138,7 @@ public class BazLangExecutor extends BazLangBaseVisitor<Object> {
 
   @Override
   public Object visitGosubStmt(GosubStmtContext ctx) {
-    state.returnStack().push(state.currentLineLabel());
+    state.pushReturn(state.currentLineLabel());
     int target = (int) Math.round(evalNum(ctx.numExpr()));
     gotoLabel(target);
     return null;
@@ -293,296 +283,9 @@ public class BazLangExecutor extends BazLangBaseVisitor<Object> {
     return new int[] {start, end};
   }
 
-  /**
-   * Parses lineRange for DELETE and REFORMAT: single number means "just that line"; requires at
-   * least one number.
-   */
-  private int[] parseDeleteReformatLineRange(BazLangParser.LineRangeContext range) {
-    if (range == null) {
-      throw new ReportException(
-          ReportCode.NONSENSE_IN_BASIC, 0, "Command requires at least one line number");
-    }
-    var nums = range.numExpr();
-    if (nums.isEmpty() && range.TO() == null) {
-      throw new ReportException(
-          ReportCode.NONSENSE_IN_BASIC, 0, "Command requires at least one line number or TO");
-    }
-    int start = Limits.MIN_TARGET_LABEL;
-    int end = Limits.MAX_TARGET_LABEL;
-    if (range.TO() != null) {
-      if (nums.size() == 2) {
-        start = (int) evalNum(nums.get(0));
-        end = (int) evalNum(nums.get(1));
-      } else if (nums.size() == 1) {
-        if (range.getText().toUpperCase().startsWith("TO")) {
-          end = (int) evalNum(nums.getFirst());
-        } else {
-          start = (int) evalNum(nums.getFirst());
-        }
-      }
-      // Just TO: start=MIN, end=MAX (already set)
-    } else {
-      // Command n (no TO): just that single line
-      start = (int) evalNum(nums.getFirst());
-      end = start;
-    }
-    return new int[] {start, end};
-  }
-
-  /** Execute DELETE command with parsed line range. */
-  public void executeDelete(BazLangParser.LineRangeContext range) {
-    int[] bounds = parseDeleteReformatLineRange(range);
-    state.program().subMap(bounds[0], true, bounds[1], true).clear();
-  }
-
-  /** Execute REFORMAT command with optional line range. */
-  public void executeReformat(BazLangParser.LineRangeContext range) {
-    int start = Limits.MIN_TARGET_LABEL;
-    int end = Limits.MAX_TARGET_LABEL;
-    if (range != null) {
-      int[] bounds = parseDeleteReformatLineRange(range);
-      start = bounds[0];
-      end = bounds[1];
-    }
-
-    NavigableMap<Integer, ProgramLine> toReformat = state.program().subMap(start, true, end, true);
-    if (toReformat.isEmpty()) {
-      return;
-    }
-
-    ReformatVisitor formatter = new ReformatVisitor();
-    // Use a temporary map to avoid ConcurrentModificationException if we were iterating
-    // differently,
-    // though for TreeMap/NavigableMap subMap(..).entrySet() it might be safe to put back into the
-    // main map.
-    // Actually, put() into the main map while iterating over the subMap entrySet is generally fine.
-    for (Map.Entry<Integer, ProgramLine> entry : toReformat.entrySet()) {
-      int lineNum = entry.getKey();
-      ProgramLine line = entry.getValue();
-      StatementContext stmt = line.getStatement(PARSER);
-      String formattedSource = formatter.visit(stmt);
-      state.program().put(lineNum, new ProgramLine(lineNum, formattedSource));
-    }
-  }
-
-  /** Execute RENUM command with parsed arguments. */
-  public void executeRenum(BazLangParser.RenumArgsContext args) {
-    NavigableMap<Integer, ProgramLine> program = state.program();
-    if (program.isEmpty()) {
-      return;
-    }
-
-    // Parse renumArgs: [new_start] [STEP new_step] [, [old_start] TO [old_end]]
-    int newStart = 10;
-    int newStep = 10;
-    int oldStart = program.firstKey();
-    int oldEnd = program.lastKey();
-
-    if (args != null) {
-      var nums = args.numExpr();
-      int numIndex = 0;
-
-      // First number is new_start (if present and not after STEP)
-      if (!nums.isEmpty() && args.STEP() == null
-          || !nums.isEmpty()
-              && args.getText().toUpperCase().indexOf("STEP")
-                  > args.getText().indexOf(nums.getFirst().getText())) {
-        newStart = (int) evalNum(nums.get(numIndex++));
-      }
-
-      // STEP number
-      if (args.STEP() != null && numIndex < nums.size()) {
-        newStep = (int) evalNum(nums.get(numIndex++));
-      }
-
-      // After comma: [old_start] TO [old_end]
-      if (args.TO() != null) {
-        // Check if there's a number before TO
-        String argsText = args.getText().toUpperCase();
-        int commaPos = argsText.indexOf(',');
-        int toPos = argsText.indexOf("TO");
-
-        if (commaPos >= 0 && numIndex < nums.size()) {
-          // Check if next number is before or after TO
-          String numText = nums.get(numIndex).getText();
-          int numPos = argsText.indexOf(numText, commaPos);
-          if (numPos < toPos) {
-            oldStart = (int) evalNum(nums.get(numIndex++));
-          }
-        }
-
-        // Number after TO
-        if (numIndex < nums.size()) {
-          oldEnd = (int) evalNum(nums.get(numIndex));
-        }
-      }
-    }
-
-    // Validate
-    if (newStart < Limits.MIN_LINE_LABEL) {
-      throw codedException(
-          ReportCode.INTEGER_OUT_OF_RANGE, "New start must be >= " + Limits.MIN_LINE_LABEL);
-    }
-    if (newStep < 1) {
-      throw codedException(ReportCode.INTEGER_OUT_OF_RANGE, "Step must be >= 1");
-    }
-
-    // Get lines to renumber
-    NavigableMap<Integer, ProgramLine> toRenumber = program.subMap(oldStart, true, oldEnd, true);
-    if (toRenumber.isEmpty()) {
-      return;
-    }
-
-    int count = toRenumber.size();
-    long newEndLong = (long) newStart + (long) (count - 1) * newStep;
-    if (newEndLong > Limits.MAX_LINE_LABEL) {
-      throw codedException(
-          ReportCode.INTEGER_OUT_OF_RANGE,
-          "Renumbering would exceed max line number " + Limits.MAX_LINE_LABEL);
-    }
-    int newEnd = (int) newEndLong;
-
-    // Check boundaries: preserve line order
-    Integer lineBefore = program.lowerKey(oldStart);
-    if (lineBefore != null && newStart <= lineBefore) {
-      throw codedException(
-          ReportCode.INTEGER_OUT_OF_RANGE,
-          "New start "
-              + newStart
-              + " must be greater than line "
-              + lineBefore
-              + " to preserve line order");
-    }
-    Integer lineAfter = program.higherKey(oldEnd);
-    if (lineAfter != null && newEnd >= lineAfter) {
-      throw codedException(
-          ReportCode.INTEGER_OUT_OF_RANGE,
-          "New end " + newEnd + " must be less than line " + lineAfter + " to preserve line order");
-    }
-
-    // Build old->new mapping
-    Map<Integer, Integer> mapping = new HashMap<>();
-    int newNum = newStart;
-    for (int oldNum : toRenumber.keySet()) {
-      mapping.put(oldNum, newNum);
-      newNum += newStep;
-    }
-
-    // Update GOTO/GOSUB targets in all lines
-    updateGotoGosubTargets(program, mapping, oldStart, oldEnd);
-
-    // Extract, remove, re-insert with new numbers
-    Map<Integer, ProgramLine> extracted = new HashMap<>(toRenumber);
-    toRenumber.clear();
-    for (Map.Entry<Integer, ProgramLine> entry : extracted.entrySet()) {
-      int oldLineNum = entry.getKey();
-      int newLineNum = mapping.get(oldLineNum);
-      ProgramLine oldLine = entry.getValue();
-      program.put(newLineNum, new ProgramLine(newLineNum, oldLine.sourceText()));
-    }
-  }
-
-  private void updateGotoGosubTargets(
-      NavigableMap<Integer, ProgramLine> program,
-      Map<Integer, Integer> mapping,
-      int oldStart,
-      int oldEnd) {
-    Map<Integer, String> updates = new HashMap<>();
-
-    for (Map.Entry<Integer, ProgramLine> entry : program.entrySet()) {
-      int lineNum = entry.getKey();
-      ProgramLine line = entry.getValue();
-      String source = line.sourceText();
-      String upperSource = source.toUpperCase();
-
-      // Efficiency optimization: skip lines that definitely don't have GOTO/GOSUB
-      if (!upperSource.contains("GOTO") && !upperSource.contains("GOSUB")) {
-        continue;
-      }
-
-      // Use lexer to find GOTO/GOSUB keywords correctly (handles strings and comments)
-      CharStream input = CharStreams.fromString(source);
-      BazLangLexer lexer = new BazLangLexer(input);
-      CommonTokenStream tokens = new CommonTokenStream(lexer);
-      tokens.fill();
-      List<Token> tokenList = tokens.getTokens();
-
-      StringBuilder newSource = new StringBuilder();
-      int lastCopiedPos = 0;
-      boolean modified = false;
-
-      for (int i = 0; i < tokenList.size(); i++) {
-        Token t = tokenList.get(i);
-        if ((t.getType() == BazLangLexer.GOTO || t.getType() == BazLangLexer.GOSUB)
-            && i + 1 < tokenList.size()) {
-          // Check for literal line number following the keyword
-          Token next = tokenList.get(i + 1);
-          if (next.getType() == BazLangLexer.NUM_LITERAL) {
-            double val = Double.parseDouble(next.getText());
-            int target = (int) Math.round(val);
-
-            Integer newTarget = null;
-            if (mapping.containsKey(target)) {
-              newTarget = mapping.get(target);
-            } else if (target >= oldStart && target <= oldEnd) {
-              // Target in range but doesn't exist - use ceiling key (what GOTO would find)
-              Integer ceilingKey = program.ceilingKey(target);
-              if (ceilingKey != null && mapping.containsKey(ceilingKey)) {
-                newTarget = mapping.get(ceilingKey);
-                display.println(
-                    "Warning: Line "
-                        + lineNum
-                        + " references non-existent line "
-                        + target
-                        + ", updated to "
-                        + newTarget);
-              }
-            }
-
-            if (newTarget != null) {
-              // Suffix-preserve replacement: only change the literal part
-              newSource.append(source, lastCopiedPos, next.getStartIndex()).append(newTarget);
-              lastCopiedPos = next.getStopIndex() + 1;
-              modified = true;
-            }
-          }
-        }
-      }
-
-      if (modified) {
-        newSource.append(source.substring(lastCopiedPos));
-        updates.put(lineNum, newSource.toString());
-      }
-    }
-
-    for (Map.Entry<Integer, String> update : updates.entrySet()) {
-      int lineNum = update.getKey();
-      String newSource = update.getValue();
-      program.put(lineNum, new ProgramLine(lineNum, newSource));
-    }
-  }
-
   @Override
   public Object visitLoadStmt(LoadStmtContext ctx) {
-    String filename = evalStr(ctx.strExpr()).toJavaString();
-    try {
-      String source;
-      if (filename.startsWith("resource:")) {
-        String resourcePath = filename.substring(9);
-        try (var is = MainClass.class.getResourceAsStream(resourcePath)) {
-          if (is == null) {
-            throw codedException(
-                ReportCode.INVALID_FILE_NAME, "Resource not found: " + resourcePath);
-          }
-          source = new String(is.readAllBytes(), StandardCharsets.UTF_8);
-        }
-      } else {
-        source = Files.readString(Path.of(filename));
-      }
-      state.setProgram(PARSER.parseProgramLines(source));
-    } catch (IOException e) {
-      throw codedException(ReportCode.INVALID_FILE_NAME, "Failed to load: " + e.getMessage());
-    }
+    storage.load(evalStr(ctx.strExpr()).toJavaString());
     return null;
   }
 
@@ -650,15 +353,15 @@ public class BazLangExecutor extends BazLangBaseVisitor<Object> {
   @Override
   public Object visitNextStmt(NextStmtContext ctx) {
     String var = ctx.NUM_IDENTIFIER().getText().toUpperCase();
-    if (!state.forLoops().containsKey(var)) {
+    if (!state.hasForLoop(var)) {
       throw codedException(ReportCode.NEXT_WITHOUT_FOR, "NEXT without FOR");
     }
-    EvalState.ForLoopData d = state.forLoops().get(var);
-    if (!state.numScalars().containsKey(var)) {
+    EvalState.ForLoopData d = state.forLoop(var);
+    if (!state.hasNumVar(var)) {
       throw codedException(ReportCode.VARIABLE_NOT_FOUND, "Undefined loop variable");
     }
-    double nv = state.numScalars().get(var) + d.step();
-    state.numScalars().put(var, nv);
+    double nv = state.numVar(var) + d.step();
+    state.setNumVar(var, nv);
     if (d.step() >= 0 ? nv <= d.limit() : nv >= d.limit()) {
       state.setPendingJumpLabel(state.program().higherKey(d.loopPc()));
     }
@@ -796,7 +499,7 @@ public class BazLangExecutor extends BazLangBaseVisitor<Object> {
       seed ^= seed >>> 31;
       seed ^= seed << 8;
     }
-    state.random().setSeed(seed);
+    state.seedRandom(seed);
     return null;
   }
 
@@ -807,10 +510,10 @@ public class BazLangExecutor extends BazLangBaseVisitor<Object> {
 
   @Override
   public Object visitReturnStmt(ReturnStmtContext ctx) {
-    if (state.returnStack().isEmpty()) {
+    if (state.isReturnStackEmpty()) {
       throw codedException(ReportCode.RETURN_WITHOUT_GOSUB, "RETURN without GOSUB");
     }
-    Integer gosubLine = state.returnStack().pop();
+    Integer gosubLine = state.popReturn();
     state.setPendingJumpLabel(state.program().higherKey(gosubLine));
     return null;
   }
@@ -829,16 +532,7 @@ public class BazLangExecutor extends BazLangBaseVisitor<Object> {
 
   @Override
   public Object visitSaveStmt(SaveStmtContext ctx) {
-    String filename = evalStr(ctx.strExpr()).toJavaString();
-    try (var writer = Files.newBufferedWriter(Path.of(filename))) {
-      for (var entry : state.program().entrySet()) {
-        ProgramLine line = entry.getValue();
-        writer.write(line.lineNumber() + " " + line.sourceText());
-        writer.newLine();
-      }
-    } catch (IOException e) {
-      throw codedException(ReportCode.INVALID_FILE_NAME, "Failed to save: " + e.getMessage());
-    }
+    storage.save(evalStr(ctx.strExpr()).toJavaString());
     return null;
   }
 
@@ -902,19 +596,19 @@ public class BazLangExecutor extends BazLangBaseVisitor<Object> {
   @Override
   public Double visitNumVarExpr(NumVarExprContext ctx) {
     String name = ctx.NUM_IDENTIFIER().getText().toUpperCase();
-    if (!state.numScalars().containsKey(name)) {
+    if (!state.hasNumVar(name)) {
       throw codedException(ReportCode.VARIABLE_NOT_FOUND, "Undefined variable: " + name);
     }
-    return state.numScalars().get(name);
+    return state.numVar(name);
   }
 
   @Override
   public Double visitNumArrayExpr(NumArrayExprContext ctx) {
     String name = ctx.NUM_IDENTIFIER().getText().toUpperCase();
-    if (!state.numArrays().containsKey(name)) {
+    if (!state.hasNumArray(name)) {
       throw codedException(ReportCode.VARIABLE_NOT_FOUND, "Undefined array: " + name);
     }
-    EvalState.NumArray na = state.numArrays().get(name);
+    EvalState.NumArray na = state.numArray(name);
     List<Integer> indices = new ArrayList<>();
     for (var e : ctx.numExpr()) {
       indices.add((int) evalNum(e));
@@ -1099,7 +793,7 @@ public class BazLangExecutor extends BazLangBaseVisitor<Object> {
       return Math.PI;
     }
     if (ctx.RND() != null) {
-      return state.random().nextDouble();
+      return state.nextRandom();
     }
     if (ctx.SGN() != null) {
       return Math.signum(evalNumAtom(ctx.numAtom()));
@@ -1137,10 +831,10 @@ public class BazLangExecutor extends BazLangBaseVisitor<Object> {
       String name = ctx.NUM_IDENTIFIER().getText().toUpperCase();
       if (!ctx.numExpr().isEmpty()) {
         // Array subscript: NUM_IDENTIFIER ( numExpr, ... )
-        if (!state.numArrays().containsKey(name)) {
+        if (!state.hasNumArray(name)) {
           throw codedException(ReportCode.VARIABLE_NOT_FOUND, "Undefined array: " + name);
         }
-        EvalState.NumArray na = state.numArrays().get(name);
+        EvalState.NumArray na = state.numArray(name);
         List<Integer> indices = new ArrayList<>();
         for (var e : ctx.numExpr()) {
           indices.add((int) evalNum(e));
@@ -1148,10 +842,10 @@ public class BazLangExecutor extends BazLangBaseVisitor<Object> {
         return na.data()[calculateArrayIndex(na.dimensions(), indices)];
       } else {
         // Simple variable
-        if (!state.numScalars().containsKey(name)) {
+        if (!state.hasNumVar(name)) {
           throw codedException(ReportCode.VARIABLE_NOT_FOUND, "Undefined variable: " + name);
         }
-        return state.numScalars().get(name);
+        return state.numVar(name);
       }
     }
     if (!ctx.numExpr().isEmpty()) {
@@ -1175,14 +869,12 @@ public class BazLangExecutor extends BazLangBaseVisitor<Object> {
   @Override
   public BStr visitStrVarExpr(StrVarExprContext ctx) {
     String name = ctx.STR_IDENTIFIER().getText().toUpperCase();
-    if (state.strArrays().containsKey(name)) {
-      EvalState.StrArray ca = state.strArrays().get(name);
-      if (ca.dimensions().isEmpty()) {
-        return BStr.fromBytes(ca.data());
-      }
+    EvalState.StrArray ca = state.strArray(name);
+    if (ca != null && ca.dimensions().isEmpty()) {
+      return BStr.fromBytes(ca.data());
     }
-    if (state.strVars().containsKey(name)) {
-      return state.strVars().get(name);
+    if (state.hasStrVar(name)) {
+      return state.strVar(name);
     }
     throw codedException(ReportCode.VARIABLE_NOT_FOUND, "Undefined variable: " + name);
   }
@@ -1232,8 +924,8 @@ public class BazLangExecutor extends BazLangBaseVisitor<Object> {
       }
     }
     // Now evaluate the subscript based on variable type
-    if (state.strArrays().containsKey(name)) {
-      EvalState.StrArray ca = state.strArrays().get(name);
+    EvalState.StrArray ca = state.strArray(name);
+    if (ca != null) {
       int n = ca.dimensions().size();
       Integer byteIndex = null;
       // Handle char index (extra index beyond array dimensions)
@@ -1246,8 +938,8 @@ public class BazLangExecutor extends BazLangBaseVisitor<Object> {
       int base = arrayIdx * ca.fixedStrLen();
       return sliceByteArray(ca.data(), base, ca.fixedStrLen(), byteIndex, sliceStart, sliceEnd);
     }
-    if (state.strVars().containsKey(name)) {
-      BStr s = state.strVars().get(name);
+    BStr s = state.strVar(name);
+    if (s != null) {
       Integer byteIndex = null;
       if (indices.size() == 1 && !hasSlice) {
         byteIndex = indices.getFirst();
@@ -1322,14 +1014,12 @@ public class BazLangExecutor extends BazLangBaseVisitor<Object> {
     }
     if (ctx.STR_IDENTIFIER() != null) {
       String name = ctx.STR_IDENTIFIER().getText().toUpperCase();
-      if (state.strArrays().containsKey(name)) {
-        EvalState.StrArray ca = state.strArrays().get(name);
-        if (ca.dimensions().isEmpty()) {
-          return BStr.fromBytes(ca.data());
-        }
+      EvalState.StrArray ca = state.strArray(name);
+      if (ca != null && ca.dimensions().isEmpty()) {
+        return BStr.fromBytes(ca.data());
       }
-      if (state.strVars().containsKey(name)) {
-        return state.strVars().get(name);
+      if (state.hasStrVar(name)) {
+        return state.strVar(name);
       }
       throw codedException(ReportCode.VARIABLE_NOT_FOUND, "Undefined variable: " + name);
     }
@@ -1349,13 +1039,13 @@ public class BazLangExecutor extends BazLangBaseVisitor<Object> {
     var numExprs = target.numExpr();
     if (numExprs.isEmpty()) {
       // Scalar
-      state.numScalars().put(name, val);
+      state.setNumVar(name, val);
     } else {
       // Array element
-      if (!state.numArrays().containsKey(name)) {
+      if (!state.hasNumArray(name)) {
         throw codedException(ReportCode.VARIABLE_NOT_FOUND, "Undefined array: " + name);
       }
-      EvalState.NumArray na = state.numArrays().get(name);
+      EvalState.NumArray na = state.numArray(name);
       List<Integer> indices = new ArrayList<>();
       for (var e : numExprs) {
         indices.add((int) evalNum(e));
@@ -1370,12 +1060,12 @@ public class BazLangExecutor extends BazLangBaseVisitor<Object> {
     var subscript = target.strSubscript();
     if (subscript == null) {
       // Scalar assignment
-      if (state.strArrays().containsKey(name)) {
-        EvalState.StrArray ca = state.strArrays().get(name);
+      EvalState.StrArray ca = state.strArray(name);
+      if (ca != null) {
         applyByteAssignment(ca.data(), 0, ca.data().length, null, null, null, val);
         return;
       }
-      state.strVars().put(name, val);
+      state.setStrVar(name, val);
       return;
     }
     // Subscripted assignment - parse subscript
@@ -1408,8 +1098,8 @@ public class BazLangExecutor extends BazLangBaseVisitor<Object> {
         indices.add((int) evalNum(e));
       }
     }
-    if (state.strArrays().containsKey(name)) {
-      EvalState.StrArray ca = state.strArrays().get(name);
+    EvalState.StrArray ca = state.strArray(name);
+    if (ca != null) {
       int n = ca.dimensions().size();
       Integer byteIndex = null;
       if (indices.size() == n + 1) {
@@ -1420,8 +1110,11 @@ public class BazLangExecutor extends BazLangBaseVisitor<Object> {
       int arrayIdx = calculateArrayIndex(ca.dimensions(), indices);
       int base = arrayIdx * ca.fixedStrLen();
       applyByteAssignment(ca.data(), base, ca.fixedStrLen(), byteIndex, sliceStart, sliceEnd, val);
-    } else if (state.strVars().containsKey(name)) {
-      BStr str = state.strVars().get(name);
+    } else {
+      BStr str = state.strVar(name);
+      if (str == null) {
+        throw codedException(ReportCode.VARIABLE_NOT_FOUND, "Undefined variable: " + name);
+      }
       byte[] bytes = str.bytes();
       Integer byteIndex = null;
       if (indices.size() == 1 && !hasSlice) {
@@ -1433,9 +1126,7 @@ public class BazLangExecutor extends BazLangBaseVisitor<Object> {
             ReportCode.SUBSCRIPT_WRONG, "Scalar string only takes one index or slice");
       }
       applyByteAssignment(bytes, 0, bytes.length, byteIndex, sliceStart, sliceEnd, val);
-      state.strVars().put(name, BStr.fromBytes(bytes));
-    } else {
-      throw codedException(ReportCode.VARIABLE_NOT_FOUND, "Undefined variable: " + name);
+      state.setStrVar(name, BStr.fromBytes(bytes));
     }
   }
 

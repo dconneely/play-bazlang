@@ -23,6 +23,12 @@ replLine
     | statement EOF                # ImmediateLine
     ;
 
+// Entry rule for parsing a standalone numeric expression (e.g. VAL, INPUT).
+// Anchors to EOF so trailing garbage is a syntax error rather than silently ignored.
+numExprInput
+    : numExpr EOF
+    ;
+
 replCommand
     : DELETE lineRange?            # DeleteCmd
     | EDIT numExpr                 # EditCmd

@@ -70,7 +70,7 @@ class BehaviourTest {
         20 FOR I = 10 TO 1
         30 NEXT I
         """);
-    assertEquals(10.0, state.numScalars().get("I"));
+    assertEquals(10.0, state.numVar("I"));
   }
 
   @Test
@@ -86,8 +86,8 @@ class BehaviourTest {
         """,
             List.of("42", "HELLO"));
 
-    assertEquals(42.0, state.numArrays().get("A").data()[4]); // 1-based index 5 is data[4]
-    String b2 = new String(state.strArrays().get("B$").data(), 10, 10, StandardCharsets.UTF_8);
+    assertEquals(42.0, state.numArray("A").data()[4]); // 1-based index 5 is data[4]
+    String b2 = new String(state.strArray("B$").data(), 10, 10, StandardCharsets.UTF_8);
     assertTrue(b2.startsWith("HELLO"));
   }
 
@@ -124,8 +124,8 @@ class BehaviourTest {
   void testPowerPrecedence() {
     // -2**2 should be -4
     EvalState state = runProgram("10 LET A = -2**2\n20 LET B = (-2)**2");
-    assertEquals(-4.0, state.numScalars().get("A"));
-    assertEquals(4.0, state.numScalars().get("B"));
+    assertEquals(-4.0, state.numVar("A"));
+    assertEquals(4.0, state.numVar("B"));
   }
 
   @Test
@@ -231,10 +231,10 @@ class BehaviourTest {
         30 LET C = 0 AND 1
         40 LET D = 3.5 AND 2
         """);
-    assertEquals(5.0, state.numScalars().get("A")); // 5 AND 1 = 5
-    assertEquals(0.0, state.numScalars().get("B")); // 5 AND 0 = 0
-    assertEquals(0.0, state.numScalars().get("C")); // 0 AND 1 = 0
-    assertEquals(3.5, state.numScalars().get("D")); // 3.5 AND 2 = 3.5
+    assertEquals(5.0, state.numVar("A")); // 5 AND 1 = 5
+    assertEquals(0.0, state.numVar("B")); // 5 AND 0 = 0
+    assertEquals(0.0, state.numVar("C")); // 0 AND 1 = 0
+    assertEquals(3.5, state.numVar("D")); // 3.5 AND 2 = 3.5
   }
 
   @Test
@@ -266,10 +266,10 @@ class BehaviourTest {
         30 LET C = 0 OR 1
         40 LET D = 3.5 OR 0
         """);
-    assertEquals(1.0, state.numScalars().get("A")); // 5 OR 1 = 1
-    assertEquals(5.0, state.numScalars().get("B")); // 5 OR 0 = 5
-    assertEquals(1.0, state.numScalars().get("C")); // 0 OR 1 = 1
-    assertEquals(3.5, state.numScalars().get("D")); // 3.5 OR 0 = 3.5
+    assertEquals(1.0, state.numVar("A")); // 5 OR 1 = 1
+    assertEquals(5.0, state.numVar("B")); // 5 OR 0 = 5
+    assertEquals(1.0, state.numVar("C")); // 0 OR 1 = 1
+    assertEquals(3.5, state.numVar("D")); // 3.5 OR 0 = 3.5
   }
 
   @Test

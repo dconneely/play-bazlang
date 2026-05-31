@@ -41,32 +41,102 @@ public class EvalState {
     this.program.putAll(program);
   }
 
-  public Map<String, Double> numScalars() {
-    return numScalars;
+  // ===== Numeric scalar variables =====
+
+  public boolean hasNumVar(String name) {
+    return numScalars.containsKey(name);
   }
 
-  public Map<String, NumArray> numArrays() {
-    return numArrays;
+  public Double numVar(String name) {
+    return numScalars.get(name);
   }
 
-  public Map<String, BStr> strVars() {
-    return strVars;
+  public void setNumVar(String name, double val) {
+    numScalars.put(name, val);
   }
 
-  public Map<String, StrArray> strArrays() {
-    return strArrays;
+  // ===== Numeric arrays =====
+
+  public boolean hasNumArray(String name) {
+    return numArrays.containsKey(name);
   }
 
-  public Map<String, ForLoopData> forLoops() {
-    return forLoops;
+  public NumArray numArray(String name) {
+    return numArrays.get(name);
   }
 
-  public Deque<Integer> returnStack() {
-    return returnStack;
+  public void setNumArray(String name, NumArray arr) {
+    numArrays.put(name, arr);
   }
 
-  public Random random() {
-    return random;
+  // ===== String scalar variables =====
+
+  public boolean hasStrVar(String name) {
+    return strVars.containsKey(name);
+  }
+
+  public BStr strVar(String name) {
+    return strVars.get(name);
+  }
+
+  public void setStrVar(String name, BStr val) {
+    strVars.put(name, val);
+  }
+
+  public void removeStrVar(String name) {
+    strVars.remove(name);
+  }
+
+  // ===== String arrays =====
+
+  public boolean hasStrArray(String name) {
+    return strArrays.containsKey(name);
+  }
+
+  public StrArray strArray(String name) {
+    return strArrays.get(name);
+  }
+
+  public void setStrArray(String name, StrArray arr) {
+    strArrays.put(name, arr);
+  }
+
+  // ===== FOR loop tracking =====
+
+  public boolean hasForLoop(String name) {
+    return forLoops.containsKey(name);
+  }
+
+  public ForLoopData forLoop(String name) {
+    return forLoops.get(name);
+  }
+
+  public void setForLoop(String name, ForLoopData data) {
+    forLoops.put(name, data);
+  }
+
+  // ===== GOSUB return stack =====
+
+  public boolean isReturnStackEmpty() {
+    return returnStack.isEmpty();
+  }
+
+  public void pushReturn(int lineLabel) {
+    returnStack.push(lineLabel);
+  }
+
+  public int popReturn() {
+    return returnStack.pop();
+  }
+
+  // ===== Randomness =====
+
+  public double nextRandom() {
+    return random.nextDouble();
+  }
+
+  public void seedRandom(long seed) {
+    random.setSeed(seed);
   }
 
   public boolean isRunning() {

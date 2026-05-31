@@ -64,8 +64,10 @@ public class MainClass {
     EvalState state = new EvalState();
     BazLangExecutor executor = new BazLangExecutor(state, display);
     Interpreter interpreter = new Interpreter(state, executor);
+    ProgramEditor editor = new ProgramEditor(state, display, PARSER, executor::evalNum);
     display.systemPrintln("BazLang REPL. Type 'STOP' or Ctrl+D at the prompt to exit.");
-    BazLangReplHandler handler = new BazLangReplHandler(PARSER, state, executor, interpreter);
+    BazLangReplHandler handler =
+        new BazLangReplHandler(PARSER, state, executor, editor, interpreter);
     new Repl().run(display, handler);
   }
 }

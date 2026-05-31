@@ -41,13 +41,13 @@ class LanguageReferenceTest {
         70 LET G = CODE("A")
         """;
     EvalState state = runProgram(source);
-    assertEquals(5.0, state.numScalars().get("A"));
-    assertEquals(3.0, state.numScalars().get("B"));
-    assertEquals(-1.0, state.numScalars().get("C"));
-    assertEquals(4.0, state.numScalars().get("D"));
-    assertEquals(5.0, state.numScalars().get("E"));
-    assertEquals(123.0, state.numScalars().get("F"));
-    assertEquals(65.0, state.numScalars().get("G"));
+    assertEquals(5.0, state.numVar("A"));
+    assertEquals(3.0, state.numVar("B"));
+    assertEquals(-1.0, state.numVar("C"));
+    assertEquals(4.0, state.numVar("D"));
+    assertEquals(5.0, state.numVar("E"));
+    assertEquals(123.0, state.numVar("F"));
+    assertEquals(65.0, state.numVar("G"));
   }
 
   @Test
@@ -60,9 +60,9 @@ class LanguageReferenceTest {
         30 LET T = TAN(0)
         """;
     EvalState state = runProgram(source);
-    assertEquals(0.0, state.numScalars().get("S"), 0.0001);
-    assertEquals(1.0, state.numScalars().get("C"), 0.0001);
-    assertEquals(0.0, state.numScalars().get("T"), 0.0001);
+    assertEquals(0.0, state.numVar("S"), 0.0001);
+    assertEquals(1.0, state.numVar("C"), 0.0001);
+    assertEquals(0.0, state.numVar("T"), 0.0001);
   }
 
   @Test
@@ -73,8 +73,8 @@ class LanguageReferenceTest {
         20 LET L = LN(E)
         """;
     EvalState state = runProgram(source);
-    assertEquals(Math.E, state.numScalars().get("E"), 0.0001);
-    assertEquals(1.0, state.numScalars().get("L"), 0.0001);
+    assertEquals(Math.E, state.numVar("E"), 0.0001);
+    assertEquals(1.0, state.numVar("L"), 0.0001);
   }
 
   @Test
@@ -86,8 +86,8 @@ class LanguageReferenceTest {
         20 LET U = USR(5678)
         """;
     EvalState state = runProgram(source);
-    assertEquals(0.0, state.numScalars().get("P"));
-    assertEquals(0.0, state.numScalars().get("U"));
+    assertEquals(0.0, state.numVar("P"));
+    assertEquals(0.0, state.numVar("U"));
   }
 
   @Test
@@ -98,8 +98,8 @@ class LanguageReferenceTest {
         20 LET B$ = STR$(123)
         """;
     EvalState state = runProgram(source);
-    assertEquals("A", state.strVars().get("A$").toJavaString());
-    assertEquals("123", state.strVars().get("B$").toJavaString());
+    assertEquals("A", state.strVar("A$").toJavaString());
+    assertEquals("123", state.strVar("B$").toJavaString());
   }
 
   @Test
@@ -112,10 +112,10 @@ class LanguageReferenceTest {
         40 LET D = 5 / 2
         """;
     EvalState state = runProgram(source);
-    assertEquals(7.0, state.numScalars().get("A"));
-    assertEquals(9.0, state.numScalars().get("B"));
-    assertEquals(8.0, state.numScalars().get("C"));
-    assertEquals(2.5, state.numScalars().get("D"));
+    assertEquals(7.0, state.numVar("A"));
+    assertEquals(9.0, state.numVar("B"));
+    assertEquals(8.0, state.numVar("C"));
+    assertEquals(2.5, state.numVar("D"));
   }
 
   @Test
@@ -127,9 +127,9 @@ class LanguageReferenceTest {
         30 LET C = ATN(1)
         """;
     EvalState state = runProgram(source);
-    assertEquals(Math.PI / 2, state.numScalars().get("A"), 0.0001);
-    assertEquals(Math.PI / 2, state.numScalars().get("B"), 0.0001);
-    assertEquals(Math.PI / 4, state.numScalars().get("C"), 0.0001);
+    assertEquals(Math.PI / 2, state.numVar("A"), 0.0001);
+    assertEquals(Math.PI / 2, state.numVar("B"), 0.0001);
+    assertEquals(Math.PI / 4, state.numVar("C"), 0.0001);
   }
 
   @Test
@@ -141,11 +141,11 @@ class LanguageReferenceTest {
         30 LET I$ = INKEY$
         """;
     EvalState state = runProgram(source);
-    assertEquals(Math.PI, state.numScalars().get("P"), 0.0001);
+    assertEquals(Math.PI, state.numVar("P"), 0.0001);
     // RND returns value between 0 and 1
-    double r = state.numScalars().get("R");
+    double r = state.numVar("R");
     assertEquals(true, r >= 0.0 && r < 1.0);
-    assertEquals("", state.strVars().get("I$").toJavaString());
+    assertEquals("", state.strVar("I$").toJavaString());
   }
 
   @Test
@@ -160,12 +160,12 @@ class LanguageReferenceTest {
         60 LET F = NOT 5
         """;
     EvalState state = runProgram(source);
-    assertEquals(1.0, state.numScalars().get("A"));
-    assertEquals(0.0, state.numScalars().get("B"));
-    assertEquals(1.0, state.numScalars().get("C"));
-    assertEquals(0.0, state.numScalars().get("D"));
-    assertEquals(1.0, state.numScalars().get("E"));
-    assertEquals(0.0, state.numScalars().get("F"));
+    assertEquals(1.0, state.numVar("A"));
+    assertEquals(0.0, state.numVar("B"));
+    assertEquals(1.0, state.numVar("C"));
+    assertEquals(0.0, state.numVar("D"));
+    assertEquals(1.0, state.numVar("E"));
+    assertEquals(0.0, state.numVar("F"));
   }
 
   @Test
@@ -181,13 +181,13 @@ class LanguageReferenceTest {
         70 LET G = (3 > 5)
         """;
     EvalState state = runProgram(source);
-    assertEquals(1.0, state.numScalars().get("A"));
-    assertEquals(1.0, state.numScalars().get("B"));
-    assertEquals(1.0, state.numScalars().get("C"));
-    assertEquals(1.0, state.numScalars().get("D"));
-    assertEquals(1.0, state.numScalars().get("E"));
-    assertEquals(1.0, state.numScalars().get("F"));
-    assertEquals(0.0, state.numScalars().get("G"));
+    assertEquals(1.0, state.numVar("A"));
+    assertEquals(1.0, state.numVar("B"));
+    assertEquals(1.0, state.numVar("C"));
+    assertEquals(1.0, state.numVar("D"));
+    assertEquals(1.0, state.numVar("E"));
+    assertEquals(1.0, state.numVar("F"));
+    assertEquals(0.0, state.numVar("G"));
   }
 
   @Test
@@ -202,12 +202,12 @@ class LanguageReferenceTest {
         60 LET F = ("ABC" >= "ABC")
         """;
     EvalState state = runProgram(source);
-    assertEquals(1.0, state.numScalars().get("A"));
-    assertEquals(1.0, state.numScalars().get("B"));
-    assertEquals(1.0, state.numScalars().get("C"));
-    assertEquals(1.0, state.numScalars().get("D"));
-    assertEquals(1.0, state.numScalars().get("E"));
-    assertEquals(1.0, state.numScalars().get("F"));
+    assertEquals(1.0, state.numVar("A"));
+    assertEquals(1.0, state.numVar("B"));
+    assertEquals(1.0, state.numVar("C"));
+    assertEquals(1.0, state.numVar("D"));
+    assertEquals(1.0, state.numVar("E"));
+    assertEquals(1.0, state.numVar("F"));
   }
 
   @Test
@@ -221,9 +221,9 @@ class LanguageReferenceTest {
         30 LET C = 0-2**2
         """;
     EvalState state = runProgram(source);
-    assertEquals(-4.0, state.numScalars().get("A")); // -(2**2) = -4
-    assertEquals(4.0, state.numScalars().get("B")); // (-2)**2 = 4
-    assertEquals(-4.0, state.numScalars().get("C")); // 0-(2**2) = -4
+    assertEquals(-4.0, state.numVar("A")); // -(2**2) = -4
+    assertEquals(4.0, state.numVar("B")); // (-2)**2 = 4
+    assertEquals(-4.0, state.numVar("C")); // 0-(2**2) = -4
   }
 
   @Test
@@ -237,7 +237,7 @@ class LanguageReferenceTest {
         """;
     EvalState state = runProgram(source);
     // All refer to same variable, stored as uppercase
-    assertEquals(30.0, state.numScalars().get("MYVAR"));
+    assertEquals(30.0, state.numVar("MYVAR"));
   }
 
   @Test
@@ -249,7 +249,7 @@ class LanguageReferenceTest {
         20 LET NAME$ = NAME$ + " World"
         """;
     EvalState state = runProgram(source);
-    assertEquals("Hello World", state.strVars().get("NAME$").toJavaString());
+    assertEquals("Hello World", state.strVar("NAME$").toJavaString());
   }
 
   @Test
@@ -264,11 +264,11 @@ class LanguageReferenceTest {
         50 if b = 2 THEN LET e = 5
         """;
     EvalState state = runProgram(source);
-    assertEquals(1.0, state.numScalars().get("A"));
-    assertEquals(2.0, state.numScalars().get("B"));
-    assertEquals(3.0, state.numScalars().get("C"));
-    assertEquals(4.0, state.numScalars().get("D"));
-    assertEquals(5.0, state.numScalars().get("E"));
+    assertEquals(1.0, state.numVar("A"));
+    assertEquals(2.0, state.numVar("B"));
+    assertEquals(3.0, state.numVar("C"));
+    assertEquals(4.0, state.numVar("D"));
+    assertEquals(5.0, state.numVar("E"));
   }
 
   @Test
@@ -281,9 +281,9 @@ class LanguageReferenceTest {
         30 LET eq = (a$ = b$)
         """;
     EvalState state = runProgram(source);
-    assertEquals("Hello", state.strVars().get("A$").toJavaString());
-    assertEquals("HELLO", state.strVars().get("B$").toJavaString());
-    assertEquals(0.0, state.numScalars().get("EQ")); // Not equal - case sensitive
+    assertEquals("Hello", state.strVar("A$").toJavaString());
+    assertEquals("HELLO", state.strVar("B$").toJavaString());
+    assertEquals(0.0, state.numVar("EQ")); // Not equal - case sensitive
   }
 
   @Test
@@ -297,10 +297,10 @@ class LanguageReferenceTest {
             30 LET C = LEN(B$)
             40 LET D = CODEPOINT(B$)
             """);
-    assertEquals("A", state.strVars().get("A$").toJavaString());
-    assertEquals("█", state.strVars().get("B$").toJavaString());
-    assertEquals(3.0, state.numScalars().get("C")); // █ is 3 UTF-8 bytes
-    assertEquals(9608.0, state.numScalars().get("D")); // CODEPOINT recovers original value
+    assertEquals("A", state.strVar("A$").toJavaString());
+    assertEquals("█", state.strVar("B$").toJavaString());
+    assertEquals(3.0, state.numVar("C")); // █ is 3 UTF-8 bytes
+    assertEquals(9608.0, state.numVar("D")); // CODEPOINT recovers original value
   }
 
   @Test
@@ -314,10 +314,10 @@ class LanguageReferenceTest {
             30 LET C = LEN(CODEPOINT$(255))
             40 LET D = CODEPOINT(CODEPOINT$(255))
             """);
-    assertEquals(1.0, state.numScalars().get("A")); // CHR$(255) = 1 raw byte
-    assertEquals(255.0, state.numScalars().get("B")); // CODE returns raw byte value
-    assertEquals(2.0, state.numScalars().get("C")); // U+00FF encodes to 2 UTF-8 bytes
-    assertEquals(255.0, state.numScalars().get("D")); // CODEPOINT recovers U+00FF codepoint
+    assertEquals(1.0, state.numVar("A")); // CHR$(255) = 1 raw byte
+    assertEquals(255.0, state.numVar("B")); // CODE returns raw byte value
+    assertEquals(2.0, state.numVar("C")); // U+00FF encodes to 2 UTF-8 bytes
+    assertEquals(255.0, state.numVar("D")); // CODEPOINT recovers U+00FF codepoint
   }
 
   @Test
@@ -336,9 +336,9 @@ class LanguageReferenceTest {
             20 LET B = LEN(CODEPOINT$(9608))
             30 LET C = LEN(CODEPOINT$(128512))
             """);
-    assertEquals(5.0, state.numScalars().get("A")); // ASCII: bytes == chars
-    assertEquals(3.0, state.numScalars().get("B")); // █ U+2588: 3 bytes
-    assertEquals(4.0, state.numScalars().get("C")); // 😀 U+1F600: 4 bytes
+    assertEquals(5.0, state.numVar("A")); // ASCII: bytes == chars
+    assertEquals(3.0, state.numVar("B")); // █ U+2588: 3 bytes
+    assertEquals(4.0, state.numVar("C")); // 😀 U+1F600: 4 bytes
   }
 
   @Test
@@ -353,9 +353,9 @@ class LanguageReferenceTest {
             40 LET C = NEXTCP(B$, 1)
             50 LET D = NEXTCP(B$, 5)
             """);
-    assertEquals(4.0, state.numScalars().get("A")); // █ is 3 bytes: next cp starts at 4
-    assertEquals(2.0, state.numScalars().get("C")); // 'H' is 1 byte: next cp starts at 2
-    assertEquals(6.0, state.numScalars().get("D")); // 'o' is 1 byte: next cp starts at 6 (= LEN+1)
+    assertEquals(4.0, state.numVar("A")); // █ is 3 bytes: next cp starts at 4
+    assertEquals(2.0, state.numVar("C")); // 'H' is 1 byte: next cp starts at 2
+    assertEquals(6.0, state.numVar("D")); // 'o' is 1 byte: next cp starts at 6 (= LEN+1)
   }
 
   @Test
@@ -367,7 +367,7 @@ class LanguageReferenceTest {
             10 LET S$ = CHR$(255)
             20 LET A = NEXTCP(S$, 1)
             """);
-    assertEquals(2.0, state.numScalars().get("A"));
+    assertEquals(2.0, state.numVar("A"));
   }
 
   @Test
@@ -380,7 +380,31 @@ class LanguageReferenceTest {
             20 LET A = NEXTCP(S$, 1)
             30 LET B = NEXTCP(S$, 2)
             """);
-    assertEquals(2.0, state.numScalars().get("A")); // 0xC2 invalid → next at 2
-    assertEquals(3.0, state.numScalars().get("B")); // 0x20 ASCII → next at 3
+    assertEquals(2.0, state.numVar("A")); // 0xC2 invalid → next at 2
+    assertEquals(3.0, state.numVar("B")); // 0x20 ASCII → next at 3
+  }
+
+  @Test
+  void testValRejectsTrailingGarbage() {
+    // VAL("1+2JUNK") must throw, not silently return 3
+    assertThrows(
+        ReportException.class,
+        () ->
+            runProgram(
+                """
+                10 LET A = VAL("1+2JUNK")
+                """));
+  }
+
+  @Test
+  void testValRejectsPartialExpression() {
+    // VAL("1 2") must throw — "1" is a complete expression but "2" is trailing garbage
+    assertThrows(
+        ReportException.class,
+        () ->
+            runProgram(
+                """
+                10 LET A = VAL("1 2")
+                """));
   }
 }

@@ -20,6 +20,7 @@ class ReplCommandTest {
   private EvalState state;
   private MockDisplay display;
   private BazLangExecutor executor;
+  private ProgramEditor editor;
   private AntlrParser parser;
 
   @BeforeEach
@@ -28,7 +29,7 @@ class ReplCommandTest {
     display = new MockDisplay();
     executor = new BazLangExecutor(state, display);
     parser = new AntlrParser();
-    // Set up a simple program
+    editor = new ProgramEditor(state, display, parser, executor::evalNum);
     state.program().put(10, new ProgramLine(10, "PRINT \"HELLO\""));
     state.program().put(20, new ProgramLine(20, "GOTO 40"));
     state.program().put(30, new ProgramLine(30, "PRINT \"WORLD\""));
@@ -38,16 +39,20 @@ class ReplCommandTest {
   private void executeReplCommand(String command) {
     var parsed = parser.parseReplLine(command);
     if (parsed instanceof AntlrParser.ParsedLine.ReplCommand(var ctx)) {
-      handleReplCommand(ctx, executor, display, state);
+      handleReplCommand(ctx, executor, editor, display, state);
     } else {
       fail("Expected ReplCommand but got: " + parsed.getClass().getSimpleName());
     }
   }
 
   private static void handleReplCommand(
-      BazLangParser.ReplCommandContext ctx, BazLangExecutor executor, Shell ui, EvalState state) {
+      BazLangParser.ReplCommandContext ctx,
+      BazLangExecutor executor,
+      ProgramEditor editor,
+      Shell ui,
+      EvalState state) {
     if (ctx instanceof BazLangParser.DeleteCmdContext delete) {
-      executor.executeDelete(delete.lineRange());
+      editor.executeDelete(delete.lineRange());
     } else if (ctx instanceof BazLangParser.EditCmdContext edit) {
       int lineNum = (int) executor.evalNum(edit.numExpr());
       if (lineNum < Limits.MIN_LINE_LABEL || lineNum > Limits.MAX_LINE_LABEL) {
@@ -60,7 +65,7 @@ class ReplCommandTest {
         ui.prefillInput(lineNum + " ");
       }
     } else if (ctx instanceof BazLangParser.RenumCmdContext renum) {
-      executor.executeRenum(renum.renumArgs());
+      editor.executeRenum(renum.renumArgs());
     }
   }
 
@@ -68,7 +73,6 @@ class ReplCommandTest {
 
   @Test
   void testDeleteSingleLine() {
-    // DELETE n - deletes only line n
     executeReplCommand("DELETE 20");
     assertFalse(state.program().containsKey(20));
     assertTrue(state.program().containsKey(10));
@@ -79,7 +83,6 @@ class ReplCommandTest {
 
   @Test
   void testDeleteRange() {
-    // DELETE n TO m - deletes lines n through m
     executeReplCommand("DELETE 20 TO 30");
     assertFalse(state.program().containsKey(20));
     assertFalse(state.program().containsKey(30));
@@ -90,7 +93,6 @@ class ReplCommandTest {
 
   @Test
   void testDeleteToEnd() {
-    // DELETE n TO - deletes from line n to end
     executeReplCommand("DELETE 30 TO");
     assertFalse(state.program().containsKey(30));
     assertFalse(state.program().containsKey(40));
@@ -101,7 +103,6 @@ class ReplCommandTest {
 
   @Test
   void testDeleteFromStart() {
-    // DELETE TO m - deletes from MIN to line m
     executeReplCommand("DELETE TO 20");
     assertFalse(state.program().containsKey(10));
     assertFalse(state.program().containsKey(20));
@@ -112,7 +113,6 @@ class ReplCommandTest {
 
   @Test
   void testDeleteWithoutNumber() {
-    // DELETE (naked) should throw error
     var ex1 = assertThrows(ReportException.class, () -> executeReplCommand("DELETE"));
     assertTrue(ex1.getMessage().contains("requires at least one line number"));
 
@@ -146,7 +146,6 @@ class ReplCommandTest {
   @Test
   void testRenumBasic() {
     executeReplCommand("RENUM");
-    // Default: start=10, step=10
     assertTrue(state.program().containsKey(10));
     assertTrue(state.program().containsKey(20));
     assertTrue(state.program().containsKey(30));
@@ -193,7 +192,6 @@ class ReplCommandTest {
 
   @Test
   void testRenumNonExistentGotoTarget() {
-    // Set up program with gap: 1000, 1200, 1300 where 1300 has GOTO 1100
     state.program().clear();
     state.program().put(1000, new ProgramLine(1000, "PRINT \"HELLO\""));
     state.program().put(1200, new ProgramLine(1200, "PRINT \"THERE\""));
@@ -201,7 +199,6 @@ class ReplCommandTest {
 
     executeReplCommand("RENUM");
 
-    // Should renumber to 10, 20, 30
     assertEquals(3, state.program().size());
     assertTrue(state.program().containsKey(10));
     assertTrue(state.program().containsKey(20));

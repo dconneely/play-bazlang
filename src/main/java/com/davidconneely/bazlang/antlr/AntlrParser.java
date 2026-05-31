@@ -109,7 +109,7 @@ public class AntlrParser {
    */
   public BazLangParser.NumExprContext parseNumExpr(String source) {
     BazLangParser parser = createParser(source);
-    return parser.numExpr();
+    return parser.numExprInput().numExpr();
   }
 
   private String getStatementText(String line, int lineNumber) {

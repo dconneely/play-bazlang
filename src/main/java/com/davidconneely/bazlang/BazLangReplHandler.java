@@ -10,13 +10,19 @@ public final class BazLangReplHandler implements ReplHandler {
   private final AntlrParser parser;
   private final EvalState state;
   private final BazLangExecutor executor;
+  private final ProgramEditor programEditor;
   private final Interpreter interpreter;
 
   public BazLangReplHandler(
-      AntlrParser parser, EvalState state, BazLangExecutor executor, Interpreter interpreter) {
+      AntlrParser parser,
+      EvalState state,
+      BazLangExecutor executor,
+      ProgramEditor programEditor,
+      Interpreter interpreter) {
     this.parser = parser;
     this.state = state;
     this.executor = executor;
+    this.programEditor = programEditor;
     this.interpreter = interpreter;
   }
 
@@ -55,7 +61,7 @@ public final class BazLangReplHandler implements ReplHandler {
 
   private void handleReplCommand(BazLangParser.ReplCommandContext ctx, Shell ui) {
     if (ctx instanceof BazLangParser.DeleteCmdContext delete) {
-      executor.executeDelete(delete.lineRange());
+      programEditor.executeDelete(delete.lineRange());
     } else if (ctx instanceof BazLangParser.EditCmdContext edit) {
       int lineNum = (int) executor.evalNum(edit.numExpr());
       if (lineNum < Limits.MIN_LINE_LABEL || lineNum > Limits.MAX_LINE_LABEL) {
@@ -68,9 +74,9 @@ public final class BazLangReplHandler implements ReplHandler {
         ui.prefillInput(lineNum + " ");
       }
     } else if (ctx instanceof BazLangParser.RenumCmdContext renum) {
-      executor.executeRenum(renum.renumArgs());
+      programEditor.executeRenum(renum.renumArgs());
     } else if (ctx instanceof BazLangParser.ReformatCmdContext reformat) {
-      executor.executeReformat(reformat.lineRange());
+      programEditor.executeReformat(reformat.lineRange());
     }
   }
 
