@@ -166,11 +166,13 @@ numFunc
     | ASN numAtom
     | ATN numAtom
     | CODE strAtom
+    | CODEPOINT strAtom
     | COS numAtom
     | EXP numAtom
     | INT numAtom
     | LEN strAtom
     | LN numAtom
+    | NEXTCP '(' strExpr ',' numExpr ')'
     | PEEK numAtom
     | PI
     | RND
@@ -194,6 +196,7 @@ numAtom
 // String functions - parentheses optional, function binds to atom
 strFunc
     : CHR_STR numAtom
+    | CODEPOINT_STR numAtom
     | INKEY_STR
     | STR_STR numAtom
     ;
@@ -263,12 +266,15 @@ ASN     : 'ASN';
 ATN     : 'ATN';
 CHR_STR : 'CHR$';
 CODE    : 'CODE';
+CODEPOINT_STR : 'CODEPOINT$';
+CODEPOINT : 'CODEPOINT';
 COS     : 'COS';
 EXP     : 'EXP';
 INKEY_STR : 'INKEY$';
 INT     : 'INT';
 LEN     : 'LEN';
 LN      : 'LN';
+NEXTCP  : 'NEXTCP';
 PEEK    : 'PEEK';
 PI      : 'PI';
 RND     : 'RND';

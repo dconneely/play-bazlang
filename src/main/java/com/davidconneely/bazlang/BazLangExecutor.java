@@ -99,9 +99,9 @@ public class BazLangExecutor extends BazLangBaseVisitor<Object> {
       if (total <= 0 || total > Limits.MAX_ARRAY_ELEMENTS) {
         throw codedException(ReportCode.OUT_OF_MEMORY, "Array too large");
       }
-      char[] data = new char[total * flen];
-      Arrays.fill(data, ' ');
-      state.charArrays().put(name, new EvalState.CharArray(dims, flen, data));
+      byte[] data = new byte[total * flen];
+      Arrays.fill(data, (byte) ' ');
+      state.strArrays().put(name, new EvalState.StrArray(dims, flen, data));
     } else {
       int total = 1;
       for (int d : dims) {
@@ -205,7 +205,7 @@ public class BazLangExecutor extends BazLangBaseVisitor<Object> {
         }
       }
     } else {
-      assignStrTarget(target, line);
+      assignStrTarget(target, BStr.fromJavaString(line));
     }
     return null;
   }
@@ -240,7 +240,7 @@ public class BazLangExecutor extends BazLangBaseVisitor<Object> {
       double val = evalNum(expr.numExpr());
       assignNumTarget(target, val);
     } else {
-      String val = evalStr(expr.strExpr());
+      BStr val = evalStr(expr.strExpr());
       assignStrTarget(target, val);
     }
     return null;
@@ -564,7 +564,7 @@ public class BazLangExecutor extends BazLangBaseVisitor<Object> {
 
   @Override
   public Object visitLoadStmt(LoadStmtContext ctx) {
-    String filename = evalStr(ctx.strExpr());
+    String filename = evalStr(ctx.strExpr()).toJavaString();
     try {
       String source;
       if (filename.startsWith("resource:")) {
@@ -829,7 +829,7 @@ public class BazLangExecutor extends BazLangBaseVisitor<Object> {
 
   @Override
   public Object visitSaveStmt(SaveStmtContext ctx) {
-    String filename = evalStr(ctx.strExpr());
+    String filename = evalStr(ctx.strExpr()).toJavaString();
     try (var writer = Files.newBufferedWriter(Path.of(filename))) {
       for (var entry : state.program().entrySet()) {
         ProgramLine line = entry.getValue();
@@ -880,15 +880,15 @@ public class BazLangExecutor extends BazLangBaseVisitor<Object> {
     return ((Number) visit(ctx)).doubleValue();
   }
 
-  private String evalStr(StrExprContext ctx) {
-    return (String) visit(ctx);
+  private BStr evalStr(StrExprContext ctx) {
+    return (BStr) visit(ctx);
   }
 
   private String evalPrintExpr(ExpressionContext ctx) {
     if (ctx.numExpr() != null) {
       return formatNum(evalNum(ctx.numExpr()));
     } else {
-      return evalStr(ctx.strExpr());
+      return evalStr(ctx.strExpr()).toJavaString();
     }
   }
 
@@ -989,8 +989,8 @@ public class BazLangExecutor extends BazLangBaseVisitor<Object> {
 
   @Override
   public Double visitStrCompExpr(StrCompExprContext ctx) {
-    String l = evalStr(ctx.strExpr(0));
-    String r = evalStr(ctx.strExpr(1));
+    BStr l = evalStr(ctx.strExpr(0));
+    BStr r = evalStr(ctx.strExpr(1));
     String op = ctx.getChild(1).getText();
     return switch (op) {
       case "=" -> l.equals(r) ? 1.0 : 0.0;
@@ -1027,8 +1027,9 @@ public class BazLangExecutor extends BazLangBaseVisitor<Object> {
   // Numeric function visitors
 
   @Override
+  @SuppressWarnings(
+      "PMD.NcssCount") // Visitor method: one branch per grammar production is expected
   public Double visitNumFunc(NumFuncContext ctx) {
-    // Dispatch to specific function handling
     if (ctx.ABS() != null) {
       return Math.abs(evalNumAtom(ctx.numAtom()));
     }
@@ -1050,7 +1051,18 @@ public class BazLangExecutor extends BazLangBaseVisitor<Object> {
       return Math.atan(evalNumAtom(ctx.numAtom()));
     }
     if (ctx.CODE() != null) {
-      return (double) evalStrAtom(ctx.strAtom()).codePointAt(0);
+      BStr s = evalStrAtom(ctx.strAtom());
+      if (s.isEmpty()) {
+        throw codedException(ReportCode.NONSENSE_IN_BASIC, "CODE of empty string");
+      }
+      return (double) s.byteAt(0);
+    }
+    if (ctx.CODEPOINT() != null) {
+      BStr s = evalStrAtom(ctx.strAtom());
+      if (s.isEmpty()) {
+        throw codedException(ReportCode.NONSENSE_IN_BASIC, "CODEPOINT of empty string");
+      }
+      return (double) s.firstCodepoint();
     }
     if (ctx.COS() != null) {
       return Math.cos(evalNumAtom(ctx.numAtom()));
@@ -1070,6 +1082,14 @@ public class BazLangExecutor extends BazLangBaseVisitor<Object> {
         throw codedException(ReportCode.INVALID_ARGUMENT, "LN requires a positive argument");
       }
       return Math.log(arg);
+    }
+    if (ctx.NEXTCP() != null) {
+      BStr s = evalStr(ctx.strExpr());
+      int pos = (int) evalNum(ctx.numExpr()); // 1-based byte position
+      if (pos < 1 || pos > s.length() + 1) {
+        throw codedException(ReportCode.INTEGER_OUT_OF_RANGE, "NEXTCP position out of range");
+      }
+      return (double) (s.nextCodepointStart(pos - 1) + 1); // return 1-based
     }
     if (ctx.PEEK() != null) {
       evalNumAtom(ctx.numAtom()); // consume arg
@@ -1102,7 +1122,7 @@ public class BazLangExecutor extends BazLangBaseVisitor<Object> {
       return 0.0;
     }
     if (ctx.VAL() != null) {
-      String exprStr = evalStrAtom(ctx.strAtom()).trim();
+      String exprStr = evalStrAtom(ctx.strAtom()).toJavaString().trim();
       return evaluateNumericExpression(exprStr);
     }
     throw codedException(ReportCode.NONSENSE_IN_BASIC, "Unknown function");
@@ -1147,18 +1167,18 @@ public class BazLangExecutor extends BazLangBaseVisitor<Object> {
   // String expression visitors
 
   @Override
-  public String visitStrLiteralExpr(StrLiteralExprContext ctx) {
+  public BStr visitStrLiteralExpr(StrLiteralExprContext ctx) {
     String text = ctx.STR_LITERAL().getText();
-    return text.substring(1, text.length() - 1); // Remove quotes
+    return BStr.fromJavaString(text.substring(1, text.length() - 1)); // Remove quotes
   }
 
   @Override
-  public String visitStrVarExpr(StrVarExprContext ctx) {
+  public BStr visitStrVarExpr(StrVarExprContext ctx) {
     String name = ctx.STR_IDENTIFIER().getText().toUpperCase();
-    if (state.charArrays().containsKey(name)) {
-      EvalState.CharArray ca = state.charArrays().get(name);
+    if (state.strArrays().containsKey(name)) {
+      EvalState.StrArray ca = state.strArrays().get(name);
       if (ca.dimensions().isEmpty()) {
-        return new String(ca.data());
+        return BStr.fromBytes(ca.data());
       }
     }
     if (state.strVars().containsKey(name)) {
@@ -1168,13 +1188,13 @@ public class BazLangExecutor extends BazLangBaseVisitor<Object> {
   }
 
   @Override
-  public String visitStrSubscriptExpr(StrSubscriptExprContext ctx) {
+  public BStr visitStrSubscriptExpr(StrSubscriptExprContext ctx) {
     String name = ctx.STR_IDENTIFIER().getText().toUpperCase();
     var subscript = ctx.strSubscript();
     return evalStrSubscript(name, subscript);
   }
 
-  private String evalStrSubscript(String name, StrSubscriptContext subscript) {
+  private BStr evalStrSubscript(String name, StrSubscriptContext subscript) {
     // Parse indices and slice from subscript
     List<Integer> indices = new ArrayList<>();
     Integer sliceStart = null;
@@ -1212,78 +1232,89 @@ public class BazLangExecutor extends BazLangBaseVisitor<Object> {
       }
     }
     // Now evaluate the subscript based on variable type
-    if (state.charArrays().containsKey(name)) {
-      EvalState.CharArray ca = state.charArrays().get(name);
+    if (state.strArrays().containsKey(name)) {
+      EvalState.StrArray ca = state.strArrays().get(name);
       int n = ca.dimensions().size();
-      Integer charIndex = null;
+      Integer byteIndex = null;
       // Handle char index (extra index beyond array dimensions)
       if (indices.size() == n + 1) {
-        charIndex = indices.removeLast();
+        byteIndex = indices.removeLast();
       } else if (indices.size() != n && n == 0 && indices.size() == 1) {
-        charIndex = indices.removeFirst();
+        byteIndex = indices.removeFirst();
       }
       int arrayIdx = calculateArrayIndex(ca.dimensions(), indices);
       int base = arrayIdx * ca.fixedStrLen();
-      return sliceCharArray(ca.data(), base, ca.fixedStrLen(), charIndex, sliceStart, sliceEnd);
+      return sliceByteArray(ca.data(), base, ca.fixedStrLen(), byteIndex, sliceStart, sliceEnd);
     }
     if (state.strVars().containsKey(name)) {
-      String s = state.strVars().get(name);
-      Integer charIndex = null;
+      BStr s = state.strVars().get(name);
+      Integer byteIndex = null;
       if (indices.size() == 1 && !hasSlice) {
-        charIndex = indices.getFirst();
+        byteIndex = indices.getFirst();
         indices.clear();
       }
       if (!indices.isEmpty()) {
         throw codedException(
             ReportCode.SUBSCRIPT_WRONG, "Scalar string only takes one index or slice");
       }
-      return sliceString(s, charIndex, sliceStart, sliceEnd);
+      return sliceBStr(s, byteIndex, sliceStart, sliceEnd);
     }
     throw codedException(ReportCode.VARIABLE_NOT_FOUND, "Undefined variable: " + name);
   }
 
   @Override
-  public String visitStrParenExpr(StrParenExprContext ctx) {
+  public BStr visitStrParenExpr(StrParenExprContext ctx) {
     return evalStr(ctx.strExpr());
   }
 
   @Override
-  public String visitStrConcatExpr(StrConcatExprContext ctx) {
-    return evalStr(ctx.strExpr(0)) + evalStr(ctx.strExpr(1));
+  public BStr visitStrConcatExpr(StrConcatExprContext ctx) {
+    return evalStr(ctx.strExpr(0)).concat(evalStr(ctx.strExpr(1)));
   }
 
   @Override
-  public String visitStrAndExpr(StrAndExprContext ctx) {
+  public BStr visitStrAndExpr(StrAndExprContext ctx) {
     // str AND n = str if n ≠ 0, "" if n = 0
-    String left = evalStr(ctx.strExpr());
+    BStr left = evalStr(ctx.strExpr());
     double right = evalNum(ctx.numExpr());
-    return right != 0.0 ? left : "";
+    return right != 0.0 ? left : BStr.EMPTY;
   }
 
   @Override
-  public String visitStrFuncCallExpr(StrFuncCallExprContext ctx) {
-    return (String) visit(ctx.strFunc());
+  public BStr visitStrFuncCallExpr(StrFuncCallExprContext ctx) {
+    return (BStr) visit(ctx.strFunc());
   }
 
   @Override
-  public String visitStrFunc(StrFuncContext ctx) {
+  public BStr visitStrFunc(StrFuncContext ctx) {
     if (ctx.CHR_STR() != null) {
       int code = (int) evalNumAtom(ctx.numAtom());
-      return new String(Character.toChars(code));
+      if (code < 0 || code > 255) {
+        throw codedException(
+            ReportCode.INTEGER_OUT_OF_RANGE, "CHR$ argument out of range (0-255); use CODEPOINT$");
+      }
+      return BStr.fromByte(code);
+    }
+    if (ctx.CODEPOINT_STR() != null) {
+      int code = (int) evalNumAtom(ctx.numAtom());
+      if (code < 0 || !Character.isValidCodePoint(code)) {
+        throw codedException(ReportCode.INTEGER_OUT_OF_RANGE, "CODEPOINT$ argument out of range");
+      }
+      return BStr.fromJavaString(new String(Character.toChars(code)));
     }
     if (ctx.INKEY_STR() != null) {
-      return display.inkey();
+      return BStr.fromJavaString(display.inkey());
     }
     if (ctx.STR_STR() != null) {
-      return formatNum(evalNumAtom(ctx.numAtom()));
+      return BStr.fromJavaString(formatNum(evalNumAtom(ctx.numAtom())));
     }
     throw codedException(ReportCode.NONSENSE_IN_BASIC, "Unknown string function");
   }
 
-  private String evalStrAtom(StrAtomContext ctx) {
+  private BStr evalStrAtom(StrAtomContext ctx) {
     if (ctx.STR_LITERAL() != null) {
       String text = ctx.STR_LITERAL().getText();
-      return text.substring(1, text.length() - 1);
+      return BStr.fromJavaString(text.substring(1, text.length() - 1));
     }
     if (ctx.strSubscript() != null) {
       String name = ctx.STR_IDENTIFIER().getText().toUpperCase();
@@ -1291,10 +1322,10 @@ public class BazLangExecutor extends BazLangBaseVisitor<Object> {
     }
     if (ctx.STR_IDENTIFIER() != null) {
       String name = ctx.STR_IDENTIFIER().getText().toUpperCase();
-      if (state.charArrays().containsKey(name)) {
-        EvalState.CharArray ca = state.charArrays().get(name);
+      if (state.strArrays().containsKey(name)) {
+        EvalState.StrArray ca = state.strArrays().get(name);
         if (ca.dimensions().isEmpty()) {
-          return new String(ca.data());
+          return BStr.fromBytes(ca.data());
         }
       }
       if (state.strVars().containsKey(name)) {
@@ -1306,7 +1337,7 @@ public class BazLangExecutor extends BazLangBaseVisitor<Object> {
       return evalStr(ctx.strExpr());
     }
     if (ctx.strFunc() != null) {
-      return (String) visit(ctx.strFunc());
+      return (BStr) visit(ctx.strFunc());
     }
     throw codedException(ReportCode.NONSENSE_IN_BASIC, "Invalid string atom");
   }
@@ -1334,14 +1365,14 @@ public class BazLangExecutor extends BazLangBaseVisitor<Object> {
     }
   }
 
-  private void assignStrTarget(AssignmentTargetContext target, String val) {
+  private void assignStrTarget(AssignmentTargetContext target, BStr val) {
     String name = target.STR_IDENTIFIER().getText().toUpperCase();
     var subscript = target.strSubscript();
     if (subscript == null) {
       // Scalar assignment
-      if (state.charArrays().containsKey(name)) {
-        EvalState.CharArray ca = state.charArrays().get(name);
-        applyStrAssignment(ca.data(), 0, ca.data().length, null, null, null, val);
+      if (state.strArrays().containsKey(name)) {
+        EvalState.StrArray ca = state.strArrays().get(name);
+        applyByteAssignment(ca.data(), 0, ca.data().length, null, null, null, val);
         return;
       }
       state.strVars().put(name, val);
@@ -1377,32 +1408,32 @@ public class BazLangExecutor extends BazLangBaseVisitor<Object> {
         indices.add((int) evalNum(e));
       }
     }
-    if (state.charArrays().containsKey(name)) {
-      EvalState.CharArray ca = state.charArrays().get(name);
+    if (state.strArrays().containsKey(name)) {
+      EvalState.StrArray ca = state.strArrays().get(name);
       int n = ca.dimensions().size();
-      Integer charIndex = null;
+      Integer byteIndex = null;
       if (indices.size() == n + 1) {
-        charIndex = indices.removeLast();
+        byteIndex = indices.removeLast();
       } else if (indices.size() != n && n == 0 && indices.size() == 1) {
-        charIndex = indices.removeFirst();
+        byteIndex = indices.removeFirst();
       }
       int arrayIdx = calculateArrayIndex(ca.dimensions(), indices);
       int base = arrayIdx * ca.fixedStrLen();
-      applyStrAssignment(ca.data(), base, ca.fixedStrLen(), charIndex, sliceStart, sliceEnd, val);
+      applyByteAssignment(ca.data(), base, ca.fixedStrLen(), byteIndex, sliceStart, sliceEnd, val);
     } else if (state.strVars().containsKey(name)) {
-      String str = state.strVars().get(name);
-      char[] chars = str.toCharArray();
-      Integer charIndex = null;
+      BStr str = state.strVars().get(name);
+      byte[] bytes = str.bytes();
+      Integer byteIndex = null;
       if (indices.size() == 1 && !hasSlice) {
-        charIndex = indices.getFirst();
+        byteIndex = indices.getFirst();
         indices.clear();
       }
       if (!indices.isEmpty()) {
         throw codedException(
             ReportCode.SUBSCRIPT_WRONG, "Scalar string only takes one index or slice");
       }
-      applyStrAssignment(chars, 0, chars.length, charIndex, sliceStart, sliceEnd, val);
-      state.strVars().put(name, new String(chars));
+      applyByteAssignment(bytes, 0, bytes.length, byteIndex, sliceStart, sliceEnd, val);
+      state.strVars().put(name, BStr.fromBytes(bytes));
     } else {
       throw codedException(ReportCode.VARIABLE_NOT_FOUND, "Undefined variable: " + name);
     }
@@ -1429,47 +1460,47 @@ public class BazLangExecutor extends BazLangBaseVisitor<Object> {
     return idx;
   }
 
-  private String sliceCharArray(
-      char[] data, int base, int len, Integer charIdx, Integer sliceStart, Integer sliceEnd) {
-    int st = (charIdx != null ? charIdx : 1) + (sliceStart != null ? sliceStart - 1 : 0);
+  private BStr sliceByteArray(
+      byte[] data, int base, int len, Integer byteIdx, Integer sliceStart, Integer sliceEnd) {
+    int st = (byteIdx != null ? byteIdx : 1) + (sliceStart != null ? sliceStart - 1 : 0);
     int en =
-        (charIdx != null ? charIdx : 1)
-            + (sliceEnd != null ? sliceEnd - 1 : (charIdx != null ? 0 : len - 1));
+        (byteIdx != null ? byteIdx : 1)
+            + (sliceEnd != null ? sliceEnd - 1 : (byteIdx != null ? 0 : len - 1));
     if (st < 1 || en > len || st > en + 1) {
       throw codedException(ReportCode.SUBSCRIPT_WRONG, "Slice out of bounds");
     }
-    return new String(data, base + st - 1, en - st + 1);
+    return BStr.fromBytes(data, base + st - 1, en - st + 1);
   }
 
-  private String sliceString(String s, Integer charIdx, Integer sliceStart, Integer sliceEnd) {
+  private BStr sliceBStr(BStr s, Integer byteIdx, Integer sliceStart, Integer sliceEnd) {
     int len = s.length();
-    int st = (charIdx != null ? charIdx : 1) + (sliceStart != null ? sliceStart - 1 : 0);
+    int st = (byteIdx != null ? byteIdx : 1) + (sliceStart != null ? sliceStart - 1 : 0);
     int en =
-        (charIdx != null ? charIdx : 1)
-            + (sliceEnd != null ? sliceEnd - 1 : (charIdx != null ? 0 : len - 1));
+        (byteIdx != null ? byteIdx : 1)
+            + (sliceEnd != null ? sliceEnd - 1 : (byteIdx != null ? 0 : len - 1));
     if (st < 1 || en > len || st > en + 1) {
       throw codedException(ReportCode.SUBSCRIPT_WRONG, "Slice out of bounds");
     }
-    return s.substring(st - 1, en);
+    return s.slice(st, en);
   }
 
-  private void applyStrAssignment(
-      char[] data,
+  private void applyByteAssignment(
+      byte[] data,
       int base,
       int len,
-      Integer charIdx,
+      Integer byteIdx,
       Integer sliceStart,
       Integer sliceEnd,
-      String val) {
-    int st = (charIdx != null ? charIdx : 1) + (sliceStart != null ? sliceStart - 1 : 0);
+      BStr val) {
+    int st = (byteIdx != null ? byteIdx : 1) + (sliceStart != null ? sliceStart - 1 : 0);
     int en =
-        (charIdx != null ? charIdx : 1)
-            + (sliceEnd != null ? sliceEnd - 1 : (charIdx != null ? 0 : len - 1));
+        (byteIdx != null ? byteIdx : 1)
+            + (sliceEnd != null ? sliceEnd - 1 : (byteIdx != null ? 0 : len - 1));
     if (st < 1 || en > len || st > en + 1) {
       throw codedException(ReportCode.SUBSCRIPT_WRONG, "Slice out of bounds");
     }
     for (int i = 0; i < (en - st + 1); i++) {
-      data[base + st - 1 + i] = (i < val.length()) ? val.charAt(i) : ' ';
+      data[base + st - 1 + i] = (i < val.length()) ? (byte) val.byteAt(i) : (byte) ' ';
     }
   }
 

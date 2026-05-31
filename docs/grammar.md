@@ -89,6 +89,18 @@ numAtom
 
 This means `SIN PI/2` parses as `SIN(PI)/2`, not `SIN(PI/2)`.
 
+Multi-argument functions require explicit parentheses and comma-separated full expressions
+(not just atoms), consistent with ZX Spectrum BASIC functions like `ATTR` and `SCREEN$`:
+
+```antlr
+numFunc
+    : NEXTCP '(' strExpr ',' numExpr ')'
+    // ...
+    ;
+```
+
+This means `NEXTCP(S$, I+1)` works as expected.
+
 ### String Subscripts and Slicing
 
 String subscripts use a unified rule that allows indices and optional slicing:

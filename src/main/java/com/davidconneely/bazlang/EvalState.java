@@ -12,15 +12,15 @@ import java.util.TreeMap;
 public class EvalState {
   public record NumArray(List<Integer> dimensions, double[] data) {}
 
-  public record CharArray(List<Integer> dimensions, int fixedStrLen, char[] data) {}
+  public record StrArray(List<Integer> dimensions, int fixedStrLen, byte[] data) {}
 
   public record ForLoopData(double limit, double step, int loopPc) {}
 
   private final NavigableMap<Integer, ProgramLine> program = new TreeMap<>();
   private final Map<String, Double> numScalars = new HashMap<>();
   private final Map<String, NumArray> numArrays = new HashMap<>();
-  private final Map<String, String> strVars = new HashMap<>();
-  private final Map<String, CharArray> charArrays = new HashMap<>();
+  private final Map<String, BStr> strVars = new HashMap<>();
+  private final Map<String, StrArray> strArrays = new HashMap<>();
   private final Map<String, ForLoopData> forLoops = new HashMap<>();
   private final Deque<Integer> returnStack = new ArrayDeque<>();
   private final Random random = new Random();
@@ -49,12 +49,12 @@ public class EvalState {
     return numArrays;
   }
 
-  public Map<String, String> strVars() {
+  public Map<String, BStr> strVars() {
     return strVars;
   }
 
-  public Map<String, CharArray> charArrays() {
-    return charArrays;
+  public Map<String, StrArray> strArrays() {
+    return strArrays;
   }
 
   public Map<String, ForLoopData> forLoops() {
@@ -123,7 +123,7 @@ public class EvalState {
     numScalars.clear();
     numArrays.clear();
     strVars.clear();
-    charArrays.clear();
+    strArrays.clear();
     forLoops.clear();
     returnStack.clear();
     clearPendingJump();

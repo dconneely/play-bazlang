@@ -1,6 +1,7 @@
 package com.davidconneely.bazlang;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.davidconneely.bazlang.antlr.AntlrParser;
 import com.davidconneely.bazlang.io.MockDisplay;
@@ -97,8 +98,8 @@ class LanguageReferenceTest {
         20 LET B$ = STR$(123)
         """;
     EvalState state = runProgram(source);
-    assertEquals("A", state.strVars().get("A$"));
-    assertEquals("123", state.strVars().get("B$"));
+    assertEquals("A", state.strVars().get("A$").toJavaString());
+    assertEquals("123", state.strVars().get("B$").toJavaString());
   }
 
   @Test
@@ -144,7 +145,7 @@ class LanguageReferenceTest {
     // RND returns value between 0 and 1
     double r = state.numScalars().get("R");
     assertEquals(true, r >= 0.0 && r < 1.0);
-    assertEquals("", state.strVars().get("I$"));
+    assertEquals("", state.strVars().get("I$").toJavaString());
   }
 
   @Test
@@ -248,7 +249,7 @@ class LanguageReferenceTest {
         20 LET NAME$ = NAME$ + " World"
         """;
     EvalState state = runProgram(source);
-    assertEquals("Hello World", state.strVars().get("NAME$"));
+    assertEquals("Hello World", state.strVars().get("NAME$").toJavaString());
   }
 
   @Test
@@ -280,8 +281,106 @@ class LanguageReferenceTest {
         30 LET eq = (a$ = b$)
         """;
     EvalState state = runProgram(source);
-    assertEquals("Hello", state.strVars().get("A$"));
-    assertEquals("HELLO", state.strVars().get("B$"));
+    assertEquals("Hello", state.strVars().get("A$").toJavaString());
+    assertEquals("HELLO", state.strVars().get("B$").toJavaString());
     assertEquals(0.0, state.numScalars().get("EQ")); // Not equal - case sensitive
+  }
+
+  @Test
+  void testCodepointStrFunction() {
+    // CODEPOINT$(n) produces the UTF-8 encoding of Unicode codepoint n
+    EvalState state =
+        runProgram(
+            """
+            10 LET A$ = CODEPOINT$(65)
+            20 LET B$ = CODEPOINT$(9608)
+            30 LET C = LEN(B$)
+            40 LET D = CODEPOINT(B$)
+            """);
+    assertEquals("A", state.strVars().get("A$").toJavaString());
+    assertEquals("█", state.strVars().get("B$").toJavaString());
+    assertEquals(3.0, state.numScalars().get("C")); // █ is 3 UTF-8 bytes
+    assertEquals(9608.0, state.numScalars().get("D")); // CODEPOINT recovers original value
+  }
+
+  @Test
+  void testChrVsCodepointSemantics() {
+    // CHR$(n) produces a single raw byte; CODEPOINT$(n) produces UTF-8 encoding
+    EvalState state =
+        runProgram(
+            """
+            10 LET A = LEN(CHR$(255))
+            20 LET B = CODE(CHR$(255))
+            30 LET C = LEN(CODEPOINT$(255))
+            40 LET D = CODEPOINT(CODEPOINT$(255))
+            """);
+    assertEquals(1.0, state.numScalars().get("A")); // CHR$(255) = 1 raw byte
+    assertEquals(255.0, state.numScalars().get("B")); // CODE returns raw byte value
+    assertEquals(2.0, state.numScalars().get("C")); // U+00FF encodes to 2 UTF-8 bytes
+    assertEquals(255.0, state.numScalars().get("D")); // CODEPOINT recovers U+00FF codepoint
+  }
+
+  @Test
+  void testChrOutOfRange() {
+    // CHR$(n) for n > 255 is an error; use CODEPOINT$ instead
+    assertThrows(ReportException.class, () -> runProgram("10 LET A$ = CHR$(256)"));
+  }
+
+  @Test
+  void testLenReturnsByteCount() {
+    // LEN returns the number of bytes, not the number of characters
+    EvalState state =
+        runProgram(
+            """
+            10 LET A = LEN("Hello")
+            20 LET B = LEN(CODEPOINT$(9608))
+            30 LET C = LEN(CODEPOINT$(128512))
+            """);
+    assertEquals(5.0, state.numScalars().get("A")); // ASCII: bytes == chars
+    assertEquals(3.0, state.numScalars().get("B")); // █ U+2588: 3 bytes
+    assertEquals(4.0, state.numScalars().get("C")); // 😀 U+1F600: 4 bytes
+  }
+
+  @Test
+  void testNextcpFunction() {
+    // NEXTCP(s$, i) returns the 1-based byte position of the next codepoint after position i
+    EvalState state =
+        runProgram(
+            """
+            10 LET S$ = CODEPOINT$(9608)
+            20 LET A = NEXTCP(S$, 1)
+            30 LET B$ = "Hello"
+            40 LET C = NEXTCP(B$, 1)
+            50 LET D = NEXTCP(B$, 5)
+            """);
+    assertEquals(4.0, state.numScalars().get("A")); // █ is 3 bytes: next cp starts at 4
+    assertEquals(2.0, state.numScalars().get("C")); // 'H' is 1 byte: next cp starts at 2
+    assertEquals(6.0, state.numScalars().get("D")); // 'o' is 1 byte: next cp starts at 6 (= LEN+1)
+  }
+
+  @Test
+  void testNextcpFunctionInvalidByte() {
+    // NEXTCP on an invalid byte advances by 1 (utf8-c8: each invalid byte is one "codepoint")
+    EvalState state =
+        runProgram(
+            """
+            10 LET S$ = CHR$(255)
+            20 LET A = NEXTCP(S$, 1)
+            """);
+    assertEquals(2.0, state.numScalars().get("A"));
+  }
+
+  @Test
+  void testNextcpFunctionBrokenLead() {
+    // [0xC2, 0x20]: broken lead 0xC2 advances by 1, then ASCII space advances by 1
+    EvalState state =
+        runProgram(
+            """
+            10 LET S$ = CHR$(194) + CHR$(32)
+            20 LET A = NEXTCP(S$, 1)
+            30 LET B = NEXTCP(S$, 2)
+            """);
+    assertEquals(2.0, state.numScalars().get("A")); // 0xC2 invalid → next at 2
+    assertEquals(3.0, state.numScalars().get("B")); // 0x20 ASCII → next at 3
   }
 }

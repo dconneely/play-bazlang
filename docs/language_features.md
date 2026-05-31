@@ -31,9 +31,12 @@ commands, functions, and syntax rules.
 ### Strings
 
 - **Simple Variables**: `A$`, `Name$`. These can change length.
-- **Fixed Strings**: `DIM A$(10)` is a string of 10 characters.
-- **String Arrays**: `DIM A$(5, 10)` is 5 strings, each 10 characters long.
-- **Indexing**: `A$(1)` is the first character.
+- **Fixed Strings**: `DIM A$(10)` is a string of 10 bytes.
+- **String Arrays**: `DIM A$(5, 10)` is 5 strings, each 10 bytes long.
+- **Indexing**: `A$(1)` is the first byte.
+- **Byte Semantics**: Strings are byte arrays internally. `LEN` returns the byte count.
+  String literals and input from `INPUT` are stored as UTF-8 bytes. When printed, bytes are
+  decoded normally; lone invalid bytes 0xNN are displayed as the utf8-c8 synthetic `?xNN`.
 
 ### Namespaces
 
@@ -144,9 +147,20 @@ These commands are recognized but have no effect (for source compatibility):
 - **`SGN x`**: Sign (-1, 0, 1).
 - **`SQR x`**: Square root.
 - **`PI`**: 3.14159...
-- **`LEN s`**: String length.
+- **`LEN s`**: Byte length of string (not character count for multi-byte characters).
 - **`VAL s`**: Evaluate string as numeric expression (not just parse a literal).
-- **`CODE s`**: Unicode value of first char.
+- **`CODE s`**: Raw byte value (0-255) of first byte in string.
+- **`CODEPOINT s`**: Unicode codepoint value of first character (UTF-8 decoded).
+- **`NEXTCP(s, i)`**: Returns the 1-based byte position of the codepoint that starts immediately
+  after position `i`. Consistent with utf8-c8: each invalid byte counts as one codepoint of
+  width 1. Use for codepoint-by-codepoint iteration:
+  ```
+  LET I = 1
+  WHILE I <= LEN(S$)
+    LET CP = CODEPOINT(S$(I TO LEN(S$)))
+    LET I = NEXTCP(S$, I)
+  WEND
+  ```
 - **Trig**: `SIN`, `COS`, `TAN`, `ASN`, `ACS`, `ATN`.
 - **Logs**: `EXP`, `LN`.
 - **`PEEK addr`**: Memory read (always returns 0, for compatibility).
@@ -154,16 +168,18 @@ These commands are recognized but have no effect (for source compatibility):
 
 ### String Functions
 
-- **`CHR$ x`**: Character from code `x`.
+- **`CHR$ x`**: Single-byte string with raw byte value `x` (0-255). Error for x > 255.
+- **`CODEPOINT$ x`**: String containing the UTF-8 encoding of Unicode codepoint `x`.
+  Use for codepoints above U+007F, e.g. `CODEPOINT$(9608)` for the full-block character █.
 - **`STR$ x`**: Convert number to string.
 - **`INKEY$`**: Check key press.
 
 ## 6. Slicing
 
-You can slice strings and arrays.
+You can slice strings and arrays. String indices are **byte offsets** (1-based).
 
-- **`A$(x)`**: Character at `x`.
-- **`A$(x TO y)`**: String from `x` to `y`.
+- **`A$(x)`**: Byte at position `x`.
+- **`A$(x TO y)`**: Bytes from `x` to `y`.
 - **`A$(i, x TO y)`**: Slice of `i`-th string in an array.
 
 **Rule**: The `TO` slice must always be the last part of the index.

@@ -46,12 +46,17 @@ public class MainClass {
       BazLangExecutor executor = new BazLangExecutor(state, display);
       Interpreter interpreter = new Interpreter(state, executor);
       interpreter.execute(program);
+      display.waitForKey();
     } catch (IOException e) {
       display.systemPrintln("Error reading file: " + e.getMessage());
       System.exit(1);
     } catch (ReportException e) {
-      display.systemPrintln(e.prefix() + " " + e.getMessage());
-      System.exit(1);
+      if (e.reportCode() == ReportCode.STOP_STATEMENT) {
+        display.waitForKey();
+      } else {
+        display.systemPrintln(e.prefix() + " " + e.getMessage());
+        System.exit(1);
+      }
     }
   }
 

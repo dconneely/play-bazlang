@@ -96,8 +96,8 @@ public class TerminalDisplay implements BazLangDisplay {
   }
 
   private void initBuffer() {
-    int rows = Math.max(1, terminal.getHeight() - RESERVED_ROWS);
-    int cols = terminal.getWidth();
+    int rows = Math.max(1, terminal.getRows() - RESERVED_ROWS);
+    int cols = terminal.getColumns();
     pixelBuffer = new PixelBuffer(rows, cols, QuadrantMode.INSTANCE);
   }
 
@@ -108,8 +108,8 @@ public class TerminalDisplay implements BazLangDisplay {
   }
 
   private void resizeBufferIfNeeded() {
-    int newCols = terminal.getWidth();
-    int newRows = Math.max(1, terminal.getHeight() - RESERVED_ROWS);
+    int newCols = terminal.getColumns();
+    int newRows = Math.max(1, terminal.getRows() - RESERVED_ROWS);
     if (newRows != pixelBuffer.rows() || newCols != pixelBuffer.cols()) {
       pixelBuffer.resize(newRows, newCols);
       cursorRow = Math.min(cursorRow, pixelBuffer.rows() - 1);
@@ -124,8 +124,8 @@ public class TerminalDisplay implements BazLangDisplay {
     dirty = false;
     resizePending.set(false);
     resizeBufferIfNeeded();
-    int termWidth = terminal.getWidth();
-    int termHeight = terminal.getHeight();
+    int termWidth = terminal.getColumns();
+    int termHeight = terminal.getRows();
     int rowsToRender = Math.min(pixelBuffer.rows(), termHeight);
     int colsToRender = Math.min(pixelBuffer.cols(), termWidth);
 
@@ -401,6 +401,26 @@ public class TerminalDisplay implements BazLangDisplay {
       // Ignore - no input available
     }
     return "";
+  }
+
+  @Override
+  public void waitForKey() {
+    forceFlush();
+    // Write "Press any key" into the status row (directly below the display area)
+    PrintWriter out = terminal.writer();
+    out.printf("\033[%d;1H", pixelBuffer.rows() + 1);
+    out.print("Press any key to exit.");
+    out.print("\033[K");
+    out.flush();
+    try {
+      while (reader.read(100L) < 0) {
+        if (breakFlag.get()) {
+          break;
+        }
+      }
+    } catch (IOException e) {
+      // Ignore - proceed to close
+    }
   }
 
   @Override

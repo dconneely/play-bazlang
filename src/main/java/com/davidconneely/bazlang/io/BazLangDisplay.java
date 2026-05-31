@@ -16,4 +16,13 @@ public interface BazLangDisplay extends Display, Shell {
   default void forceFlush() {
     // no-op by default (e.g., for stream display where flush() is already immediate)
   }
+
+  /**
+   * Waits for a key press before closing. Called by the interpreter after a program ends (normally
+   * or via STOP) so the user can see the final screen before the terminal is restored. No-op for
+   * non-interactive displays (e.g. StreamDisplay).
+   */
+  default void waitForKey() {
+    // no-op by default
+  }
 }

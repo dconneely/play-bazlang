@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.davidconneely.bazlang.antlr.AntlrParser;
 import com.davidconneely.bazlang.io.MockDisplay;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
@@ -86,7 +87,7 @@ class BehaviourTest {
             List.of("42", "HELLO"));
 
     assertEquals(42.0, state.numArrays().get("A").data()[4]); // 1-based index 5 is data[4]
-    String b2 = new String(state.charArrays().get("B$").data(), 10, 10);
+    String b2 = new String(state.strArrays().get("B$").data(), 10, 10, StandardCharsets.UTF_8);
     assertTrue(b2.startsWith("HELLO"));
   }
 
