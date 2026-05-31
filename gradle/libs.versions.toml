@@ -1,7 +1,7 @@
 [versions]
 antlr = "4.13.2"
 jline = "4.1.0"
-junit = "6.0.3"
+junit = "6.1.0"
 spotless = "8.5.1"
 spotbugs = "6.5.5"
 checkstyle = "13.2.0"
