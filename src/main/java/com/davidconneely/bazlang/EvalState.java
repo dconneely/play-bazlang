@@ -5,9 +5,7 @@ import java.util.Deque;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.NavigableMap;
 import java.util.Random;
-import java.util.TreeMap;
 
 public class EvalState {
   public record NumArray(List<Integer> dimensions, double[] data) {}
@@ -21,7 +19,7 @@ public class EvalState {
 
   public record ForLoopData(double limit, double step, int loopPc) {}
 
-  private final NavigableMap<Integer, ProgramLine> program = new TreeMap<>();
+  private final Program program = new Program();
   private final Map<String, Double> numScalars = new HashMap<>();
   private final Map<String, NumArray> numArrays = new HashMap<>();
   private final Map<String, StrVar> strVars = new HashMap<>();
@@ -36,7 +34,7 @@ public class EvalState {
   private ReportCode lastReportCode = ReportCode.OK;
   private int lastReportLabel = 0;
 
-  public NavigableMap<Integer, ProgramLine> program() {
+  public Program program() {
     return program;
   }
 

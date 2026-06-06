@@ -9,7 +9,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.NavigableMap;
 import java.util.function.ToDoubleFunction;
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.CharStreams;
@@ -40,7 +39,7 @@ public class ProgramEditor {
   /** Execute DELETE command with parsed line range. */
   public void executeDelete(BazLangParser.LineRangeContext range) {
     int[] bounds = parseDeleteReformatLineRange(range);
-    state.program().subMap(bounds[0], true, bounds[1], true).clear();
+    state.program().clearRange(bounds[0], true, bounds[1], true);
   }
 
   /** Execute REFORMAT command with optional line range. */
@@ -53,13 +52,17 @@ public class ProgramEditor {
       end = bounds[1];
     }
 
-    NavigableMap<Integer, ProgramLine> toReformat = state.program().subMap(start, true, end, true);
+    List<Map.Entry<Integer, ProgramLine>> toReformat = new ArrayList<>();
+    for (Map.Entry<Integer, ProgramLine> entry :
+        state.program().subMapEntries(start, true, end, true)) {
+      toReformat.add(entry);
+    }
     if (toReformat.isEmpty()) {
       return;
     }
 
     ReformatVisitor formatter = new ReformatVisitor();
-    for (Map.Entry<Integer, ProgramLine> entry : new ArrayList<>(toReformat.entrySet())) {
+    for (Map.Entry<Integer, ProgramLine> entry : toReformat) {
       int lineNum = entry.getKey();
       ProgramLine line = entry.getValue();
       StatementContext stmt = line.getStatement(parser);
@@ -70,7 +73,7 @@ public class ProgramEditor {
 
   /** Execute RENUM command with parsed arguments. */
   public void executeRenum(BazLangParser.RenumArgsContext args) {
-    NavigableMap<Integer, ProgramLine> program = state.program();
+    Program program = state.program();
     if (program.isEmpty()) {
       return;
     }
@@ -122,7 +125,10 @@ public class ProgramEditor {
       throw new ReportException(ReportCode.INTEGER_OUT_OF_RANGE, 0, "Step must be >= 1");
     }
 
-    NavigableMap<Integer, ProgramLine> toRenumber = program.subMap(oldStart, true, oldEnd, true);
+    List<Map.Entry<Integer, ProgramLine>> toRenumber = new ArrayList<>();
+    for (var entry : program.subMapEntries(oldStart, true, oldEnd, true)) {
+      toRenumber.add(entry);
+    }
     if (toRenumber.isEmpty()) {
       return;
     }
@@ -158,15 +164,18 @@ public class ProgramEditor {
 
     Map<Integer, Integer> mapping = new HashMap<>();
     int newNum = newStart;
-    for (int oldNum : toRenumber.keySet()) {
-      mapping.put(oldNum, newNum);
+    for (var entry : toRenumber) {
+      mapping.put(entry.getKey(), newNum);
       newNum += newStep;
     }
 
     updateGotoGosubTargets(program, mapping, oldStart, oldEnd);
 
-    Map<Integer, ProgramLine> extracted = new HashMap<>(toRenumber);
-    toRenumber.clear();
+    Map<Integer, ProgramLine> extracted = new HashMap<>();
+    for (var entry : toRenumber) {
+      extracted.put(entry.getKey(), entry.getValue());
+    }
+    program.clearRange(oldStart, true, oldEnd, true);
     for (Map.Entry<Integer, ProgramLine> entry : extracted.entrySet()) {
       int oldLineNum = entry.getKey();
       int newLineNum = mapping.get(oldLineNum);
@@ -176,10 +185,7 @@ public class ProgramEditor {
   }
 
   private void updateGotoGosubTargets(
-      NavigableMap<Integer, ProgramLine> program,
-      Map<Integer, Integer> mapping,
-      int oldStart,
-      int oldEnd) {
+      Program program, Map<Integer, Integer> mapping, int oldStart, int oldEnd) {
     Map<Integer, String> updates = new HashMap<>();
 
     for (Map.Entry<Integer, ProgramLine> entry : program.entrySet()) {

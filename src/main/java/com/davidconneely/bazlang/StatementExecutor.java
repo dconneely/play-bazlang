@@ -172,7 +172,7 @@ public class StatementExecutor extends BazLangBaseVisitor<Object> {
   @Override
   public Object visitListStmt(ListStmtContext ctx) {
     int[] range = parseListLineRange(ctx.lineRange());
-    for (var entry : state.program().subMap(range[0], true, range[1], true).entrySet()) {
+    for (var entry : state.program().subMapEntries(range[0], true, range[1], true)) {
       ProgramLine line = entry.getValue();
       display.println(line.lineNumber() + " " + line.sourceText());
     }
@@ -182,7 +182,7 @@ public class StatementExecutor extends BazLangBaseVisitor<Object> {
   @Override
   public Object visitLListStmt(LListStmtContext ctx) {
     int[] range = parseListLineRange(ctx.lineRange());
-    for (var entry : state.program().subMap(range[0], true, range[1], true).entrySet()) {
+    for (var entry : state.program().subMapEntries(range[0], true, range[1], true)) {
       ProgramLine line = entry.getValue();
       display.lprintln(line.lineNumber() + " " + line.sourceText());
     }
