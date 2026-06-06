@@ -407,7 +407,7 @@ public class ReformatVisitor extends BazLangBaseVisitor<String> {
     int toPos = text.indexOf("TO");
 
     if (toPos >= 0) {
-      // Logic from BazLangExecutor.evalStrSubscript but for formatting
+      // Logic from ExpressionEvaluator.evalStrSubscript but for formatting
       int commaCount = (int) text.substring(0, toPos).chars().filter(c -> c == ',').count();
       for (int i = 0; i < commaCount; i++) {
         sb.append(visit(numExprs.get(i))).append(", ");

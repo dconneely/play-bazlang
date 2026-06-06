@@ -82,6 +82,9 @@ public class TerminalDisplay implements BazLangDisplay {
   public TerminalDisplay() throws IOException {
     this.terminal = TerminalBuilder.builder().system(true).nativeSignals(true).build();
     this.savedAttributes = terminal.enterRawMode();
+    Attributes attr = terminal.getAttributes();
+    attr.setLocalFlag(Attributes.LocalFlag.ISIG, true);
+    terminal.setAttributes(attr);
     terminal.puts(Capability.enter_ca_mode);
     terminal.puts(Capability.clear_screen);
     terminal.puts(Capability.cursor_invisible);

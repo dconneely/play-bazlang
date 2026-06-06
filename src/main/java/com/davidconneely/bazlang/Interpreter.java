@@ -11,7 +11,7 @@ import java.util.Map;
 public class Interpreter {
   private static final AntlrParser PARSER = new AntlrParser();
   private final EvalState state;
-  private final BazLangExecutor executor;
+  private final ProgramManager executor;
 
   public Interpreter() {
     this.state = new EvalState();
@@ -21,10 +21,10 @@ public class Interpreter {
     } catch (IOException e) {
       display = new StreamDisplay();
     }
-    this.executor = new BazLangExecutor(state, display);
+    this.executor = new ProgramManager(state, display);
   }
 
-  public Interpreter(EvalState state, BazLangExecutor executor) {
+  public Interpreter(EvalState state, ProgramManager executor) {
     this.state = state;
     this.executor = executor;
   }

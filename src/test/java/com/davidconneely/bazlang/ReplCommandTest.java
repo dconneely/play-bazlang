@@ -19,7 +19,7 @@ class ReplCommandTest {
 
   private EvalState state;
   private MockDisplay display;
-  private BazLangExecutor executor;
+  private ProgramManager executor;
   private ProgramEditor editor;
   private AntlrParser parser;
 
@@ -27,7 +27,7 @@ class ReplCommandTest {
   void setUp() {
     state = new EvalState();
     display = new MockDisplay();
-    executor = new BazLangExecutor(state, display);
+    executor = new ProgramManager(state, display);
     parser = new AntlrParser();
     editor = new ProgramEditor(state, display, parser, executor::evalNum);
     state.program().put(10, new ProgramLine(10, "PRINT \"HELLO\""));
@@ -47,7 +47,7 @@ class ReplCommandTest {
 
   private static void handleReplCommand(
       BazLangParser.ReplCommandContext ctx,
-      BazLangExecutor executor,
+      ProgramManager executor,
       ProgramEditor editor,
       Shell ui,
       EvalState state) {

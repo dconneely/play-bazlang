@@ -159,9 +159,13 @@ strExpr
 // String subscript: indices optionally followed by a slice
 // The slice (with TO) can only appear at the end
 strSubscript
-    : numExpr (',' numExpr)*                                    // indices only
-    | numExpr (',' numExpr)* ',' numExpr? TO numExpr?           // indices + slice
-    | numExpr? TO numExpr?                                      // slice only
+    : indices+=numExpr (',' indices+=numExpr)*
+    | indices+=numExpr (',' indices+=numExpr)* ',' slice=strSlice
+    | slice=strSlice
+    ;
+
+strSlice
+    : start=numExpr? TO end=numExpr?
     ;
 
 // Numeric functions - parentheses optional, function binds to numAtom (not full expression)

@@ -7,7 +7,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.davidconneely.bazlang.antlr.AntlrParser;
 import com.davidconneely.bazlang.io.MockDisplay;
-import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
@@ -26,7 +25,7 @@ class BehaviourTest {
 
     MockDisplay display = new MockDisplay(inputs);
 
-    BazLangExecutor executor = new BazLangExecutor(state, display);
+    ProgramManager executor = new ProgramManager(state, display);
     Interpreter interpreter = new Interpreter(state, executor);
     try {
       interpreter.execute(program);
@@ -48,7 +47,7 @@ class BehaviourTest {
 
     MockDisplay display = new MockDisplay(inputs);
 
-    BazLangExecutor executor = new BazLangExecutor(state, display);
+    ProgramManager executor = new ProgramManager(state, display);
     Interpreter interpreter = new Interpreter(state, executor);
     try {
       interpreter.execute(program);
@@ -87,7 +86,7 @@ class BehaviourTest {
             List.of("42", "HELLO"));
 
     assertEquals(42.0, state.numArray("A").data()[4]); // 1-based index 5 is data[4]
-    String b2 = new String(state.strArray("B$").data(), 10, 10, StandardCharsets.UTF_8);
+    String b2 = ((EvalState.StrVar.Array) state.strVar("B$")).elements()[1].toJavaString();
     assertTrue(b2.startsWith("HELLO"));
   }
 

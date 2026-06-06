@@ -12,15 +12,19 @@ import java.util.TreeMap;
 public class EvalState {
   public record NumArray(List<Integer> dimensions, double[] data) {}
 
-  public record StrArray(List<Integer> dimensions, int fixedStrLen, byte[] data) {}
+  public sealed interface StrVar {
+    record Scalar(BStr value) implements StrVar {}
+
+    record Array(List<Integer> arrayDimensions, int stringLength, BStr[] elements)
+        implements StrVar {}
+  }
 
   public record ForLoopData(double limit, double step, int loopPc) {}
 
   private final NavigableMap<Integer, ProgramLine> program = new TreeMap<>();
   private final Map<String, Double> numScalars = new HashMap<>();
   private final Map<String, NumArray> numArrays = new HashMap<>();
-  private final Map<String, BStr> strVars = new HashMap<>();
-  private final Map<String, StrArray> strArrays = new HashMap<>();
+  private final Map<String, StrVar> strVars = new HashMap<>();
   private final Map<String, ForLoopData> forLoops = new HashMap<>();
   private final Deque<Integer> returnStack = new ArrayDeque<>();
   private final Random random = new Random();
@@ -69,36 +73,22 @@ public class EvalState {
     numArrays.put(name, arr);
   }
 
-  // ===== String scalar variables =====
+  // ===== String variables (Scalar and Array) =====
 
   public boolean hasStrVar(String name) {
     return strVars.containsKey(name);
   }
 
-  public BStr strVar(String name) {
+  public StrVar strVar(String name) {
     return strVars.get(name);
   }
 
-  public void setStrVar(String name, BStr val) {
+  public void setStrVar(String name, StrVar val) {
     strVars.put(name, val);
   }
 
   public void removeStrVar(String name) {
     strVars.remove(name);
-  }
-
-  // ===== String arrays =====
-
-  public boolean hasStrArray(String name) {
-    return strArrays.containsKey(name);
-  }
-
-  public StrArray strArray(String name) {
-    return strArrays.get(name);
-  }
-
-  public void setStrArray(String name, StrArray arr) {
-    strArrays.put(name, arr);
   }
 
   // ===== FOR loop tracking =====
@@ -193,7 +183,6 @@ public class EvalState {
     numScalars.clear();
     numArrays.clear();
     strVars.clear();
-    strArrays.clear();
     forLoops.clear();
     returnStack.clear();
     clearPendingJump();

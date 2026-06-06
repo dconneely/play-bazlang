@@ -17,7 +17,7 @@ class StrTest {
 
     EvalState state = new EvalState();
     MockDisplay display = new MockDisplay();
-    BazLangExecutor executor = new BazLangExecutor(state, display);
+    ProgramManager executor = new ProgramManager(state, display);
     Interpreter interpreter = new Interpreter(state, executor);
 
     interpreter.execute(program);
@@ -32,7 +32,7 @@ class StrTest {
 
     EvalState state = new EvalState();
     MockDisplay display = new MockDisplay();
-    BazLangExecutor executor = new BazLangExecutor(state, display);
+    ProgramManager executor = new ProgramManager(state, display);
     Interpreter interpreter = new Interpreter(state, executor);
 
     interpreter.execute(program);
@@ -422,5 +422,64 @@ class StrTest {
   void testNumericArraySliceNotAllowed() {
     // Slices not allowed on numeric arrays
     assertThrows(ReportException.class, () -> runProgram("10 DIM A(5)\n20 PRINT A(1 TO 3)"));
+  }
+
+  @Test
+  void testZx81MonthsArray() {
+    String source =
+        """
+        10 DIM M$(12, 3)
+        20 LET M$(1)="JAN"
+        30 LET M$(2)="FEBRUARY"
+        40 LET M$(3)="MAR"
+        50 PRINT M$(2)
+        60 PRINT M$(2, 1 TO 2)
+        """;
+    // "FEBRUARY" is truncated to 3 characters: "FEB"
+    // "FEB" sliced 1 TO 2 is "FE"
+    runProgram(source, "FEB" + System.lineSeparator() + "FE" + System.lineSeparator());
+  }
+
+  @Test
+  void testZxSpectrumAdventureMap3DArray() {
+    String source =
+        """
+        10 DIM M$(2, 2, 5)
+        20 LET M$(1, 1)="TREES"
+        30 LET M$(1, 2)="WATER"
+        40 LET M$(2, 1)="PATH "
+        50 LET M$(2, 2)="CAVE "
+        60 PRINT M$(1, 2)
+        70 PRINT M$(2, 1, 1 TO 4)
+        """;
+    runProgram(source, "WATER" + System.lineSeparator() + "PATH" + System.lineSeparator());
+  }
+
+  @Test
+  void testZxSpectrumScrollingMessage() {
+    String source =
+        """
+        10 LET A$="HELLO WORLD "
+        20 LET A$=A$(2 TO ) + A$(1)
+        30 PRINT A$
+        40 LET A$=A$(2 TO ) + A$(1)
+        50 PRINT A$
+        """;
+    runProgram(
+        source, "ELLO WORLD H" + System.lineSeparator() + "LLO WORLD HE" + System.lineSeparator());
+  }
+
+  @Test
+  void testZx81VariableStringBuilding() {
+    String source =
+        """
+        10 LET A$=""
+        20 LET A$=A$+"Z"
+        30 LET A$=A$+"X"
+        40 LET A$=A$+"8"
+        50 LET A$=A$+"1"
+        60 PRINT A$
+        """;
+    runProgram(source, "ZX81" + System.lineSeparator());
   }
 }

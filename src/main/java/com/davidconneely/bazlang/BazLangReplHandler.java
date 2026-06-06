@@ -9,14 +9,14 @@ import com.davidconneely.repl.Shell;
 public final class BazLangReplHandler implements ReplHandler {
   private final AntlrParser parser;
   private final EvalState state;
-  private final BazLangExecutor executor;
+  private final ProgramManager executor;
   private final ProgramEditor programEditor;
   private final Interpreter interpreter;
 
   public BazLangReplHandler(
       AntlrParser parser,
       EvalState state,
-      BazLangExecutor executor,
+      ProgramManager executor,
       ProgramEditor programEditor,
       Interpreter interpreter) {
     this.parser = parser;

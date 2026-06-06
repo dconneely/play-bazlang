@@ -16,7 +16,7 @@ class LanguageReferenceTest {
     Map<Integer, ProgramLine> program = PARSER.parseProgramLines(source);
     EvalState state = new EvalState();
     MockDisplay display = new MockDisplay();
-    BazLangExecutor executor = new BazLangExecutor(state, display);
+    ProgramManager executor = new ProgramManager(state, display);
     Interpreter interpreter = new Interpreter(state, executor);
     try {
       interpreter.execute(program);
@@ -98,8 +98,8 @@ class LanguageReferenceTest {
         20 LET B$ = STR$(123)
         """;
     EvalState state = runProgram(source);
-    assertEquals("A", state.strVar("A$").toJavaString());
-    assertEquals("123", state.strVar("B$").toJavaString());
+    assertEquals("A", ((EvalState.StrVar.Scalar) state.strVar("A$")).value().toJavaString());
+    assertEquals("123", ((EvalState.StrVar.Scalar) state.strVar("B$")).value().toJavaString());
   }
 
   @Test
@@ -145,7 +145,7 @@ class LanguageReferenceTest {
     // RND returns value between 0 and 1
     double r = state.numVar("R");
     assertEquals(true, r >= 0.0 && r < 1.0);
-    assertEquals("", state.strVar("I$").toJavaString());
+    assertEquals("", ((EvalState.StrVar.Scalar) state.strVar("I$")).value().toJavaString());
   }
 
   @Test
@@ -249,7 +249,8 @@ class LanguageReferenceTest {
         20 LET NAME$ = NAME$ + " World"
         """;
     EvalState state = runProgram(source);
-    assertEquals("Hello World", state.strVar("NAME$").toJavaString());
+    assertEquals(
+        "Hello World", ((EvalState.StrVar.Scalar) state.strVar("NAME$")).value().toJavaString());
   }
 
   @Test
@@ -281,8 +282,8 @@ class LanguageReferenceTest {
         30 LET eq = (a$ = b$)
         """;
     EvalState state = runProgram(source);
-    assertEquals("Hello", state.strVar("A$").toJavaString());
-    assertEquals("HELLO", state.strVar("B$").toJavaString());
+    assertEquals("Hello", ((EvalState.StrVar.Scalar) state.strVar("A$")).value().toJavaString());
+    assertEquals("HELLO", ((EvalState.StrVar.Scalar) state.strVar("B$")).value().toJavaString());
     assertEquals(0.0, state.numVar("EQ")); // Not equal - case sensitive
   }
 
@@ -297,8 +298,8 @@ class LanguageReferenceTest {
             30 LET C = LEN(B$)
             40 LET D = CODEPOINT(B$)
             """);
-    assertEquals("A", state.strVar("A$").toJavaString());
-    assertEquals("█", state.strVar("B$").toJavaString());
+    assertEquals("A", ((EvalState.StrVar.Scalar) state.strVar("A$")).value().toJavaString());
+    assertEquals("█", ((EvalState.StrVar.Scalar) state.strVar("B$")).value().toJavaString());
     assertEquals(3.0, state.numVar("C")); // █ is 3 UTF-8 bytes
     assertEquals(9608.0, state.numVar("D")); // CODEPOINT recovers original value
   }

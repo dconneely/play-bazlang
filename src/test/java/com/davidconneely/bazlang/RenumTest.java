@@ -11,7 +11,7 @@ class RenumTest {
   private static final AntlrParser PARSER = new AntlrParser();
 
   private ProgramEditor makeEditor(EvalState state, MockDisplay display) {
-    BazLangExecutor executor = new BazLangExecutor(state, display);
+    ProgramManager executor = new ProgramManager(state, display);
     return new ProgramEditor(state, display, PARSER, executor::evalNum);
   }
 

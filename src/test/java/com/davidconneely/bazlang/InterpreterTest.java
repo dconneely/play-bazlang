@@ -18,7 +18,7 @@ class InterpreterTest {
 
     EvalState state = new EvalState();
     MockDisplay display = new MockDisplay();
-    BazLangExecutor executor = new BazLangExecutor(state, display);
+    ProgramManager executor = new ProgramManager(state, display);
     Interpreter interpreter = new Interpreter(state, executor);
 
     try {
@@ -37,7 +37,7 @@ class InterpreterTest {
 
     EvalState state = new EvalState();
     MockDisplay display = new MockDisplay();
-    BazLangExecutor executor = new BazLangExecutor(state, display);
+    ProgramManager executor = new ProgramManager(state, display);
     Interpreter interpreter = new Interpreter(state, executor);
 
     try {
@@ -55,7 +55,7 @@ class InterpreterTest {
 
     EvalState state = new EvalState();
     MockDisplay display = new MockDisplay();
-    BazLangExecutor executor = new BazLangExecutor(state, display);
+    ProgramManager executor = new ProgramManager(state, display);
     Interpreter interpreter = new Interpreter(state, executor);
 
     try {
@@ -209,7 +209,7 @@ class InterpreterTest {
     try {
       var program = PARSER.parseProgramLines(source);
       EvalState state = new EvalState();
-      BazLangExecutor executor = new BazLangExecutor(state, display);
+      ProgramManager executor = new ProgramManager(state, display);
       Interpreter interpreter = new Interpreter(state, executor);
       interpreter.execute(program);
     } catch (ReportException re) {

@@ -93,6 +93,37 @@ public final class BStr implements Comparable<BStr> {
   }
 
   /**
+   * Returns a new BStr with the specified slice (1-based, inclusive) replaced by the given
+   * replacement BStr. The replacement is padded with spaces or truncated to fit the slice length.
+   */
+  public BStr withSlice(int from, int to, BStr replacement) {
+    if (from < 1 || to > bytes.length || from > to + 1) {
+      throw new IllegalArgumentException("Slice out of bounds");
+    }
+    int sliceLen = to - from + 1;
+    byte[] result = Arrays.copyOf(bytes, bytes.length);
+    for (int i = 0; i < sliceLen; i++) {
+      result[from - 1 + i] = (i < replacement.length()) ? (byte) replacement.byteAt(i) : (byte) ' ';
+    }
+    return new BStr(result);
+  }
+
+  /**
+   * Returns a new BStr of the specified length. If this BStr is shorter, it is padded with spaces.
+   * If it is longer, it is truncated.
+   */
+  public BStr paddedOrTruncatedTo(int length) {
+    if (length == bytes.length) {
+      return this;
+    }
+    byte[] result = new byte[length];
+    for (int i = 0; i < length; i++) {
+      result[i] = (i < bytes.length) ? bytes[i] : (byte) ' ';
+    }
+    return new BStr(result);
+  }
+
+  /**
    * Converts this BStr to a Java String using UTF-8 Clean-8 (utf8-c8): valid UTF-8 sequences are
    * decoded to their natural Unicode codepoints; any invalid or lone byte 0xNN is emitted as the
    * 4-codepoint synthetic {@code [U+10FFFD, 'x', upper-hex-nibble, lower-hex-nibble]}.

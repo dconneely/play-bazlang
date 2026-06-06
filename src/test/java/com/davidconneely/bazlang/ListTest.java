@@ -13,14 +13,14 @@ class ListTest {
 
   private EvalState state;
   private MockDisplay display;
-  private BazLangExecutor executor;
+  private ProgramManager executor;
   private AntlrParser parser;
 
   @BeforeEach
   void setUp() {
     state = new EvalState();
     display = new MockDisplay();
-    executor = new BazLangExecutor(state, display);
+    executor = new ProgramManager(state, display);
     parser = new AntlrParser();
     // Set up a simple program
     state.program().put(10, new ProgramLine(10, "PRINT \"HELLO\""));
