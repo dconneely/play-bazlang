@@ -505,18 +505,10 @@ public class StatementExecutor extends BazLangBaseVisitor<Object> {
       // Scalar assignment
       EvalState.StrVar var = state.strVar(name);
       if (var instanceof EvalState.StrVar.Array ca) {
-        for (int i = 0; i < ca.elements().length; i++) {
-          int offset = i * ca.stringLength();
-          int remaining = Math.max(0, val.length() - offset);
-          if (remaining == 0) {
-            ca.elements()[i] = BStr.EMPTY.paddedOrTruncatedTo(ca.stringLength());
-          } else if (remaining >= ca.stringLength()) {
-            ca.elements()[i] = val.slice(offset + 1, offset + ca.stringLength());
-          } else {
-            ca.elements()[i] =
-                val.slice(offset + 1, val.length()).paddedOrTruncatedTo(ca.stringLength());
-          }
+        if (!ca.arrayDimensions().isEmpty()) {
+          throw codedException(ReportCode.SUBSCRIPT_WRONG, "Subscript wrong");
         }
+        ca.elements()[0] = val.paddedOrTruncatedTo(ca.stringLength());
         return;
       }
       state.setStrVar(name, new EvalState.StrVar.Scalar(val));

@@ -192,14 +192,27 @@ class StrTest {
   }
 
   @Test
-  void testStrNamespaceConflict() {
+  void testAssignMultiDimArrayWithoutSubscriptThrows() {
     String source =
         """
         10 DIM a$(5,10)
         20 LET a$="HI"
-        30 PRINT a$(1);a$(2)
         """;
-    runProgram(source, "HI                  " + System.lineSeparator());
+    ReportException e = assertThrows(ReportException.class, () -> runProgram(source));
+    assertEquals(ReportCode.SUBSCRIPT_WRONG, e.reportCode());
+  }
+
+  @Test
+  void testReadMultiDimArrayWithoutSubscriptThrows() {
+    String source =
+        """
+        10 DIM a$(2,5)
+        20 LET a$(1)="HELLO"
+        30 LET a$(2)="THERE"
+        40 PRINT a$
+        """;
+    ReportException e = assertThrows(ReportException.class, () -> runProgram(source));
+    assertEquals(ReportCode.SUBSCRIPT_WRONG, e.reportCode());
   }
 
   @Test
@@ -217,6 +230,11 @@ class StrTest {
     runProgram(
         "10 DIM A$(2, 2, 5)\n20 LET A$(1, 2)=\"HI\"\n30 PRINT A$(1, 2)",
         "HI   " + System.lineSeparator());
+
+    // 4D: DIM A$(2, 2, 2, 5) -> A$(1, 2, 1) is 5 chars
+    runProgram(
+        "10 DIM A$(2, 2, 2, 5)\n20 LET A$(1, 2, 1)=\"FOUR\"\n30 PRINT A$(1, 2, 1)",
+        "FOUR " + System.lineSeparator());
   }
 
   @Test

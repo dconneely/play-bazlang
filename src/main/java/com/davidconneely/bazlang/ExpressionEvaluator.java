@@ -322,8 +322,11 @@ public class ExpressionEvaluator extends BazLangBaseVisitor<Object> {
   public BStr visitStrVarExpr(StrVarExprContext ctx) {
     String name = ctx.STR_IDENTIFIER().getText().toUpperCase();
     EvalState.StrVar var = state.strVar(name);
-    if (var instanceof EvalState.StrVar.Array ca && ca.arrayDimensions().isEmpty()) {
-      return ca.elements()[0];
+    if (var instanceof EvalState.StrVar.Array ca) {
+      if (ca.arrayDimensions().isEmpty()) {
+        return ca.elements()[0];
+      }
+      throw codedException(ReportCode.SUBSCRIPT_WRONG, "Subscript wrong");
     }
     if (var instanceof EvalState.StrVar.Scalar s) {
       return s.value();
@@ -438,8 +441,11 @@ public class ExpressionEvaluator extends BazLangBaseVisitor<Object> {
     if (ctx.STR_IDENTIFIER() != null) {
       String name = ctx.STR_IDENTIFIER().getText().toUpperCase();
       EvalState.StrVar var = state.strVar(name);
-      if (var instanceof EvalState.StrVar.Array ca && ca.arrayDimensions().isEmpty()) {
-        return ca.elements()[0];
+      if (var instanceof EvalState.StrVar.Array ca) {
+        if (ca.arrayDimensions().isEmpty()) {
+          return ca.elements()[0];
+        }
+        throw codedException(ReportCode.SUBSCRIPT_WRONG, "Subscript wrong");
       }
       if (var instanceof EvalState.StrVar.Scalar s) {
         return s.value();
