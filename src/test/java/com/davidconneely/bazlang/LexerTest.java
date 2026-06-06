@@ -10,7 +10,6 @@ import org.junit.jupiter.api.Test;
  * identified and parsed.
  */
 class LexerTest {
-  private final AntlrParser parser = new AntlrParser();
 
   @Test
   void testValidTokens() {
@@ -32,6 +31,7 @@ class LexerTest {
 
   private void assertParses(String source) {
     assertDoesNotThrow(
-        () -> parser.parseProgramLines(source), "Source should parse successfully: " + source);
+        () -> AntlrParser.INSTANCE.parseProgramLines(source),
+        "Source should parse successfully: " + source);
   }
 }

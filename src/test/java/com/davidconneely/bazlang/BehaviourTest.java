@@ -13,7 +13,7 @@ import org.junit.jupiter.api.Test;
 
 /** Ensures that specific documented behaviors are tested. */
 class BehaviourTest {
-  private static final AntlrParser PARSER = new AntlrParser();
+  private static final AntlrParser PARSER = AntlrParser.INSTANCE;
 
   private EvalState runProgram(String source) {
     return runProgram(source, List.of());

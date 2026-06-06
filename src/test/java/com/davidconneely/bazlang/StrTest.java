@@ -10,7 +10,7 @@ import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 class StrTest {
-  private static final AntlrParser PARSER = new AntlrParser();
+  private static final AntlrParser PARSER = AntlrParser.INSTANCE;
 
   private void runProgram(String source, String expectedOutput) {
     Map<Integer, ProgramLine> program = PARSER.parseProgramLines(source);

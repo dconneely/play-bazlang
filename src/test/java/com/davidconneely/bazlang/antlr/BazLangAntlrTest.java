@@ -13,7 +13,7 @@ import org.junit.jupiter.api.Test;
  */
 class BazLangAntlrTest {
 
-  private final AntlrParser parser = new AntlrParser();
+  private final AntlrParser parser = AntlrParser.INSTANCE;
 
   @Test
   void testSimplePrint() {

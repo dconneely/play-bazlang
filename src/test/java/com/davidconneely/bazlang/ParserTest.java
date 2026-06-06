@@ -8,7 +8,6 @@ import org.junit.jupiter.api.Test;
 
 /** Behaviour-biased tests for the Parser. */
 class ParserTest {
-  private final AntlrParser parser = new AntlrParser();
 
   @Test
   void testValidPrintStatements() {
@@ -99,7 +98,8 @@ class ParserTest {
 
   private void assertParses(String source) {
     assertDoesNotThrow(
-        () -> parser.parseProgramLines(source), "Source should parse successfully: " + source);
+        () -> AntlrParser.INSTANCE.parseProgramLines(source),
+        "Source should parse successfully: " + source);
   }
 
   private void assertFails(String source) {
@@ -107,9 +107,9 @@ class ParserTest {
         ReportException.class,
         () -> {
           // parseProgramLines doesn't parse immediately, so force parsing
-          var lines = parser.parseProgramLines(source);
+          var lines = AntlrParser.INSTANCE.parseProgramLines(source);
           for (var line : lines.values()) {
-            line.getStatement(parser);
+            line.getStatement(AntlrParser.INSTANCE);
           }
         },
         "Source should fail to parse: " + source);

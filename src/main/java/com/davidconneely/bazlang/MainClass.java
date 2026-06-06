@@ -10,7 +10,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 public class MainClass {
-  private static final AntlrParser PARSER = new AntlrParser();
+  private static final AntlrParser PARSER = AntlrParser.INSTANCE;
 
   public static void main(String[] args) {
     BazLangDisplay display = createDisplay();

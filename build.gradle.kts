@@ -84,7 +84,7 @@ tasks.withType<Checkstyle>().configureEach {
 pmd {
   toolVersion = libs.versions.pmd.get()
   isConsoleOutput = true
-  isIgnoreFailures = true
+  isIgnoreFailures = false
   ruleSets = emptyList()
   ruleSetFiles = files("config/pmd/ruleset.xml")
 }
@@ -96,13 +96,13 @@ tasks.withType<Pmd>().configureEach {
 // SpotBugs
 spotbugs {
   toolVersion = libs.versions.spotbugs.tool.get()
-  ignoreFailures = true
+  ignoreFailures = false
 }
 
 tasks.withType<com.github.spotbugs.snom.SpotBugsTask>().configureEach {
   excludeFilter.set(file("config/spotbugs/exclude.xml"))
   reports {
     create("html") { required.set(true) }
-    create("xml") { required.set(false) }
+    create("xml") { required.set(true) }
   }
 }

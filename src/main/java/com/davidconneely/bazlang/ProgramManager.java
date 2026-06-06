@@ -5,7 +5,7 @@ import com.davidconneely.bazlang.antlr.BazLangParser.*;
 import com.davidconneely.bazlang.io.BazLangDisplay;
 
 public class ProgramManager extends StatementExecutor {
-  private static final AntlrParser PARSER = new AntlrParser();
+  private static final AntlrParser PARSER = AntlrParser.INSTANCE;
 
   public ProgramManager(EvalState state, BazLangDisplay display) {
     super(

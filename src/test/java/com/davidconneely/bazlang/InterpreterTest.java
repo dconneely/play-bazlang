@@ -11,7 +11,7 @@ import com.davidconneely.bazlang.io.MockDisplay;
 import org.junit.jupiter.api.Test;
 
 class InterpreterTest {
-  private static final AntlrParser PARSER = new AntlrParser();
+  private static final AntlrParser PARSER = AntlrParser.INSTANCE;
 
   private void runProgram(String source, String expectedOutput) {
     var program = PARSER.parseProgramLines(source);

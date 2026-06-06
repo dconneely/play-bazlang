@@ -10,7 +10,7 @@ import org.junit.jupiter.api.Test;
 
 /** Tests covering the language features described in docs/language_features.md. */
 class LanguageReferenceTest {
-  private static final AntlrParser PARSER = new AntlrParser();
+  private static final AntlrParser PARSER = AntlrParser.INSTANCE;
 
   private EvalState runProgram(String source) {
     Map<Integer, ProgramLine> program = PARSER.parseProgramLines(source);

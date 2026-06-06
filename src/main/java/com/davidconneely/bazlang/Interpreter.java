@@ -9,7 +9,7 @@ import java.io.IOException;
 import java.util.Map;
 
 public class Interpreter {
-  private static final AntlrParser PARSER = new AntlrParser();
+  private static final AntlrParser PARSER = AntlrParser.INSTANCE;
   private final EvalState state;
   private final ProgramManager executor;
 

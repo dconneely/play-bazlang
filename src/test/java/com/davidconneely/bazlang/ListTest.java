@@ -21,7 +21,7 @@ class ListTest {
     state = new EvalState();
     display = new MockDisplay();
     executor = new ProgramManager(state, display);
-    parser = new AntlrParser();
+    parser = AntlrParser.INSTANCE;
     // Set up a simple program
     state.program().put(10, new ProgramLine(10, "PRINT \"HELLO\""));
     state.program().put(20, new ProgramLine(20, "GOTO 40"));

@@ -8,7 +8,7 @@ import com.davidconneely.bazlang.io.MockDisplay;
 import org.junit.jupiter.api.Test;
 
 class RenumTest {
-  private static final AntlrParser PARSER = new AntlrParser();
+  private static final AntlrParser PARSER = AntlrParser.INSTANCE;
 
   private ProgramEditor makeEditor(EvalState state, MockDisplay display) {
     ProgramManager executor = new ProgramManager(state, display);

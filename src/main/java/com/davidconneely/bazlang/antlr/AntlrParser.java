@@ -10,6 +10,7 @@ import org.antlr.v4.runtime.*;
 
 /** Parser facade that uses ANTLR to parse BazLang source code. */
 public class AntlrParser {
+  public static final AntlrParser INSTANCE = new AntlrParser();
   private static final Pattern LINE_PATTERN = Pattern.compile("^(\\d+)\\s*(.*)$");
 
   /**

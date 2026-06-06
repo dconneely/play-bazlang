@@ -78,44 +78,11 @@ public class ProgramEditor {
       return;
     }
 
-    int newStart = 10;
-    int newStep = 10;
-    int oldStart = program.firstKey();
-    int oldEnd = program.lastKey();
-
-    if (args != null) {
-      var nums = args.numExpr();
-      int numIndex = 0;
-
-      if (!nums.isEmpty() && args.STEP() == null
-          || !nums.isEmpty()
-              && args.getText().toUpperCase().indexOf("STEP")
-                  > args.getText().indexOf(nums.getFirst().getText())) {
-        newStart = (int) numEval.applyAsDouble(nums.get(numIndex++));
-      }
-
-      if (args.STEP() != null && numIndex < nums.size()) {
-        newStep = (int) numEval.applyAsDouble(nums.get(numIndex++));
-      }
-
-      if (args.TO() != null) {
-        String argsText = args.getText().toUpperCase();
-        int commaPos = argsText.indexOf(',');
-        int toPos = argsText.indexOf("TO");
-
-        if (commaPos >= 0 && numIndex < nums.size()) {
-          String numText = nums.get(numIndex).getText();
-          int numPos = argsText.indexOf(numText, commaPos);
-          if (numPos < toPos) {
-            oldStart = (int) numEval.applyAsDouble(nums.get(numIndex++));
-          }
-        }
-
-        if (numIndex < nums.size()) {
-          oldEnd = (int) numEval.applyAsDouble(nums.get(numIndex));
-        }
-      }
-    }
+    int[] parsedArgs = parseRenumArgs(program, args);
+    int newStart = parsedArgs[0];
+    int newStep = parsedArgs[1];
+    int oldStart = parsedArgs[2];
+    int oldEnd = parsedArgs[3];
 
     if (newStart < Limits.MIN_LINE_LABEL) {
       throw new ReportException(
@@ -260,6 +227,48 @@ public class ProgramEditor {
    * Parses a line range for DELETE and REFORMAT: a single number means "just that line"; at least
    * one number is required.
    */
+  private int[] parseRenumArgs(Program program, BazLangParser.RenumArgsContext args) {
+    int newStart = 10;
+    int newStep = 10;
+    int oldStart = program.firstKey();
+    int oldEnd = program.lastKey();
+
+    if (args != null) {
+      var nums = args.numExpr();
+      int numIndex = 0;
+
+      if (!nums.isEmpty() && args.STEP() == null
+          || !nums.isEmpty()
+              && args.getText().toUpperCase().indexOf("STEP")
+                  > args.getText().indexOf(nums.getFirst().getText())) {
+        newStart = (int) numEval.applyAsDouble(nums.get(numIndex++));
+      }
+
+      if (args.STEP() != null && numIndex < nums.size()) {
+        newStep = (int) numEval.applyAsDouble(nums.get(numIndex++));
+      }
+
+      if (args.TO() != null) {
+        String argsText = args.getText().toUpperCase();
+        int commaPos = argsText.indexOf(',');
+        int toPos = argsText.indexOf("TO");
+
+        if (commaPos >= 0 && numIndex < nums.size()) {
+          String numText = nums.get(numIndex).getText();
+          int numPos = argsText.indexOf(numText, commaPos);
+          if (numPos < toPos) {
+            oldStart = (int) numEval.applyAsDouble(nums.get(numIndex++));
+          }
+        }
+
+        if (numIndex < nums.size()) {
+          oldEnd = (int) numEval.applyAsDouble(nums.get(numIndex));
+        }
+      }
+    }
+    return new int[] {newStart, newStep, oldStart, oldEnd};
+  }
+
   private int[] parseDeleteReformatLineRange(BazLangParser.LineRangeContext range) {
     if (range == null) {
       throw new ReportException(

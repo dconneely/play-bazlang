@@ -44,6 +44,7 @@
         <exclude name="UnnecessaryCast"/>
         <exclude name="UseExplicitTypes"/>
         <exclude name="UselessParentheses"/>
+        <exclude name="PrematureDeclaration"/>
     </rule>
 
     <!-- Design - interpreter classes are inherently complex -->
@@ -98,6 +99,7 @@
     <rule ref="category/java/multithreading.xml">
         <exclude name="DoNotUseThreads"/>
         <exclude name="UseConcurrentHashMap"/>
+        <exclude name="AvoidUsingVolatile"/>
     </rule>
 
     <!-- Performance -->
