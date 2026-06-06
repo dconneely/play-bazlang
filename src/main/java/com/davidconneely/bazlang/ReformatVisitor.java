@@ -175,6 +175,11 @@ public class ReformatVisitor extends BazLangBaseVisitor<String> {
   }
 
   @Override
+  public String visitPlotmodeStmt(PlotmodeStmtContext ctx) {
+    return "PLOTMODE " + visit(ctx.numExpr());
+  }
+
+  @Override
   public String visitPokeStmt(PokeStmtContext ctx) {
     return "POKE " + visit(ctx.numExpr(0)) + ", " + visit(ctx.numExpr(1));
   }

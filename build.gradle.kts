@@ -6,6 +6,7 @@ plugins {
   pmd
   alias(libs.plugins.spotless)
   alias(libs.plugins.spotbugs)
+  jacoco
 }
 
 repositories {
@@ -87,6 +88,26 @@ pmd {
   isIgnoreFailures = false
   ruleSets = emptyList()
   ruleSetFiles = files("config/pmd/ruleset.xml")
+}
+
+tasks.jacocoTestReport {
+  dependsOn(tasks.test)
+  reports {
+    xml.required.set(true)
+    html.required.set(true)
+    csv.required.set(true)
+  }
+  classDirectories.setFrom(
+    files(classDirectories.files.map {
+      fileTree(it) {
+        exclude("**/antlr/**")
+      }
+    })
+  )
+}
+
+tasks.check {
+  dependsOn(tasks.jacocoTestReport)
 }
 
 tasks.withType<Pmd>().configureEach {
