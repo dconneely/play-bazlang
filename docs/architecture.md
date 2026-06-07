@@ -17,13 +17,13 @@ and runs code in two main steps.
 
 ### Line-Based Flow
 Everything depends on line numbers. The interpreter usually goes from one line to the next
-highest number. Commands like `GOTO` or `FOR` change this order by telling the interpreter
+highest number. Commands like `GO TO` or `FOR` change this order by telling the interpreter
 to jump to a different line.
 
 ### Memory & Persistence
 Variables are stored in a central "state" while the program runs. Numbers and strings are
 kept separate. This state persists even if the program stops (via `STOP`), allowing you to
-check variables and then `CONT`inue.
+check variables and then `CONTINUE`.
 
 ### Screen Layout
 The terminal display is divided into regions:

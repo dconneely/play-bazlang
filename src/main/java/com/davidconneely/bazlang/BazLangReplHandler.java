@@ -116,7 +116,7 @@ public final class BazLangReplHandler implements ReplHandler {
         }
         index++;
       }
-      // If a jump occurred to > 0 (like RUN or GOTO), resume the interpreter
+      // If a jump occurred to > 0 (like RUN or GO TO), resume the interpreter
       if (state.hasPendingJump()
           && state.pendingJumpLabel() != null
           && state.pendingJumpLabel() > 0) {

@@ -1,6 +1,6 @@
 # BazLang Reference
 
-BazLang is a BASIC dialect based on the Sinclair ZX81. This file lists the available
+BazLang is a BASIC dialect based on Sinclair ZX BASIC (supporting a superset of both ZX81 and ZX Spectrum). This file lists the available
 commands, functions, and syntax rules.
 
 ## 1. Structure
@@ -67,8 +67,8 @@ Returns `1` for True, `0` for False.
 
 - `NOT` - Returns 1 if operand is 0, else 0
 - `AND` - `A AND B` returns A if B≠0, else 0 for numeric A;
-  `S$ AND B` returns S\$ if B≠0, else "" for string S\$ (ZX81 style)
-- `OR` - `A OR B` returns 1 if B≠0, else A (ZX81 style, numeric operands only)
+  `S$ AND B` returns S\$ if B≠0, else "" for string S\$ (Sinclair ZX style)
+- `OR` - `A OR B` returns 1 if B≠0, else A (Sinclair ZX style, numeric operands only)
 
 ### Strings
 
@@ -78,12 +78,12 @@ Returns `1` for True, `0` for False.
 
 ### Flow Control
 
-- **`GOTO n`**: Jump to line `n`. If missing, jumps to the next one.
-- **`GOSUB n` ... `RETURN`**: Call a subroutine.
+- **`GO TO n`** (alias **`GOTO n`**): Jump to line `n`. If missing, jumps to the next one.
+- **`GO SUB n`** (alias **`GOSUB n`**) ... `RETURN`: Call a subroutine.
 - **`IF condition THEN statement`**: Run statement if true. No `ELSE`.
 - **`FOR var = start TO end STEP step` ... `NEXT var`**: Loop.
 - **`STOP`**: Stop the program.
-- **`CONT`**: Continue after a `STOP`.
+- **`CONTINUE`** (alias **`CONT`**): Continue after a `STOP`.
 - **`PAUSE n`**: Wait for `n` frames (each frame is 1/50 second = 20ms). Fractional values are accepted, e.g. `PAUSE 0.5` waits 10ms.
 - **`RUN n`**: Restart program from line `n`.
 
@@ -92,6 +92,7 @@ Returns `1` for True, `0` for False.
 - **`PRINT`**: Print to screen.
     - `;`: Join items.
     - `,`: Tab to next zone.
+    - `'`: Advance print position to start of next line.
     - `AT y, x`: Move cursor.
     - `TAB n`: Move to column `n`.
 - **`LPRINT`**: Print to "printer" (standard error).
@@ -122,20 +123,12 @@ Returns `1` for True, `0` for False.
 - **`CLEAR`**: Clear all variables (keeps program).
 - **`SAVE "file"`**: Save program to file.
 - **`LOAD "file"`**: Load program from file.
+- **`RANDOMIZE n`** (aliases **`RAND n`**, **`RANDOMISE n`**): Seed the random number generator. If `n` is `0` or omitted, it seeds dynamically using system entropy.
 
 ### Data
 
 - **`LET var = value`**: Set a variable.
 - **`DIM var(size)`**: Create an array.
-
-### ZX81 Compatibility Stubs
-
-These commands are recognized but have no effect (for source compatibility):
-
-- **`COPY`**: Would copy screen to printer on ZX81.
-- **`FAST`** / **`SLOW`**: Display modes on ZX81.
-- **`POKE addr, val`**: Memory access on ZX81.
-- **`RAND n`**: Seed random number generator (ignored; use for source compatibility).
 
 ## 5. Functions
 
@@ -163,8 +156,6 @@ These commands are recognized but have no effect (for source compatibility):
   ```
 - **Trig**: `SIN`, `COS`, `TAN`, `ASN`, `ACS`, `ATN`.
 - **Logs**: `EXP`, `LN`.
-- **`PEEK addr`**: Memory read (always returns 0, for compatibility).
-- **`USR addr`**: Machine code call (always returns 0, for compatibility).
 
 ### String Functions
 
@@ -172,6 +163,7 @@ These commands are recognized but have no effect (for source compatibility):
 - **`CODEPOINT$ x`**: String containing the UTF-8 encoding of Unicode codepoint `x`.
   Use for codepoints above U+007F, e.g. `CODEPOINT$(9608)` for the full-block character █.
 - **`STR$ x`**: Convert number to string.
+- **`VAL$ s$`**: Evaluate a string as a string expression.
 - **`INKEY$`**: Check key press.
 
 ## 6. Slicing
@@ -186,7 +178,7 @@ You can slice strings and arrays. String indices are **byte offsets** (1-based).
 
 ## 7. Number Formatting
 
-Numbers are displayed in ZX81 style:
+Numbers are displayed in Sinclair ZX style:
 - Up to 8 significant digits
 - Scientific notation (E notation) for very small or very large values
 - No trailing zeros after decimal point
@@ -194,13 +186,13 @@ Numbers are displayed in ZX81 style:
 
 Examples: `42`, `3.14159`, `1.23E+15`, `-5E-8`
 
-## 8. Divergences from ZX81 BASIC
+## 8. Divergences from Sinclair ZX BASIC
 
-BazLang follows ZX81 BASIC semantics where practical, with these intentional differences:
+BazLang follows Sinclair ZX BASIC semantics where practical, with these intentional differences:
 
-| Feature        | BazLang                 | ZX81 BASIC                     |
+| Feature        | BazLang                 | Sinclair ZX BASIC              |
 |:---------------|:------------------------|:-------------------------------|
-| Character set  | UTF-8                   | Proprietary ZX81 charset       |
+| Character set  | UTF-8                   | Proprietary ZX charset         |
 | Variable names | Multi-character allowed | Single letters for arrays/FOR  |
 | PAUSE >= 32767 | Waits that many frames  | Waits forever until keypress   |
 | File I/O       | File system             | Tape                           |
@@ -267,4 +259,4 @@ RENUM 100, 50 TO 80
 
 `RENUM` renumbers all lines starting at 10 with step 10. `RENUM n` starts at `n`. `RENUM n STEP s`
 uses step `s`. A comma introduces a range: `RENUM n, from TO to` renumbers lines `from` through
-`to` starting at `n`. Updates `GOTO`/`GOSUB` literal targets automatically.
+`to` starting at `n`. Updates `GO TO`/`GO SUB` literal targets automatically.

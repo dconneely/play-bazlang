@@ -62,12 +62,26 @@ public class Interpreter {
       if (executor.display().pollForBreak()) {
         state.setRunning(false);
         throw new ReportException(
-            ReportCode.BREAK_CONT_REPEATS, nextLabel, ReportCode.BREAK_CONT_REPEATS.getMessage());
+            ReportCode.BREAK_INTO_PROGRAM,
+            state.currentLineLabel(),
+            state.currentStatementIndex(),
+            ReportCode.BREAK_INTO_PROGRAM.getMessage());
       }
-      state.setCurrentLineLabel(nextLabel);
-      // Lazy parse: ParseTree is built on first execution, cached for loops
+
       ProgramLine line = state.program().get(nextLabel);
+      if (line == null) {
+        state.setRunning(false);
+        throw new ReportException(
+            ReportCode.STATEMENT_LOST, state.currentLineLabel(), "Statement lost");
+      }
       List<StatementContext> stmts = line.getFlattenedStatements(PARSER);
+      if (startIndex < 1 || startIndex > stmts.size() + 1) {
+        state.setRunning(false);
+        throw new ReportException(
+            ReportCode.STATEMENT_LOST, state.currentLineLabel(), "Statement lost");
+      }
+
+      state.setCurrentLineLabel(nextLabel);
       int index = 1;
       for (StatementContext stmt : stmts) {
         if (index >= startIndex) {

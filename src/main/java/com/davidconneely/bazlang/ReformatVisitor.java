@@ -23,12 +23,7 @@ public class ReformatVisitor extends BazLangBaseVisitor<String> {
 
   @Override
   public String visitContStmt(ContStmtContext ctx) {
-    return "CONT";
-  }
-
-  @Override
-  public String visitCopyStmt(CopyStmtContext ctx) {
-    return "COPY";
+    return "CONTINUE";
   }
 
   @Override
@@ -52,11 +47,6 @@ public class ReformatVisitor extends BazLangBaseVisitor<String> {
   }
 
   @Override
-  public String visitFastStmt(FastStmtContext ctx) {
-    return "FAST";
-  }
-
-  @Override
   public String visitForStmt(ForStmtContext ctx) {
     StringBuilder sb =
         new StringBuilder("FOR ")
@@ -73,12 +63,12 @@ public class ReformatVisitor extends BazLangBaseVisitor<String> {
 
   @Override
   public String visitGosubStmt(GosubStmtContext ctx) {
-    return "GOSUB " + visit(ctx.numExpr());
+    return "GO SUB " + visit(ctx.numExpr());
   }
 
   @Override
   public String visitGotoStmt(GotoStmtContext ctx) {
-    return "GOTO " + visit(ctx.numExpr());
+    return "GO TO " + visit(ctx.numExpr());
   }
 
   @Override
@@ -180,11 +170,6 @@ public class ReformatVisitor extends BazLangBaseVisitor<String> {
   }
 
   @Override
-  public String visitPokeStmt(PokeStmtContext ctx) {
-    return "POKE " + visit(ctx.numExpr(0)) + ", " + visit(ctx.numExpr(1));
-  }
-
-  @Override
   public String visitPrintStmt(PrintStmtContext ctx) {
     String res = "PRINT";
     if (ctx.printList() != null) {
@@ -226,7 +211,7 @@ public class ReformatVisitor extends BazLangBaseVisitor<String> {
 
   @Override
   public String visitRandStmt(RandStmtContext ctx) {
-    String res = "RAND";
+    String res = "RANDOMIZE";
     if (ctx.numExpr() != null && !isLiteralValue(ctx.numExpr(), 0.0)) {
       res += " " + visit(ctx.numExpr());
     }
@@ -264,11 +249,6 @@ public class ReformatVisitor extends BazLangBaseVisitor<String> {
   }
 
   @Override
-  public String visitSlowStmt(SlowStmtContext ctx) {
-    return "SLOW";
-  }
-
-  @Override
   public String visitStopStmt(StopStmtContext ctx) {
     return "STOP";
   }
@@ -302,6 +282,12 @@ public class ReformatVisitor extends BazLangBaseVisitor<String> {
   }
 
   @Override
+  public String visitBinLiteralExpr(BinLiteralExprContext ctx) {
+    // Preserve BIN literals exactly as written (including any internal spaces).
+    return ctx.BIN_LITERAL().getText().toUpperCase();
+  }
+
+  @Override
   public String visitNumVarExpr(NumVarExprContext ctx) {
     return ctx.NUM_IDENTIFIER().getText().toUpperCase();
   }
@@ -326,7 +312,8 @@ public class ReformatVisitor extends BazLangBaseVisitor<String> {
 
   @Override
   public String visitNumPowerExpr(NumPowerExprContext ctx) {
-    return visit(ctx.numExpr(0)) + " ** " + visit(ctx.numExpr(1));
+    // Normalise ** to ^ in reformatted output.
+    return visit(ctx.numExpr(0)) + " ^ " + visit(ctx.numExpr(1));
   }
 
   @Override

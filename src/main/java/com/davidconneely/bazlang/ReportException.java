@@ -30,6 +30,21 @@ public class ReportException extends RuntimeException {
 
   public String format() {
     String codeStr = (reportCode != null) ? String.valueOf(reportCode.getCode()) : "-";
-    return codeStr + " " + getMessage() + ", " + lineLabel + ":" + statementIndex;
+    String stdMsg = (reportCode != null) ? reportCode.getMessage() : "";
+    String customMsg = getMessage();
+
+    StringBuilder sb = new StringBuilder();
+    sb.append(codeStr).append(' ');
+    if (!stdMsg.isEmpty()) {
+      sb.append(stdMsg);
+    } else {
+      sb.append(customMsg);
+    }
+    sb.append(", ").append(lineLabel).append(':').append(statementIndex);
+
+    if (reportCode != null && customMsg != null && !customMsg.equals(stdMsg)) {
+      sb.append(" (").append(customMsg).append(')');
+    }
+    return sb.toString();
   }
 }

@@ -46,6 +46,16 @@ public class ExpressionEvaluator extends BazLangBaseVisitor<Object> {
   }
 
   @Override
+  public Double visitBinLiteralExpr(BinLiteralExprContext ctx) {
+    // Strip the BIN prefix and any spaces, then parse as binary integer.
+    String digits = ctx.BIN_LITERAL().getText().substring(3).replaceAll("[ \t]", "");
+    if (digits.length() > 64) {
+      throw codedException(ReportCode.NUMBER_TOO_BIG, "Binary literal exceeds 64 digits");
+    }
+    return new java.math.BigInteger(digits, 2).doubleValue();
+  }
+
+  @Override
   public Double visitNumVarExpr(NumVarExprContext ctx) {
     String name = ctx.NUM_IDENTIFIER().getText().toUpperCase();
     if (!state.hasNumVar(name)) {
@@ -237,10 +247,7 @@ public class ExpressionEvaluator extends BazLangBaseVisitor<Object> {
       }
       return (double) (s.nextCodepointStart(pos - 1) + 1); // return 1-based
     }
-    if (ctx.PEEK() != null) {
-      evalNumAtom(ctx.numAtom()); // consume arg
-      return 0.0;
-    }
+
     if (ctx.PI() != null) {
       return Math.PI;
     }
@@ -263,10 +270,7 @@ public class ExpressionEvaluator extends BazLangBaseVisitor<Object> {
     if (ctx.TAN() != null) {
       return Math.tan(evalNumAtom(ctx.numAtom()));
     }
-    if (ctx.USR() != null) {
-      evalNumAtom(ctx.numAtom()); // consume arg
-      return 0.0;
-    }
+
     if (ctx.VAL() != null) {
       String exprStr = evalStrAtom(ctx.strAtom()).toJavaString().trim();
       return evaluateNumericExpression(exprStr);
@@ -315,7 +319,8 @@ public class ExpressionEvaluator extends BazLangBaseVisitor<Object> {
   @Override
   public BStr visitStrLiteralExpr(StrLiteralExprContext ctx) {
     String text = ctx.STR_LITERAL().getText();
-    return BStr.fromJavaString(text.substring(1, text.length() - 1)); // Remove quotes
+    String value = text.substring(1, text.length() - 1).replace("\"\"", "\"");
+    return BStr.fromJavaString(value);
   }
 
   @Override
@@ -426,6 +431,10 @@ public class ExpressionEvaluator extends BazLangBaseVisitor<Object> {
     if (ctx.STR_STR() != null) {
       return BStr.fromJavaString(formatNum(evalNumAtom(ctx.numAtom())));
     }
+    if (ctx.VAL_STR() != null) {
+      String exprStr = evalStrAtom(ctx.strAtom()).toJavaString().trim();
+      return evaluateStringExpression(exprStr);
+    }
     throw codedException(ReportCode.NONSENSE_IN_BASIC, "Unknown string function");
   }
 
@@ -532,6 +541,21 @@ public class ExpressionEvaluator extends BazLangBaseVisitor<Object> {
     }
     NumExprContext exprCtx = parser.parseNumExpr(exprStr);
     return evalNum(exprCtx);
+  }
+
+  /**
+   * Evaluates a string as a string expression. Used by VAL$ function.
+   *
+   * @param exprStr the expression string to evaluate
+   * @return the string result
+   * @throws ReportException if the expression is invalid
+   */
+  public BStr evaluateStringExpression(String exprStr) {
+    if (exprStr.isEmpty()) {
+      throw codedException(ReportCode.NONSENSE_IN_BASIC, "Empty expression");
+    }
+    StrExprContext exprCtx = parser.parseStrExpr(exprStr);
+    return evalStr(exprCtx);
   }
 
   private static final double ULP0 = 1e-39;

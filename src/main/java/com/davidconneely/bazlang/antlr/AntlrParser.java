@@ -116,6 +116,18 @@ public class AntlrParser {
     return parser.numExprInput().numExpr();
   }
 
+  /**
+   * Parse a standalone string expression.
+   *
+   * @param source the expression to parse
+   * @return the parsed StrExprContext
+   * @throws ReportException if parsing fails
+   */
+  public BazLangParser.StrExprContext parseStrExpr(String source) {
+    BazLangParser parser = createParser(source);
+    return parser.strExprInput().strExpr();
+  }
+
   private String getStatementText(String line, int lineNumber) {
     // Extract the statement part after the line number
     String trimmed = line.trim();

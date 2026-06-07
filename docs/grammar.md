@@ -26,7 +26,7 @@ numExpr
     | NUM_IDENTIFIER '(' numExpr (',' numExpr)* ')'         # NumArrayExpr
     | '(' numExpr ')'                                       # NumParenExpr
     | numFunc                                               # NumFuncCallExpr
-    | <assoc=right> numExpr '**' numExpr                    # NumPowerExpr
+    | <assoc=right> numExpr ('**' | '^') numExpr            # NumPowerExpr
     | '-' numExpr                                           # NumUnaryMinusExpr
     | numExpr ('*' | '/') numExpr                           # NumMulDivExpr
     | numExpr ('+' | '-') numExpr                           # NumAddSubExpr
@@ -38,7 +38,7 @@ numExpr
     ;
 ```
 
-Note: `<assoc=right>` makes `**` right-associative, so `2**3**4` = `2**(3**4)`.
+Note: `<assoc=right>` makes `**` and `^` right-associative, so `2^3^4` = `2^(3^4)`.
 
 ### Case Insensitivity
 

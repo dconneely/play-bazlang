@@ -62,7 +62,7 @@ class ReformatTest {
 
     editor.executeReformat(null);
 
-    assertEquals("IF A = 1 THEN GOTO 100", state.program().get(10).sourceText());
+    assertEquals("IF A = 1 THEN GO TO 100", state.program().get(10).sourceText());
     assertEquals("FOR I = 1 TO 10 STEP 2", state.program().get(20).sourceText());
     assertEquals(
         "REM this is a comment", state.program().get(30).sourceText()); // REM is capitalized
@@ -113,7 +113,7 @@ class ReformatTest {
     editor.executeReformat(null);
 
     assertEquals("FOR I = 1 TO 10", state.program().get(10).sourceText());
-    assertEquals("RAND", state.program().get(20).sourceText());
+    assertEquals("RANDOMIZE", state.program().get(20).sourceText());
     assertEquals("RUN", state.program().get(30).sourceText());
     assertEquals("LIST", state.program().get(40).sourceText());
   }

@@ -573,4 +573,222 @@ class BehaviourTest {
     assertEquals("2.25", lines[1]);
     assertEquals("10", lines[2]); // Integer, no decimal point
   }
+
+  @Test
+  void testPrintApostropheSeparator() {
+    // Apostrophe separator moves print position down a line,
+    // and suppresses default trailing newline if trailing.
+    String output1 =
+        runProgramCapture(
+            """
+        10 PRINT "A" ' "B"
+        """);
+    String[] lines1 = output1.split(System.lineSeparator());
+    assertEquals("A", lines1[0]);
+    assertEquals("B", lines1[1]);
+
+    String output2 =
+        runProgramCapture(
+            """
+        10 PRINT "A" ' ' "B"
+        """);
+    String[] lines2 = output2.split(System.lineSeparator());
+    assertEquals("A", lines2[0]);
+    assertEquals("", lines2[1]); // Consecutive apostrophe prints a blank line
+    assertEquals("B", lines2[2]);
+
+    // Test consecutive apostrophes without spaces ('' and ''')
+    String output2b =
+        runProgramCapture(
+            """
+        10 PRINT "A" '' "B"
+        """);
+    String[] lines2b = output2b.split(System.lineSeparator());
+    assertEquals("A", lines2b[0]);
+    assertEquals("", lines2b[1]);
+    assertEquals("B", lines2b[2]);
+
+    String output2c =
+        runProgramCapture(
+            """
+        10 PRINT "A" ''' "B"
+        """);
+    String[] lines2c = output2c.split(System.lineSeparator());
+    assertEquals("A", lines2c[0]);
+    assertEquals("", lines2c[1]);
+    assertEquals("", lines2c[2]);
+    assertEquals("B", lines2c[3]);
+
+    String output3 =
+        runProgramCapture(
+            """
+        10 PRINT "A" '
+        20 PRINT "B"
+        """);
+    String[] lines3 = output3.split(System.lineSeparator());
+    assertEquals("A", lines3[0]);
+    assertEquals("B", lines3[1]); // Trailing apostrophe suppresses automatic newline
+
+    String output4 =
+        runProgramCapture(
+            """
+        10 PRINT ' "A"
+        """);
+    String[] lines4 = output4.split(System.lineSeparator());
+    assertEquals("", lines4[0]); // Leading apostrophe prints a blank line
+    assertEquals("A", lines4[1]);
+
+    // Test LPRINT behavior with apostrophe separators
+    String outputL1 =
+        runProgramCapture(
+            """
+        10 LPRINT "A" '' "B"
+        """);
+    String[] linesL1 = outputL1.split(System.lineSeparator());
+    assertEquals("A", linesL1[0]);
+    assertEquals("", linesL1[1]);
+    assertEquals("B", linesL1[2]);
+
+    // Test case: 10 PRINT "first", 20 PRINT ' "second" -> single blank line
+    String output5 =
+        runProgramCapture(
+            """
+        10 PRINT "first"
+        20 PRINT ' "second"
+        """);
+    String[] lines5 = output5.split(System.lineSeparator());
+    assertEquals("first", lines5[0]);
+    assertEquals("", lines5[1]); // Blank line
+    assertEquals("second", lines5[2]);
+
+    // Test case: 10 PRINT "first" '', 20 PRINT "second" -> single blank line
+    String output6 =
+        runProgramCapture(
+            """
+        10 PRINT "first" ''
+        20 PRINT "second"
+        """);
+    String[] lines6 = output6.split(System.lineSeparator());
+    assertEquals("first", lines6[0]);
+    assertEquals("", lines6[1]); // Blank line
+    assertEquals("second", lines6[2]);
+  }
+
+  @Test
+  void testForWithoutNextError() {
+    // Check that ReportCode.FOR_WITHOUT_NEXT is thrown when matching NEXT is not found
+    try {
+      runProgramCapture(
+          """
+          10 FOR I = 10 TO 1
+          20 PRINT I
+          """);
+      org.junit.jupiter.api.Assertions.fail("Expected ReportException");
+    } catch (ReportException e) {
+      assertEquals(ReportCode.FOR_WITHOUT_NEXT, e.reportCode());
+    }
+  }
+
+  @Test
+  void testStatementLostReturn() {
+    Map<Integer, ProgramLine> program = new java.util.HashMap<>();
+    program.put(10, new ProgramLine(10, "GO SUB 30"));
+    program.put(20, new ProgramLine(20, "STOP"));
+    program.put(30, new ProgramLine(30, "STOP"));
+    program.put(40, new ProgramLine(40, "RETURN"));
+
+    EvalState state = new EvalState();
+    MockDisplay display = new MockDisplay(List.of());
+    ProgramManager executor = new ProgramManager(state, display);
+    Interpreter interpreter = new Interpreter(state, executor);
+
+    // Run GOSUB 30 -> stops at line 30 STOP
+    try {
+      interpreter.execute(program);
+    } catch (ReportException e) {
+      assertEquals(ReportCode.STOP_STATEMENT, e.reportCode());
+      state.setLastReportCode(e.reportCode());
+      state.setLastReportLabel(e.lineLabel());
+      state.setLastReportStatementIndex(e.statementIndex());
+    }
+
+    // Delete line 10 (the GOSUB caller) while stopped at line 30
+    state.program().remove(10);
+
+    // CONTINUE -> resumes from line 30, falls through to line 40, executes RETURN,
+    // which pops line 10 and tries to jump there. Since line 10 is deleted,
+    // it should throw STATEMENT_LOST!
+    try {
+      executor.visitContStmt(null);
+      interpreter.resume();
+      org.junit.jupiter.api.Assertions.fail("Expected STATEMENT_LOST");
+    } catch (ReportException e) {
+      assertEquals(ReportCode.STATEMENT_LOST, e.reportCode());
+    }
+  }
+
+  @Test
+  void testStopInInputAndCont() {
+    Map<Integer, ProgramLine> program = new java.util.HashMap<>();
+    program.put(10, new ProgramLine(10, "INPUT A"));
+    program.put(20, new ProgramLine(20, "PRINT A"));
+
+    EvalState state = new EvalState();
+    // Provide "STOP" first, then "42" when we continue
+    MockDisplay display = new MockDisplay(List.of("STOP", "42"));
+    ProgramManager executor = new ProgramManager(state, display);
+    Interpreter interpreter = new Interpreter(state, executor);
+
+    try {
+      interpreter.execute(program);
+    } catch (ReportException e) {
+      assertEquals(ReportCode.STOP_IN_INPUT, e.reportCode());
+      state.setLastReportCode(e.reportCode());
+      state.setLastReportLabel(e.lineLabel());
+      state.setLastReportStatementIndex(e.statementIndex());
+    }
+
+    // CONTINUE -> should repeat the INPUT statement
+    executor.visitContStmt(null);
+    interpreter.resume();
+
+    assertEquals("STOP\n42\n42\n", display.getOutput().replace(System.lineSeparator(), "\n"));
+  }
+
+  @Test
+  void testBreakIntoProgramAndCont() {
+    Map<Integer, ProgramLine> program = new java.util.HashMap<>();
+    program.put(10, new ProgramLine(10, "PRINT \"A\""));
+    program.put(20, new ProgramLine(20, "PRINT \"B\""));
+    program.put(30, new ProgramLine(30, "PRINT \"C\""));
+
+    EvalState state = new EvalState();
+    MockDisplay display =
+        new MockDisplay(List.of()) {
+          @Override
+          public void print(String text) {
+            super.print(text);
+            if (text.equals("A")) {
+              triggerBreak();
+            }
+          }
+        };
+    ProgramManager executor = new ProgramManager(state, display);
+    Interpreter interpreter = new Interpreter(state, executor);
+
+    try {
+      interpreter.execute(program);
+    } catch (ReportException e) {
+      assertEquals(ReportCode.BREAK_INTO_PROGRAM, e.reportCode());
+      state.setLastReportCode(e.reportCode());
+      state.setLastReportLabel(e.lineLabel());
+      state.setLastReportStatementIndex(e.statementIndex());
+    }
+
+    // CONTINUE -> should resume at line 20 (does not repeat line 10)
+    executor.visitContStmt(null);
+    interpreter.resume();
+
+    assertEquals("A\nB\nC\n", display.getOutput().replace(System.lineSeparator(), "\n"));
+  }
 }

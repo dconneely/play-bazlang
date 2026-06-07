@@ -161,7 +161,10 @@ public class ProgramEditor {
       String source = line.sourceText();
       String upperSource = source.toUpperCase();
 
-      if (!upperSource.contains("GOTO") && !upperSource.contains("GOSUB")) {
+      if (!upperSource.contains("GOTO")
+          && !upperSource.contains("GOSUB")
+          && !(upperSource.contains("GO")
+              && (upperSource.contains("TO") || upperSource.contains("SUB")))) {
         continue;
       }
 
@@ -175,39 +178,58 @@ public class ProgramEditor {
       int lastCopiedPos = 0;
       boolean modified = false;
 
-      for (int i = 0; i < tokenList.size(); i++) {
+      int i = 0;
+      while (i < tokenList.size()) {
         Token t = tokenList.get(i);
+        Token targetToken = null;
+        int skip = 1;
+
         if ((t.getType() == BazLangLexer.GOTO || t.getType() == BazLangLexer.GOSUB)
             && i + 1 < tokenList.size()) {
           Token next = tokenList.get(i + 1);
           if (next.getType() == BazLangLexer.NUM_LITERAL) {
-            double val = Double.parseDouble(next.getText());
-            int target = (int) Math.round(val);
-
-            Integer newTarget = null;
-            if (mapping.containsKey(target)) {
-              newTarget = mapping.get(target);
-            } else if (target >= oldStart && target <= oldEnd) {
-              Integer ceilingKey = program.ceilingKey(target);
-              if (ceilingKey != null && mapping.containsKey(ceilingKey)) {
-                newTarget = mapping.get(ceilingKey);
-                display.println(
-                    "Warning: Line "
-                        + lineNum
-                        + " references non-existent line "
-                        + target
-                        + ", updated to "
-                        + newTarget);
-              }
-            }
-
-            if (newTarget != null) {
-              newSource.append(source, lastCopiedPos, next.getStartIndex()).append(newTarget);
-              lastCopiedPos = next.getStopIndex() + 1;
-              modified = true;
+            targetToken = next;
+            skip = 2;
+          }
+        } else if (t.getType() == BazLangLexer.GO && i + 2 < tokenList.size()) {
+          Token next1 = tokenList.get(i + 1);
+          if (next1.getType() == BazLangLexer.TO || next1.getType() == BazLangLexer.SUB) {
+            Token next2 = tokenList.get(i + 2);
+            if (next2.getType() == BazLangLexer.NUM_LITERAL) {
+              targetToken = next2;
+              skip = 3;
             }
           }
         }
+
+        if (targetToken != null) {
+          double val = Double.parseDouble(targetToken.getText());
+          int target = (int) Math.round(val);
+
+          Integer newTarget = null;
+          if (mapping.containsKey(target)) {
+            newTarget = mapping.get(target);
+          } else if (target >= oldStart && target <= oldEnd) {
+            Integer ceilingKey = program.ceilingKey(target);
+            if (ceilingKey != null && mapping.containsKey(ceilingKey)) {
+              newTarget = mapping.get(ceilingKey);
+              display.println(
+                  "Warning: Line "
+                      + lineNum
+                      + " references non-existent line "
+                      + target
+                      + ", updated to "
+                      + newTarget);
+            }
+          }
+
+          if (newTarget != null) {
+            newSource.append(source, lastCopiedPos, targetToken.getStartIndex()).append(newTarget);
+            lastCopiedPos = targetToken.getStopIndex() + 1;
+            modified = true;
+          }
+        }
+        i += skip;
       }
 
       if (modified) {

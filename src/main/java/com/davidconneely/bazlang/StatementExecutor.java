@@ -53,11 +53,6 @@ public class StatementExecutor extends BazLangBaseVisitor<Object> {
   }
 
   @Override
-  public Object visitCopyStmt(CopyStmtContext ctx) {
-    return null; // Not implemented
-  }
-
-  @Override
   public Object visitDimStmt(DimStmtContext ctx) {
     var dimDecl = ctx.dimDecl();
     String name =
@@ -146,22 +141,28 @@ public class StatementExecutor extends BazLangBaseVisitor<Object> {
   private String readInputLine(Display.InputMode mode) {
     try {
       String line = display.readln(mode);
+      if (line != null && line.trim().equalsIgnoreCase("STOP")) {
+        state.setRunning(false);
+        throw codedException(ReportCode.STOP_IN_INPUT, ReportCode.STOP_IN_INPUT.getMessage());
+      }
       return line != null ? line : "";
     } catch (BreakException e) {
       state.setRunning(false);
-      throw codedException(
-          ReportCode.BREAK_CONT_REPEATS, ReportCode.BREAK_CONT_REPEATS.getMessage());
+      throw codedException(ReportCode.STOP_IN_INPUT, ReportCode.STOP_IN_INPUT.getMessage());
     }
   }
 
   private String readInputLine(String prompt) {
     try {
       String line = display.readln(prompt);
+      if (line != null && line.trim().equalsIgnoreCase("STOP")) {
+        state.setRunning(false);
+        throw codedException(ReportCode.STOP_IN_INPUT, ReportCode.STOP_IN_INPUT.getMessage());
+      }
       return line != null ? line : "";
     } catch (BreakException e) {
       state.setRunning(false);
-      throw codedException(
-          ReportCode.BREAK_CONT_REPEATS, ReportCode.BREAK_CONT_REPEATS.getMessage());
+      throw codedException(ReportCode.STOP_IN_INPUT, ReportCode.STOP_IN_INPUT.getMessage());
     }
   }
 
@@ -238,27 +239,28 @@ public class StatementExecutor extends BazLangBaseVisitor<Object> {
     boolean suppressNewline = false;
     var printList = ctx.printList();
     if (printList != null) {
-      var items = printList.printItem();
-      var seps = printList.printSep();
-      for (int i = 0; i < items.size(); i++) {
-        tp = executeLPrintItem(items.get(i), tp);
-        // Process separator after this item (if any)
-        if (i < seps.size()) {
-          String sep = seps.get(i).getText();
-          if (sep.equals(",")) {
+      for (int i = 0; i < printList.getChildCount(); i++) {
+        var child = printList.getChild(i);
+        if (child instanceof PrintItemContext item) {
+          tp = executeLPrintItem(item, tp);
+          suppressNewline = false;
+        } else if (child instanceof PrintSepContext sep) {
+          String sepText = sep.getText();
+          if (sepText.equals(",")) {
             // Comma moves to next tab stop
             int nextTab = ((tp / Limits.TAB_WIDTH) + 1) * Limits.TAB_WIDTH;
             if (nextTab > tp) {
               display.lprint(" ".repeat(nextTab - tp));
               tp = nextTab;
             }
+          } else if (sepText.equals("'")) {
+            display.lprintln();
+            tp = 0;
           }
           // Semicolon does nothing (items concatenate)
+          suppressNewline = true;
         }
       }
-      // Trailing separator (semicolon or comma) suppresses newline
-      int numBetweenSeps = items.size() - 1;
-      suppressNewline = seps.size() > numBetweenSeps;
     }
     if (!suppressNewline) {
       display.lprintln();
@@ -353,27 +355,28 @@ public class StatementExecutor extends BazLangBaseVisitor<Object> {
     boolean suppressNewline = false;
     var printList = ctx.printList();
     if (printList != null) {
-      var items = printList.printItem();
-      var seps = printList.printSep();
-      for (int i = 0; i < items.size(); i++) {
-        tabPos = executePrintItem(items.get(i), tabPos);
-        // Process separator after this item (if any)
-        if (i < seps.size()) {
-          String sep = seps.get(i).getText();
-          if (sep.equals(",")) {
+      for (int i = 0; i < printList.getChildCount(); i++) {
+        var child = printList.getChild(i);
+        if (child instanceof PrintItemContext item) {
+          tabPos = executePrintItem(item, tabPos);
+          suppressNewline = false;
+        } else if (child instanceof PrintSepContext sep) {
+          String sepText = sep.getText();
+          if (sepText.equals(",")) {
             // Comma moves to next tab stop
             int nextTab = ((tabPos / Limits.TAB_WIDTH) + 1) * Limits.TAB_WIDTH;
             if (nextTab > tabPos) {
               display.print(" ".repeat(nextTab - tabPos));
               tabPos = display.currentCol();
             }
+          } else if (sepText.equals("'")) {
+            display.println();
+            tabPos = 0;
           }
           // Semicolon does nothing (items concatenate)
+          suppressNewline = true;
         }
       }
-      // Trailing separator (semicolon or comma) suppresses newline
-      int numBetweenSeps = items.size() - 1;
-      suppressNewline = seps.size() > numBetweenSeps;
     }
     if (!suppressNewline) {
       display.println();
@@ -442,11 +445,6 @@ public class StatementExecutor extends BazLangBaseVisitor<Object> {
   @Override
   public Object visitScrollStmt(ScrollStmtContext ctx) {
     display.scroll();
-    return null;
-  }
-
-  @Override
-  public Object visitSlowStmt(SlowStmtContext ctx) {
     return null;
   }
 

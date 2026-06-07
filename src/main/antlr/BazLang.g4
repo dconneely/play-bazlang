@@ -39,6 +39,11 @@ numExprInput
     : numExpr EOF
     ;
 
+// Entry rule for parsing a standalone string expression (e.g. VAL$).
+strExprInput
+    : strExpr EOF
+    ;
+
 replCommand
     : DELETE lineRange?            # DeleteCmd
     | EDIT numExpr                 # EditCmd
@@ -50,13 +55,11 @@ replCommand
 statement
     : CLEAR                                                             # ClearStmt
     | CLS                                                               # ClsStmt
-    | CONT                                                              # ContStmt
-    | COPY                                                              # CopyStmt
+    | (CONT | CONTINUE)                                                 # ContStmt
     | DIM dimDecl                                                        # DimStmt
-    | FAST                                                              # FastStmt
     | FOR NUM_IDENTIFIER '=' numExpr TO numExpr (STEP numExpr)?         # ForStmt
-    | GOSUB numExpr                                                     # GosubStmt
-    | GOTO numExpr                                                      # GotoStmt
+    | (GO SUB | GOSUB) numExpr                                          # GosubStmt
+    | (GO TO | GOTO) numExpr                                            # GotoStmt
     | IF numExpr THEN statements                                        # IfStmt
     | INPUT assignmentTarget                                             # InputStmt
     | LET assignmentTarget '=' expression                               # LetStmt
@@ -69,15 +72,13 @@ statement
     | PAUSE numExpr                                                     # PauseStmt
     | PLOT numExpr ',' numExpr                                          # PlotStmt
     | PLOTMODE numExpr                                                   # PlotmodeStmt
-    | POKE numExpr ',' numExpr                                          # PokeStmt
     | PRINT printList?                                                  # PrintStmt
-    | RAND numExpr?                                                     # RandStmt
+    | (RAND | RANDOMISE | RANDOMIZE) numExpr?                           # RandStmt
     | REM                                                               # RemStmt
     | RETURN                                                            # ReturnStmt
     | RUN numExpr?                                                      # RunStmt
     | SAVE strExpr                                                      # SaveStmt
     | SCROLL                                                            # ScrollStmt
-    | SLOW                                                              # SlowStmt
     | STOP                                                              # StopStmt
     | UNPLOT numExpr ',' numExpr                                        # UnplotStmt
     ;
@@ -110,7 +111,8 @@ assignmentTarget
     ;
 
 printList
-    : printItem (printSep printItem)* printSep?
+    : printSep* printItem (printSep+ printItem)* printSep*
+    | printSep+
     ;
 
 printItem
@@ -122,6 +124,7 @@ printItem
 printSep
     : ';'
     | ','
+    | '\''
     ;
 
 // Expressions - numeric and string combined
@@ -138,11 +141,12 @@ expression
 // Note: ** (10) binds tighter than unary minus (9), so -2**2 = -(2**2) = -4
 numExpr
     : NUM_LITERAL                                           # NumLiteralExpr
+    | BIN_LITERAL                                           # BinLiteralExpr
     | NUM_IDENTIFIER                                        # NumVarExpr
     | NUM_IDENTIFIER '(' numExpr (',' numExpr)* ')'         # NumArrayExpr
     | '(' numExpr ')'                                       # NumParenExpr
     | numFunc                                               # NumFuncCallExpr
-    | <assoc=right> numExpr '**' numExpr                    # NumPowerExpr
+    | <assoc=right> numExpr ('**' | '^') numExpr            # NumPowerExpr
     | '-' numExpr                                           # NumUnaryMinusExpr
     | numExpr ('*' | '/') numExpr                           # NumMulDivExpr
     | numExpr ('+' | '-') numExpr                           # NumAddSubExpr
@@ -193,20 +197,19 @@ numFunc
     | LEN strAtom
     | LN numAtom
     | NEXTCP '(' strExpr ',' numExpr ')'
-    | PEEK numAtom
     | PI
     | RND
     | SGN numAtom
     | SIN numAtom
     | SQR numAtom
     | TAN numAtom
-    | USR numAtom
     | VAL strAtom
     ;
 
 // Atomic numeric expression (for function arguments without parens)
 numAtom
     : NUM_LITERAL
+    | BIN_LITERAL
     | NUM_IDENTIFIER
     | NUM_IDENTIFIER '(' numExpr (',' numExpr)* ')'
     | '(' numExpr ')'
@@ -219,6 +222,7 @@ strFunc
     | CODEPOINT_STR numAtom
     | INKEY_STR
     | STR_STR numAtom
+    | VAL_STR strAtom
     ;
 
 // Atomic string expression (for function arguments without parens)
@@ -236,12 +240,12 @@ strAtom
 CLEAR   : 'CLEAR';
 CLS     : 'CLS';
 CONT    : 'CONT';
-COPY    : 'COPY';
+CONTINUE: 'CONTINUE';
 DELETE  : 'DELETE';
 DIM     : 'DIM';
 EDIT    : 'EDIT';
-FAST    : 'FAST';
 FOR     : 'FOR';
+GO      : 'GO';
 GOSUB   : 'GOSUB';
 GOTO    : 'GOTO';
 IF      : 'IF';
@@ -256,17 +260,18 @@ NEXT    : 'NEXT';
 PAUSE   : 'PAUSE';
 PLOT    : 'PLOT';
 PLOTMODE: 'PLOTMODE';
-POKE    : 'POKE';
 PRINT   : 'PRINT';
 RAND    : 'RAND';
+RANDOMISE: 'RANDOMISE';
+RANDOMIZE: 'RANDOMIZE';
 REFORMAT: 'REFORMAT';
 RENUM   : 'RENUM';
 RETURN  : 'RETURN';
 RUN     : 'RUN';
 SAVE    : 'SAVE';
 SCROLL  : 'SCROLL';
-SLOW    : 'SLOW';
 STOP    : 'STOP';
+SUB     : 'SUB';
 UNPLOT  : 'UNPLOT';
 
 // Keywords - Operators
@@ -295,7 +300,6 @@ INT     : 'INT';
 LEN     : 'LEN';
 LN      : 'LN';
 NEXTCP  : 'NEXTCP';
-PEEK    : 'PEEK';
 PI      : 'PI';
 RND     : 'RND';
 SGN     : 'SGN';
@@ -303,8 +307,8 @@ SIN     : 'SIN';
 SQR     : 'SQR';
 STR_STR : 'STR$';
 TAN     : 'TAN';
-USR     : 'USR';
 VAL     : 'VAL';
+VAL_STR : 'VAL$';
 
 // Identifiers - matched case-insensitively, normalized to uppercase
 STR_IDENTIFIER
@@ -334,6 +338,13 @@ REM     : 'REM' ~[\r\n]* ;
 
 // Operators (order matters for multi-char operators)
 POWER   : '**';
+CARET   : '^';
 LE      : '<=';
 GE      : '>=';
 NE      : '<>';
+
+// BIN: binary literal notation (Spectrum). Digits 0/1 only, spaces allowed between digits.
+// BIN is a keyword prefix - the lexer captures the whole token including the BIN prefix.
+BIN_LITERAL
+    : 'BIN' [ \t]* [01] ([ \t]* [01])*
+    ;

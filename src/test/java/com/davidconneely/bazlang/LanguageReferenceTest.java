@@ -78,19 +78,6 @@ class LanguageReferenceTest {
   }
 
   @Test
-  void testHardwareFuncs() {
-    // PEEK and USR return 0.0
-    String source =
-        """
-        10 LET P = PEEK(1234)
-        20 LET U = USR(5678)
-        """;
-    EvalState state = runProgram(source);
-    assertEquals(0.0, state.numVar("P"));
-    assertEquals(0.0, state.numVar("U"));
-  }
-
-  @Test
   void testStrFuncs() {
     String source =
         """
@@ -100,6 +87,53 @@ class LanguageReferenceTest {
     EvalState state = runProgram(source);
     assertEquals("A", ((EvalState.StrVar.Scalar) state.strVar("A$")).value().toJavaString());
     assertEquals("123", ((EvalState.StrVar.Scalar) state.strVar("B$")).value().toJavaString());
+  }
+
+  @Test
+  void testBinLiterals() {
+    String source =
+        """
+        10 LET A = BIN 1010
+        20 LET B = BIN 1 0 1 0
+        30 LET C = BIN 1111111111111111111111111111111111111111111111111111111111111111
+        """;
+    EvalState state = runProgram(source);
+    assertEquals(10.0, state.numVar("A"));
+    assertEquals(10.0, state.numVar("B"));
+    assertEquals(
+        new java.math.BigInteger(
+                "1111111111111111111111111111111111111111111111111111111111111111", 2)
+            .doubleValue(),
+        state.numVar("C"));
+
+    // Exceeds 64 digits
+    String invalidSource =
+        "10 LET A = BIN 11111111111111111111111111111111111111111111111111111111111111111";
+    assertThrows(ReportException.class, () -> runProgram(invalidSource));
+  }
+
+  @Test
+  void testValString() {
+    String source =
+        """
+        10 LET A$ = "Fruit punch"
+        20 LET B$ = "A$"
+        30 LET C$ = "(1 TO 5)"
+        40 LET D$ = "B$ + C$"
+        50 LET R$ = VAL$(D$)
+        55 LET T$ = VAL$(R$)
+        60 LET S$ = VAL$(""\"hello"" + "" world\""")
+        """;
+    EvalState state = runProgram(source);
+    assertEquals(
+        "A$(1 TO 5)", ((EvalState.StrVar.Scalar) state.strVar("R$")).value().toJavaString());
+    assertEquals("Fruit", ((EvalState.StrVar.Scalar) state.strVar("T$")).value().toJavaString());
+    assertEquals(
+        "hello world", ((EvalState.StrVar.Scalar) state.strVar("S$")).value().toJavaString());
+
+    // Test syntax error in VAL$ (numeric expression inside VAL$)
+    String invalidSource = "10 LET A$ = VAL$(\"123\")";
+    assertThrows(ReportException.class, () -> runProgram(invalidSource));
   }
 
   @Test

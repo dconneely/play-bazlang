@@ -21,7 +21,8 @@ public class ProgramManager extends StatementExecutor {
     if (m <= 0) {
       return null;
     }
-    if (state.lastReportCode() == ReportCode.STOP_STATEMENT) {
+    if (state.lastReportCode() == ReportCode.STOP_STATEMENT
+        || state.lastReportCode() == ReportCode.BREAK_INTO_PROGRAM) {
       state.setPendingJumpLocation(m, state.lastReportStatementIndex() + 1);
     } else {
       state.setPendingJumpLocation(m, state.lastReportStatementIndex());
@@ -57,7 +58,8 @@ public class ProgramManager extends StatementExecutor {
         }
         nextLabel = state.program().higherKey(nextLabel);
       }
-      state.setRunning(false);
+      throw new ReportException(
+          ReportCode.FOR_WITHOUT_NEXT, state.currentLineLabel(), "FOR without NEXT");
     }
     return null;
   }
@@ -83,7 +85,7 @@ public class ProgramManager extends StatementExecutor {
       throw new ReportException(
           ReportCode.INTEGER_OUT_OF_RANGE,
           state.currentLineLabel(),
-          "GOTO line label out of range");
+          "GO TO line label out of range");
     }
     // Prevent jumping to line 0 (the immediate statement buffer)
     int searchTarget = Math.max(target, Limits.MIN_LINE_LABEL);
