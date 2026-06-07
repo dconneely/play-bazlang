@@ -5,7 +5,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.davidconneely.bazlang.antlr.AntlrParser;
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
@@ -41,7 +40,8 @@ class ProgramStorageTest {
     ProgramStorage storage = new ProgramStorage(state, PARSER);
 
     // This file doesn't actually exist in tests, but let's test a non-existent resource
-    ReportException e = assertThrows(ReportException.class, () -> storage.load("resource:/missing.bas"));
+    ReportException e =
+        assertThrows(ReportException.class, () -> storage.load("resource:/missing.bas"));
     assertEquals(ReportCode.INVALID_FILE_NAME, e.reportCode());
   }
 
@@ -49,9 +49,11 @@ class ProgramStorageTest {
   void testSaveInvalidPath() {
     EvalState state = new EvalState();
     ProgramStorage storage = new ProgramStorage(state, PARSER);
-    
+
     // Save to an invalid path that cannot be written
-    ReportException e = assertThrows(ReportException.class, () -> storage.save("/invalid/dir/test.bas"));
+    ReportException e =
+        assertThrows(
+            ReportException.class, () -> storage.save("invalid_dir/that/doesnt/exist/test.bas"));
     assertEquals(ReportCode.INVALID_FILE_NAME, e.reportCode());
   }
 }

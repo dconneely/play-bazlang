@@ -2,6 +2,7 @@ package com.davidconneely.bazlang.io;
 
 import com.davidconneely.repl.BreakException;
 import com.davidconneely.repl.Display;
+import com.davidconneely.repl.jline.RobustLineReaderImpl;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -91,6 +92,7 @@ public class TerminalDisplay implements BazLangDisplay {
     terminal.flush();
     this.reader = terminal.reader();
     this.lineReader = new RobustLineReaderImpl(terminal, "BazLang");
+    this.lineReader.option(LineReader.Option.MOUSE, true);
 
     terminal.handle(Terminal.Signal.INT, _ -> breakFlag.set(true));
     terminal.handle(Terminal.Signal.WINCH, _ -> resizePending.set(true));
