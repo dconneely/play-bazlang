@@ -28,6 +28,11 @@ statements
     : statement (':' statement)*
     ;
 
+// Entry rule for parsing isolated statements (e.g. from a ProgramLine or REPL input)
+statementsInput
+    : statements EOF
+    ;
+
 // Entry rule for parsing a standalone numeric expression (e.g. VAL, INPUT).
 // Anchors to EOF so trailing garbage is a syntax error rather than silently ignored.
 numExprInput

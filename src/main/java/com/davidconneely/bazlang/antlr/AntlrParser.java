@@ -24,6 +24,7 @@ public class AntlrParser {
     NavigableMap<Integer, ProgramLine> result = new TreeMap<>();
     String[] lines = source.split("\n");
 
+    int lastLineNumber = -1;
     for (String line : lines) {
       String trimmed = line.trim();
       if (trimmed.isEmpty() || trimmed.startsWith("#")) {
@@ -39,8 +40,18 @@ public class AntlrParser {
               lineNumber,
               "Line number out of range: " + lineNumber);
         }
+        if (lineNumber <= lastLineNumber) {
+          throw new ReportException(
+              ReportCode.NONSENSE_IN_BASIC,
+              lineNumber,
+              "Line numbers must be monotonically increasing");
+        }
+        lastLineNumber = lineNumber;
         String statementText = matcher.group(2);
         result.put(lineNumber, new ProgramLine(lineNumber, statementText));
+      } else {
+        throw new ReportException(
+            ReportCode.NONSENSE_IN_BASIC, 0, "Missing line number or invalid syntax: " + trimmed);
       }
     }
 
@@ -89,15 +100,7 @@ public class AntlrParser {
    */
   public StatementsContext parseStatementsContext(String source) {
     BazLangParser parser = createParser(source);
-    BazLangParser.ReplLineContext tree = parser.replLine();
-
-    if (tree instanceof BazLangParser.ImmediateLineContext immediate) {
-      return immediate.statements();
-    } else if (tree instanceof BazLangParser.NumberedLineContext numbered) {
-      return numbered.statements();
-    }
-
-    throw new ReportException(ReportCode.NONSENSE_IN_BASIC, 0, "Expected statements");
+    return parser.statementsInput().statements();
   }
 
   /**

@@ -60,41 +60,34 @@ class ParserTest {
     assertParses("90 LLIST 10 TO 20");
   }
 
-  // Note: The following validations were done by the hand-written parser but are not yet
-  // implemented in the ANTLR grammar. They are commented out for now.
+  @Test
+  void testLabelMonotonicity() {
+    assertParses("10 PRINT 1\n20 PRINT 2");
+    assertFails("20 PRINT 1\n10 PRINT 2"); // Decreasing labels
+    assertFails("10 PRINT 1\n10 PRINT 2"); // Duplicate labels
+  }
 
-  // @Test
-  // void testLabelMonotonicity() {
-  //   assertParses("10 PRINT 1\n20 PRINT 2");
-  //   assertFails("20 PRINT 1\n10 PRINT 2"); // Decreasing labels
-  //   assertFails("10 PRINT 1\n10 PRINT 2"); // Duplicate labels
-  // }
+  @Test
+  void testMissingLabel() {
+    assertFails("PRINT 1"); // Missing label entirely
+    assertFails("10 PRINT 1\nPRINT 2"); // Second line missing label
+  }
 
-  // @Test
-  // void testLabelRangeAndFormat() {
-  //   assertParses("1 PRINT 1");
-  //   assertParses("999999999 PRINT 1");
-  //   assertFails("0 PRINT 1"); // Too low
-  //   assertFails("1000000000 PRINT 1"); // Too high
-  //   assertFails("10.5 PRINT 1"); // Non-integer
-  //   assertFails("1E3 PRINT 1"); // Scientific notation
-  //   assertFails("10.0 PRINT 1"); // Decimal integer
-  // }
+  @Test
+  void testLabelRangeAndFormat() {
+    assertParses("1 PRINT 1");
+    assertParses("999999999 PRINT 1");
+    assertFails("0 PRINT 1"); // Too low
+    assertFails("1000000000 PRINT 1"); // Too high
+    assertFails("10.5 PRINT 1"); // Non-integer
+    assertFails("1E3 PRINT 1"); // Scientific notation
+    assertFails("10.0 PRINT 1"); // Decimal integer
+  }
 
-  // @Test
-  // void testTypeMismatchesAtParseTime() {
-  //   assertFails("10 LET A = \"HI\""); // String to numeric scalar
-  //   assertFails("20 LET A$ = 42"); // Numeric to string scalar
-  //   assertFails("30 PRINT 1 + \"A\""); // Arithmetic type mismatch
-  //   assertFails("40 PRINT LEN(1)"); // Function argument type mismatch
-  //   assertFails("50 LET A(1 TO 2) = 1"); // Slicing numeric array
-  // }
-
-  // @Test
-  // void testNoMultiStatementLines() {
-  //   assertFails("10 PRINT \"A\": PRINT \"B\"");
-  //   assertFails("20 LET A=1: REM COMMENT");
-  // }
+  // Note: type mismatches (e.g. LET A = "HI") are NOT caught at parse time. The grammar uses a
+  // unified 'expression' rule accepting both numExpr and strExpr; type checking is deferred to
+  // runtime in StatementExecutor. A separate type-checking pass would be needed to catch these
+  // at parse time.
 
   private void assertParses(String source) {
     assertDoesNotThrow(
@@ -106,7 +99,6 @@ class ParserTest {
     assertThrows(
         ReportException.class,
         () -> {
-          // parseProgramLines doesn't parse immediately, so force parsing
           var lines = AntlrParser.INSTANCE.parseProgramLines(source);
           for (var line : lines.values()) {
             line.getStatements(AntlrParser.INSTANCE);
