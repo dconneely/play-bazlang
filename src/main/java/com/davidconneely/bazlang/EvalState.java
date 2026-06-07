@@ -29,6 +29,10 @@ public class EvalState {
   private final Deque<JumpLocation> returnStack = new ArrayDeque<>();
   private final Random random = new Random();
 
+  private int dataExpressionIndex = -1;
+  private int dataLineLabel = -1;
+  private int dataStatementIndex = -1;
+
   private boolean running = true;
   private int currentLineLabel = 0;
   private int currentStatementIndex = 1;
@@ -205,6 +209,30 @@ public class EvalState {
     this.lastReportStatementIndex = index;
   }
 
+  public int dataExpressionIndex() {
+    return dataExpressionIndex;
+  }
+
+  public int dataLineLabel() {
+    return dataLineLabel;
+  }
+
+  public int dataStatementIndex() {
+    return dataStatementIndex;
+  }
+
+  public void setDataExpressionIndex(int index) {
+    this.dataExpressionIndex = index;
+  }
+
+  public void setDataLineLabel(int label) {
+    this.dataLineLabel = label;
+  }
+
+  public void setDataStatementIndex(int index) {
+    this.dataStatementIndex = index;
+  }
+
   public void clear() {
     numScalars.clear();
     numArrays.clear();
@@ -214,5 +242,8 @@ public class EvalState {
     clearPendingJump();
     lastReportCode = ReportCode.OK;
     lastReportLabel = 0;
+    dataExpressionIndex = -1;
+    dataLineLabel = -1;
+    dataStatementIndex = -1;
   }
 }

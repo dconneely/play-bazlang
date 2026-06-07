@@ -1,5 +1,6 @@
 package com.davidconneely.bazlang;
 
+import com.davidconneely.bazlang.antlr.AntlrParser;
 import com.davidconneely.bazlang.antlr.BazLangBaseVisitor;
 import com.davidconneely.bazlang.antlr.BazLangParser;
 import com.davidconneely.bazlang.antlr.BazLangParser.*;
@@ -49,6 +50,11 @@ public class StatementExecutor extends BazLangBaseVisitor<Object> {
   @Override
   public Object visitClsStmt(ClsStmtContext ctx) {
     display.cls();
+    return null;
+  }
+
+  @Override
+  public Object visitDataStmt(DataStmtContext ctx) {
     return null;
   }
 
@@ -164,6 +170,26 @@ public class StatementExecutor extends BazLangBaseVisitor<Object> {
       state.setRunning(false);
       throw codedException(ReportCode.STOP_IN_INPUT, ReportCode.STOP_IN_INPUT.getMessage());
     }
+  }
+
+  private void restoreTo(int target) {
+    Integer searchLine = state.program().ceilingKey(target);
+    while (searchLine != null) {
+      ProgramLine line = state.program().get(searchLine);
+      List<StatementContext> stmts = line.getFlattenedStatements(AntlrParser.INSTANCE);
+      int stmtIdx = 1;
+      for (StatementContext stmt : stmts) {
+        if (stmt instanceof DataStmtContext) {
+          state.setDataLineLabel(searchLine);
+          state.setDataStatementIndex(stmtIdx);
+          state.setDataExpressionIndex(0);
+          return;
+        }
+        stmtIdx++;
+      }
+      searchLine = state.program().higherKey(searchLine);
+    }
+    state.setDataLineLabel(Integer.MAX_VALUE);
   }
 
   @Override
@@ -432,7 +458,86 @@ public class StatementExecutor extends BazLangBaseVisitor<Object> {
   }
 
   @Override
+  public Object visitReadStmt(ReadStmtContext ctx) {
+    for (var target : ctx.assignmentTarget()) {
+      if (state.dataLineLabel() == -1) {
+        restoreTo(0);
+      }
+      int lineLabel = state.dataLineLabel();
+      if (lineLabel == Integer.MAX_VALUE) {
+        throw codedException(ReportCode.OUT_OF_DATA, "Out of DATA");
+      }
+      ProgramLine line = state.program().get(lineLabel);
+      if (line == null) {
+        throw codedException(ReportCode.STATEMENT_LOST, "Statement lost");
+      }
+      List<StatementContext> stmts = line.getFlattenedStatements(AntlrParser.INSTANCE);
+      int stmtIdx = state.dataStatementIndex();
+      StatementContext stmt = stmts.get(stmtIdx - 1);
+      if (!(stmt instanceof DataStmtContext dataCtx)) {
+        throw codedException(ReportCode.STATEMENT_LOST, "Statement lost");
+      }
+      int exprIdx = state.dataExpressionIndex();
+      ExpressionContext exprCtx = dataCtx.expression(exprIdx);
+
+      // Advance pointer before evaluating and assigning
+      if (exprIdx + 1 < dataCtx.expression().size()) {
+        state.setDataExpressionIndex(exprIdx + 1);
+      } else {
+        // Find next DATA statement in the current line
+        boolean found = false;
+        for (int i = stmtIdx + 1; i <= stmts.size(); i++) {
+          if (stmts.get(i - 1) instanceof DataStmtContext) {
+            state.setDataStatementIndex(i);
+            state.setDataExpressionIndex(0);
+            found = true;
+            break;
+          }
+        }
+        if (!found) {
+          Integer nextLine = state.program().higherKey(lineLabel);
+          if (nextLine != null) {
+            restoreTo(nextLine);
+          } else {
+            state.setDataLineLabel(Integer.MAX_VALUE);
+          }
+        }
+      }
+
+      // Evaluate and assign
+      if (target.NUM_IDENTIFIER() != null) {
+        if (exprCtx.numExpr() == null) {
+          throw codedException(ReportCode.NONSENSE_IN_BASIC, "Type mismatch: expected number");
+        }
+        double val = evalNum(exprCtx.numExpr());
+        assignNumTarget(target, val);
+      } else {
+        if (exprCtx.strExpr() == null) {
+          throw codedException(ReportCode.NONSENSE_IN_BASIC, "Type mismatch: expected string");
+        }
+        BStr val = evalStr(exprCtx.strExpr());
+        assignStrTarget(target, val);
+      }
+    }
+    return null;
+  }
+
+  @Override
   public Object visitRemStmt(RemStmtContext ctx) {
+    return null;
+  }
+
+  @Override
+  public Object visitRestoreStmt(RestoreStmtContext ctx) {
+    int target = 0;
+    if (ctx.numExpr() != null) {
+      double val = evalNum(ctx.numExpr());
+      target = (int) Math.round(val);
+      if (target < 0 || target > Limits.MAX_TARGET_LABEL) {
+        throw codedException(ReportCode.INTEGER_OUT_OF_RANGE, "Line label out of range");
+      }
+    }
+    restoreTo(target);
     return null;
   }
 

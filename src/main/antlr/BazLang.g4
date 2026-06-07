@@ -56,6 +56,7 @@ statement
     : CLEAR                                                             # ClearStmt
     | CLS                                                               # ClsStmt
     | (CONT | CONTINUE)                                                 # ContStmt
+    | DATA expression (',' expression)*                                 # DataStmt
     | DIM dimDecl                                                        # DimStmt
     | FOR NUM_IDENTIFIER '=' numExpr TO numExpr (STEP numExpr)?         # ForStmt
     | (GO SUB | GOSUB) numExpr                                          # GosubStmt
@@ -74,7 +75,9 @@ statement
     | PLOTMODE numExpr                                                   # PlotmodeStmt
     | PRINT printList?                                                  # PrintStmt
     | (RAND | RANDOMISE | RANDOMIZE) numExpr?                           # RandStmt
+    | READ assignmentTarget (',' assignmentTarget)*                    # ReadStmt
     | REM                                                               # RemStmt
+    | RESTORE numExpr?                                                   # RestoreStmt
     | RETURN                                                            # ReturnStmt
     | RUN numExpr?                                                      # RunStmt
     | SAVE strExpr                                                      # SaveStmt
@@ -241,6 +244,7 @@ CLEAR   : 'CLEAR';
 CLS     : 'CLS';
 CONT    : 'CONT';
 CONTINUE: 'CONTINUE';
+DATA    : 'DATA';
 DELETE  : 'DELETE';
 DIM     : 'DIM';
 EDIT    : 'EDIT';
@@ -264,8 +268,10 @@ PRINT   : 'PRINT';
 RAND    : 'RAND';
 RANDOMISE: 'RANDOMISE';
 RANDOMIZE: 'RANDOMIZE';
+READ    : 'READ';
 REFORMAT: 'REFORMAT';
 RENUM   : 'RENUM';
+RESTORE : 'RESTORE';
 RETURN  : 'RETURN';
 RUN     : 'RUN';
 SAVE    : 'SAVE';
