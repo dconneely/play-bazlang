@@ -12,7 +12,7 @@ class ReformatVisitorTest {
 
   private void assertFormatsTo(String source, String expected) {
     Map<Integer, ProgramLine> program = PARSER.parseProgramLines("10 " + source);
-    String actual = program.get(10).getStatement(PARSER).accept(FORMATTER);
+    String actual = program.get(10).getStatements(PARSER).accept(FORMATTER);
     assertEquals(expected, actual);
   }
 

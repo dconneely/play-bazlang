@@ -22,9 +22,9 @@ public class ProgramManager extends StatementExecutor {
       return null;
     }
     if (state.lastReportCode() == ReportCode.STOP_STATEMENT) {
-      state.setPendingJumpLabel(state.program().higherKey(m));
+      state.setPendingJumpLocation(m, state.lastReportStatementIndex() + 1);
     } else {
-      state.setPendingJumpLabel(m);
+      state.setPendingJumpLocation(m, state.lastReportStatementIndex());
     }
     return null;
   }
@@ -36,17 +36,24 @@ public class ProgramManager extends StatementExecutor {
     double en = exprEvaluator.evalNum(ctx.numExpr(1));
     double step = ctx.numExpr().size() > 2 ? exprEvaluator.evalNum(ctx.numExpr(2)) : 1.0;
     state.setNumVar(var, st);
-    state.setForLoop(var, new EvalState.ForLoopData(en, step, state.currentLineLabel()));
+    state.setForLoop(
+        var,
+        new EvalState.ForLoopData(
+            en, step, state.currentLineLabel(), state.currentStatementIndex()));
     if ((step >= 0) ? (st > en) : (st < en)) {
       // Skip to matching NEXT
       Integer nextLabel = state.program().higherKey(state.currentLineLabel());
       while (nextLabel != null) {
         ProgramLine line = state.program().get(nextLabel);
-        StatementContext stmt = line.getStatement(PARSER);
-        if (stmt instanceof NextStmtContext nextCtx
-            && nextCtx.NUM_IDENTIFIER().getText().equalsIgnoreCase(var)) {
-          state.setPendingJumpLabel(state.program().higherKey(nextLabel));
-          return null;
+        StatementsContext stmts = line.getStatements(PARSER);
+        int stmtIdx = 1;
+        for (StatementContext stmt : stmts.statement()) {
+          if (stmt instanceof NextStmtContext nextCtx
+              && nextCtx.NUM_IDENTIFIER().getText().equalsIgnoreCase(var)) {
+            state.setPendingJumpLocation(nextLabel, stmtIdx + 1);
+            return null;
+          }
+          stmtIdx++;
         }
         nextLabel = state.program().higherKey(nextLabel);
       }
@@ -57,7 +64,8 @@ public class ProgramManager extends StatementExecutor {
 
   @Override
   public Object visitGosubStmt(GosubStmtContext ctx) {
-    state.pushReturn(state.currentLineLabel());
+    state.pushReturn(
+        new EvalState.JumpLocation(state.currentLineLabel(), state.currentStatementIndex() + 1));
     int target = (int) Math.round(exprEvaluator.evalNum(ctx.numExpr()));
     gotoLabel(target);
     return null;
@@ -77,9 +85,11 @@ public class ProgramManager extends StatementExecutor {
           state.currentLineLabel(),
           "GOTO line label out of range");
     }
-    Integer label = state.program().ceilingKey(target);
+    // Prevent jumping to line 0 (the immediate statement buffer)
+    int searchTarget = Math.max(target, Limits.MIN_LINE_LABEL);
+    Integer label = state.program().ceilingKey(searchTarget);
     if (label != null) {
-      state.setPendingJumpLabel(label);
+      state.setPendingJumpLocation(label, 1);
     } else {
       state.setRunning(false);
     }
@@ -100,7 +110,7 @@ public class ProgramManager extends StatementExecutor {
     double nv = state.numVar(var) + d.step();
     state.setNumVar(var, nv);
     if (d.step() >= 0 ? nv <= d.limit() : nv >= d.limit()) {
-      state.setPendingJumpLabel(state.program().higherKey(d.loopPc()));
+      state.setPendingJumpLocation(d.loopPcLabel(), d.loopPcStatementIndex() + 1);
     }
     return null;
   }
@@ -111,8 +121,8 @@ public class ProgramManager extends StatementExecutor {
       throw new ReportException(
           ReportCode.RETURN_WITHOUT_GOSUB, state.currentLineLabel(), "RETURN without GOSUB");
     }
-    Integer gosubLine = state.popReturn();
-    state.setPendingJumpLabel(state.program().higherKey(gosubLine));
+    EvalState.JumpLocation gosubLoc = state.popReturn();
+    state.setPendingJumpLocation(gosubLoc.lineLabel(), gosubLoc.statementIndex());
     return null;
   }
 

@@ -10,17 +10,22 @@ program
     ;
 
 line
-    : NUM_LITERAL statement NEWLINE
+    : NUM_LITERAL statements NEWLINE
     ;
 
 lastLine
-    : NUM_LITERAL statement
+    : NUM_LITERAL statements
     ;
 
 replLine
-    : NUM_LITERAL statement? EOF   # NumberedLine
-    | replCommand EOF              # ReplCommandLine
-    | statement EOF                # ImmediateLine
+    : NUM_LITERAL statements? EOF   # NumberedLine
+    | replCommand EOF               # ReplCommandLine
+    | statements EOF                # ImmediateLine
+    ;
+
+// One or more statements separated by colons
+statements
+    : statement (':' statement)*
     ;
 
 // Entry rule for parsing a standalone numeric expression (e.g. VAL, INPUT).
@@ -47,7 +52,7 @@ statement
     | FOR NUM_IDENTIFIER '=' numExpr TO numExpr (STEP numExpr)?         # ForStmt
     | GOSUB numExpr                                                     # GosubStmt
     | GOTO numExpr                                                      # GotoStmt
-    | IF numExpr THEN statement                                         # IfStmt
+    | IF numExpr THEN statements                                        # IfStmt
     | INPUT assignmentTarget                                             # InputStmt
     | LET assignmentTarget '=' expression                               # LetStmt
     | LIST lineRange?                                                   # ListStmt

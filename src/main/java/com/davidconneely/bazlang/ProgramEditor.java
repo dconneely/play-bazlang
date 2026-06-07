@@ -3,7 +3,7 @@ package com.davidconneely.bazlang;
 import com.davidconneely.bazlang.antlr.AntlrParser;
 import com.davidconneely.bazlang.antlr.BazLangLexer;
 import com.davidconneely.bazlang.antlr.BazLangParser;
-import com.davidconneely.bazlang.antlr.BazLangParser.StatementContext;
+import com.davidconneely.bazlang.antlr.BazLangParser.StatementsContext;
 import com.davidconneely.bazlang.io.BazLangDisplay;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -65,7 +65,7 @@ public class ProgramEditor {
     for (Map.Entry<Integer, ProgramLine> entry : toReformat) {
       int lineNum = entry.getKey();
       ProgramLine line = entry.getValue();
-      StatementContext stmt = line.getStatement(parser);
+      StatementsContext stmt = line.getStatements(parser);
       String formattedSource = formatter.visit(stmt);
       state.program().put(lineNum, new ProgramLine(lineNum, formattedSource));
     }

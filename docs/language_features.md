@@ -18,7 +18,7 @@ commands, functions, and syntax rules.
 
 ### Limits
 
-- **One statement per line**: You cannot use `:` to put multiple commands on one line.
+- **Multi-statement lines**: You can use `:` to put multiple commands on one line (e.g., `10 CLS : PRINT "HELLO"`). In an `IF` statement, if the condition is false, the remainder of the line is skipped.
 - **Strict Typing**: You cannot mix strings and numbers without converting them.
 
 ## 2. Variables

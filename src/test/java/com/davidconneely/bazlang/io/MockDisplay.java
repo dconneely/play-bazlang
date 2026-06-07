@@ -10,6 +10,7 @@ public class MockDisplay implements BazLangDisplay {
   private int inputIdx = 0;
   private int currentRow = 0;
   private int currentCol = 0;
+  private String status = null;
 
   public MockDisplay() {
     this(Collections.emptyList());
@@ -151,7 +152,11 @@ public class MockDisplay implements BazLangDisplay {
 
   @Override
   public void setStatus(String status) {
-    // No-op in tests
+    this.status = status;
+  }
+
+  public String getStatus() {
+    return status;
   }
 
   private String prefillText = null;

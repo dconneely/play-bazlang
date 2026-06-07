@@ -22,7 +22,7 @@ class BazLangAntlrTest {
 
     assertEquals(1, program.size());
     assertTrue(program.containsKey(10));
-    StatementContext stmt = program.get(10).getStatement(parser);
+    StatementContext stmt = program.get(10).getStatements(parser).statement(0);
     assertInstanceOf(PrintStmtContext.class, stmt);
   }
 
@@ -32,7 +32,7 @@ class BazLangAntlrTest {
     NavigableMap<Integer, ProgramLine> program = parser.parseProgramLines(code);
 
     assertEquals(1, program.size());
-    StatementContext stmt = program.get(20).getStatement(parser);
+    StatementContext stmt = program.get(20).getStatements(parser).statement(0);
     assertInstanceOf(ForStmtContext.class, stmt);
     ForStmtContext forStmt = (ForStmtContext) stmt;
     assertEquals("I", forStmt.NUM_IDENTIFIER().getText().toUpperCase());
@@ -44,10 +44,10 @@ class BazLangAntlrTest {
     NavigableMap<Integer, ProgramLine> program = parser.parseProgramLines(code);
 
     assertEquals(1, program.size());
-    StatementContext stmt = program.get(30).getStatement(parser);
+    StatementContext stmt = program.get(30).getStatements(parser).statement(0);
     assertInstanceOf(IfStmtContext.class, stmt);
     IfStmtContext ifStmt = (IfStmtContext) stmt;
-    assertInstanceOf(PrintStmtContext.class, ifStmt.statement());
+    assertInstanceOf(PrintStmtContext.class, ifStmt.statements().statement(0));
   }
 
   @Test
@@ -56,7 +56,7 @@ class BazLangAntlrTest {
     NavigableMap<Integer, ProgramLine> program = parser.parseProgramLines(code);
 
     assertEquals(1, program.size());
-    StatementContext stmt = program.get(40).getStatement(parser);
+    StatementContext stmt = program.get(40).getStatements(parser).statement(0);
     assertInstanceOf(LetStmtContext.class, stmt);
   }
 
@@ -81,7 +81,7 @@ class BazLangAntlrTest {
     String code = "50 DIM A(10, 20)\n";
     NavigableMap<Integer, ProgramLine> program = parser.parseProgramLines(code);
 
-    StatementContext stmt = program.get(50).getStatement(parser);
+    StatementContext stmt = program.get(50).getStatements(parser).statement(0);
     assertInstanceOf(DimStmtContext.class, stmt);
   }
 
@@ -94,8 +94,8 @@ class BazLangAntlrTest {
         """;
     NavigableMap<Integer, ProgramLine> program = parser.parseProgramLines(code);
 
-    assertInstanceOf(GotoStmtContext.class, program.get(100).getStatement(parser));
-    assertInstanceOf(GosubStmtContext.class, program.get(110).getStatement(parser));
+    assertInstanceOf(GotoStmtContext.class, program.get(100).getStatements(parser).statement(0));
+    assertInstanceOf(GosubStmtContext.class, program.get(110).getStatements(parser).statement(0));
   }
 
   @Test
@@ -103,7 +103,7 @@ class BazLangAntlrTest {
     AntlrParser.ParsedLine result = parser.parseReplLine("PRINT \"Hello\"");
     assertInstanceOf(AntlrParser.ParsedLine.Immediate.class, result);
     AntlrParser.ParsedLine.Immediate immediate = (AntlrParser.ParsedLine.Immediate) result;
-    assertInstanceOf(PrintStmtContext.class, immediate.statement());
+    assertInstanceOf(PrintStmtContext.class, immediate.statements().statement(0));
   }
 
   @Test
@@ -150,19 +150,36 @@ class BazLangAntlrTest {
   void testCaseInsensitiveKeywords() {
     // All variations should parse successfully
     assertDoesNotThrow(
-        () -> parser.parseProgramLines("10 print \"test\"\n").get(10).getStatement(parser));
+        () ->
+            parser
+                .parseProgramLines("10 print \"test\"\n")
+                .get(10)
+                .getStatements(parser)
+                .statement(0));
     assertDoesNotThrow(
-        () -> parser.parseProgramLines("10 PRINT \"test\"\n").get(10).getStatement(parser));
+        () ->
+            parser
+                .parseProgramLines("10 PRINT \"test\"\n")
+                .get(10)
+                .getStatements(parser)
+                .statement(0));
     assertDoesNotThrow(
-        () -> parser.parseProgramLines("10 PrInT \"test\"\n").get(10).getStatement(parser));
+        () ->
+            parser
+                .parseProgramLines("10 PrInT \"test\"\n")
+                .get(10)
+                .getStatements(parser)
+                .statement(0));
   }
 
   @Test
   void testCaseInsensitiveVariables() {
     // Variables should be normalized but parse correctly
     assertDoesNotThrow(
-        () -> parser.parseProgramLines("10 LET a = 1\n").get(10).getStatement(parser));
+        () ->
+            parser.parseProgramLines("10 LET a = 1\n").get(10).getStatements(parser).statement(0));
     assertDoesNotThrow(
-        () -> parser.parseProgramLines("10 LET A = 1\n").get(10).getStatement(parser));
+        () ->
+            parser.parseProgramLines("10 LET A = 1\n").get(10).getStatements(parser).statement(0));
   }
 }

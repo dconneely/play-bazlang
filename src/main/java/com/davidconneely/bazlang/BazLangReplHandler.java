@@ -2,9 +2,10 @@ package com.davidconneely.bazlang;
 
 import com.davidconneely.bazlang.antlr.AntlrParser;
 import com.davidconneely.bazlang.antlr.BazLangParser;
-import com.davidconneely.bazlang.antlr.BazLangParser.*;
+import com.davidconneely.bazlang.antlr.BazLangParser.StatementContext;
 import com.davidconneely.repl.ReplHandler;
 import com.davidconneely.repl.Shell;
+import java.util.List;
 
 public final class BazLangReplHandler implements ReplHandler {
   private final AntlrParser parser;
@@ -35,13 +36,17 @@ public final class BazLangReplHandler implements ReplHandler {
       } else if (parsed instanceof AntlrParser.ParsedLine.ReplCommand(var ctx)) {
         handleReplCommand(ctx, ui);
         return true;
-      } else if (parsed instanceof AntlrParser.ParsedLine.Immediate(StatementContext statement)) {
-        return handleImmediateStatement(statement);
+      } else if (parsed instanceof AntlrParser.ParsedLine.Immediate(var _)) {
+        return handleImmediateStatement(line);
       }
     } catch (ReportException e) {
       state.setLastReportCode(e.reportCode());
       state.setLastReportLabel(e.lineLabel());
-      ui.setStatus(e.prefix() + " " + e.getMessage());
+      state.setLastReportStatementIndex(e.statementIndex());
+      ui.setStatus(e.format());
+      if (e.reportCode() == ReportCode.STOP_STATEMENT) {
+        return e.lineLabel() != 0;
+      }
     }
     return true;
   }
@@ -80,17 +85,51 @@ public final class BazLangReplHandler implements ReplHandler {
     }
   }
 
-  private boolean handleImmediateStatement(StatementContext statement) {
-    if (statement instanceof StopStmtContext) {
-      return false;
+  private boolean handleImmediateStatement(String rawLine) {
+    ProgramLine dummyLine = new ProgramLine(0, rawLine);
+    int index = 1;
+    List<StatementContext> flatStmts = dummyLine.getFlattenedStatements(parser);
+    for (var stmt : flatStmts) {
+      state.setCurrentLineLabel(0);
+      state.setCurrentStatementIndex(index);
+      executor.visit(stmt);
+      if (state.hasPendingJump() || !state.isRunning()) {
+        break;
+      }
+      index++;
     }
-    executor.visit(statement);
-    if (statement instanceof ContStmtContext
-        || statement instanceof GosubStmtContext
-        || statement instanceof GotoStmtContext
-        || statement instanceof RunStmtContext) {
+    // Handle returning to immediate mode from loops/subroutines
+    while (state.hasPendingJump()
+        && state.pendingJumpLabel() != null
+        && state.pendingJumpLabel() == 0) {
+      int startIndex = state.pendingJumpStatementIndex();
+      state.clearPendingJump();
+      index = 1;
+      for (var stmt : flatStmts) {
+        if (index >= startIndex) {
+          state.setCurrentLineLabel(0);
+          state.setCurrentStatementIndex(index);
+          executor.visit(stmt);
+          if (state.hasPendingJump() || !state.isRunning()) {
+            break;
+          }
+        }
+        index++;
+      }
+      // If a jump occurred to > 0 (like RUN or GOTO), resume the interpreter
+      if (state.hasPendingJump()
+          && state.pendingJumpLabel() != null
+          && state.pendingJumpLabel() > 0) {
+        interpreter.resume();
+      }
+    }
+    // Check if the FIRST set of statements caused a jump to > 0
+    if (state.hasPendingJump()
+        && state.pendingJumpLabel() != null
+        && state.pendingJumpLabel() > 0) {
       interpreter.resume();
     }
+    state.setRunning(false);
     return true;
   }
 }

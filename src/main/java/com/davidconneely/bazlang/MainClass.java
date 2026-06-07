@@ -54,7 +54,7 @@ public class MainClass {
       if (e.reportCode() == ReportCode.STOP_STATEMENT) {
         display.waitForKey();
       } else {
-        display.systemPrintln(e.prefix() + " " + e.getMessage());
+        display.systemPrintln(e.format());
         System.exit(1);
       }
     }

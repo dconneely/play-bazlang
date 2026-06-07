@@ -1,7 +1,11 @@
 package com.davidconneely.bazlang;
 
 import com.davidconneely.bazlang.antlr.AntlrParser;
+import com.davidconneely.bazlang.antlr.BazLangParser.IfStmtContext;
 import com.davidconneely.bazlang.antlr.BazLangParser.StatementContext;
+import com.davidconneely.bazlang.antlr.BazLangParser.StatementsContext;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Represents a single line in a BazLang program. Stores the original source text and lazily parses
@@ -10,7 +14,7 @@ import com.davidconneely.bazlang.antlr.BazLangParser.StatementContext;
 public class ProgramLine {
   private final int lineNumber;
   private final String sourceText;
-  private StatementContext cachedParseTree;
+  private StatementsContext cachedParseTree;
 
   public ProgramLine(int lineNumber, String sourceText) {
     this.lineNumber = lineNumber;
@@ -26,11 +30,32 @@ public class ProgramLine {
     return sourceText;
   }
 
-  /** Returns the parsed StatementContext for this line, parsing lazily on first access. */
-  public StatementContext getStatement(AntlrParser parser) {
+  /** Returns the parsed StatementsContext for this line, parsing lazily on first access. */
+  public List<StatementContext> getFlattenedStatements(AntlrParser parser) {
     if (cachedParseTree == null) {
-      cachedParseTree = parser.parseStatementContext(sourceText);
+      cachedParseTree = parser.parseStatementsContext(sourceText);
+    }
+    List<StatementContext> flat = new ArrayList<>();
+    flatten(cachedParseTree, flat);
+    return flat;
+  }
+
+  public StatementsContext getStatements(AntlrParser parser) {
+    if (cachedParseTree == null) {
+      cachedParseTree = parser.parseStatementsContext(sourceText);
     }
     return cachedParseTree;
+  }
+
+  private void flatten(StatementsContext ctx, List<StatementContext> flat) {
+    if (ctx == null) {
+      return;
+    }
+    for (StatementContext stmt : ctx.statement()) {
+      flat.add(stmt);
+      if (stmt instanceof IfStmtContext ifStmt) {
+        flatten(ifStmt.statements(), flat);
+      }
+    }
   }
 }

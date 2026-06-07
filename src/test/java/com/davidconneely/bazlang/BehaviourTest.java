@@ -200,9 +200,207 @@ class BehaviourTest {
   }
 
   @Test
-  void testNoMultiStatementLines() {
-    // Documented: BazLang DOES NOT support ':'
-    assertThrows(ReportException.class, () -> runProgram("10 PRINT 1 : PRINT 2"));
+  void testMultiStatementLines() {
+    String output = runProgramCapture("10 PRINT 1 : PRINT 2");
+    assertEquals("1\n2\n", output.replace(System.lineSeparator(), "\n"));
+  }
+
+  @Test
+  void testRemConsumesRestOfLine() {
+    String output = runProgramCapture("10 REM PRINT 1 : PRINT 2");
+    assertEquals("", output);
+  }
+
+  @Test
+  void testIfThenConsumesRestOfLine() {
+    String output = runProgramCapture("10 IF 0 = 1 THEN PRINT 1 : PRINT 2");
+    assertEquals("", output);
+
+    output = runProgramCapture("10 IF 1 = 1 THEN PRINT 1 : PRINT 2");
+    assertEquals("1\n2\n", output.replace(System.lineSeparator(), "\n"));
+  }
+
+  @Test
+  void testGosubInMultiStatementLine() {
+    // Should print "BEFORE", "SUBROUTINE", "AFTER".
+    String output =
+        runProgramCapture(
+            """
+        10 PRINT "BEFORE" : GOSUB 100 : PRINT "AFTER" : STOP
+        100 PRINT "SUBROUTINE" : RETURN : PRINT "NOT"
+        """);
+    assertEquals("BEFORE\nSUBROUTINE\nAFTER\n", output.replace(System.lineSeparator(), "\n"));
+  }
+
+  @Test
+  void testGosubInsideIfThen() {
+    String output =
+        runProgramCapture(
+            """
+        10 IF 1=1 THEN PRINT "BEFORE" : GOSUB 100 : PRINT "AFTER" : STOP
+        100 PRINT "SUBROUTINE" : RETURN
+        """);
+    assertEquals("BEFORE\nSUBROUTINE\nAFTER\n", output.replace(System.lineSeparator(), "\n"));
+
+    String skippedOutput =
+        runProgramCapture(
+            """
+        10 IF 0=1 THEN PRINT "BEFORE" : GOSUB 100 : PRINT "AFTER" : STOP
+        20 STOP
+        100 PRINT "NOT_RUN" : RETURN
+        """);
+    assertEquals("", skippedOutput);
+  }
+
+  @Test
+  void testForInsideIfThen() {
+    String output =
+        runProgramCapture(
+            "10 IF 1=1 THEN PRINT \"BEFORE\" "
+                + ": FOR I=1 TO 3 : PRINT I : NEXT I : PRINT \"AFTER\" : STOP");
+    assertEquals("BEFORE\n1\n2\n3\nAFTER\n", output.replace(System.lineSeparator(), "\n"));
+  }
+
+  @Test
+  void testForInMultiStatementLine() {
+    // Should print "BEFORE", "1", "2", "3", "AFTER".
+    String output =
+        runProgramCapture(
+            "10 PRINT \"BEFORE\" : FOR I=1 TO 3 : PRINT I : NEXT I : PRINT \"AFTER\" : STOP");
+    assertEquals("BEFORE\n1\n2\n3\nAFTER\n", output.replace(System.lineSeparator(), "\n"));
+  }
+
+  @Test
+  void testContInMultiStatementLine() {
+    // Should print "BEFORE", then if the user enters CONT, should print "AFTER".
+    Map<Integer, ProgramLine> program =
+        PARSER.parseProgramLines("10 PRINT \"BEFORE\" : STOP : PRINT \"AFTER\"");
+    EvalState state = new EvalState();
+    MockDisplay display = new MockDisplay(List.of());
+    ProgramManager executor = new ProgramManager(state, display);
+    Interpreter interpreter = new Interpreter(state, executor);
+
+    try {
+      interpreter.execute(program);
+    } catch (ReportException e) {
+      assertEquals(ReportCode.STOP_STATEMENT, e.reportCode());
+      state.setLastReportCode(e.reportCode());
+      state.setLastReportLabel(e.lineLabel());
+      state.setLastReportStatementIndex(e.statementIndex());
+    }
+
+    // Simulate REPL running CONT
+    executor.visitContStmt(null);
+    interpreter.resume();
+
+    assertEquals("BEFORE\nAFTER\n", display.getOutput().replace(System.lineSeparator(), "\n"));
+  }
+
+  @Test
+  void testImmediateModeForLoop() {
+    // REPL statements are executed via immediate mode (label 0).
+    EvalState state = new EvalState();
+    MockDisplay display = new MockDisplay(List.of());
+    ProgramManager executor = new ProgramManager(state, display);
+    Interpreter interpreter = new Interpreter(state, executor);
+    ProgramEditor editor = new ProgramEditor(state, display, PARSER, executor::evalNum);
+    BazLangReplHandler repl = new BazLangReplHandler(PARSER, state, executor, editor, interpreter);
+
+    repl.handleReplInput("FOR I=1 TO 3 : PRINT I : NEXT I", null);
+    assertEquals("1\n2\n3\n", display.getOutput().replace(System.lineSeparator(), "\n"));
+  }
+
+  @Test
+  void testImmediateModeRun() {
+    // Tests that RUN executed from REPL properly runs a stored program without infinite loop
+    EvalState state = new EvalState();
+    MockDisplay display = new MockDisplay(List.of());
+    ProgramManager executor = new ProgramManager(state, display);
+    Interpreter interpreter = new Interpreter(state, executor);
+    ProgramEditor editor = new ProgramEditor(state, display, PARSER, executor::evalNum);
+    BazLangReplHandler repl = new BazLangReplHandler(PARSER, state, executor, editor, interpreter);
+
+    repl.handleReplInput("10 PRINT \"HELLO\"", display);
+    repl.handleReplInput("RUN", display);
+
+    assertEquals(
+        "10 PRINT \"HELLO\"\nHELLO\n", display.getOutput().replace(System.lineSeparator(), "\n"));
+    assertFalse(state.isRunning()); // Should stop gracefully
+  }
+
+  @Test
+  void testImmediateModeList() {
+    // Tests that LIST executed from REPL doesn't echo itself as line 0
+    EvalState state = new EvalState();
+    MockDisplay display = new MockDisplay(List.of());
+    ProgramManager executor = new ProgramManager(state, display);
+    Interpreter interpreter = new Interpreter(state, executor);
+    ProgramEditor editor = new ProgramEditor(state, display, PARSER, executor::evalNum);
+    BazLangReplHandler repl = new BazLangReplHandler(PARSER, state, executor, editor, interpreter);
+
+    repl.handleReplInput("10 PRINT \"HELLO\"", display);
+    repl.handleReplInput("LIST", display);
+
+    // The output should just be the line 10 being echoed, then the list showing just line 10.
+    assertEquals(
+        "10 PRINT \"HELLO\"\n10 PRINT \"HELLO\"\n",
+        display.getOutput().replace(System.lineSeparator(), "\n"));
+  }
+
+  @Test
+  void testImmediateModeGosub() {
+    // Tests that an immediate GOSUB to a subroutine containing a RETURN gracefully returns to the
+    // REPL
+    EvalState state = new EvalState();
+    MockDisplay display = new MockDisplay(List.of());
+    ProgramManager executor = new ProgramManager(state, display);
+    Interpreter interpreter = new Interpreter(state, executor);
+    ProgramEditor editor = new ProgramEditor(state, display, PARSER, executor::evalNum);
+    BazLangReplHandler repl = new BazLangReplHandler(PARSER, state, executor, editor, interpreter);
+
+    repl.handleReplInput("10 PRINT \"SUB\" : RETURN", display);
+    repl.handleReplInput("GOSUB 10", display);
+
+    // The output should be the subroutine's line being echoed, then the subroutine executing,
+    // and then returning to the REPL cleanly without throwing "RETURN without GOSUB".
+    assertEquals(
+        "10 PRINT \"SUB\" : RETURN\nSUB\n",
+        display.getOutput().replace(System.lineSeparator(), "\n"));
+    assertFalse(state.isRunning());
+  }
+
+  @Test
+  void testImmediateModeStopExitsRepl() {
+    // Tests that STOP executed from REPL as an immediate statement returns false to exit the REPL
+    EvalState state = new EvalState();
+    MockDisplay display = new MockDisplay(List.of());
+    ProgramManager executor = new ProgramManager(state, display);
+    Interpreter interpreter = new Interpreter(state, executor);
+    ProgramEditor editor = new ProgramEditor(state, display, PARSER, executor::evalNum);
+    BazLangReplHandler repl = new BazLangReplHandler(PARSER, state, executor, editor, interpreter);
+
+    boolean continueRepl = repl.handleReplInput("STOP", display);
+
+    assertFalse(continueRepl, "Immediate STOP should return false to exit the REPL");
+    assertEquals("9 STOP statement, 0:1", display.getStatus());
+  }
+
+  @Test
+  void testStoredStopContinuesRepl() {
+    // Tests that STOP executed inside a program returns true to continue the REPL
+    EvalState state = new EvalState();
+    MockDisplay display = new MockDisplay(List.of());
+    ProgramManager executor = new ProgramManager(state, display);
+    Interpreter interpreter = new Interpreter(state, executor);
+    ProgramEditor editor = new ProgramEditor(state, display, PARSER, executor::evalNum);
+    BazLangReplHandler repl = new BazLangReplHandler(PARSER, state, executor, editor, interpreter);
+
+    repl.handleReplInput("10 PRINT \"A\"", display);
+    repl.handleReplInput("20 STOP", display);
+    boolean continueRepl = repl.handleReplInput("RUN", display);
+
+    assertTrue(continueRepl, "Stored STOP should return true to continue the REPL");
+    assertEquals("9 STOP statement, 20:1", display.getStatus());
   }
 
   @Test

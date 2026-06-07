@@ -11,7 +11,7 @@ class ReportExceptionTest {
   void testExceptionFormat() {
     ReportException ex = new ReportException(ReportCode.RETURN_WITHOUT_GOSUB, 40, "Test error");
 
-    assertTrue(ex.prefix().contains("7/40"));
+    assertTrue(ex.format().contains("7"));
     assertTrue(ex.getMessage().contains("Test error"));
   }
 

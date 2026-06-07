@@ -6,6 +6,7 @@ import com.davidconneely.bazlang.io.BazLangDisplay;
 import com.davidconneely.bazlang.io.StreamDisplay;
 import com.davidconneely.bazlang.io.TerminalDisplay;
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 
 public class Interpreter {
@@ -32,7 +33,7 @@ public class Interpreter {
   public void execute(Map<Integer, ProgramLine> program) {
     state.setProgram(program);
     if (!state.program().isEmpty()) {
-      state.setPendingJumpLabel(state.program().firstKey());
+      state.setPendingJumpLocation(state.program().firstKey(), 1);
     }
     resume();
   }
@@ -41,14 +42,20 @@ public class Interpreter {
     state.setRunning(true);
     while (state.isRunning()) {
       Integer nextLabel;
+      int startIndex = 1;
       if (state.hasPendingJump()) {
         nextLabel = state.pendingJumpLabel();
+        if (nextLabel < Limits.MIN_LINE_LABEL) {
+          break; // Return control to immediate statement handler
+        }
+        startIndex = state.pendingJumpStatementIndex();
         state.clearPendingJump();
       } else {
         nextLabel = state.program().higherKey(state.currentLineLabel());
       }
 
       if (nextLabel == null) {
+        state.setRunning(false);
         break;
       }
 
@@ -60,8 +67,18 @@ public class Interpreter {
       state.setCurrentLineLabel(nextLabel);
       // Lazy parse: ParseTree is built on first execution, cached for loops
       ProgramLine line = state.program().get(nextLabel);
-      StatementContext stmt = line.getStatement(PARSER);
-      executor.visit(stmt);
+      List<StatementContext> stmts = line.getFlattenedStatements(PARSER);
+      int index = 1;
+      for (StatementContext stmt : stmts) {
+        if (index >= startIndex) {
+          state.setCurrentStatementIndex(index);
+          executor.visit(stmt);
+          if (state.hasPendingJump() || !state.isRunning()) {
+            break;
+          }
+        }
+        index++;
+      }
     }
   }
 }

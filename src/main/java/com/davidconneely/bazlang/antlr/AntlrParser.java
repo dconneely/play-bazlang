@@ -1,7 +1,7 @@
 package com.davidconneely.bazlang.antlr;
 
 import com.davidconneely.bazlang.*;
-import com.davidconneely.bazlang.antlr.BazLangParser.StatementContext;
+import com.davidconneely.bazlang.antlr.BazLangParser.StatementsContext;
 import java.util.NavigableMap;
 import java.util.TreeMap;
 import java.util.regex.Matcher;
@@ -63,7 +63,7 @@ public class AntlrParser {
       if (lineNumber == 0) {
         // Line 0 in REPL executes immediately (like on ZX81)
         String statementText = getStatementText(line, lineNumber);
-        return new ParsedLine.Immediate(parseStatementContext(statementText));
+        return new ParsedLine.Immediate(parseStatementsContext(statementText));
       }
       if (lineNumber > Limits.MAX_LINE_LABEL) {
         throw new ReportException(
@@ -74,30 +74,30 @@ public class AntlrParser {
     } else if (tree instanceof BazLangParser.ReplCommandLineContext cmdLine) {
       return new ParsedLine.ReplCommand(cmdLine.replCommand());
     } else if (tree instanceof BazLangParser.ImmediateLineContext immediate) {
-      return new ParsedLine.Immediate(immediate.statement());
+      return new ParsedLine.Immediate(immediate.statements());
     }
 
     throw new ReportException(ReportCode.NONSENSE_IN_BASIC, 0, "Unexpected parse result");
   }
 
   /**
-   * Parse a single statement and return its StatementContext (ParseTree).
+   * Parse a single statement and return its StatementsContext (ParseTree).
    *
    * @param source the statement to parse
-   * @return the parsed StatementContext
+   * @return the parsed StatementsContext
    * @throws ReportException if parsing fails
    */
-  public StatementContext parseStatementContext(String source) {
+  public StatementsContext parseStatementsContext(String source) {
     BazLangParser parser = createParser(source);
     BazLangParser.ReplLineContext tree = parser.replLine();
 
     if (tree instanceof BazLangParser.ImmediateLineContext immediate) {
-      return immediate.statement();
+      return immediate.statements();
     } else if (tree instanceof BazLangParser.NumberedLineContext numbered) {
-      return numbered.statement();
+      return numbered.statements();
     }
 
-    throw new ReportException(ReportCode.NONSENSE_IN_BASIC, 0, "Expected statement");
+    throw new ReportException(ReportCode.NONSENSE_IN_BASIC, 0, "Expected statements");
   }
 
   /**
@@ -141,7 +141,7 @@ public class AntlrParser {
   public sealed interface ParsedLine {
     record Numbered(int lineNumber, String statementText) implements ParsedLine {}
 
-    record Immediate(StatementContext statement) implements ParsedLine {}
+    record Immediate(StatementsContext statements) implements ParsedLine {}
 
     record ReplCommand(BazLangParser.ReplCommandContext context) implements ParsedLine {}
   }

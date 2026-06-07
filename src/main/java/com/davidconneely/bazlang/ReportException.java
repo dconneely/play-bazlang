@@ -3,11 +3,17 @@ package com.davidconneely.bazlang;
 public class ReportException extends RuntimeException {
   private final ReportCode reportCode;
   private final int lineLabel;
+  private final int statementIndex;
 
-  public ReportException(ReportCode reportCode, int lineLabel, String message) {
+  public ReportException(ReportCode reportCode, int lineLabel, int statementIndex, String message) {
     super(message);
     this.reportCode = reportCode;
     this.lineLabel = lineLabel;
+    this.statementIndex = statementIndex;
+  }
+
+  public ReportException(ReportCode reportCode, int lineLabel, String message) {
+    this(reportCode, lineLabel, 1, message);
   }
 
   public ReportCode reportCode() {
@@ -18,7 +24,12 @@ public class ReportException extends RuntimeException {
     return lineLabel;
   }
 
-  public String prefix() {
-    return String.valueOf(reportCode != null ? reportCode.getCode() : '-') + '/' + lineLabel;
+  public int statementIndex() {
+    return statementIndex;
+  }
+
+  public String format() {
+    String codeStr = (reportCode != null) ? String.valueOf(reportCode.getCode()) : "-";
+    return codeStr + " " + getMessage() + ", " + lineLabel + ":" + statementIndex;
   }
 }

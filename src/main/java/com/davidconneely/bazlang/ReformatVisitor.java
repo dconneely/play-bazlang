@@ -83,7 +83,7 @@ public class ReformatVisitor extends BazLangBaseVisitor<String> {
 
   @Override
   public String visitIfStmt(IfStmtContext ctx) {
-    return "IF " + visit(ctx.numExpr()) + " THEN " + visit(ctx.statement());
+    return "IF " + visit(ctx.numExpr()) + " THEN " + visit(ctx.statements());
   }
 
   @Override

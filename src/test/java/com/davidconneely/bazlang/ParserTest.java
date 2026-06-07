@@ -109,7 +109,7 @@ class ParserTest {
           // parseProgramLines doesn't parse immediately, so force parsing
           var lines = AntlrParser.INSTANCE.parseProgramLines(source);
           for (var line : lines.values()) {
-            line.getStatement(AntlrParser.INSTANCE);
+            line.getStatements(AntlrParser.INSTANCE);
           }
         },
         "Source should fail to parse: " + source);

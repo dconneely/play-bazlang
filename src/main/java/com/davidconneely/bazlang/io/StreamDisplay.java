@@ -139,7 +139,9 @@ public class StreamDisplay implements BazLangDisplay {
 
   @Override
   public void setStatus(String status) {
-    // No-op: stream display has no status area
+    if (status != null && !status.isEmpty() && !status.equals("READY")) {
+      println(status);
+    }
   }
 
   @Override

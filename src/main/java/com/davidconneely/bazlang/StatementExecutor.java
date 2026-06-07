@@ -98,8 +98,18 @@ public class StatementExecutor extends BazLangBaseVisitor<Object> {
 
   @Override
   public Object visitIfStmt(IfStmtContext ctx) {
-    if (evalNum(ctx.numExpr()) != 0.0) {
-      visit(ctx.statement());
+    if (evalNum(ctx.numExpr()) == 0.0) {
+      if (state.currentLineLabel() > 0) {
+        Integer nextLabel = state.program().higherKey(state.currentLineLabel());
+        if (nextLabel != null) {
+          state.setPendingJumpLocation(nextLabel, 1);
+        } else {
+          state.setRunning(false); // End of program
+        }
+      } else {
+        state.setPendingJumpLocation(
+            0, Integer.MAX_VALUE); // effectively skips the rest of immediate line
+      }
     }
     return null;
   }
@@ -443,10 +453,7 @@ public class StatementExecutor extends BazLangBaseVisitor<Object> {
   @Override
   public Object visitStopStmt(StopStmtContext ctx) {
     state.setRunning(false);
-    if (state.currentLineLabel() > 0) {
-      throw codedException(ReportCode.STOP_STATEMENT, ReportCode.STOP_STATEMENT.getMessage());
-    }
-    return null;
+    throw codedException(ReportCode.STOP_STATEMENT, ReportCode.STOP_STATEMENT.getMessage());
   }
 
   @Override
@@ -554,6 +561,6 @@ public class StatementExecutor extends BazLangBaseVisitor<Object> {
   }
 
   private ReportException codedException(ReportCode rc, String msg) {
-    return new ReportException(rc, state.currentLineLabel(), msg);
+    return new ReportException(rc, state.currentLineLabel(), state.currentStatementIndex(), msg);
   }
 }

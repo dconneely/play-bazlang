@@ -24,6 +24,10 @@ application {
   applicationDefaultJvmArgs = listOf("--enable-native-access=ALL-UNNAMED")
 }
 
+tasks.named<JavaExec>("run") {
+  standardInput = System.`in`
+}
+
 dependencies {
   antlr(libs.antlr.tool)
   implementation(libs.antlr.runtime)
