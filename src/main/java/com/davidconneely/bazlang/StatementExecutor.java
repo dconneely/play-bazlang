@@ -59,6 +59,35 @@ public class StatementExecutor extends BazLangBaseVisitor<Object> {
   }
 
   @Override
+  public Object visitDefFnStmt(DefFnStmtContext ctx) {
+    String name = ctx.name.getText().toUpperCase();
+    if (name.endsWith("$")) {
+      if (ctx.expression().strExpr() == null) {
+        throw codedException(
+            ReportCode.NONSENSE_IN_BASIC, "Type mismatch: expected string expression");
+      }
+    } else {
+      if (ctx.expression().numExpr() == null) {
+        throw codedException(
+            ReportCode.NONSENSE_IN_BASIC, "Type mismatch: expected numeric expression");
+      }
+    }
+    List<String> params = new ArrayList<>();
+    if (ctx.params != null) {
+      java.util.Set<String> paramSet = new java.util.HashSet<>();
+      for (var p : ctx.params) {
+        String pName = p.getText().toUpperCase();
+        if (!paramSet.add(pName)) {
+          throw codedException(ReportCode.NONSENSE_IN_BASIC, "Duplicate parameter name: " + pName);
+        }
+        params.add(pName);
+      }
+    }
+    state.setFn(name, new EvalState.FnDefinition(name, params, ctx.expression()));
+    return null;
+  }
+
+  @Override
   public Object visitDimStmt(DimStmtContext ctx) {
     var dimDecl = ctx.dimDecl();
     String name =

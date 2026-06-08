@@ -1,5 +1,6 @@
 package com.davidconneely.bazlang;
 
+import com.davidconneely.bazlang.antlr.BazLangParser.ExpressionContext;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.HashMap;
@@ -17,6 +18,8 @@ public class EvalState {
         implements StrVar {}
   }
 
+  public record FnDefinition(String name, List<String> params, ExpressionContext body) {}
+
   public record ForLoopData(double limit, double step, int loopPcLabel, int loopPcStatementIndex) {}
 
   public record JumpLocation(int lineLabel, int statementIndex) {}
@@ -25,6 +28,7 @@ public class EvalState {
   private final Map<String, Double> numScalars = new HashMap<>();
   private final Map<String, NumArray> numArrays = new HashMap<>();
   private final Map<String, StrVar> strVars = new HashMap<>();
+  private final Map<String, FnDefinition> fnDefinitions = new HashMap<>();
   private final Map<String, ForLoopData> forLoops = new HashMap<>();
   private final Deque<JumpLocation> returnStack = new ArrayDeque<>();
   private final Random random = new Random();
@@ -92,6 +96,10 @@ public class EvalState {
 
   public void setStrVar(String name, StrVar val) {
     strVars.put(name, val);
+  }
+
+  public void removeNumVar(String name) {
+    numScalars.remove(name);
   }
 
   public void removeStrVar(String name) {
@@ -221,6 +229,14 @@ public class EvalState {
     return dataStatementIndex;
   }
 
+  public FnDefinition fn(String name) {
+    return fnDefinitions.get(name);
+  }
+
+  public boolean hasFn(String name) {
+    return fnDefinitions.containsKey(name);
+  }
+
   public void setDataExpressionIndex(int index) {
     this.dataExpressionIndex = index;
   }
@@ -233,10 +249,15 @@ public class EvalState {
     this.dataStatementIndex = index;
   }
 
+  public void setFn(String name, FnDefinition def) {
+    fnDefinitions.put(name, def);
+  }
+
   public void clear() {
     numScalars.clear();
     numArrays.clear();
     strVars.clear();
+    fnDefinitions.clear();
     forLoops.clear();
     returnStack.clear();
     clearPendingJump();

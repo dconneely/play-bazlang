@@ -18,9 +18,9 @@ lastLine
     ;
 
 replLine
-    : NUM_LITERAL statements? EOF   # NumberedLine
-    | replCommand EOF               # ReplCommandLine
-    | statements EOF                # ImmediateLine
+    : NUM_LITERAL statements? EOF                          # NumberedLine
+    | replCommand EOF                                      # ReplCommandLine
+    | statements EOF                                       # ImmediateLine
     ;
 
 // One or more statements separated by colons
@@ -45,65 +45,66 @@ strExprInput
     ;
 
 replCommand
-    : DELETE lineRange?            # DeleteCmd
-    | EDIT numExpr                 # EditCmd
-    | RENUM renumArgs?             # RenumCmd
-    | REFORMAT lineRange?          # ReformatCmd
+    : DELETE lineRange?                                    # DeleteCmd
+    | EDIT numExpr                                         # EditCmd
+    | RENUM renumArgs?                                     # RenumCmd
+    | REFORMAT lineRange?                                  # ReformatCmd
     ;
 
 // Statements
 statement
-    : CLEAR                                                             # ClearStmt
-    | CLS                                                               # ClsStmt
-    | (CONT | CONTINUE)                                                 # ContStmt
-    | DATA expression (',' expression)*                                 # DataStmt
-    | DIM dimDecl                                                        # DimStmt
-    | FOR NUM_IDENTIFIER '=' numExpr TO numExpr (STEP numExpr)?         # ForStmt
-    | (GO SUB | GOSUB) numExpr                                          # GosubStmt
-    | (GO TO | GOTO) numExpr                                            # GotoStmt
-    | IF numExpr THEN statements                                        # IfStmt
-    | INPUT assignmentTarget                                             # InputStmt
-    | LET assignmentTarget '=' expression                               # LetStmt
-    | LIST lineRange?                                                   # ListStmt
-    | LLIST lineRange?                                                  # LListStmt
-    | LOAD strExpr                                                      # LoadStmt
-    | LPRINT printList?                                                 # LPrintStmt
-    | NEW                                                               # NewStmt
-    | NEXT NUM_IDENTIFIER                                               # NextStmt
-    | PAUSE numExpr                                                     # PauseStmt
-    | PLOT numExpr ',' numExpr                                          # PlotStmt
-    | PLOTMODE numExpr                                                   # PlotmodeStmt
-    | PRINT printList?                                                  # PrintStmt
-    | (RAND | RANDOMISE | RANDOMIZE) numExpr?                           # RandStmt
-    | READ assignmentTarget (',' assignmentTarget)*                    # ReadStmt
-    | REM                                                               # RemStmt
-    | RESTORE numExpr?                                                   # RestoreStmt
-    | RETURN                                                            # ReturnStmt
-    | RUN numExpr?                                                      # RunStmt
-    | SAVE strExpr                                                      # SaveStmt
-    | SCROLL                                                            # ScrollStmt
-    | STOP                                                              # StopStmt
-    | UNPLOT numExpr ',' numExpr                                        # UnplotStmt
+    : CLEAR                                                # ClearStmt
+    | CLS                                                  # ClsStmt
+    | (CONT | CONTINUE)                                    # ContStmt
+    | DATA expression (',' expression)*                    # DataStmt
+    | DEF FN name=(NUM_IDENTIFIER | STR_IDENTIFIER) '(' ( params+=(NUM_IDENTIFIER | STR_IDENTIFIER) (',' params+=(NUM_IDENTIFIER | STR_IDENTIFIER))* )? ')' '=' expression # DefFnStmt
+    | DIM dimDecl                                          # DimStmt
+    | FOR NUM_IDENTIFIER '=' numExpr TO numExpr (STEP numExpr)? # ForStmt
+    | (GO SUB | GOSUB) numExpr                             # GosubStmt
+    | (GO TO | GOTO) numExpr                               # GotoStmt
+    | IF numExpr THEN statements                           # IfStmt
+    | INPUT assignmentTarget                               # InputStmt
+    | LET assignmentTarget '=' expression                  # LetStmt
+    | LIST lineRange?                                      # ListStmt
+    | LLIST lineRange?                                     # LListStmt
+    | LOAD strExpr                                         # LoadStmt
+    | LPRINT printList?                                    # LPrintStmt
+    | NEW                                                  # NewStmt
+    | NEXT NUM_IDENTIFIER                                  # NextStmt
+    | PAUSE numExpr                                        # PauseStmt
+    | PLOT numExpr ',' numExpr                             # PlotStmt
+    | PLOTMODE numExpr                                     # PlotmodeStmt
+    | PRINT printList?                                     # PrintStmt
+    | (RAND | RANDOMISE | RANDOMIZE) numExpr?              # RandStmt
+    | READ assignmentTarget (',' assignmentTarget)*        # ReadStmt
+    | REM                                                  # RemStmt
+    | RESTORE numExpr?                                     # RestoreStmt
+    | RETURN                                               # ReturnStmt
+    | RUN numExpr?                                         # RunStmt
+    | SAVE strExpr                                         # SaveStmt
+    | SCROLL                                               # ScrollStmt
+    | STOP                                                 # StopStmt
+    | UNPLOT numExpr ',' numExpr                           # UnplotStmt
     ;
 
 dimDecl
-    : NUM_IDENTIFIER '(' numExpr (',' numExpr)* ')'    // numeric array
-    | STR_IDENTIFIER '(' numExpr (',' numExpr)* ')'    // string/char array
+    : NUM_IDENTIFIER '(' numExpr (',' numExpr)* ')'        // numeric array
+    | STR_IDENTIFIER '(' numExpr (',' numExpr)* ')'        // string/char array
     ;
 
 // LIST/LLIST/DELETE line range using TO (consistent with slice syntax)
 // LIST, LIST 10, LIST 10 TO, LIST TO 100, LIST 10 TO 100, LIST TO
 lineRange
-    : numExpr (TO numExpr?)?    // start or start TO end or start TO
-    | TO numExpr?               // TO end or just TO (all)
+    : numExpr (TO numExpr?)?                               // start or start TO end or start TO
+    | TO numExpr?                                          // TO end or just TO (all)
     ;
 
 // RENUM arguments: [new_start] [STEP new_step] [, [old_start] TO [old_end]]
 // At least one component required to avoid ANTLR warning about matching empty string
 renumArgs
-    : numExpr (STEP numExpr)? (',' numExpr? TO numExpr?)?   // new_start with optional STEP and range
-    | STEP numExpr (',' numExpr? TO numExpr?)?              // STEP without new_start
-    | ',' numExpr? TO numExpr?                              // just the range part
+    : numExpr (STEP numExpr)? (',' numExpr? TO numExpr?)?  // new_start with optional STEP and range
+    | STEP numExpr (',' numExpr? TO numExpr?)?             // STEP without new_start
+    | ',' numExpr? TO numExpr?                             // just the range part
     ;
 
 assignmentTarget
@@ -119,9 +120,9 @@ printList
     ;
 
 printItem
-    : AT numExpr ',' numExpr    # PrintAtItem
-    | TAB numExpr               # PrintTabItem
-    | expression                # PrintExprItem
+    : AT numExpr ',' numExpr                               # PrintAtItem
+    | TAB numExpr                                          # PrintTabItem
+    | expression                                           # PrintExprItem
     ;
 
 printSep
@@ -143,34 +144,36 @@ expression
 // ANTLR: earlier alternatives = higher precedence (bind tighter)
 // Note: ** (10) binds tighter than unary minus (9), so -2**2 = -(2**2) = -4
 numExpr
-    : NUM_LITERAL                                           # NumLiteralExpr
-    | BIN_LITERAL                                           # BinLiteralExpr
-    | NUM_IDENTIFIER                                        # NumVarExpr
-    | NUM_IDENTIFIER '(' numExpr (',' numExpr)* ')'         # NumArrayExpr
-    | '(' numExpr ')'                                       # NumParenExpr
-    | numFunc                                               # NumFuncCallExpr
-    | <assoc=right> numExpr ('**' | '^') numExpr            # NumPowerExpr
-    | '-' numExpr                                           # NumUnaryMinusExpr
-    | numExpr ('*' | '/') numExpr                           # NumMulDivExpr
-    | numExpr ('+' | '-') numExpr                           # NumAddSubExpr
-    | numExpr ('<' | '<=' | '>' | '>=' | '=' | '<>') numExpr    # NumCompExpr
-    | strExpr ('<' | '<=' | '>' | '>=' | '=' | '<>') strExpr    # StrCompExpr
-    | NOT numExpr                                           # NumNotExpr
-    | numExpr AND numExpr                                   # NumAndExpr
-    | numExpr OR numExpr                                    # NumOrExpr
+    : NUM_LITERAL                                          # NumLiteralExpr
+    | BIN_LITERAL                                          # BinLiteralExpr
+    | NUM_IDENTIFIER                                       # NumVarExpr
+    | NUM_IDENTIFIER '(' numExpr (',' numExpr)* ')'        # NumArrayExpr
+    | '(' numExpr ')'                                      # NumParenExpr
+    | numFunc                                              # NumFuncCallExpr
+    | FN NUM_IDENTIFIER '(' ( args+=expression (',' args+=expression)* )? ')' # FnNumCallExpr
+    | <assoc=right> numExpr ('**' | '^') numExpr           # NumPowerExpr
+    | '-' numExpr                                          # NumUnaryMinusExpr
+    | numExpr ('*' | '/') numExpr                          # NumMulDivExpr
+    | numExpr ('+' | '-') numExpr                          # NumAddSubExpr
+    | numExpr ('<' | '<=' | '>' | '>=' | '=' | '<>') numExpr # NumCompExpr
+    | strExpr ('<' | '<=' | '>' | '>=' | '=' | '<>') strExpr # StrCompExpr
+    | NOT numExpr                                          # NumNotExpr
+    | numExpr AND numExpr                                  # NumAndExpr
+    | numExpr OR numExpr                                   # NumOrExpr
     ;
 
 // String expressions
 // Subscripts can include indices and an optional slice at the end
 // A$(1), A$(1,2), A$(1 TO 5), A$(TO 5), A$(1, 2 TO 5), etc.
 strExpr
-    : STR_LITERAL                                               # StrLiteralExpr
-    | STR_IDENTIFIER                                            # StrVarExpr
-    | STR_IDENTIFIER '(' strSubscript ')'                       # StrSubscriptExpr
-    | '(' strExpr ')'                                           # StrParenExpr
-    | strExpr '+' strExpr                                       # StrConcatExpr
-    | strFunc                                                   # StrFuncCallExpr
-    | strExpr AND numExpr                                       # StrAndExpr
+    : STR_LITERAL                                          # StrLiteralExpr
+    | STR_IDENTIFIER                                       # StrVarExpr
+    | STR_IDENTIFIER '(' strSubscript ')'                  # StrSubscriptExpr
+    | '(' strExpr ')'                                      # StrParenExpr
+    | strExpr '+' strExpr                                  # StrConcatExpr
+    | strFunc                                              # StrFuncCallExpr
+    | FN STR_IDENTIFIER '(' ( args+=expression (',' args+=expression)* )? ')' # FnStrCallExpr
+    | strExpr AND numExpr                                  # StrAndExpr
     ;
 
 // String subscript: indices optionally followed by a slice
@@ -245,9 +248,11 @@ CLS     : 'CLS';
 CONT    : 'CONT';
 CONTINUE: 'CONTINUE';
 DATA    : 'DATA';
+DEF     : 'DEF';
 DELETE  : 'DELETE';
 DIM     : 'DIM';
 EDIT    : 'EDIT';
+FN      : 'FN';
 FOR     : 'FOR';
 GO      : 'GO';
 GOSUB   : 'GOSUB';

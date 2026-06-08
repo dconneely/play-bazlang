@@ -5,7 +5,9 @@ import com.davidconneely.bazlang.antlr.BazLangBaseVisitor;
 import com.davidconneely.bazlang.antlr.BazLangParser.*;
 import com.davidconneely.bazlang.io.BazLangDisplay;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class ExpressionEvaluator extends BazLangBaseVisitor<Object> {
   private final EvalState state;
@@ -87,6 +89,13 @@ public class ExpressionEvaluator extends BazLangBaseVisitor<Object> {
   @Override
   public Double visitNumFuncCallExpr(NumFuncCallExprContext ctx) {
     return (Double) visit(ctx.numFunc());
+  }
+
+  @Override
+  public Double visitFnNumCallExpr(FnNumCallExprContext ctx) {
+    String name = ctx.NUM_IDENTIFIER().getText().toUpperCase();
+    List<ExpressionContext> args = ctx.args != null ? ctx.args : List.of();
+    return (Double) evaluateFnCall(name, args);
   }
 
   @Override
@@ -409,6 +418,13 @@ public class ExpressionEvaluator extends BazLangBaseVisitor<Object> {
   }
 
   @Override
+  public BStr visitFnStrCallExpr(FnStrCallExprContext ctx) {
+    String name = ctx.STR_IDENTIFIER().getText().toUpperCase();
+    List<ExpressionContext> args = ctx.args != null ? ctx.args : List.of();
+    return (BStr) evaluateFnCall(name, args);
+  }
+
+  @Override
   public BStr visitStrFunc(StrFuncContext ctx) {
     if (ctx.CHR_STR() != null) {
       int code = (int) evalNumAtom(ctx.numAtom());
@@ -525,6 +541,86 @@ public class ExpressionEvaluator extends BazLangBaseVisitor<Object> {
       throw codedException(ReportCode.SUBSCRIPT_WRONG, "Slice out of bounds");
     }
     return new int[] {st, en};
+  }
+
+  private Object evaluateFnCall(String name, List<ExpressionContext> callArgs) {
+    if (!state.hasFn(name)) {
+      throw codedException(ReportCode.FN_WITHOUT_DEF, "FN without DEF");
+    }
+    EvalState.FnDefinition def = state.fn(name);
+    if (callArgs.size() != def.params().size()) {
+      throw codedException(
+          ReportCode.PARAMETER_ERROR,
+          "Parameter error: expected "
+              + def.params().size()
+              + " arguments, got "
+              + callArgs.size());
+    }
+
+    // Evaluate arguments in the current context
+    List<Object> argValues = new ArrayList<>();
+    for (int i = 0; i < callArgs.size(); i++) {
+      ExpressionContext argExpr = callArgs.get(i);
+      String paramName = def.params().get(i);
+      if (paramName.endsWith("$")) {
+        if (argExpr.strExpr() == null) {
+          throw codedException(
+              ReportCode.PARAMETER_ERROR,
+              "Type mismatch: expected string for parameter " + paramName);
+        }
+        argValues.add(evalStr(argExpr.strExpr()));
+      } else {
+        if (argExpr.numExpr() == null) {
+          throw codedException(
+              ReportCode.PARAMETER_ERROR,
+              "Type mismatch: expected number for parameter " + paramName);
+        }
+        argValues.add(evalNum(argExpr.numExpr()));
+      }
+    }
+
+    // Shadow variables
+    Map<String, Double> oldNums = new HashMap<>();
+    Map<String, EvalState.StrVar> oldStrs = new HashMap<>();
+    for (int i = 0; i < def.params().size(); i++) {
+      String paramName = def.params().get(i);
+      Object val = argValues.get(i);
+      if (paramName.endsWith("$")) {
+        oldStrs.put(paramName, state.hasStrVar(paramName) ? state.strVar(paramName) : null);
+        state.setStrVar(paramName, new EvalState.StrVar.Scalar((BStr) val));
+      } else {
+        oldNums.put(paramName, state.hasNumVar(paramName) ? state.numVar(paramName) : null);
+        state.setNumVar(paramName, (Double) val);
+      }
+    }
+
+    try {
+      if (name.endsWith("$")) {
+        return evalStr(def.body().strExpr());
+      } else {
+        return evalNum(def.body().numExpr());
+      }
+    } finally {
+      // Restore variables
+      for (var entry : oldNums.entrySet()) {
+        String p = entry.getKey();
+        Double oldVal = entry.getValue();
+        if (oldVal != null) {
+          state.setNumVar(p, oldVal);
+        } else {
+          state.removeNumVar(p);
+        }
+      }
+      for (var entry : oldStrs.entrySet()) {
+        String p = entry.getKey();
+        EvalState.StrVar oldVal = entry.getValue();
+        if (oldVal != null) {
+          state.setStrVar(p, oldVal);
+        } else {
+          state.removeStrVar(p);
+        }
+      }
+    }
   }
 
   /**
