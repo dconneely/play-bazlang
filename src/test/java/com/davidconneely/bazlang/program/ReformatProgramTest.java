@@ -1,14 +1,17 @@
-package com.davidconneely.bazlang;
+package com.davidconneely.bazlang.program;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import com.davidconneely.bazlang.EvalState;
+import com.davidconneely.bazlang.ProgramEditor;
+import com.davidconneely.bazlang.ProgramLine;
+import com.davidconneely.bazlang.ProgramManager;
 import com.davidconneely.bazlang.antlr.AntlrParser;
 import com.davidconneely.bazlang.antlr.BazLangParser;
 import com.davidconneely.bazlang.io.MockDisplay;
 import org.junit.jupiter.api.Test;
 
-class ReformatTest {
-  private static final AntlrParser PARSER = AntlrParser.INSTANCE;
+class ReformatProgramTest extends BaseProgramTest {
 
   private ProgramEditor makeEditor(EvalState state, MockDisplay display) {
     ProgramManager executor = new ProgramManager(state, display);
@@ -28,26 +31,6 @@ class ReformatTest {
 
     assertEquals("LET A = 1 + 2 * 3", state.program().get(10).sourceText());
     assertEquals("PRINT \"hello\", A", state.program().get(20).sourceText());
-  }
-
-  @Test
-  void testReformatRange() {
-    EvalState state = new EvalState();
-    MockDisplay display = new MockDisplay();
-    ProgramEditor editor = makeEditor(state, display);
-
-    state.program().put(10, new ProgramLine(10, "let a = 1"));
-    state.program().put(20, new ProgramLine(20, "let b = 2"));
-    state.program().put(30, new ProgramLine(30, "let c = 3"));
-
-    AntlrParser.ParsedLine parsed = PARSER.parseReplLine("REFORMAT 15 TO 25");
-    editor.executeReformat(
-        ((BazLangParser.ReformatCmdContext) ((AntlrParser.ParsedLine.ReplCommand) parsed).context())
-            .lineRange());
-
-    assertEquals("let a = 1", state.program().get(10).sourceText()); // Untouched
-    assertEquals("LET B = 2", state.program().get(20).sourceText()); // Reformatted
-    assertEquals("let c = 3", state.program().get(30).sourceText()); // Untouched
   }
 
   @Test
@@ -116,5 +99,25 @@ class ReformatTest {
     assertEquals("RANDOMIZE", state.program().get(20).sourceText());
     assertEquals("RUN", state.program().get(30).sourceText());
     assertEquals("LIST", state.program().get(40).sourceText());
+  }
+
+  @Test
+  void testReformatRange() {
+    EvalState state = new EvalState();
+    MockDisplay display = new MockDisplay();
+    ProgramEditor editor = makeEditor(state, display);
+
+    state.program().put(10, new ProgramLine(10, "let a = 1"));
+    state.program().put(20, new ProgramLine(20, "let b = 2"));
+    state.program().put(30, new ProgramLine(30, "let c = 3"));
+
+    AntlrParser.ParsedLine parsed = PARSER.parseReplLine("REFORMAT 15 TO 25");
+    editor.executeReformat(
+        ((BazLangParser.ReformatCmdContext) ((AntlrParser.ParsedLine.ReplCommand) parsed).context())
+            .lineRange());
+
+    assertEquals("let a = 1", state.program().get(10).sourceText()); // Untouched
+    assertEquals("LET B = 2", state.program().get(20).sourceText()); // Reformatted
+    assertEquals("let c = 3", state.program().get(30).sourceText()); // Untouched
   }
 }

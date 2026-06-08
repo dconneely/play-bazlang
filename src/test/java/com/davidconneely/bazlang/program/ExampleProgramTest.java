@@ -1,27 +1,10 @@
-package com.davidconneely.bazlang;
+package com.davidconneely.bazlang.program;
 
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import com.davidconneely.bazlang.antlr.AntlrParser;
-import com.davidconneely.bazlang.io.MockDisplay;
-import java.util.Map;
 import org.junit.jupiter.api.Test;
 
-class IntegrationTest {
-  private static final AntlrParser PARSER = AntlrParser.INSTANCE;
-
-  private void runProgram(String source, String expectedOutput) {
-    Map<Integer, ProgramLine> program = PARSER.parseProgramLines(source);
-
-    EvalState state = new EvalState();
-    MockDisplay display = new MockDisplay();
-    ProgramManager executor = new ProgramManager(state, display);
-    Interpreter interpreter = new Interpreter(state, executor);
-
-    assertDoesNotThrow(() -> interpreter.execute(program));
-    assertEquals(expectedOutput, display.getOutput());
-  }
+class ExampleProgramTest extends BaseProgramTest {
 
   @Test
   void test100Doors() {
@@ -47,7 +30,53 @@ class IntegrationTest {
             + System.lineSeparator()
             + "1 4 9 16 25 36 49 64 81 100 "
             + System.lineSeparator();
-    runProgram(source, expected);
+    String output = runProgramCapture(source);
+    assertEquals(expected, output);
+  }
+
+  @Test
+  void testCirclePlotter() {
+    String source =
+        """
+        10 LET R=5
+        20 LET CX=10
+        30 LET CY=10
+        40 FOR X=0 TO R
+        50 LET Y=INT (SQR (R*R-X*X)+0.5)
+        60 GOSUB 100
+        70 NEXT X
+        80 GOTO 200
+        100 PLOT CX+X, CY+Y
+        110 PLOT CX+X, CY-Y
+        120 PLOT CX-X, CY+Y
+        130 PLOT CX-X, CY-Y
+        140 UNPLOT CX, CY
+        150 RETURN
+        200 PRINT "CIRCLE DRAWN"
+        """;
+    String expected = "████ ████ ████ ████ ████ ████ CIRCLE DRAWN" + System.lineSeparator();
+    String output = runProgramCapture(source);
+    assertEquals(expected, output);
+  }
+
+  @Test
+  void testFibonacci() {
+    String source =
+        """
+        10 LET A=0
+        20 LET B=1
+        30 PRINT A; " "; B; " ";
+        40 FOR I=1 TO 10
+        50 LET C=A+B
+        60 PRINT C; " ";
+        70 LET A=B
+        80 LET B=C
+        90 NEXT I
+        100 PRINT
+        """;
+    String expected = "0 1 1 2 3 5 8 13 21 34 55 89 " + System.lineSeparator();
+    String output = runProgramCapture(source);
+    assertEquals(expected, output);
   }
 
   @Test
@@ -119,26 +148,8 @@ class IntegrationTest {
             + System.lineSeparator()
             + "                 "
             + System.lineSeparator();
-    runProgram(source, expected);
-  }
-
-  @Test
-  void testFibonacci() {
-    String source =
-        """
-        10 LET A=0
-        20 LET B=1
-        30 PRINT A; " "; B; " ";
-        40 FOR I=1 TO 10
-        50 LET C=A+B
-        60 PRINT C; " ";
-        70 LET A=B
-        80 LET B=C
-        90 NEXT I
-        100 PRINT
-        """;
-    String expected = "0 1 1 2 3 5 8 13 21 34 55 89 " + System.lineSeparator();
-    runProgram(source, expected);
+    String output = runProgramCapture(source);
+    assertEquals(expected, output);
   }
 
   @Test
@@ -177,30 +188,7 @@ class IntegrationTest {
             + System.lineSeparator()
             + "ZIGGY     "
             + System.lineSeparator();
-    runProgram(source, expected);
-  }
-
-  @Test
-  void testCirclePlotter() {
-    String source =
-        """
-        10 LET R=5
-        20 LET CX=10
-        30 LET CY=10
-        40 FOR X=0 TO R
-        50 LET Y=INT (SQR (R*R-X*X)+0.5)
-        60 GOSUB 100
-        70 NEXT X
-        80 GOTO 200
-        100 PLOT CX+X, CY+Y
-        110 PLOT CX+X, CY-Y
-        120 PLOT CX-X, CY+Y
-        130 PLOT CX-X, CY-Y
-        140 UNPLOT CX, CY
-        150 RETURN
-        200 PRINT "CIRCLE DRAWN"
-        """;
-    String expected = "████ ████ ████ ████ ████ ████ CIRCLE DRAWN" + System.lineSeparator();
-    runProgram(source, expected);
+    String output = runProgramCapture(source);
+    assertEquals(expected, output);
   }
 }

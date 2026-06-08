@@ -1,15 +1,18 @@
-package com.davidconneely.bazlang;
+package com.davidconneely.bazlang.program;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.davidconneely.bazlang.EvalState;
+import com.davidconneely.bazlang.ProgramLine;
+import com.davidconneely.bazlang.ProgramManager;
 import com.davidconneely.bazlang.antlr.AntlrParser;
 import com.davidconneely.bazlang.io.MockDisplay;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 /** Tests for LIST and LLIST statements. */
-class ListTest {
+class ListProgramTest extends BaseProgramTest {
 
   private EvalState state;
   private MockDisplay display;
@@ -48,15 +51,6 @@ class ListTest {
   }
 
   @Test
-  void testListToOnly() {
-    // LIST TO - lists all lines (same as LIST)
-    execute("LIST TO");
-    String output = display.getOutput();
-    assertTrue(output.contains("10 PRINT"));
-    assertTrue(output.contains("40 STOP"));
-  }
-
-  @Test
   void testListFromN() {
     // LIST n - lists from n to end
     execute("LIST 30");
@@ -79,6 +73,17 @@ class ListTest {
   }
 
   @Test
+  void testListNToM() {
+    // LIST n TO m - lists from n to m
+    execute("LIST 20 TO 30");
+    String output = display.getOutput();
+    assertFalse(output.contains("10 PRINT"));
+    assertTrue(output.contains("20 GOTO"));
+    assertTrue(output.contains("30 PRINT"));
+    assertFalse(output.contains("40 STOP"));
+  }
+
+  @Test
   void testListToM() {
     // LIST TO m - lists from MIN to m
     execute("LIST TO 20");
@@ -90,13 +95,11 @@ class ListTest {
   }
 
   @Test
-  void testListNToM() {
-    // LIST n TO m - lists from n to m
-    execute("LIST 20 TO 30");
+  void testListToOnly() {
+    // LIST TO - lists all lines (same as LIST)
+    execute("LIST TO");
     String output = display.getOutput();
-    assertFalse(output.contains("10 PRINT"));
-    assertTrue(output.contains("20 GOTO"));
-    assertTrue(output.contains("30 PRINT"));
-    assertFalse(output.contains("40 STOP"));
+    assertTrue(output.contains("10 PRINT"));
+    assertTrue(output.contains("40 STOP"));
   }
 }

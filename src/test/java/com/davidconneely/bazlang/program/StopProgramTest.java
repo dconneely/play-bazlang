@@ -1,0 +1,62 @@
+package com.davidconneely.bazlang.program;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import com.davidconneely.bazlang.EvalState;
+import com.davidconneely.bazlang.Interpreter;
+import com.davidconneely.bazlang.ProgramLine;
+import com.davidconneely.bazlang.ProgramManager;
+import com.davidconneely.bazlang.ReportCode;
+import com.davidconneely.bazlang.ReportException;
+import com.davidconneely.bazlang.io.MockDisplay;
+import java.util.List;
+import java.util.Map;
+import org.junit.jupiter.api.Test;
+
+/** Tests exercising interpreter STOP statement execution and runtime behavior. */
+class StopProgramTest extends BaseProgramTest {
+
+  @Test
+  void testStopInInputAndCont() {
+    Map<Integer, ProgramLine> program = new java.util.HashMap<>();
+    program.put(10, new ProgramLine(10, "INPUT A"));
+    program.put(20, new ProgramLine(20, "PRINT A"));
+
+    EvalState state = new EvalState();
+    // Provide "STOP" first, then "42" when we continue
+    MockDisplay display = new MockDisplay(List.of("STOP", "42"));
+    ProgramManager executor = new ProgramManager(state, display);
+    Interpreter interpreter = new Interpreter(state, executor);
+
+    try {
+      interpreter.execute(program);
+    } catch (ReportException e) {
+      assertEquals(ReportCode.STOP_IN_INPUT, e.reportCode());
+      state.setLastReportCode(e.reportCode());
+      state.setLastReportLabel(e.lineLabel());
+      state.setLastReportStatementIndex(e.statementIndex());
+    }
+
+    // CONTINUE -> should repeat the INPUT statement
+    executor.visitContStmt(null);
+    interpreter.resume();
+
+    assertEquals("STOP\n42\n42\n", display.getOutput().replace(System.lineSeparator(), "\n"));
+  }
+
+  @Test
+  void testStopStatementBehavior() {
+    // STOP should terminate execution cleanly.
+    String output =
+        runProgramCapture(
+            """
+        10 PRINT "START"
+        20 STOP
+        30 PRINT "END"
+        """);
+    assertTrue(output.contains("START"));
+    assertFalse(output.contains("END"));
+  }
+}
