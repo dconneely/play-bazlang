@@ -75,7 +75,7 @@ class GosubReturnProgramTest extends BaseProgramTest {
     // The output should be the subroutine's line being echoed, then the subroutine executing,
     // and then returning to the REPL cleanly without throwing "RETURN without GOSUB".
     assertEquals(
-        "10 PRINT \"SUB\" : RETURN\nSUB\n",
+        "❯ 10 PRINT \"SUB\" : RETURN\n❯ GOSUB 10\nSUB\n",
         display.getOutput().replace(System.lineSeparator(), "\n"));
     assertFalse(state.isRunning());
   }

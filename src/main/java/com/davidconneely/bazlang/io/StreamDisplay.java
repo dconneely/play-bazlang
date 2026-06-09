@@ -146,6 +146,9 @@ public class StreamDisplay implements BazLangDisplay {
 
   @Override
   public void systemPrintln(String text) {
+    if (currentCol > 0) {
+      println();
+    }
     println(text);
   }
 

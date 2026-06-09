@@ -1,4 +1,4 @@
-package com.davidconneely.bazlang.io;
+package com.davidconneely.cell;
 
 public interface PixelMode {
   /** Number of pixels per character cell in the horizontal direction. */

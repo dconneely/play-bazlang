@@ -1,14 +1,14 @@
-package com.davidconneely.bazlang.io;
+package com.davidconneely.cell;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import org.junit.jupiter.api.Test;
 
-class PlotDisplayTest {
+class CellBufferTest {
 
   @Test
   void testCoordinates() {
-    PixelBuffer buf = new PixelBuffer(24, 32, QuadrantMode.INSTANCE);
+    CellBuffer buf = new CellBuffer(24, 32, QuadrantMode.INSTANCE);
     buf.plot(0, 0);
     assertEquals('\u2596', buf.getCell(23, 0)); // ▖ lower-left
     buf.plot(63, 47);
@@ -17,7 +17,7 @@ class PlotDisplayTest {
 
   @Test
   void testQuadrantLogic() {
-    PixelBuffer buf = new PixelBuffer(24, 32, QuadrantMode.INSTANCE);
+    CellBuffer buf = new CellBuffer(24, 32, QuadrantMode.INSTANCE);
     assertEquals(' ', buf.getCell(23, 0));
     buf.plot(0, 1);
     assertEquals('\u2598', buf.getCell(23, 0)); // ▘ upper-left
@@ -33,7 +33,7 @@ class PlotDisplayTest {
 
   @Test
   void testBoundsIgnored() {
-    PixelBuffer buf = new PixelBuffer(24, 32, QuadrantMode.INSTANCE);
+    CellBuffer buf = new CellBuffer(24, 32, QuadrantMode.INSTANCE);
     buf.plot(-64, 0);
     buf.plot(64, 0);
     buf.plot(0, -48);
@@ -43,7 +43,7 @@ class PlotDisplayTest {
 
   @Test
   void testSetCellAndPlotCoexist() {
-    PixelBuffer buf = new PixelBuffer(24, 32, QuadrantMode.INSTANCE);
+    CellBuffer buf = new CellBuffer(24, 32, QuadrantMode.INSTANCE);
     buf.setCell(10, 5, 'H');
     buf.setCell(10, 6, 'e');
     buf.setCell(10, 7, 'l');
@@ -55,7 +55,7 @@ class PlotDisplayTest {
 
   @Test
   void testResizePreservesContent() {
-    PixelBuffer buf = new PixelBuffer(24, 32, QuadrantMode.INSTANCE);
+    CellBuffer buf = new CellBuffer(24, 32, QuadrantMode.INSTANCE);
     buf.setCell(5, 10, 'T');
     buf.plot(0, 0); // cell (23, 0) = ▖
     assertEquals('T', buf.getCell(5, 10));
@@ -70,7 +70,7 @@ class PlotDisplayTest {
 
   @Test
   void testDynamicPlotBounds() {
-    PixelBuffer buf = new PixelBuffer(10, 20, QuadrantMode.INSTANCE);
+    CellBuffer buf = new CellBuffer(10, 20, QuadrantMode.INSTANCE);
     assertEquals(40, buf.pixelWidth()); // 20 * 2
     assertEquals(20, buf.pixelHeight()); // 10 * 2
     buf.plot(39, 19); // max valid coords: top-right
@@ -82,7 +82,7 @@ class PlotDisplayTest {
 
   @Test
   void testScrollUp() {
-    PixelBuffer buf = new PixelBuffer(3, 4, QuadrantMode.INSTANCE);
+    CellBuffer buf = new CellBuffer(3, 4, QuadrantMode.INSTANCE);
     buf.setCell(0, 0, 'A');
     buf.setCell(1, 0, 'B');
     buf.setCell(2, 0, 'C');

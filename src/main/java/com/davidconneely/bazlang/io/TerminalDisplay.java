@@ -1,5 +1,12 @@
 package com.davidconneely.bazlang.io;
 
+import com.davidconneely.bazlang.ReportCode;
+import com.davidconneely.bazlang.ReportException;
+import com.davidconneely.cell.CellAttributes;
+import com.davidconneely.cell.CellBuffer;
+import com.davidconneely.cell.CellBufferRenderer;
+import com.davidconneely.cell.PixelMode;
+import com.davidconneely.cell.QuadrantMode;
 import com.davidconneely.repl.BreakException;
 import com.davidconneely.repl.Display;
 import com.davidconneely.repl.jline.RobustLineReaderImpl;
@@ -31,16 +38,21 @@ import org.jline.utils.NonBlockingReader;
  * UTF-8 terminals. Line input uses JLine's {@link LineReader} for proper line-editing behaviour.
  */
 public class TerminalDisplay implements BazLangDisplay {
-  /** Rows reserved for the status bar and input line. */
-  private static final int RESERVED_ROWS = 2;
+  private boolean printingSystemPrompt = false;
+  private int currentInputHeight = 1;
+
+  private int currentReservedRows() {
+    return inputVisible ? (3 + currentInputHeight) : 0;
+  }
 
   private final Terminal terminal;
   private final NonBlockingReader reader;
-  private final LineReader lineReader;
+  private final RobustLineReaderImpl lineReader;
   private final Attributes savedAttributes;
 
   // Display buffer (UTF-32 codepoint grid for display area)
-  private PixelBuffer pixelBuffer;
+  private CellBuffer cellBuffer;
+  private final CellBufferRenderer renderer = new CellBufferRenderer();
 
   // Input state
   private boolean inputVisible = false;
@@ -92,6 +104,7 @@ public class TerminalDisplay implements BazLangDisplay {
     terminal.flush();
     this.reader = terminal.reader();
     this.lineReader = new RobustLineReaderImpl(terminal, "BazLang");
+    this.lineReader.setInputHeightListener(this::adjustLayoutForInputHeight);
     this.lineReader.option(LineReader.Option.MOUSE, true);
 
     terminal.handle(Terminal.Signal.INT, _ -> breakFlag.set(true));
@@ -104,25 +117,34 @@ public class TerminalDisplay implements BazLangDisplay {
     render();
   }
 
+  public void adjustLayoutForInputHeight(int newInputHeight) {
+    if (this.currentInputHeight != newInputHeight) {
+      this.currentInputHeight = newInputHeight;
+      resizeBufferIfNeeded();
+      render();
+      lineReader.forceRedrawFromCursor();
+    }
+  }
+
   private void initBuffer() {
-    int rows = Math.max(1, terminal.getRows() - RESERVED_ROWS);
+    int rows = Math.max(1, terminal.getRows() - currentReservedRows());
     int cols = terminal.getColumns();
-    pixelBuffer = new PixelBuffer(rows, cols, QuadrantMode.INSTANCE);
+    cellBuffer = new CellBuffer(rows, cols, QuadrantMode.INSTANCE);
   }
 
   private void clearBuffer() {
-    pixelBuffer.clear();
+    cellBuffer.clear();
     cursorRow = 0;
     cursorCol = 0;
   }
 
   private void resizeBufferIfNeeded() {
     int newCols = terminal.getColumns();
-    int newRows = Math.max(1, terminal.getRows() - RESERVED_ROWS);
-    if (newRows != pixelBuffer.rows() || newCols != pixelBuffer.cols()) {
-      pixelBuffer.resize(newRows, newCols);
-      cursorRow = Math.min(cursorRow, pixelBuffer.rows() - 1);
-      cursorCol = Math.min(cursorCol, pixelBuffer.cols() - 1);
+    int newRows = Math.max(1, terminal.getRows() - currentReservedRows());
+    if (newRows != cellBuffer.rows() || newCols != cellBuffer.cols()) {
+      cellBuffer.resize(newRows, newCols);
+      cursorRow = Math.min(cursorRow, cellBuffer.rows() - 1);
+      cursorCol = Math.min(cursorCol, cellBuffer.cols() - 1);
     }
   }
 
@@ -135,30 +157,59 @@ public class TerminalDisplay implements BazLangDisplay {
     resizeBufferIfNeeded();
     int termWidth = terminal.getColumns();
     int termHeight = terminal.getRows();
-    int rowsToRender = Math.min(pixelBuffer.rows(), termHeight);
-    int colsToRender = Math.min(pixelBuffer.cols(), termWidth);
+    int rowsToRender = Math.min(cellBuffer.rows(), termHeight);
+    int colsToRender = Math.min(cellBuffer.cols(), termWidth);
 
-    // Write content rows as raw UTF-8, bypassing JLine's ACS substituteChar so that Unicode
-    // box-drawing characters, block elements, sextants, and braille render correctly.
+    // Ensure cursor is hidden during render
     PrintWriter out = terminal.writer();
-    for (int r = 0; r < rowsToRender; r++) {
-      out.printf("\033[%d;1H", r + 1);
-      out.print(new String(pixelBuffer.rowCells(r), 0, colsToRender));
-      out.print("\033[K");
-    }
-
-    // Status and input rows (always written to clear stale content)
-    out.printf("\033[%d;1H", rowsToRender + 1);
-    if (inputVisible) {
-      out.print(statusText);
-    }
-    out.print("\033[K");
-
-    out.printf("\033[%d;1H", rowsToRender + 2);
-    out.print("\033[K");
-    // When inputVisible, the cursor is now at the start of the input row — LineReader draws here.
+    out.print("\033[?25l");
+    renderer.renderContentRows(out, cellBuffer, rowsToRender, colsToRender);
+    renderInputRows(out, rowsToRender, termWidth);
 
     out.flush();
+  }
+
+  private void renderInputRows(PrintWriter out, int rowsToRender, int termWidth) {
+    // Status and input rows (only written when input is visible to avoid overwriting or scrolling
+    // during execution)
+    if (inputVisible) {
+      // 1. Line above input
+      out.printf("\033[%d;1H", rowsToRender + 1);
+      out.print("\033[90m" + "─".repeat(Math.max(0, termWidth)) + "\033[m");
+      out.print("\033[K");
+
+      // 2. Input rows (cleared, JLine will draw prompt and input here)
+      for (int i = 0; i < currentInputHeight; i++) {
+        out.printf("\033[%d;1H", rowsToRender + 2 + i);
+        out.print("\033[K");
+      }
+
+      // 3. Line below input
+      out.printf("\033[%d;1H", rowsToRender + 2 + currentInputHeight);
+      out.print("\033[90m" + "─".repeat(Math.max(0, termWidth)) + "\033[m");
+      out.print("\033[K");
+
+      // 4. Status/report row (left-aligned status text, right-aligned "BazLang REPL")
+      String rightText = "BazLang REPL";
+      int rightLen = rightText.length();
+      int spacesNeeded = termWidth - statusText.length() - rightLen;
+      String lineText;
+      if (spacesNeeded > 0) {
+        lineText = statusText + " ".repeat(spacesNeeded) + rightText;
+      } else {
+        int availableForStatus = termWidth - rightLen - 1;
+        lineText =
+            availableForStatus > 0
+                ? statusText.substring(0, availableForStatus) + " " + rightText
+                : statusText;
+      }
+      out.printf("\033[%d;1H", rowsToRender + 3 + currentInputHeight);
+      out.print("\033[37m" + lineText + "\033[m");
+      out.print("\033[K");
+
+      // Position the cursor back to the input start row for JLine
+      out.printf("\033[%d;1H", rowsToRender + 2);
+    }
   }
 
   /**
@@ -192,8 +243,8 @@ public class TerminalDisplay implements BazLangDisplay {
 
   @Override
   public void locate(int row, int col) {
-    cursorRow = Math.max(0, Math.min(row, pixelBuffer.rows() - 1));
-    cursorCol = Math.max(0, Math.min(col, pixelBuffer.cols() - 1));
+    cursorRow = Math.max(0, Math.min(row, cellBuffer.rows() - 1));
+    cursorCol = Math.max(0, Math.min(col, cellBuffer.cols() - 1));
   }
 
   @Override
@@ -205,17 +256,32 @@ public class TerminalDisplay implements BazLangDisplay {
     text.codePoints()
         .forEach(
             cp -> {
-              if (cp >= 32 && cp != 127) {
-                if (cursorCol >= pixelBuffer.cols()) {
+              if (cp == 10) { // Newline (LF)
+                cursorRow++;
+                cursorCol = 0;
+                if (cursorRow >= cellBuffer.rows()) {
+                  scrollBuffer();
+                  cursorRow = cellBuffer.rows() - 1;
+                }
+              } else if (cp == 13) { // Carriage return (CR)
+                cursorCol = 0;
+              } else if (cp >= 32 && cp != 127) {
+                if (cursorCol >= cellBuffer.cols()) {
                   cursorRow++;
                   cursorCol = 0;
-                  if (cursorRow >= pixelBuffer.rows()) {
+                  if (cursorRow >= cellBuffer.rows()) {
                     scrollBuffer();
-                    cursorRow = pixelBuffer.rows() - 1;
+                    cursorRow = cellBuffer.rows() - 1;
                   }
                 }
-                if (cursorRow < pixelBuffer.rows()) {
-                  pixelBuffer.setCell(cursorRow, cursorCol, cp);
+                if (cursorRow < cellBuffer.rows()) {
+                  int cellFg = CellAttributes.COLOR_DEFAULT;
+                  int cellBg = CellAttributes.COLOR_DEFAULT;
+                  int cellStyle = 0;
+                  if (printingSystemPrompt) {
+                    cellFg = 4; // Index 4 (blue)
+                  }
+                  cellBuffer.setCell(cursorRow, cursorCol, cp, cellFg, cellBg, cellStyle);
                   cursorCol++;
                 }
               }
@@ -253,21 +319,21 @@ public class TerminalDisplay implements BazLangDisplay {
     cursorRow++;
     cursorCol = 0;
     // Scroll if we've gone past the buffer
-    if (cursorRow >= pixelBuffer.rows()) {
+    if (cursorRow >= cellBuffer.rows()) {
       scrollBuffer();
-      cursorRow = pixelBuffer.rows() - 1;
+      cursorRow = cellBuffer.rows() - 1;
     }
     dirty = true;
     renderIfDue();
   }
 
   private void scrollBuffer() {
-    pixelBuffer.scrollUp();
+    cellBuffer.scrollUp();
   }
 
   @Override
   public void scroll() {
-    pixelBuffer.scrollUp();
+    cellBuffer.scrollUp();
     if (cursorRow > 0) {
       cursorRow--;
     }
@@ -279,15 +345,16 @@ public class TerminalDisplay implements BazLangDisplay {
 
   @Override
   public void setPlotMode(PixelMode mode) {
-    pixelBuffer.setMode(mode);
+    cellBuffer.setMode(mode);
+    dirty = true;
   }
 
   @Override
   public void plot(int x, int y) {
-    pixelBuffer.plot(x, y);
-    if (pixelBuffer.isPixelInBounds(x, y)) {
-      cursorRow = pixelBuffer.pixelToCellRow(y);
-      cursorCol = pixelBuffer.pixelToCellCol(x) + 1;
+    cellBuffer.plot(x, y);
+    if (cellBuffer.isPixelInBounds(x, y)) {
+      cursorRow = cellBuffer.pixelToCellRow(y);
+      cursorCol = cellBuffer.pixelToCellCol(x) + 1;
     }
     dirty = true;
     renderIfDue();
@@ -295,10 +362,10 @@ public class TerminalDisplay implements BazLangDisplay {
 
   @Override
   public void unplot(int x, int y) {
-    pixelBuffer.unplot(x, y);
-    if (pixelBuffer.isPixelInBounds(x, y)) {
-      cursorRow = pixelBuffer.pixelToCellRow(y);
-      cursorCol = pixelBuffer.pixelToCellCol(x) + 1;
+    cellBuffer.unplot(x, y);
+    if (cellBuffer.isPixelInBounds(x, y)) {
+      cursorRow = cellBuffer.pixelToCellRow(y);
+      cursorCol = cellBuffer.pixelToCellCol(x) + 1;
     }
     dirty = true;
     renderIfDue();
@@ -340,21 +407,33 @@ public class TerminalDisplay implements BazLangDisplay {
   public String readReplLine() {
     currentInputMode = InputContext.REPL;
     if (statusText.isEmpty()) {
-      statusText = "READY";
+      statusText = new ReportException(ReportCode.OK, 0, 1, "Ready").format();
     }
     return readln("");
   }
 
   @Override
   public String readln(String prompt) {
-    inputVisible = true;
+    if (!inputVisible) {
+      inputVisible = true;
+      currentInputHeight = 1;
+      int newRows = Math.max(1, terminal.getRows() - currentReservedRows());
+      if (cursorRow >= newRows) {
+        int scrollAmount = cursorRow - newRows + 1;
+        for (int i = 0; i < scrollAmount; i++) {
+          scrollBuffer();
+        }
+        cursorRow = newRows - 1;
+      }
+      resizeBufferIfNeeded();
+    }
     if (prompt != null && !prompt.isEmpty()) {
       statusText = prompt.trim();
     }
 
     String promptStr =
         switch (currentInputMode) {
-          case REPL -> "❯ ";
+          case REPL -> "\033[34m❯ \033[m";
           case INPUT_NUMERIC -> "\033[1m# \033[m";
           case INPUT_STRING -> "\033[1m$ \033[m";
         };
@@ -379,6 +458,7 @@ public class TerminalDisplay implements BazLangDisplay {
       terminal.writer().flush();
       inputVisible = false;
       statusText = "";
+      currentInputHeight = 1;
       render();
     }
   }
@@ -397,14 +477,22 @@ public class TerminalDisplay implements BazLangDisplay {
   @Override
   public String inkey() {
     renderIfDue(); // flush pending frame before polling for input (acts as frame boundary)
+    int lastCh = -1;
     try {
       int ch = reader.read(1L); // 1ms timeout read
-      if (ch == 3) { // Ctrl+C
-        breakFlag.set(true);
+      if (ch < 0) {
         return "";
       }
-      if (ch >= 0) {
-        return String.valueOf((char) ch);
+      while (ch >= 0) {
+        lastCh = ch;
+        if (ch == 3) { // Ctrl+C
+          breakFlag.set(true);
+          return "";
+        }
+        ch = reader.read(1L);
+      }
+      if (lastCh >= 0) {
+        return String.valueOf((char) lastCh);
       }
     } catch (IOException e) {
       // Ignore - no input available
@@ -414,11 +502,25 @@ public class TerminalDisplay implements BazLangDisplay {
 
   @Override
   public void waitForKey() {
+    if (!inputVisible) {
+      inputVisible = true;
+      currentInputHeight = 1;
+      int newRows = Math.max(1, terminal.getRows() - currentReservedRows());
+      if (cursorRow >= newRows) {
+        int scrollAmount = cursorRow - newRows + 1;
+        for (int i = 0; i < scrollAmount; i++) {
+          scrollBuffer();
+        }
+        cursorRow = newRows - 1;
+      }
+      resizeBufferIfNeeded();
+    }
     forceFlush();
-    // Write "Press any key" into the status row (directly below the display area)
+    // Write "Press any key" into the status row in grey (directly below the display area, at row
+    // rows + 3 + currentInputHeight)
     PrintWriter out = terminal.writer();
-    out.printf("\033[%d;1H", pixelBuffer.rows() + 1);
-    out.print("Press any key to exit.");
+    out.printf("\033[%d;1H", cellBuffer.rows() + 3 + currentInputHeight);
+    out.print("\033[37mPress any key to exit.\033[m");
     out.print("\033[K");
     out.flush();
     try {
@@ -458,6 +560,18 @@ public class TerminalDisplay implements BazLangDisplay {
 
   @Override
   public void systemPrintln(String text) {
-    println(text);
+    if (cursorCol > 0) {
+      println();
+    }
+    if (text != null && (text.startsWith("❯") || text.startsWith("\033[34m❯"))) {
+      printingSystemPrompt = true;
+      try {
+        println(text);
+      } finally {
+        printingSystemPrompt = false;
+      }
+    } else {
+      println(text);
+    }
   }
 }

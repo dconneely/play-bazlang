@@ -98,7 +98,7 @@ class ReplProgramTest extends BaseProgramTest {
 
     // The output should just be the line 10 being echoed, then the list showing just line 10.
     assertEquals(
-        "10 PRINT \"HELLO\"\n10 PRINT \"HELLO\"\n",
+        "❯ 10 PRINT \"HELLO\"\n❯ LIST\n10 PRINT \"HELLO\"\n",
         display.getOutput().replace(System.lineSeparator(), "\n"));
   }
 
@@ -116,7 +116,8 @@ class ReplProgramTest extends BaseProgramTest {
     repl.handleReplInput("RUN", display);
 
     assertEquals(
-        "10 PRINT \"HELLO\"\nHELLO\n", display.getOutput().replace(System.lineSeparator(), "\n"));
+        "❯ 10 PRINT \"HELLO\"\n❯ RUN\nHELLO\n",
+        display.getOutput().replace(System.lineSeparator(), "\n"));
     assertFalse(state.isRunning()); // Should stop gracefully
   }
 
@@ -152,5 +153,21 @@ class ReplProgramTest extends BaseProgramTest {
 
     assertTrue(continueRepl, "Stored STOP should return true to continue the REPL");
     assertEquals("9 STOP statement, 20:1", display.getStatus());
+  }
+
+  @Test
+  void testImmediateModeMultiStatement() {
+    EvalState state = new EvalState();
+    MockDisplay display = new MockDisplay(List.of());
+    ProgramManager executor = new ProgramManager(state, display);
+    Interpreter interpreter = new Interpreter(state, executor);
+    ProgramEditor editor = new ProgramEditor(state, display, PARSER, executor::evalNum);
+    BazLangReplHandler repl = new BazLangReplHandler(PARSER, state, executor, editor, interpreter);
+
+    repl.handleReplInput("PRINT \"hello\" : PRINT \"there\"", display);
+
+    assertEquals(
+        "❯ PRINT \"hello\" : PRINT \"there\"\nhello\nthere\n",
+        display.getOutput().replace(System.lineSeparator(), "\n"));
   }
 }

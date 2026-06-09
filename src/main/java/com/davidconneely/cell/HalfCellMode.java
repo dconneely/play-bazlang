@@ -1,4 +1,4 @@
-package com.davidconneely.bazlang.io;
+package com.davidconneely.cell;
 
 public enum HalfCellMode implements PixelMode {
   INSTANCE;

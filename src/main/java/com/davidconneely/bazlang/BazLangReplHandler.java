@@ -31,19 +31,48 @@ public final class BazLangReplHandler implements ReplHandler {
   public boolean handleReplInput(String line, Shell ui) {
     try {
       AntlrParser.ParsedLine parsed = parser.parseReplLine(line);
+      boolean result = true;
       if (parsed instanceof AntlrParser.ParsedLine.Numbered(int lineNumber, String statementText)) {
-        return handleNumberedLine(lineNumber, statementText, line, ui);
+        // Reset current execution position on program modification
+        state.setCurrentLineLabel(0);
+        state.setCurrentStatementIndex(1);
+        result = handleNumberedLine(lineNumber, statementText, line, ui);
       } else if (parsed instanceof AntlrParser.ParsedLine.ReplCommand(var ctx)) {
+        // REPL command is immediate execution at 0:1
+        state.setCurrentLineLabel(0);
+        state.setCurrentStatementIndex(1);
+        if (ui != null) {
+          ui.systemPrintln("❯ " + line.trim());
+        }
         handleReplCommand(ctx, ui);
-        return true;
       } else if (parsed instanceof AntlrParser.ParsedLine.Immediate(var _)) {
-        return handleImmediateStatement(line);
+        if (ui != null) {
+          ui.systemPrintln("❯ " + line.trim());
+        }
+        result = handleImmediateStatement(line);
       }
+
+      // Success! Update last report info to OK with the current/last execution location
+      state.setLastReportCode(ReportCode.OK);
+      state.setLastReportLabel(state.currentLineLabel());
+      state.setLastReportStatementIndex(state.currentStatementIndex());
+      if (ui != null) {
+        ui.setStatus(
+            new ReportException(
+                    ReportCode.OK,
+                    state.lastReportLabel(),
+                    state.lastReportStatementIndex(),
+                    "Ready")
+                .format());
+      }
+      return result;
     } catch (ReportException e) {
       state.setLastReportCode(e.reportCode());
       state.setLastReportLabel(e.lineLabel());
       state.setLastReportStatementIndex(e.statementIndex());
-      ui.setStatus(e.format());
+      if (ui != null) {
+        ui.setStatus(e.format());
+      }
       if (e.reportCode() == ReportCode.STOP_STATEMENT) {
         return e.lineLabel() != 0;
       }
@@ -59,7 +88,7 @@ public final class BazLangReplHandler implements ReplHandler {
       ui.systemPrintln(lineNumber + " deleted");
     } else {
       state.program().put(lineNumber, new ProgramLine(lineNumber, statementText));
-      ui.systemPrintln(trimmed);
+      ui.systemPrintln("❯ " + trimmed);
     }
     return true;
   }
@@ -86,6 +115,7 @@ public final class BazLangReplHandler implements ReplHandler {
   }
 
   private boolean handleImmediateStatement(String rawLine) {
+    state.setRunning(true);
     ProgramLine dummyLine = new ProgramLine(0, rawLine);
     int index = 1;
     List<StatementContext> flatStmts = dummyLine.getFlattenedStatements(parser);

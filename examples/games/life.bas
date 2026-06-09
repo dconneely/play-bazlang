@@ -40,25 +40,13 @@
 300 REM Generation Loop
 310 PRINT AT 0, 0; "GENERATION: "; G; "  (PRESS E TO EDIT)"
 320 FOR Y = 1 TO H
+322 LET U = UY(Y)
+324 LET D = DY(Y)
 330 FOR X = 1 TO W
-340 REM Count Neighbors
-350 LET S = 0
 352 LET L = LX(X)
 354 LET R = RX(X)
-356 LET U = UY(Y)
-358 LET D = DY(Y)
-360 IF C(L, U) = 1 THEN LET S = S + 1
-362 IF C(X, U) = 1 THEN LET S = S + 1
-364 IF C(R, U) = 1 THEN LET S = S + 1
-366 IF C(L, Y) = 1 THEN LET S = S + 1
-368 IF C(R, Y) = 1 THEN LET S = S + 1
-370 IF C(L, D) = 1 THEN LET S = S + 1
-372 IF C(X, D) = 1 THEN LET S = S + 1
-374 IF C(R, D) = 1 THEN LET S = S + 1
-470 REM Apply Rules
-480 LET V = 0
-490 IF C(X,Y) = 1 AND (S = 2 OR S = 3) THEN LET V = 1
-500 IF C(X,Y) = 0 AND S = 3 THEN LET V = 1
+360 LET S = C(L, U) + C(X, U) + C(R, U) + C(L, Y) + C(R, Y) + C(L, D) + C(X, D) + C(R, D)
+480 LET V = (S = 3) OR (S = 2 AND C(X,Y))
 510 LET N(X,Y) = V
 520 IF V = C(X,Y) THEN GOTO 550
 530 IF V = 1 THEN PLOT X-1, Y-1
@@ -73,7 +61,8 @@
 620 NEXT Y
 630 LET G = G + 1
 634 LET K$ = INKEY$
-635 IF K$ = "e" OR K$ = "E" THEN GOSUB 1000
+635 IF K$ = "" THEN GOTO 300
+636 IF K$ = "e" OR K$ = "E" THEN GOSUB 1000
 640 GOTO 300
 1000 REM Edit Mode
 1002 REM Drain key buffer (key-repeat may have queued multiple E presses)

@@ -1,5 +1,7 @@
 package com.davidconneely.bazlang.io;
 
+import com.davidconneely.cell.PixelMode;
+import com.davidconneely.cell.QuadrantMode;
 import com.davidconneely.repl.Display;
 import java.util.Collections;
 import java.util.List;

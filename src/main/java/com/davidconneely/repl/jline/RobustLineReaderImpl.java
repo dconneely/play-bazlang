@@ -26,9 +26,15 @@ public class RobustLineReaderImpl extends LineReaderImpl {
 
   private final Clipboard clipboard = Clipboard.getDefault();
   private boolean mouseTrackingFixed = false;
+  private final ResettableDisplay resettableDisplay;
 
   public RobustLineReaderImpl(Terminal terminal, String appName) throws IOException {
     super(terminal, appName);
+
+    // Replace JLine's Display with our ResettableDisplay subclass so that forceRedrawFromCursor()
+    // can zero cursorPos directly (a protected field), without needing reflection.
+    resettableDisplay = new ResettableDisplay(terminal, true);
+    display = resettableDisplay;
 
     getWidgets().put("shift-backward-char", this::shiftBackwardChar);
     getWidgets().put("shift-forward-char", this::shiftForwardChar);
@@ -113,6 +119,37 @@ public class RobustLineReaderImpl extends LineReaderImpl {
       String selected = buf.substring(start, end);
       clipboard.copy(selected);
     }
+  }
+
+  private java.util.function.IntConsumer inputHeightListener;
+
+  public void setInputHeightListener(java.util.function.IntConsumer listener) {
+    this.inputHeightListener = listener;
+  }
+
+  public void forceRedrawFromCursor() {
+    display.reset();
+    resettableDisplay.resetCursorPos();
+  }
+
+  public org.jline.utils.Display getDisplay() {
+    return display;
+  }
+
+  @Override
+  public boolean redisplay() {
+    int termWidth = terminal.getWidth();
+    if (termWidth > 0 && inputHeightListener != null) {
+      org.jline.utils.AttributedStringBuilder sbAll =
+          new org.jline.utils.AttributedStringBuilder().tabs(getTabWidth());
+      sbAll.append(prompt);
+      sbAll.append(new org.jline.utils.AttributedString(buf.toString()));
+      java.util.List<org.jline.utils.AttributedString> allLines =
+          sbAll.columnSplitLength(termWidth, false, display.delayLineWrap());
+      int inputHeight = Math.max(1, allLines.size());
+      inputHeightListener.accept(inputHeight);
+    }
+    return super.redisplay();
   }
 
   @Override

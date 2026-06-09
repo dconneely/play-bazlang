@@ -1,5 +1,6 @@
 package com.davidconneely.bazlang.io;
 
+import com.davidconneely.cell.PixelMode;
 import com.davidconneely.repl.Display;
 import com.davidconneely.repl.Shell;
 
