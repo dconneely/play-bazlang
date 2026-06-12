@@ -6,15 +6,20 @@ public class CellBufferRenderer {
   public void renderContentRows(
       PrintWriter out, CellBuffer cellBuffer, int rowsToRender, int colsToRender) {
     for (int r = 0; r < rowsToRender; r++) {
-      out.printf("\033[%d;1H", r + 1);
+      out.print("\033[");
+      out.print(r + 1);
+      out.print(";1H");
+      long activeAttr =
+          CellBuffer.packAttributes(CellAttributes.COLOR_DEFAULT, CellAttributes.COLOR_DEFAULT, 0);
       int activeFgColor = CellAttributes.COLOR_DEFAULT;
       int activeBgColor = CellAttributes.COLOR_DEFAULT;
       int activeStyles = 0;
       for (int c = 0; c < colsToRender; c++) {
-        int fg = cellBuffer.getFgColor(r, c);
-        int bg = cellBuffer.getBgColor(r, c);
-        int style = cellBuffer.getStyle(r, c);
-        if (style != activeStyles || fg != activeFgColor || bg != activeBgColor) {
+        long attr = cellBuffer.getAttr(r, c);
+        if (attr != activeAttr) {
+          int fg = CellBuffer.unpackFgColor(attr);
+          int bg = CellBuffer.unpackBgColor(attr);
+          int style = CellBuffer.unpackStyle(attr);
           boolean resetNeeded =
               (activeStyles & ~style) != 0
                   || ((activeFgColor & CellAttributes.COLOR_TYPE_MASK)
@@ -32,8 +37,14 @@ public class CellBufferRenderer {
           activeStyles = emitStyles(out, style, activeStyles);
           activeFgColor = emitColor(out, fg, activeFgColor, 38, 30, 90, "\033[39m");
           activeBgColor = emitColor(out, bg, activeBgColor, 48, 40, 100, "\033[49m");
+          activeAttr = attr;
         }
-        out.print(Character.toString(cellBuffer.getCell(r, c)));
+        int cp = cellBuffer.getCell(r, c);
+        if (cp < Character.MIN_SUPPLEMENTARY_CODE_POINT) {
+          out.print((char) cp);
+        } else {
+          out.print(Character.toChars(cp));
+        }
       }
       if (activeStyles != 0
           || activeFgColor != CellAttributes.COLOR_DEFAULT
@@ -85,17 +96,31 @@ public class CellBufferRenderer {
         || colorType == CellAttributes.COLOR_TYPE_INDEX) {
       if (activeColor == CellAttributes.COLOR_DEFAULT || color != activeColor) {
         if (colorType == CellAttributes.COLOR_TYPE_RGB) {
-          out.printf(
-              "\033[%d;2;%d;%d;%dm",
-              trueColorSgr, (color >> 16) & 0xFF, (color >> 8) & 0xFF, color & 0xFF);
+          out.print("\033[");
+          out.print(trueColorSgr);
+          out.print(";2;");
+          out.print((color >> 16) & 0xFF);
+          out.print(";");
+          out.print((color >> 8) & 0xFF);
+          out.print(";");
+          out.print(color & 0xFF);
+          out.print("m");
         } else {
           int index = color & 0xFFFFFF;
           if (index < 8) {
-            out.printf("\033[%dm", ansi8Base + index);
+            out.print("\033[");
+            out.print(ansi8Base + index);
+            out.print("m");
           } else if (index < 16) {
-            out.printf("\033[%dm", ansi8HiBase + (index - 8));
+            out.print("\033[");
+            out.print(ansi8HiBase + (index - 8));
+            out.print("m");
           } else {
-            out.printf("\033[%d;5;%dm", trueColorSgr, index);
+            out.print("\033[");
+            out.print(trueColorSgr);
+            out.print(";5;");
+            out.print(index);
+            out.print("m");
           }
         }
       }
