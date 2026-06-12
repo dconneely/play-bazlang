@@ -1,15 +1,17 @@
 # BazLang Interpreter
 
-BazLang is a simple BASIC interpreter written in Java 25. It is loosely based on Sinclair ZX BASIC (supporting a superset of both ZX81 and ZX Spectrum) but designed for the modern command line. It includes a REPL and runs standard UTF-8 source files.
+BazLang is a simple BASIC interpreter written in Java 25. It is loosely based on Sinclair ZX BASIC
+(supporting a superset of both ZX81 and ZX Spectrum) but designed for the modern command line. It
+includes a REPL and runs standard UTF-8 source files.
 
 ## Documentation
 
 For more details, check the `docs/` folder:
 
-- [Language Features](docs/language_features.md) - Details on variables, types, commands, and REPL editor commands.
+- [Language Features](docs/language_features.md) - Details on variables, types, commands, and REPL
+  editor commands.
 - [Grammar](docs/grammar.md) - The ANTLR grammar that defines the language syntax.
-- [Architecture](docs/architecture.md) - How the interpreter is designed.
-- [Implementation](docs/implementation.md) - How the code is structured.
+- [Implementation](docs/implementation.md) - How the code is structured and architected.
 
 ## Quick Start
 

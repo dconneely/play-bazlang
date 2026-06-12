@@ -6,7 +6,7 @@ BazLang uses ANTLR 4 to generate its lexer and parser from a declarative grammar
 ## Why ANTLR?
 
 | Aspect              | Hand-Written              | ANTLR                        |
-|---------------------|---------------------------|------------------------------|
+| ------------------- | ------------------------- | ---------------------------- |
 | **Style**           | Imperative (how to parse) | Declarative (what to parse)  |
 | **Precedence**      | Manual climbing           | Automatic from structure     |
 | **Maintainability** | Tedious changes           | Update grammar rules         |
@@ -50,11 +50,10 @@ options { caseInsensitive=true; }
 PRINT : 'PRINT';  // Matches PRINT, print, Print, etc.
 ```
 
-This allows `PRINT`, `print`, and `Print` to all match the same token. Variable names are
-normalized to uppercase when building the AST, so `myVar`, `MYVAR`, and `MyVar` all refer
-to the same variable.
+This allows `PRINT`, `print`, and `Print` to all match the same token. Variable names are normalized
+to uppercase when building the AST, so `myVar`, `MYVAR`, and `MyVar` all refer to the same variable.
 
-String literal *contents* remain case-sensitive since they're captured as-is between quotes.
+String literal _contents_ remain case-sensitive since they're captured as-is between quotes.
 
 ### Numeric vs String Identifiers
 
@@ -89,8 +88,8 @@ numAtom
 
 This means `SIN PI/2` parses as `SIN(PI)/2`, not `SIN(PI/2)`.
 
-Multi-argument functions require explicit parentheses and comma-separated full expressions
-(not just atoms), consistent with ZX Spectrum BASIC functions like `ATTR` and `SCREEN$`:
+Multi-argument functions require explicit parentheses and comma-separated full expressions (not just
+atoms), consistent with ZX Spectrum BASIC functions like `ATTR` and `SCREEN$`:
 
 ```antlr
 numFunc
@@ -113,8 +112,8 @@ strSubscript
     ;
 ```
 
-This supports: `A$(1)`, `A$(1,2)`, `A$(1 TO 5)`, `A$(TO 5)`, `A$(1 TO)`, `A$(TO)`,
-`A$(1, 2 TO 5)`, etc.
+This supports: `A$(1)`, `A$(1,2)`, `A$(1 TO 5)`, `A$(TO 5)`, `A$(1 TO)`, `A$(TO)`, `A$(1, 2 TO 5)`,
+etc.
 
 ## Adding New Features
 
