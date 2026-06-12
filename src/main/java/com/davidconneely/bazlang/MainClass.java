@@ -5,6 +5,7 @@ import com.davidconneely.bazlang.io.BazLangDisplay;
 import com.davidconneely.bazlang.io.StreamDisplay;
 import com.davidconneely.bazlang.io.TerminalDisplay;
 import com.davidconneely.repl.Repl;
+import com.davidconneely.repl.jline.JLineTerminalEngine;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -31,7 +32,7 @@ public class MainClass {
       if (System.console() == null) {
         return new StreamDisplay();
       } else {
-        return new TerminalDisplay();
+        return new TerminalDisplay(new JLineTerminalEngine());
       }
     } catch (IOException e) {
       return new StreamDisplay();

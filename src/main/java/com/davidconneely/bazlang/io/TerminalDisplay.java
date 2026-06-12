@@ -7,20 +7,11 @@ import com.davidconneely.cell.CellBuffer;
 import com.davidconneely.cell.CellBufferRenderer;
 import com.davidconneely.cell.PixelMode;
 import com.davidconneely.cell.QuadrantMode;
-import com.davidconneely.repl.BreakException;
 import com.davidconneely.repl.Display;
-import com.davidconneely.repl.jline.RobustLineReaderImpl;
+import com.davidconneely.repl.TerminalEngine;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.concurrent.atomic.AtomicBoolean;
-import org.jline.reader.EndOfFileException;
-import org.jline.reader.LineReader;
-import org.jline.reader.UserInterruptException;
-import org.jline.terminal.Attributes;
-import org.jline.terminal.Terminal;
-import org.jline.terminal.TerminalBuilder;
-import org.jline.utils.InfoCmp.Capability;
-import org.jline.utils.NonBlockingReader;
 
 /**
  * Terminal-based Display implementation with dynamic screen regions:
@@ -45,10 +36,7 @@ public class TerminalDisplay implements BazLangDisplay {
     return inputVisible ? (3 + currentInputHeight) : 0;
   }
 
-  private final Terminal terminal;
-  private final NonBlockingReader reader;
-  private final RobustLineReaderImpl lineReader;
-  private final Attributes savedAttributes;
+  private final TerminalEngine engine;
 
   // Display buffer (UTF-32 codepoint grid for display area)
   private CellBuffer cellBuffer;
@@ -92,23 +80,12 @@ public class TerminalDisplay implements BazLangDisplay {
   // hook)
   private final AtomicBoolean closed = new AtomicBoolean(false);
 
-  public TerminalDisplay() throws IOException {
-    this.terminal = TerminalBuilder.builder().system(true).nativeSignals(true).build();
-    this.savedAttributes = terminal.enterRawMode();
-    Attributes attr = terminal.getAttributes();
-    attr.setLocalFlag(Attributes.LocalFlag.ISIG, true);
-    terminal.setAttributes(attr);
-    terminal.puts(Capability.enter_ca_mode);
-    terminal.puts(Capability.clear_screen);
-    terminal.puts(Capability.cursor_invisible);
-    terminal.flush();
-    this.reader = terminal.reader();
-    this.lineReader = new RobustLineReaderImpl(terminal, "BazLang");
-    this.lineReader.setInputHeightListener(this::adjustLayoutForInputHeight);
-    this.lineReader.option(LineReader.Option.MOUSE, true);
+  public TerminalDisplay(TerminalEngine engine) {
+    this.engine = engine;
 
-    terminal.handle(Terminal.Signal.INT, _ -> breakFlag.set(true));
-    terminal.handle(Terminal.Signal.WINCH, _ -> resizePending.set(true));
+    this.engine.setInputHeightListener(this::adjustLayoutForInputHeight);
+    this.engine.onInterrupt(() -> breakFlag.set(true));
+    this.engine.onResize(() -> resizePending.set(true));
 
     // Ensure terminal is restored on JVM shutdown (e.g., if signal terminates the process)
     Runtime.getRuntime().addShutdownHook(new Thread(this::close));
@@ -122,13 +99,13 @@ public class TerminalDisplay implements BazLangDisplay {
       this.currentInputHeight = newInputHeight;
       resizeBufferIfNeeded();
       render();
-      lineReader.forceRedrawFromCursor();
+      engine.forceRedrawFromCursor();
     }
   }
 
   private void initBuffer() {
-    int rows = Math.max(1, terminal.getRows() - currentReservedRows());
-    int cols = terminal.getColumns();
+    int rows = Math.max(1, engine.getRows() - currentReservedRows());
+    int cols = engine.getColumns();
     cellBuffer = new CellBuffer(rows, cols, QuadrantMode.INSTANCE);
   }
 
@@ -139,8 +116,8 @@ public class TerminalDisplay implements BazLangDisplay {
   }
 
   private void resizeBufferIfNeeded() {
-    int newCols = terminal.getColumns();
-    int newRows = Math.max(1, terminal.getRows() - currentReservedRows());
+    int newCols = engine.getColumns();
+    int newRows = Math.max(1, engine.getRows() - currentReservedRows());
     if (newRows != cellBuffer.rows() || newCols != cellBuffer.cols()) {
       cellBuffer.resize(newRows, newCols);
       cursorRow = Math.min(cursorRow, cellBuffer.rows() - 1);
@@ -155,13 +132,13 @@ public class TerminalDisplay implements BazLangDisplay {
     dirty = false;
     resizePending.set(false);
     resizeBufferIfNeeded();
-    int termWidth = terminal.getColumns();
-    int termHeight = terminal.getRows();
+    int termWidth = engine.getColumns();
+    int termHeight = engine.getRows();
     int rowsToRender = Math.min(cellBuffer.rows(), termHeight);
     int colsToRender = Math.min(cellBuffer.cols(), termWidth);
 
     // Ensure cursor is hidden during render
-    PrintWriter out = terminal.writer();
+    PrintWriter out = engine.writer();
     out.print("\033[?25l");
     renderer.renderContentRows(out, cellBuffer, rowsToRender, colsToRender);
     renderInputRows(out, rowsToRender, termWidth);
@@ -417,7 +394,7 @@ public class TerminalDisplay implements BazLangDisplay {
     if (!inputVisible) {
       inputVisible = true;
       currentInputHeight = 1;
-      int newRows = Math.max(1, terminal.getRows() - currentReservedRows());
+      int newRows = Math.max(1, engine.getRows() - currentReservedRows());
       if (cursorRow >= newRows) {
         int scrollAmount = cursorRow - newRows + 1;
         for (int i = 0; i < scrollAmount; i++) {
@@ -439,23 +416,19 @@ public class TerminalDisplay implements BazLangDisplay {
         };
 
     render(); // draws content + status row, clears input row, positions cursor at input row start
-    terminal.puts(Capability.cursor_normal);
-    terminal.writer().flush();
+    engine.writer().print("\033[?25h"); // cursor visible
+    engine.writer().flush();
 
     // Yield WINCH handling to LineReader during input so our render() doesn't conflict.
-    terminal.handle(Terminal.Signal.WINCH, Terminal.SignalHandler.SIG_DFL);
+    engine.onResize(null);
     try {
       String fill = prefillText;
       prefillText = null;
-      return lineReader.readLine(promptStr, null, fill);
-    } catch (UserInterruptException e) {
-      throw new BreakException();
-    } catch (EndOfFileException e) {
-      return null;
+      return engine.readLine(promptStr, fill);
     } finally {
-      terminal.handle(Terminal.Signal.WINCH, _ -> resizePending.set(true));
-      terminal.puts(Capability.cursor_invisible);
-      terminal.writer().flush();
+      engine.onResize(() -> resizePending.set(true));
+      engine.writer().print("\033[?25l"); // cursor invisible
+      engine.writer().flush();
       inputVisible = false;
       statusText = "";
       currentInputHeight = 1;
@@ -479,7 +452,7 @@ public class TerminalDisplay implements BazLangDisplay {
     renderIfDue(); // flush pending frame before polling for input (acts as frame boundary)
     int lastCh = -1;
     try {
-      int ch = reader.read(1L); // 1ms timeout read
+      int ch = engine.readKey(1L); // 1ms timeout read
       if (ch < 0) {
         return "";
       }
@@ -489,7 +462,7 @@ public class TerminalDisplay implements BazLangDisplay {
           breakFlag.set(true);
           return "";
         }
-        ch = reader.read(1L);
+        ch = engine.readKey(1L);
       }
       if (lastCh >= 0) {
         return String.valueOf((char) lastCh);
@@ -505,7 +478,7 @@ public class TerminalDisplay implements BazLangDisplay {
     if (!inputVisible) {
       inputVisible = true;
       currentInputHeight = 1;
-      int newRows = Math.max(1, terminal.getRows() - currentReservedRows());
+      int newRows = Math.max(1, engine.getRows() - currentReservedRows());
       if (cursorRow >= newRows) {
         int scrollAmount = cursorRow - newRows + 1;
         for (int i = 0; i < scrollAmount; i++) {
@@ -518,13 +491,13 @@ public class TerminalDisplay implements BazLangDisplay {
     forceFlush();
     // Write "Press any key" into the status row in grey (directly below the display area, at row
     // rows + 3 + currentInputHeight)
-    PrintWriter out = terminal.writer();
+    PrintWriter out = engine.writer();
     out.printf("\033[%d;1H", cellBuffer.rows() + 3 + currentInputHeight);
     out.print("\033[37mPress any key to exit.\033[m");
     out.print("\033[K");
     out.flush();
     try {
-      while (reader.read(100L) < 0) {
+      while (engine.readKey(100L) < 0) {
         if (breakFlag.get()) {
           break;
         }
@@ -539,15 +512,7 @@ public class TerminalDisplay implements BazLangDisplay {
     if (!closed.compareAndSet(false, true)) {
       return; // Already closed
     }
-    try {
-      terminal.puts(Capability.cursor_normal);
-      terminal.puts(Capability.exit_ca_mode);
-      terminal.flush();
-      terminal.setAttributes(savedAttributes);
-      terminal.close();
-    } catch (IOException e) {
-      // Ignore - best effort cleanup
-    }
+    engine.close();
   }
 
   @Override

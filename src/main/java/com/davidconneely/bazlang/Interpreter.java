@@ -5,6 +5,7 @@ import com.davidconneely.bazlang.antlr.BazLangParser.StatementContext;
 import com.davidconneely.bazlang.io.BazLangDisplay;
 import com.davidconneely.bazlang.io.StreamDisplay;
 import com.davidconneely.bazlang.io.TerminalDisplay;
+import com.davidconneely.repl.jline.JLineTerminalEngine;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
@@ -18,7 +19,7 @@ public class Interpreter {
     this.state = new EvalState();
     BazLangDisplay display;
     try {
-      display = new TerminalDisplay();
+      display = new TerminalDisplay(new JLineTerminalEngine());
     } catch (IOException e) {
       display = new StreamDisplay();
     }
