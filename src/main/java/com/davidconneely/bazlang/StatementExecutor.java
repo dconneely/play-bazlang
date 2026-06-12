@@ -95,24 +95,26 @@ public class StatementExecutor extends BazLangBaseVisitor<Object> {
             ? dimDecl.NUM_IDENTIFIER().getText().toUpperCase()
             : dimDecl.STR_IDENTIFIER().getText().toUpperCase();
     boolean isStr = name.endsWith("$");
-    List<Integer> dims = new ArrayList<>();
-    for (var exprCtx : dimDecl.numExpr()) {
-      dims.add((int) evalNum(exprCtx));
+    int numDims = dimDecl.numExpr().size();
+    int[] dims = new int[numDims];
+    for (int i = 0; i < numDims; i++) {
+      dims[i] = (int) evalNum(dimDecl.numExpr(i));
     }
     if (isStr) {
       state.removeStrVar(name);
-      int flen = dims.removeLast();
+      int flen = dims[numDims - 1];
       int total = 1;
-      for (int d : dims) {
-        total *= d;
+      int[] arrDims = new int[numDims - 1];
+      System.arraycopy(dims, 0, arrDims, 0, numDims - 1);
+      for (int i = 0; i < numDims - 1; i++) {
+        total *= dims[i];
       }
       if (total <= 0 || total > Limits.MAX_ARRAY_ELEMENTS) {
         throw codedException(ReportCode.OUT_OF_MEMORY, "Array too large");
       }
-      BStr[] elements = new BStr[total];
-      BStr emptyStr = BStr.EMPTY.paddedOrTruncatedTo(flen);
-      Arrays.fill(elements, emptyStr);
-      state.setStrVar(name, new EvalState.StrVar.Array(dims, flen, elements));
+      byte[] data = new byte[total * flen];
+      Arrays.fill(data, (byte) 32); // Space padded by default
+      state.setStrVar(name, new EvalState.StrVar.Array(arrDims, flen, data));
     } else {
       int total = 1;
       for (int d : dims) {
@@ -628,11 +630,12 @@ public class StatementExecutor extends BazLangBaseVisitor<Object> {
         throw codedException(ReportCode.VARIABLE_NOT_FOUND, "Undefined array: " + name);
       }
       EvalState.NumArray na = state.numArray(name);
-      List<Integer> indices = new ArrayList<>();
-      for (var e : numExprs) {
-        indices.add((int) evalNum(e));
+      int count = numExprs.size();
+      int[] indices = new int[count];
+      for (int i = 0; i < count; i++) {
+        indices[i] = (int) evalNum(numExprs.get(i));
       }
-      int idx = exprEvaluator.calculateArrayIndex(na.dimensions(), indices);
+      int idx = exprEvaluator.calculateArrayIndex(na.dimensions(), indices, count);
       na.data()[idx] = val;
     }
   }
@@ -644,10 +647,16 @@ public class StatementExecutor extends BazLangBaseVisitor<Object> {
       // Scalar assignment
       EvalState.StrVar var = state.strVar(name);
       if (var instanceof EvalState.StrVar.Array ca) {
-        if (!ca.arrayDimensions().isEmpty()) {
+        if (ca.arrayDimensions().length != 0) {
           throw codedException(ReportCode.SUBSCRIPT_WRONG, "Subscript wrong");
         }
-        ca.elements()[0] = val.paddedOrTruncatedTo(ca.stringLength());
+        int copyLen = Math.min(ca.stringLength(), val.length());
+        for (int i = 0; i < copyLen; i++) {
+          ca.data()[i] = (byte) val.byteAt(i);
+        }
+        for (int i = copyLen; i < ca.stringLength(); i++) {
+          ca.data()[i] = (byte) 32;
+        }
         return;
       }
       state.setStrVar(name, new EvalState.StrVar.Scalar(val));
@@ -655,32 +664,43 @@ public class StatementExecutor extends BazLangBaseVisitor<Object> {
     }
     // Subscripted assignment - parse subscript
     ExpressionEvaluator.ParsedSubscript parsed = exprEvaluator.parseStrSubscript(subscript);
-    List<Integer> indices = parsed.indices();
-    Integer sliceStart = parsed.sliceStart();
-    Integer sliceEnd = parsed.sliceEnd();
+    int[] indices = parsed.indices();
+    int sliceStart = parsed.sliceStart();
+    int sliceEnd = parsed.sliceEnd();
     boolean hasSlice = parsed.hasSlice();
     EvalState.StrVar var = state.strVar(name);
     if (var instanceof EvalState.StrVar.Array ca) {
-      int n = ca.arrayDimensions().size();
-      Integer byteIndex = null;
-      if (indices.size() == n + 1) {
-        byteIndex = indices.removeLast();
-      } else if (indices.size() != n && n == 0 && indices.size() == 1) {
-        byteIndex = indices.removeFirst();
+      int n = ca.arrayDimensions().length;
+      int byteIndex = -1;
+      int indicesCount = indices.length;
+      if (indicesCount == n + 1) {
+        byteIndex = indices[n];
+        indicesCount--;
+      } else if (indicesCount != n && n == 0 && indicesCount == 1) {
+        byteIndex = indices[0];
+        indicesCount--;
       }
-      int arrayIdx = exprEvaluator.calculateArrayIndex(ca.arrayDimensions(), indices);
-      BStr elem = ca.elements()[arrayIdx];
+      int arrayIdx = exprEvaluator.calculateArrayIndex(ca.arrayDimensions(), indices, indicesCount);
       int[] bounds =
           exprEvaluator.calculateSliceBounds(ca.stringLength(), byteIndex, sliceStart, sliceEnd);
-      ca.elements()[arrayIdx] = elem.withSlice(bounds[0], bounds[1], val);
+      int sliceLen = bounds[1] - bounds[0] + 1;
+      int copyLen = Math.min(sliceLen, val.length());
+      int offset = arrayIdx * ca.stringLength() + (bounds[0] - 1);
+      for (int i = 0; i < copyLen; i++) {
+        ca.data()[offset + i] = (byte) val.byteAt(i);
+      }
+      for (int i = copyLen; i < sliceLen; i++) {
+        ca.data()[offset + i] = (byte) 32;
+      }
     } else if (var instanceof EvalState.StrVar.Scalar scalar) {
       BStr str = scalar.value();
-      Integer byteIndex = null;
-      if (indices.size() == 1 && !hasSlice) {
-        byteIndex = indices.getFirst();
-        indices.clear();
+      int byteIndex = -1;
+      int indicesCount = indices.length;
+      if (indicesCount == 1 && !hasSlice) {
+        byteIndex = indices[0];
+        indicesCount--;
       }
-      if (!indices.isEmpty()) {
+      if (indicesCount > 0) {
         throw codedException(
             ReportCode.SUBSCRIPT_WRONG, "Scalar string only takes one index or slice");
       }

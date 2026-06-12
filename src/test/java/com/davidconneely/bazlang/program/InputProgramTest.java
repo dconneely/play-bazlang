@@ -42,7 +42,13 @@ class InputProgramTest extends BaseProgramTest {
             List.of("42", "HELLO"));
 
     assertEquals(42.0, state.numArray("A").data()[4]); // 1-based index 5 is data[4]
-    String b2 = ((EvalState.StrVar.Array) state.strVar("B$")).elements()[1].toJavaString();
+    var bArr = (EvalState.StrVar.Array) state.strVar("B$");
+    String b2 =
+        new String(
+            bArr.data(),
+            bArr.stringLength(),
+            bArr.stringLength(),
+            java.nio.charset.StandardCharsets.UTF_8);
     assertTrue(b2.startsWith("HELLO"));
   }
 

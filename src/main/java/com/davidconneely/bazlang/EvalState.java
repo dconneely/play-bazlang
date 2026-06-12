@@ -9,13 +9,12 @@ import java.util.Map;
 import java.util.Random;
 
 public class EvalState {
-  public record NumArray(List<Integer> dimensions, double[] data) {}
+  public record NumArray(int[] dimensions, double[] data) {}
 
   public sealed interface StrVar {
     record Scalar(BStr value) implements StrVar {}
 
-    record Array(List<Integer> arrayDimensions, int stringLength, BStr[] elements)
-        implements StrVar {}
+    record Array(int[] arrayDimensions, int stringLength, byte[] data) implements StrVar {}
   }
 
   public record FnDefinition(String name, List<String> params, ExpressionContext body) {}

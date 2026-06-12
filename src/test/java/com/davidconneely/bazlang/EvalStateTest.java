@@ -67,7 +67,7 @@ class EvalStateTest {
   @Test
   void testNumArrays() {
     assertFalse(state.hasNumArray("A"));
-    EvalState.NumArray arr = new EvalState.NumArray(List.of(5), new double[5]);
+    EvalState.NumArray arr = new EvalState.NumArray(new int[] {5}, new double[5]);
     state.setNumArray("A", arr);
     assertTrue(state.hasNumArray("A"));
     assertEquals(arr, state.numArray("A"));

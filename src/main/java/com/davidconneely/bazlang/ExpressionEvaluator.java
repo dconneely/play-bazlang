@@ -73,11 +73,12 @@ public class ExpressionEvaluator extends BazLangBaseVisitor<Object> {
       throw codedException(ReportCode.VARIABLE_NOT_FOUND, "Undefined array: " + name);
     }
     EvalState.NumArray na = state.numArray(name);
-    List<Integer> indices = new ArrayList<>();
-    for (var e : ctx.numExpr()) {
-      indices.add((int) evalNum(e));
+    int count = ctx.numExpr().size();
+    int[] indices = new int[count];
+    for (int i = 0; i < count; i++) {
+      indices[i] = (int) evalNum(ctx.numExpr(i));
     }
-    int idx = calculateArrayIndex(na.dimensions(), indices);
+    int idx = calculateArrayIndex(na.dimensions(), indices, count);
     return na.data()[idx];
   }
 
@@ -300,11 +301,12 @@ public class ExpressionEvaluator extends BazLangBaseVisitor<Object> {
           throw codedException(ReportCode.VARIABLE_NOT_FOUND, "Undefined array: " + name);
         }
         EvalState.NumArray na = state.numArray(name);
-        List<Integer> indices = new ArrayList<>();
-        for (var e : ctx.numExpr()) {
-          indices.add((int) evalNum(e));
+        int count = ctx.numExpr().size();
+        int[] indices = new int[count];
+        for (int i = 0; i < count; i++) {
+          indices[i] = (int) evalNum(ctx.numExpr(i));
         }
-        return na.data()[calculateArrayIndex(na.dimensions(), indices)];
+        return na.data()[calculateArrayIndex(na.dimensions(), indices, count)];
       } else {
         // Simple variable
         if (!state.hasNumVar(name)) {
@@ -337,8 +339,8 @@ public class ExpressionEvaluator extends BazLangBaseVisitor<Object> {
     String name = ctx.STR_IDENTIFIER().getText().toUpperCase();
     EvalState.StrVar var = state.strVar(name);
     if (var instanceof EvalState.StrVar.Array ca) {
-      if (ca.arrayDimensions().isEmpty()) {
-        return ca.elements()[0];
+      if (ca.arrayDimensions().length == 0) {
+        return BStr.fromBytes(ca.data(), 0, ca.stringLength());
       }
       throw codedException(ReportCode.SUBSCRIPT_WRONG, "Subscript wrong");
     }
@@ -357,34 +359,39 @@ public class ExpressionEvaluator extends BazLangBaseVisitor<Object> {
 
   private BStr evalStrSubscript(String name, StrSubscriptContext subscript) {
     ParsedSubscript parsed = parseStrSubscript(subscript);
-    List<Integer> indices = parsed.indices();
-    Integer sliceStart = parsed.sliceStart();
-    Integer sliceEnd = parsed.sliceEnd();
+    int[] indices = parsed.indices();
+    int sliceStart = parsed.sliceStart();
+    int sliceEnd = parsed.sliceEnd();
     boolean hasSlice = parsed.hasSlice();
     // Now evaluate the subscript based on variable type
     EvalState.StrVar var = state.strVar(name);
     if (var instanceof EvalState.StrVar.Array ca) {
-      int n = ca.arrayDimensions().size();
-      Integer byteIndex = null;
+      int n = ca.arrayDimensions().length;
+      int byteIndex = -1;
+      int indicesCount = indices.length;
       // Handle char index (extra index beyond array dimensions)
-      if (indices.size() == n + 1) {
-        byteIndex = indices.removeLast();
-      } else if (indices.size() != n && n == 0 && indices.size() == 1) {
-        byteIndex = indices.removeFirst();
+      if (indicesCount == n + 1) {
+        byteIndex = indices[n];
+        indicesCount--;
+      } else if (indicesCount != n && n == 0 && indicesCount == 1) {
+        byteIndex = indices[0];
+        indicesCount--;
       }
-      int arrayIdx = calculateArrayIndex(ca.arrayDimensions(), indices);
-      BStr elem = ca.elements()[arrayIdx];
+      int arrayIdx = calculateArrayIndex(ca.arrayDimensions(), indices, indicesCount);
       int[] bounds = calculateSliceBounds(ca.stringLength(), byteIndex, sliceStart, sliceEnd);
-      return elem.slice(bounds[0], bounds[1]);
+      int offset = arrayIdx * ca.stringLength() + (bounds[0] - 1);
+      int length = bounds[1] - bounds[0] + 1;
+      return BStr.fromBytes(ca.data(), offset, length);
     }
     if (var instanceof EvalState.StrVar.Scalar scalar) {
       BStr s = scalar.value();
-      Integer byteIndex = null;
-      if (indices.size() == 1 && !hasSlice) {
-        byteIndex = indices.getFirst();
-        indices.clear();
+      int byteIndex = -1;
+      int indicesCount = indices.length;
+      if (indicesCount == 1 && !hasSlice) {
+        byteIndex = indices[0];
+        indicesCount--;
       }
-      if (!indices.isEmpty()) {
+      if (indicesCount > 0) {
         throw codedException(
             ReportCode.SUBSCRIPT_WRONG, "Scalar string only takes one index or slice");
       }
@@ -467,8 +474,8 @@ public class ExpressionEvaluator extends BazLangBaseVisitor<Object> {
       String name = ctx.STR_IDENTIFIER().getText().toUpperCase();
       EvalState.StrVar var = state.strVar(name);
       if (var instanceof EvalState.StrVar.Array ca) {
-        if (ca.arrayDimensions().isEmpty()) {
-          return ca.elements()[0];
+        if (ca.arrayDimensions().length == 0) {
+          return BStr.fromBytes(ca.data(), 0, ca.stringLength());
         }
         throw codedException(ReportCode.SUBSCRIPT_WRONG, "Subscript wrong");
       }
@@ -488,17 +495,17 @@ public class ExpressionEvaluator extends BazLangBaseVisitor<Object> {
 
   // ===== Assignment Helpers =====
 
-  public record ParsedSubscript(
-      List<Integer> indices, Integer sliceStart, Integer sliceEnd, boolean hasSlice) {}
+  public record ParsedSubscript(int[] indices, int sliceStart, int sliceEnd, boolean hasSlice) {}
 
   public ParsedSubscript parseStrSubscript(StrSubscriptContext subscript) {
-    List<Integer> indices = new ArrayList<>();
-    Integer sliceStart = null;
-    Integer sliceEnd = null;
+    int indicesCount = subscript.indices != null ? subscript.indices.size() : 0;
+    int[] indices = new int[indicesCount];
+    int sliceStart = -1;
+    int sliceEnd = -1;
     boolean hasSlice = subscript.slice != null;
-    if (subscript.indices != null) {
-      for (var e : subscript.indices) {
-        indices.add((int) evalNum(e));
+    if (indicesCount > 0) {
+      for (int i = 0; i < indicesCount; i++) {
+        indices[i] = (int) evalNum(subscript.indices.get(i));
       }
     }
     if (hasSlice) {
@@ -512,16 +519,16 @@ public class ExpressionEvaluator extends BazLangBaseVisitor<Object> {
     return new ParsedSubscript(indices, sliceStart, sliceEnd, hasSlice);
   }
 
-  public int calculateArrayIndex(List<Integer> dimensions, List<Integer> indices) {
-    int n = dimensions.size();
-    if (indices.size() != n) {
+  public int calculateArrayIndex(int[] dimensions, int[] indices, int indicesCount) {
+    int n = dimensions.length;
+    if (indicesCount != n) {
       throw codedException(ReportCode.SUBSCRIPT_WRONG, "Incorrect dimensions");
     }
     int idx = 0;
     int m = 1;
     for (int i = n - 1; i >= 0; i--) {
-      int sz = dimensions.get(i);
-      int v = indices.get(i);
+      int sz = dimensions[i];
+      int v = indices[i];
       if (v < 1 || v > sz) {
         throw codedException(ReportCode.SUBSCRIPT_WRONG, "Index out of bounds");
       }
@@ -531,12 +538,11 @@ public class ExpressionEvaluator extends BazLangBaseVisitor<Object> {
     return idx;
   }
 
-  public int[] calculateSliceBounds(
-      int len, Integer byteIdx, Integer sliceStart, Integer sliceEnd) {
-    int st = (byteIdx != null ? byteIdx : 1) + (sliceStart != null ? sliceStart - 1 : 0);
+  public int[] calculateSliceBounds(int len, int byteIdx, int sliceStart, int sliceEnd) {
+    int st = (byteIdx != -1 ? byteIdx : 1) + (sliceStart != -1 ? sliceStart - 1 : 0);
     int en =
-        (byteIdx != null ? byteIdx : 1)
-            + (sliceEnd != null ? sliceEnd - 1 : (byteIdx != null ? 0 : len - 1));
+        (byteIdx != -1 ? byteIdx : 1)
+            + (sliceEnd != -1 ? sliceEnd - 1 : (byteIdx != -1 ? 0 : len - 1));
     if (st < 1 || en > len || st > en + 1) {
       throw codedException(ReportCode.SUBSCRIPT_WRONG, "Slice out of bounds");
     }
