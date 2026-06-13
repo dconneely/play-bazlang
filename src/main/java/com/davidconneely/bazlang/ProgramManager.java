@@ -16,7 +16,7 @@ public class ProgramManager extends StatementExecutor {
   }
 
   @Override
-  public Object visitContStmt(ContStmtContext ctx) {
+  public Void visitContStmt(ContStmtContext ctx) {
     int m = state.lastReportLabel();
     if (m <= 0) {
       return null;
@@ -31,7 +31,7 @@ public class ProgramManager extends StatementExecutor {
   }
 
   @Override
-  public Object visitForStmt(ForStmtContext ctx) {
+  public Void visitForStmt(ForStmtContext ctx) {
     String var = ctx.NUM_IDENTIFIER().getText().toUpperCase();
     double st = exprEvaluator.evalNum(ctx.numExpr(0));
     double en = exprEvaluator.evalNum(ctx.numExpr(1));
@@ -65,7 +65,7 @@ public class ProgramManager extends StatementExecutor {
   }
 
   @Override
-  public Object visitGosubStmt(GosubStmtContext ctx) {
+  public Void visitGosubStmt(GosubStmtContext ctx) {
     state.pushReturn(
         new EvalState.JumpLocation(state.currentLineLabel(), state.currentStatementIndex() + 1));
     int target = (int) Math.round(exprEvaluator.evalNum(ctx.numExpr()));
@@ -74,7 +74,7 @@ public class ProgramManager extends StatementExecutor {
   }
 
   @Override
-  public Object visitGotoStmt(GotoStmtContext ctx) {
+  public Void visitGotoStmt(GotoStmtContext ctx) {
     int target = (int) Math.round(exprEvaluator.evalNum(ctx.numExpr()));
     gotoLabel(target);
     return null;
@@ -98,7 +98,7 @@ public class ProgramManager extends StatementExecutor {
   }
 
   @Override
-  public Object visitNextStmt(NextStmtContext ctx) {
+  public Void visitNextStmt(NextStmtContext ctx) {
     String var = ctx.NUM_IDENTIFIER().getText().toUpperCase();
     if (!state.hasForLoop(var)) {
       throw new ReportException(
@@ -118,7 +118,7 @@ public class ProgramManager extends StatementExecutor {
   }
 
   @Override
-  public Object visitReturnStmt(ReturnStmtContext ctx) {
+  public Void visitReturnStmt(ReturnStmtContext ctx) {
     if (state.isReturnStackEmpty()) {
       throw new ReportException(
           ReportCode.RETURN_WITHOUT_GOSUB, state.currentLineLabel(), "RETURN without GOSUB");
@@ -129,7 +129,7 @@ public class ProgramManager extends StatementExecutor {
   }
 
   @Override
-  public Object visitRunStmt(RunStmtContext ctx) {
+  public Void visitRunStmt(RunStmtContext ctx) {
     int target =
         ctx.numExpr() != null
             ? (int) Math.round(exprEvaluator.evalNum(ctx.numExpr()))

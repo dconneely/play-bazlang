@@ -18,7 +18,7 @@ import java.util.Arrays;
 import java.util.List;
 
 /** Executes BazLang from the ANTLR ParseTree. */
-public class StatementExecutor extends BazLangBaseVisitor<Object> {
+public class StatementExecutor extends BazLangBaseVisitor<Void> {
   protected final EvalState state;
   protected final BazLangDisplay display;
   protected final ProgramStorage storage;
@@ -42,24 +42,24 @@ public class StatementExecutor extends BazLangBaseVisitor<Object> {
   // ===== Statement Execution =====
 
   @Override
-  public Object visitClearStmt(ClearStmtContext ctx) {
+  public Void visitClearStmt(ClearStmtContext ctx) {
     state.clear();
     return null;
   }
 
   @Override
-  public Object visitClsStmt(ClsStmtContext ctx) {
+  public Void visitClsStmt(ClsStmtContext ctx) {
     display.cls();
     return null;
   }
 
   @Override
-  public Object visitDataStmt(DataStmtContext ctx) {
+  public Void visitDataStmt(DataStmtContext ctx) {
     return null;
   }
 
   @Override
-  public Object visitDefFnStmt(DefFnStmtContext ctx) {
+  public Void visitDefFnStmt(DefFnStmtContext ctx) {
     String name = ctx.name.getText().toUpperCase();
     if (name.endsWith("$")) {
       if (ctx.expression().strExpr() == null) {
@@ -88,7 +88,7 @@ public class StatementExecutor extends BazLangBaseVisitor<Object> {
   }
 
   @Override
-  public Object visitDimStmt(DimStmtContext ctx) {
+  public Void visitDimStmt(DimStmtContext ctx) {
     var dimDecl = ctx.dimDecl();
     String name =
         dimDecl.NUM_IDENTIFIER() != null
@@ -129,7 +129,7 @@ public class StatementExecutor extends BazLangBaseVisitor<Object> {
   }
 
   @Override
-  public Object visitIfStmt(IfStmtContext ctx) {
+  public Void visitIfStmt(IfStmtContext ctx) {
     if (evalNum(ctx.numExpr()) == 0.0) {
       if (state.currentLineLabel() > 0) {
         Integer nextLabel = state.program().higherKey(state.currentLineLabel());
@@ -147,7 +147,7 @@ public class StatementExecutor extends BazLangBaseVisitor<Object> {
   }
 
   @Override
-  public Object visitInputStmt(InputStmtContext ctx) {
+  public Void visitInputStmt(InputStmtContext ctx) {
     var target = ctx.assignmentTarget();
     boolean isNumeric = target.NUM_IDENTIFIER() != null;
     Display.InputMode mode =
@@ -224,7 +224,7 @@ public class StatementExecutor extends BazLangBaseVisitor<Object> {
   }
 
   @Override
-  public Object visitLetStmt(LetStmtContext ctx) {
+  public Void visitLetStmt(LetStmtContext ctx) {
     var target = ctx.assignmentTarget();
     var expr = ctx.expression();
     if (target.NUM_IDENTIFIER() != null) {
@@ -238,7 +238,7 @@ public class StatementExecutor extends BazLangBaseVisitor<Object> {
   }
 
   @Override
-  public Object visitListStmt(ListStmtContext ctx) {
+  public Void visitListStmt(ListStmtContext ctx) {
     int[] range = parseListLineRange(ctx.lineRange());
     for (var entry : state.program().subMapEntries(range[0], true, range[1], true)) {
       ProgramLine line = entry.getValue();
@@ -248,7 +248,7 @@ public class StatementExecutor extends BazLangBaseVisitor<Object> {
   }
 
   @Override
-  public Object visitLListStmt(LListStmtContext ctx) {
+  public Void visitLListStmt(LListStmtContext ctx) {
     int[] range = parseListLineRange(ctx.lineRange());
     for (var entry : state.program().subMapEntries(range[0], true, range[1], true)) {
       ProgramLine line = entry.getValue();
@@ -285,13 +285,13 @@ public class StatementExecutor extends BazLangBaseVisitor<Object> {
   }
 
   @Override
-  public Object visitLoadStmt(LoadStmtContext ctx) {
+  public Void visitLoadStmt(LoadStmtContext ctx) {
     storage.load(evalStr(ctx.strExpr()).toJavaString());
     return null;
   }
 
   @Override
-  public Object visitLPrintStmt(LPrintStmtContext ctx) {
+  public Void visitLPrintStmt(LPrintStmtContext ctx) {
     int tp = 0;
     boolean suppressNewline = false;
     var printList = ctx.printList();
@@ -346,14 +346,14 @@ public class StatementExecutor extends BazLangBaseVisitor<Object> {
   }
 
   @Override
-  public Object visitNewStmt(NewStmtContext ctx) {
+  public Void visitNewStmt(NewStmtContext ctx) {
     state.clear();
     state.program().clear();
     return null;
   }
 
   @Override
-  public Object visitPauseStmt(PauseStmtContext ctx) {
+  public Void visitPauseStmt(PauseStmtContext ctx) {
     double frames = evalNum(ctx.numExpr());
     long totalMs = Math.max(0L, Math.round(frames * 20.0));
     display.forceFlush();
@@ -377,7 +377,7 @@ public class StatementExecutor extends BazLangBaseVisitor<Object> {
   }
 
   @Override
-  public Object visitPlotStmt(PlotStmtContext ctx) {
+  public Void visitPlotStmt(PlotStmtContext ctx) {
     int x = (int) evalNum(ctx.numExpr(0));
     int y = (int) evalNum(ctx.numExpr(1));
     try {
@@ -389,7 +389,7 @@ public class StatementExecutor extends BazLangBaseVisitor<Object> {
   }
 
   @Override
-  public Object visitPlotmodeStmt(PlotmodeStmtContext ctx) {
+  public Void visitPlotmodeStmt(PlotmodeStmtContext ctx) {
     int mode = (int) evalNum(ctx.numExpr());
     PixelMode pixelMode =
         switch (mode) {
@@ -407,7 +407,7 @@ public class StatementExecutor extends BazLangBaseVisitor<Object> {
   }
 
   @Override
-  public Object visitPrintStmt(PrintStmtContext ctx) {
+  public Void visitPrintStmt(PrintStmtContext ctx) {
     int tabPos = display.currentCol();
     boolean suppressNewline = false;
     var printList = ctx.printList();
@@ -469,7 +469,7 @@ public class StatementExecutor extends BazLangBaseVisitor<Object> {
   }
 
   @Override
-  public Object visitRandStmt(RandStmtContext ctx) {
+  public Void visitRandStmt(RandStmtContext ctx) {
     long seed;
     if (ctx.numExpr() != null) {
       seed = Math.round(evalNum(ctx.numExpr()));
@@ -489,7 +489,7 @@ public class StatementExecutor extends BazLangBaseVisitor<Object> {
   }
 
   @Override
-  public Object visitReadStmt(ReadStmtContext ctx) {
+  public Void visitReadStmt(ReadStmtContext ctx) {
     for (var target : ctx.assignmentTarget()) {
       if (state.dataLineLabel() == -1) {
         restoreTo(0);
@@ -554,12 +554,12 @@ public class StatementExecutor extends BazLangBaseVisitor<Object> {
   }
 
   @Override
-  public Object visitRemStmt(RemStmtContext ctx) {
+  public Void visitRemStmt(RemStmtContext ctx) {
     return null;
   }
 
   @Override
-  public Object visitRestoreStmt(RestoreStmtContext ctx) {
+  public Void visitRestoreStmt(RestoreStmtContext ctx) {
     int target = 0;
     if (ctx.numExpr() != null) {
       double val = evalNum(ctx.numExpr());
@@ -573,25 +573,25 @@ public class StatementExecutor extends BazLangBaseVisitor<Object> {
   }
 
   @Override
-  public Object visitSaveStmt(SaveStmtContext ctx) {
+  public Void visitSaveStmt(SaveStmtContext ctx) {
     storage.save(exprEvaluator.evalStr(ctx.strExpr()).toJavaString());
     return null;
   }
 
   @Override
-  public Object visitScrollStmt(ScrollStmtContext ctx) {
+  public Void visitScrollStmt(ScrollStmtContext ctx) {
     display.scroll();
     return null;
   }
 
   @Override
-  public Object visitStopStmt(StopStmtContext ctx) {
+  public Void visitStopStmt(StopStmtContext ctx) {
     state.setRunning(false);
     throw codedException(ReportCode.STOP_STATEMENT, ReportCode.STOP_STATEMENT.getMessage());
   }
 
   @Override
-  public Object visitUnplotStmt(UnplotStmtContext ctx) {
+  public Void visitUnplotStmt(UnplotStmtContext ctx) {
     int x = (int) evalNum(ctx.numExpr(0));
     int y = (int) evalNum(ctx.numExpr(1));
     try {

@@ -34,6 +34,7 @@ public class ProgramLine {
   public List<StatementContext> getFlattenedStatements(AntlrParser parser) {
     if (cachedParseTree == null) {
       cachedParseTree = parser.parseStatementsContext(sourceText);
+      new AstAnnotator(lineNumber).visit(cachedParseTree);
     }
     List<StatementContext> flat = new ArrayList<>();
     flatten(cachedParseTree, flat);
@@ -43,6 +44,7 @@ public class ProgramLine {
   public StatementsContext getStatements(AntlrParser parser) {
     if (cachedParseTree == null) {
       cachedParseTree = parser.parseStatementsContext(sourceText);
+      new AstAnnotator(lineNumber).visit(cachedParseTree);
     }
     return cachedParseTree;
   }
