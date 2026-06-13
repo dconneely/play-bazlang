@@ -24,6 +24,9 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
   protected final ProgramStorage storage;
   protected final ExpressionEvaluator exprEvaluator;
 
+  private int graphicsCursorX = 0;
+  private int graphicsCursorY = 0;
+
   public StatementExecutor(
       EvalState state,
       BazLangDisplay display,
@@ -126,6 +129,68 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
       state.setNumArray(name, new EvalState.NumArray(dims, new double[total]));
     }
     return null;
+  }
+
+  @Override
+  public Void visitFastStmt(FastStmtContext ctx) {
+    display.setFastMode(true);
+    return null;
+  }
+
+  @Override
+  public Void visitSlowStmt(SlowStmtContext ctx) {
+    display.setFastMode(false);
+    return null;
+  }
+
+  @Override
+  public Void visitDrawStmt(DrawStmtContext ctx) {
+    int dx = (int) Math.round(evalNum(ctx.numExpr(0)));
+    int dy = (int) Math.round(evalNum(ctx.numExpr(1)));
+    drawLine(graphicsCursorX, graphicsCursorY, graphicsCursorX + dx, graphicsCursorY + dy, true);
+    return null;
+  }
+
+  @Override
+  public Void visitUndrawStmt(UndrawStmtContext ctx) {
+    int dx = (int) Math.round(evalNum(ctx.numExpr(0)));
+    int dy = (int) Math.round(evalNum(ctx.numExpr(1)));
+    drawLine(graphicsCursorX, graphicsCursorY, graphicsCursorX + dx, graphicsCursorY + dy, false);
+    return null;
+  }
+
+  private void drawLine(int startX, int startY, int endX, int endY, boolean plot) {
+    int x1 = startX;
+    int y1 = startY;
+    int x2 = endX;
+    int y2 = endY;
+    int diffX = Math.abs(x2 - x1);
+    int diffY = -Math.abs(y2 - y1);
+    int sx = x1 < x2 ? 1 : -1;
+    int sy = y1 < y2 ? 1 : -1;
+    int err = diffX + diffY;
+
+    while (true) {
+      if (plot) {
+        display.plot(x1, y1);
+      } else {
+        display.unplot(x1, y1);
+      }
+      if (x1 == x2 && y1 == y2) {
+        break;
+      }
+      int e2 = 2 * err;
+      if (e2 >= diffY) {
+        err += diffY;
+        x1 += sx;
+      }
+      if (e2 <= diffX) {
+        err += diffX;
+        y1 += sy;
+      }
+    }
+    graphicsCursorX = x2;
+    graphicsCursorY = y2;
   }
 
   @Override
@@ -382,6 +447,8 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
     int y = (int) evalNum(ctx.numExpr(1));
     try {
       display.plot(x, y);
+      graphicsCursorX = x;
+      graphicsCursorY = y;
     } catch (IllegalArgumentException e) {
       throw codedException(ReportCode.INTEGER_OUT_OF_RANGE, e.getMessage());
     }
@@ -596,6 +663,8 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
     int y = (int) evalNum(ctx.numExpr(1));
     try {
       display.unplot(x, y);
+      graphicsCursorX = x;
+      graphicsCursorY = y;
     } catch (IllegalArgumentException e) {
       throw codedException(ReportCode.INTEGER_OUT_OF_RANGE, e.getMessage());
     }
@@ -623,43 +692,44 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
     var numExprs = target.numExpr();
     if (numExprs.isEmpty()) {
       // Scalar
-      state.setNumVar(name, val);
+      EvalState.NumVarRef ref = (EvalState.NumVarRef) target.varRef;
+      if (ref == null) {
+        ref = state.getOrAddNumVar(name);
+        target.varRef = ref;
+      }
+      ref.value = val;
+      ref.initialized = true;
     } else {
       // Array element
-      if (!state.hasNumArray(name)) {
+      EvalState.NumArrayRef ref = (EvalState.NumArrayRef) target.varRef;
+      if (ref == null) {
+        ref = state.getOrAddNumArray(name);
+        target.varRef = ref;
+      }
+      if (ref.array == null) {
         throw codedException(ReportCode.VARIABLE_NOT_FOUND, "Undefined array: " + name);
       }
-      EvalState.NumArray na = state.numArray(name);
+      EvalState.NumArray na = ref.array;
       int count = numExprs.size();
       int[] indices = new int[count];
       for (int i = 0; i < count; i++) {
         indices[i] = (int) evalNum(numExprs.get(i));
       }
-      int idx = exprEvaluator.calculateArrayIndex(na.dimensions(), indices, count);
+      int idx = exprEvaluator.calculateArrayIndex(na.dimensions(), indices, 0, count);
       na.data()[idx] = val;
     }
   }
 
   private void assignStrTarget(AssignmentTargetContext target, BStr val) {
     String name = target.STR_IDENTIFIER().getText().toUpperCase();
+    EvalState.StrVarRef ref = (EvalState.StrVarRef) target.varRef;
+    if (ref == null) {
+      ref = state.getOrAddStrVar(name);
+      target.varRef = ref;
+    }
     var subscript = target.strSubscript();
     if (subscript == null) {
-      EvalState.StrVar var = state.strVar(name);
-      if (var instanceof EvalState.StrVar.Array ca) {
-        if (ca.arrayDimensions().length != 0) {
-          throw codedException(ReportCode.SUBSCRIPT_WRONG, "Subscript wrong");
-        }
-        int copyLen = Math.min(ca.stringLength(), val.length());
-        for (int i = 0; i < copyLen; i++) {
-          ca.data()[i] = (byte) val.byteAt(i);
-        }
-        for (int i = copyLen; i < ca.stringLength(); i++) {
-          ca.data()[i] = (byte) 32;
-        }
-        return;
-      } else {
-        state.setStrVar(name, new EvalState.StrVar.Scalar(val.copy()));
-      }
+      assignStrSubscriptNull(ref, val);
       return;
     }
 
@@ -682,60 +752,103 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
       }
     }
 
-    EvalState.StrVar var = state.strVar(name);
+    EvalState.StrVar var = ref.value;
     if (var instanceof EvalState.StrVar.Array ca) {
-      int n = ca.arrayDimensions().length;
-      int byteIndex = -1;
-      if (indicesCount == n + 1) {
-        byteIndex = indices[n];
-        indicesCount--;
-      } else if (indicesCount != n && n == 0 && indicesCount == 1) {
-        byteIndex = indices[0];
-        indicesCount--;
-      }
-      int arrayIdx = exprEvaluator.calculateArrayIndex(ca.arrayDimensions(), indices, indicesCount);
-
-      int st = (byteIndex != -1 ? byteIndex : 1) + (sliceStart != -1 ? sliceStart - 1 : 0);
-      int en =
-          (byteIndex != -1 ? byteIndex : 1)
-              + (sliceEnd != -1 ? sliceEnd - 1 : (byteIndex != -1 ? 0 : ca.stringLength() - 1));
-      if (st < 1 || en > ca.stringLength() || st > en + 1) {
-        throw codedException(ReportCode.SUBSCRIPT_WRONG, "Slice out of bounds");
-      }
-
-      int sliceLen = en - st + 1;
-      int copyLen = Math.min(sliceLen, val.length());
-      int offset = arrayIdx * ca.stringLength() + (st - 1);
-      for (int i = 0; i < copyLen; i++) {
-        ca.data()[offset + i] = (byte) val.byteAt(i);
-      }
-      for (int i = copyLen; i < sliceLen; i++) {
-        ca.data()[offset + i] = (byte) 32;
-      }
+      assignStrArrayTarget(ca, val, indices, indicesCount, sliceStart, sliceEnd);
     } else if (var instanceof EvalState.StrVar.Scalar scalar) {
-      BStr str = scalar.value();
-      int byteIndex = -1;
-      if (indicesCount == 1 && !hasSlice) {
-        byteIndex = indices[0];
-        indicesCount--;
-      }
-      if (indicesCount > 0) {
-        throw codedException(
-            ReportCode.SUBSCRIPT_WRONG, "Scalar string only takes one index or slice");
-      }
-
-      int st = (byteIndex != -1 ? byteIndex : 1) + (sliceStart != -1 ? sliceStart - 1 : 0);
-      int en =
-          (byteIndex != -1 ? byteIndex : 1)
-              + (sliceEnd != -1 ? sliceEnd - 1 : (byteIndex != -1 ? 0 : str.length() - 1));
-      if (st < 1 || en > str.length() || st > en + 1) {
-        throw codedException(ReportCode.SUBSCRIPT_WRONG, "Slice out of bounds");
-      }
-
-      state.setStrVar(name, new EvalState.StrVar.Scalar(str.withSlice(st, en, val)));
+      assignStrScalarTarget(
+          ref, scalar, val, hasSlice, indices, indicesCount, sliceStart, sliceEnd);
     } else {
       throw codedException(ReportCode.VARIABLE_NOT_FOUND, "Undefined variable: " + name);
     }
+  }
+
+  private void assignStrSubscriptNull(EvalState.StrVarRef ref, BStr val) {
+    EvalState.StrVar var = ref.value;
+    if (var instanceof EvalState.StrVar.Array ca) {
+      if (ca.arrayDimensions().length != 0) {
+        throw codedException(ReportCode.SUBSCRIPT_WRONG, "Subscript wrong");
+      }
+      int copyLen = Math.min(ca.stringLength(), val.length());
+      for (int i = 0; i < copyLen; i++) {
+        ca.data()[i] = (byte) val.byteAt(i);
+      }
+      for (int i = copyLen; i < ca.stringLength(); i++) {
+        ca.data()[i] = (byte) 32;
+      }
+    } else {
+      ref.value = new EvalState.StrVar.Scalar(val.copy());
+    }
+  }
+
+  private void assignStrArrayTarget(
+      EvalState.StrVar.Array ca,
+      BStr val,
+      int[] indices,
+      int indicesCount,
+      int sliceStart,
+      int sliceEnd) {
+    int n = ca.arrayDimensions().length;
+    int byteIndex = -1;
+    int count = indicesCount;
+    if (count == n + 1) {
+      byteIndex = indices[n];
+      count--;
+    } else if (count != n && n == 0 && count == 1) {
+      byteIndex = indices[0];
+      count--;
+    }
+    int arrayIdx = exprEvaluator.calculateArrayIndex(ca.arrayDimensions(), indices, 0, count);
+
+    int st = (byteIndex != -1 ? byteIndex : 1) + (sliceStart != -1 ? sliceStart - 1 : 0);
+    int en =
+        (byteIndex != -1 ? byteIndex : 1)
+            + (sliceEnd != -1 ? sliceEnd - 1 : (byteIndex != -1 ? 0 : ca.stringLength() - 1));
+    if (st < 1 || en > ca.stringLength() || st > en + 1) {
+      throw codedException(ReportCode.SUBSCRIPT_WRONG, "Slice out of bounds");
+    }
+
+    int sliceLen = en - st + 1;
+    int copyLen = Math.min(sliceLen, val.length());
+    int offset = arrayIdx * ca.stringLength() + (st - 1);
+    for (int i = 0; i < copyLen; i++) {
+      ca.data()[offset + i] = (byte) val.byteAt(i);
+    }
+    for (int i = copyLen; i < sliceLen; i++) {
+      ca.data()[offset + i] = (byte) 32;
+    }
+  }
+
+  private void assignStrScalarTarget(
+      EvalState.StrVarRef ref,
+      EvalState.StrVar.Scalar scalar,
+      BStr val,
+      boolean hasSlice,
+      int[] indices,
+      int indicesCount,
+      int sliceStart,
+      int sliceEnd) {
+    BStr str = scalar.value();
+    int byteIndex = -1;
+    int count = indicesCount;
+    if (count == 1 && !hasSlice) {
+      byteIndex = indices[0];
+      count--;
+    }
+    if (count > 0) {
+      throw codedException(
+          ReportCode.SUBSCRIPT_WRONG, "Scalar string only takes one index or slice");
+    }
+
+    int st = (byteIndex != -1 ? byteIndex : 1) + (sliceStart != -1 ? sliceStart - 1 : 0);
+    int en =
+        (byteIndex != -1 ? byteIndex : 1)
+            + (sliceEnd != -1 ? sliceEnd - 1 : (byteIndex != -1 ? 0 : str.length() - 1));
+    if (st < 1 || en > str.length() || st > en + 1) {
+      throw codedException(ReportCode.SUBSCRIPT_WRONG, "Slice out of bounds");
+    }
+
+    ref.value = new EvalState.StrVar.Scalar(str.withSlice(st, en, val));
   }
 
   private ReportException codedException(ReportCode rc, String msg) {

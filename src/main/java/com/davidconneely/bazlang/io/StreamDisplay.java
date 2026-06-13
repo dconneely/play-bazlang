@@ -173,6 +173,11 @@ public class StreamDisplay implements BazLangDisplay {
   }
 
   @Override
+  public void setFastMode(boolean fast) {
+    // No-op for stream display
+  }
+
+  @Override
   public void close() {
     // Do not close standard streams
   }

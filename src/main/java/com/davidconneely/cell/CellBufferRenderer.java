@@ -40,7 +40,9 @@ public class CellBufferRenderer {
           activeAttr = attr;
         }
         int cp = cellBuffer.getCell(r, c);
-        if (cp < Character.MIN_SUPPLEMENTARY_CODE_POINT) {
+        if (cp == 0x2800) {
+          out.print(' ');
+        } else if (cp < Character.MIN_SUPPLEMENTARY_CODE_POINT) {
           out.print((char) cp);
         } else {
           out.print(Character.toChars(cp));

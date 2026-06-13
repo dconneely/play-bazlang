@@ -58,10 +58,10 @@ public class TerminalDisplay implements BazLangDisplay {
   // Pending render: print() marks dirty; flush()/println()/cls() drive render()
   private boolean dirty = false;
 
-  // Rate-limiting: frame-boundary renders (println, inkey, plot) cap at ~60fps (~16ms).
+  // Rate-limiting: frame-boundary renders (println, inkey, plot) cap at ~50fps (~20ms).
   // flush()-driven renders use a longer threshold so that game drawing loops (which call flush()
   // after every PRINT with a semicolon) do not trigger partial mid-frame renders.
-  private static final long FRAME_RENDER_INTERVAL_MS = 16L;
+  private static final long FRAME_RENDER_INTERVAL_MS = 20L;
   private static final long FLUSH_RENDER_INTERVAL_MS = 100L;
   private long lastRenderTimeMs = 0L;
 
@@ -189,18 +189,36 @@ public class TerminalDisplay implements BazLangDisplay {
     }
   }
 
-  /**
-   * Renders only if dirty and at least ~16ms have elapsed since the last render (~60fps cap). Used
-   * by println(), plot(), unplot(), scroll(), and inkey() as frame-boundary render points.
-   */
-  private void renderIfDue() {
+  private boolean fastMode = false;
+
+  private void renderIfDue(boolean bypassFastMode) {
+    if (fastMode && !bypassFastMode) {
+      return;
+    }
     if ((dirty || resizePending.get())
         && System.currentTimeMillis() - lastRenderTimeMs >= FRAME_RENDER_INTERVAL_MS) {
       render();
     }
   }
 
+  /**
+   * Renders only if dirty and at least ~20ms have elapsed since the last render (~50fps cap). Used
+   * by println(), plot(), unplot(), scroll(), and inkey() as frame-boundary render points.
+   */
+  private void renderIfDue() {
+    renderIfDue(false);
+  }
+
   // === Display Interface Implementation ===
+
+  @Override
+  public void setFastMode(boolean fast) {
+    this.fastMode = fast;
+    if (!fast && dirty) {
+      // SLOW: flush any pending frame immediately.
+      render();
+    }
+  }
 
   @Override
   public int currentRow() {
@@ -449,7 +467,7 @@ public class TerminalDisplay implements BazLangDisplay {
 
   @Override
   public String inkey() {
-    renderIfDue(); // flush pending frame before polling for input (acts as frame boundary)
+    renderIfDue(true); // flush pending frame before polling for input, even in FAST mode
     int lastCh = -1;
     try {
       int ch = engine.readKey(1L); // 1ms timeout read

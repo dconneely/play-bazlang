@@ -116,9 +116,16 @@ public class EvalState {
     return ref != null && ref.initialized;
   }
 
-  public Double numVar(String name) {
+  public double numVar(String name) {
     NumVarRef ref = numScalars.get(name);
-    return (ref != null && ref.initialized) ? ref.value : null;
+    if (ref != null && ref.initialized) {
+      return ref.value;
+    }
+    throw new IllegalArgumentException("Undefined variable: " + name);
+  }
+
+  public NumVarRef getNumVarRef(String name) {
+    return numScalars.get(name);
   }
 
   public void setNumVar(String name, double val) {
@@ -180,12 +187,16 @@ public class EvalState {
 
   public void removeNumVar(String name) {
     NumVarRef ref = numScalars.get(name);
-    if (ref != null) ref.initialized = false;
+    if (ref != null) {
+      ref.initialized = false;
+    }
   }
 
   public void removeStrVar(String name) {
     StrVarRef ref = strVars.get(name);
-    if (ref != null) ref.value = null;
+    if (ref != null) {
+      ref.value = null;
+    }
   }
 
   // ===== FOR loop tracking =====
@@ -324,10 +335,18 @@ public class EvalState {
   }
 
   public void clear() {
-    for (NumVarRef ref : numScalars.values()) ref.initialized = false;
-    for (NumArrayRef ref : numArrays.values()) ref.array = null;
-    for (StrVarRef ref : strVars.values()) ref.value = null;
-    for (FnDefRef ref : fnDefinitions.values()) ref.def = null;
+    for (NumVarRef ref : numScalars.values()) {
+      ref.initialized = false;
+    }
+    for (NumArrayRef ref : numArrays.values()) {
+      ref.array = null;
+    }
+    for (StrVarRef ref : strVars.values()) {
+      ref.value = null;
+    }
+    for (FnDefRef ref : fnDefinitions.values()) {
+      ref.def = null;
+    }
     forLoops.clear();
     returnStack.clear();
     clearPendingJump();

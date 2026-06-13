@@ -44,6 +44,8 @@ public interface Display extends AutoCloseable {
 
   boolean pollForBreak();
 
+  void setFastMode(boolean fast);
+
   @Override
   void close();
 }

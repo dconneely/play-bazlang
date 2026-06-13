@@ -1,204 +1,151 @@
-# Hunt the Wumpus
-# Classic cave exploration game - find and shoot the Wumpus!
-5 RAND 0
-10 GOSUB 9000
-20 GOSUB 8000
+980 REM ### Hunt the Wumpus ###
+990 REM ### Classic cave exploration game - find and shoot the Wumpus! ###
+1000 RAND 0
+1010 GOSUB 1990
+1020 GOSUB 1900
 
-# Main game loop
-100 GOSUB 1000
-110 PRINT
-120 PRINT "Shoot or Move (S/M)? ";
-130 INPUT A$
-140 IF A$ = "S" OR A$ = "s" THEN GOSUB 2000
-150 IF A$ = "M" OR A$ = "m" THEN GOSUB 3000
-160 IF DEAD = 0 AND WON = 0 THEN GOTO 100
+1029 REM ### Main game loop ###
+1030 GOSUB 1180
+1040 PRINT
+1050 PRINT "Shoot or Move (S/M)? ";
+1060 INPUT a$
+1070 IF a$ = "S" OR a$ = "s" THEN GOSUB 1290
+1080 IF a$ = "M" OR a$ = "m" THEN GOSUB 1630
+1090 IF dead = 0 AND won = 0 THEN GOTO 1030
 
-# Game over
-200 PRINT
-210 IF WON = 1 THEN PRINT "HEE HEE HEE - THE WUMPUS'LL GET YOU NEXT TIME!!"
-220 IF DEAD = 1 THEN PRINT "HA HA HA - YOU LOSE!"
-230 PRINT
-240 PRINT "Play again? (Y/N) ";
-250 INPUT A$
-260 IF A$ = "Y" OR A$ = "y" THEN GOTO 10
-270 STOP
+1099 REM ### Game over ###
+1100 PRINT
+1110 IF won = 1 THEN PRINT "HEE HEE HEE - THE WUMPUS'LL GET YOU NEXT TIME!!"
+1120 IF dead = 1 THEN PRINT "HA HA HA - YOU LOSE!"
+1130 PRINT
+1140 PRINT "Play again? (Y/N) ";
+1150 INPUT a$
+1160 IF a$ = "Y" OR a$ = "y" THEN GOTO 1010
+1170 STOP
 
-# Show status (GOSUB 1000)
-1000 PRINT
-1010 FOR I = 1 TO 3
-1020 LET ROOM = T(L, I)
-1030 IF ROOM = WL THEN PRINT "I SMELL A WUMPUS!"
-1040 IF ROOM = P1 OR ROOM = P2 THEN PRINT "I FEEL A DRAFT"
-1050 IF ROOM = B1 OR ROOM = B2 THEN PRINT "BATS NEARBY!"
-1060 NEXT I
-1070 PRINT
-1080 PRINT "YOU ARE IN ROOM "; L
-1090 PRINT "TUNNELS LEAD TO "; T(L, 1); " "; T(L, 2); " "; T(L, 3)
-1100 RETURN
+1179 REM ### Show status ###
+1180 PRINT
+1190 FOR i = 1 TO 3
+1200 LET room = tunnel(player_loc, i)
+1210 IF room = wumpus_loc THEN PRINT "I SMELL A WUMPUS!"
+1220 IF room = pit_1 OR room = pit_2 THEN PRINT "I FEEL A DRAFT"
+1230 IF room = bats_1 OR room = bats_2 THEN PRINT "BATS NEARBY!"
+1240 NEXT i
+1250 PRINT
+1260 PRINT "YOU ARE IN ROOM "; player_loc
+1270 PRINT "TUNNELS LEAD TO "; tunnel(player_loc, 1); " "; tunnel(player_loc, 2); " "; tunnel(player_loc, 3)
+1280 RETURN
 
-# Shoot arrow (GOSUB 2000)
-2000 PRINT "NO. OF ROOMS (1-5)? ";
-2010 INPUT NR
-2020 IF NR < 1 OR NR > 5 THEN GOTO 2000
-2030 DIM PATH(5)
-2040 FOR I = 1 TO NR
-2050 PRINT "ROOM #? ";
-2060 INPUT PATH(I)
-2065 IF I = 1 THEN GOTO 2090
-2070 IF PATH(I) = PATH(I - 1) THEN PRINT "ARROWS AREN'T THAT CROOKED - TRY ANOTHER ROOM"
-2080 IF PATH(I) = PATH(I - 1) THEN GOTO 2050
-2090 NEXT I
+1289 REM ### Shoot arrow ###
+1290 PRINT "NO. OF ROOMS (1-5)? ";
+1300 INPUT num_rooms
+1310 IF num_rooms < 1 OR num_rooms > 5 THEN GOTO 1290
+1320 DIM arrow_path(5)
+1330 FOR i = 1 TO num_rooms
+1340 PRINT "ROOM #? ";
+1350 INPUT arrow_path(i)
+1360 IF i = 1 THEN GOTO 1390
+1370 IF arrow_path(i) = arrow_path(i - 1) THEN PRINT "ARROWS AREN'T THAT CROOKED - TRY ANOTHER ROOM"
+1380 IF arrow_path(i) = arrow_path(i - 1) THEN GOTO 1340
+1390 NEXT i
 
-# Fly the arrow
-2100 LET AL = L
-2110 FOR I = 1 TO NR
-2120 LET FOUND = 0
-2130 FOR J = 1 TO 3
-2140 IF T(AL, J) = PATH(I) THEN LET FOUND = 1
-2150 IF T(AL, J) = PATH(I) THEN LET AL = PATH(I)
-2160 NEXT J
-2170 IF FOUND = 0 THEN LET AL = T(AL, INT(RND * 3) + 1)
-2180 IF AL = WL THEN GOTO 2300
-2190 IF AL = L THEN GOTO 2400
-2200 NEXT I
-2210 PRINT "MISSED"
-2220 LET ARROWS = ARROWS - 1
-2230 GOSUB 4000
-2240 IF ARROWS = 0 THEN PRINT "YOU RAN OUT OF ARROWS..."
-2250 IF ARROWS = 0 THEN LET DEAD = 1
-2260 RETURN
+1399 REM ### Fly the arrow ###
+1400 LET arrow_loc = player_loc
+1410 FOR i = 1 TO num_rooms
+1420 LET found = 0
+1430 FOR j = 1 TO 3
+1440 IF tunnel(arrow_loc, j) = arrow_path(i) THEN LET found = 1
+1450 IF tunnel(arrow_loc, j) = arrow_path(i) THEN LET arrow_loc = arrow_path(i)
+1460 NEXT j
+1470 IF found = 0 THEN LET arrow_loc = tunnel(arrow_loc, INT(RND * 3) + 1)
+1480 IF arrow_loc = wumpus_loc THEN GOTO 1570
+1490 IF arrow_loc = player_loc THEN GOTO 1600
+1500 NEXT i
+1510 PRINT "MISSED"
+1520 LET arrows = arrows - 1
+1530 GOSUB 1870
+1540 IF arrows = 0 THEN PRINT "YOU RAN OUT OF ARROWS..."
+1550 IF arrows = 0 THEN LET dead = 1
+1560 RETURN
 
-# Arrow hit Wumpus
-2300 PRINT "AHA! YOU GOT THE WUMPUS!"
-2310 LET WON = 1
-2320 RETURN
+1569 REM ### Arrow hit Wumpus ###
+1570 PRINT "AHA! YOU GOT THE WUMPUS!"
+1580 LET won = 1
+1590 RETURN
 
-# Arrow hit player
-2400 PRINT "OUCH! ARROW GOT YOU!"
-2410 LET DEAD = 1
-2420 RETURN
+1599 REM ### Arrow hit player ###
+1600 PRINT "OUCH! ARROW GOT YOU!"
+1610 LET dead = 1
+1620 RETURN
 
-# Move player (GOSUB 3000)
-3000 PRINT "WHERE TO? ";
-3010 INPUT NL
-3020 LET OK = 0
-3030 FOR I = 1 TO 3
-3040 IF T(L, I) = NL THEN LET OK = 1
-3050 NEXT I
-3060 IF OK = 0 THEN PRINT "NOT POSSIBLE -"
-3070 IF OK = 0 THEN GOTO 3000
-3080 LET L = NL
+1629 REM ### Move player ###
+1630 PRINT "WHERE TO? ";
+1640 INPUT new_loc
+1650 LET valid_move = 0
+1660 FOR i = 1 TO 3
+1670 IF tunnel(player_loc, i) = new_loc THEN LET valid_move = 1
+1680 NEXT i
+1690 IF valid_move = 0 THEN PRINT "NOT POSSIBLE -"
+1700 IF valid_move = 0 THEN GOTO 1630
+1710 LET player_loc = new_loc
 
-# Check hazards
-3100 IF L = WL THEN GOTO 3200
-3110 IF L = P1 OR L = P2 THEN GOTO 3300
-3120 IF L = B1 OR L = B2 THEN GOTO 3400
-3130 RETURN
+1719 REM ### Check hazards ###
+1720 IF player_loc = wumpus_loc THEN GOTO 1760
+1730 IF player_loc = pit_1 OR player_loc = pit_2 THEN GOTO 1810
+1740 IF player_loc = bats_1 OR player_loc = bats_2 THEN GOTO 1840
+1750 RETURN
 
-# Bumped Wumpus
-3200 PRINT "... OOPS! BUMPED A WUMPUS!"
-3210 GOSUB 4000
-3220 IF L = WL THEN PRINT "TSK TSK TSK - WUMPUS GOT YOU!"
-3230 IF L = WL THEN LET DEAD = 1
-3240 RETURN
+1759 REM ### Bumped Wumpus ###
+1760 PRINT "... OOPS! BUMPED A WUMPUS!"
+1770 GOSUB 1870
+1780 IF player_loc = wumpus_loc THEN PRINT "TSK TSK TSK - WUMPUS GOT YOU!"
+1790 IF player_loc = wumpus_loc THEN LET dead = 1
+1800 RETURN
 
-# Fell in pit
-3300 PRINT "YYYIIIIEEEE . . . FELL IN PIT"
-3310 LET DEAD = 1
-3320 RETURN
+1809 REM ### Fell in pit ###
+1810 PRINT "YYYIIIIEEEE . . . FELL IN PIT"
+1820 LET dead = 1
+1830 RETURN
 
-# Grabbed by bats
-3400 PRINT "ZAP--SUPER BAT SNATCH! ELSEWHEREVILLE FOR YOU!"
-3410 LET L = INT(RND * 20) + 1
-3420 GOTO 3100
+1839 REM ### Grabbed by bats ###
+1840 PRINT "ZAP--SUPER BAT SNATCH! ELSEWHEREVILLE FOR YOU!"
+1850 LET player_loc = INT(RND * 20) + 1
+1860 GOTO 1720
 
-# Move Wumpus (GOSUB 4000)
-4000 LET K = INT(RND * 4)
-4010 IF K < 3 THEN LET WL = T(WL, K + 1)
-4020 RETURN
+1869 REM ### Move Wumpus ###
+1870 LET k = INT(RND * 4)
+1880 IF k < 3 THEN LET wumpus_loc = tunnel(wumpus_loc, k + 1)
+1890 RETURN
 
-# Set up cave (dodecahedron) (GOSUB 8000)
-8000 DIM T(20, 3)
-8010 LET T(1, 1) = 2
-8011 LET T(1, 2) = 5
-8012 LET T(1, 3) = 8
-8020 LET T(2, 1) = 1
-8021 LET T(2, 2) = 3
-8022 LET T(2, 3) = 10
-8030 LET T(3, 1) = 2
-8031 LET T(3, 2) = 4
-8032 LET T(3, 3) = 12
-8040 LET T(4, 1) = 3
-8041 LET T(4, 2) = 5
-8042 LET T(4, 3) = 14
-8050 LET T(5, 1) = 1
-8051 LET T(5, 2) = 4
-8052 LET T(5, 3) = 6
-8060 LET T(6, 1) = 5
-8061 LET T(6, 2) = 7
-8062 LET T(6, 3) = 15
-8070 LET T(7, 1) = 6
-8071 LET T(7, 2) = 8
-8072 LET T(7, 3) = 17
-8080 LET T(8, 1) = 1
-8081 LET T(8, 2) = 7
-8082 LET T(8, 3) = 9
-8090 LET T(9, 1) = 8
-8091 LET T(9, 2) = 10
-8092 LET T(9, 3) = 18
-8100 LET T(10, 1) = 2
-8101 LET T(10, 2) = 9
-8102 LET T(10, 3) = 11
-8110 LET T(11, 1) = 10
-8111 LET T(11, 2) = 12
-8112 LET T(11, 3) = 19
-8120 LET T(12, 1) = 3
-8121 LET T(12, 2) = 11
-8122 LET T(12, 3) = 13
-8130 LET T(13, 1) = 12
-8131 LET T(13, 2) = 14
-8132 LET T(13, 3) = 20
-8140 LET T(14, 1) = 4
-8141 LET T(14, 2) = 13
-8142 LET T(14, 3) = 15
-8150 LET T(15, 1) = 6
-8151 LET T(15, 2) = 14
-8152 LET T(15, 3) = 16
-8160 LET T(16, 1) = 15
-8161 LET T(16, 2) = 17
-8162 LET T(16, 3) = 20
-8170 LET T(17, 1) = 7
-8171 LET T(17, 2) = 16
-8172 LET T(17, 3) = 18
-8180 LET T(18, 1) = 9
-8181 LET T(18, 2) = 17
-8182 LET T(18, 3) = 19
-8190 LET T(19, 1) = 11
-8191 LET T(19, 2) = 18
-8192 LET T(19, 3) = 20
-8200 LET T(20, 1) = 13
-8201 LET T(20, 2) = 16
-8202 LET T(20, 3) = 19
-8210 RETURN
+1899 REM ### Set up cave (dodecahedron) ###
+1900 DIM tunnel(20, 3) : RESTORE 1950
+1910 FOR i = 1 TO 20
+1920 READ tunnel(i, 1) : READ tunnel(i, 2) : READ tunnel(i, 3)
+1930 NEXT i
+1940 RETURN
+1950 DATA 2, 5, 8, 1, 3, 10, 2, 4, 12, 3, 5, 14, 1, 4, 6
+1960 DATA 5, 7, 15, 6, 8, 17, 1, 7, 9, 8, 10, 18, 2, 9, 11
+1970 DATA 10, 12, 19, 3, 11, 13, 12, 14, 20, 4, 13, 15, 6, 14, 16
+1980 DATA 15, 17, 20, 7, 16, 18, 9, 17, 19, 11, 18, 20, 13, 16, 19
 
-# Place hazards and player (GOSUB 9000)
-9000 LET DEAD = 0
-9010 LET WON = 0
-9020 LET ARROWS = 5
-9030 LET L = INT(RND * 20) + 1
-9040 LET WL = INT(RND * 20) + 1
-9050 IF WL = L THEN GOTO 9040
-9060 LET P1 = INT(RND * 20) + 1
-9070 IF P1 = L OR P1 = WL THEN GOTO 9060
-9080 LET P2 = INT(RND * 20) + 1
-9090 IF P2 = L OR P2 = WL OR P2 = P1 THEN GOTO 9080
-9100 LET B1 = INT(RND * 20) + 1
-9110 IF B1 = L OR B1 = WL OR B1 = P1 OR B1 = P2 THEN GOTO 9100
-9120 LET B2 = INT(RND * 20) + 1
-9130 IF B2 = L OR B2 = WL OR B2 = P1 OR B2 = P2 OR B2 = B1 THEN GOTO 9120
-9140 PRINT
-9150 PRINT "HUNT THE WUMPUS"
-9160 PRINT
-9170 PRINT "YOU HAVE 5 CROOKED ARROWS."
-9180 PRINT "GOOD LUCK!"
-9190 RETURN
+1989 REM ### Place hazards and player ###
+1990 LET dead = 0
+2000 LET won = 0
+2010 LET arrows = 5
+2020 LET player_loc = INT(RND * 20) + 1
+2030 LET wumpus_loc = INT(RND * 20) + 1
+2040 IF wumpus_loc = player_loc THEN GOTO 2030
+2050 LET pit_1 = INT(RND * 20) + 1
+2060 IF pit_1 = player_loc OR pit_1 = wumpus_loc THEN GOTO 2050
+2070 LET pit_2 = INT(RND * 20) + 1
+2080 IF pit_2 = player_loc OR pit_2 = wumpus_loc OR pit_2 = pit_1 THEN GOTO 2070
+2090 LET bats_1 = INT(RND * 20) + 1
+2100 IF bats_1 = player_loc OR bats_1 = wumpus_loc OR bats_1 = pit_1 OR bats_1 = pit_2 THEN GOTO 2090
+2110 LET bats_2 = INT(RND * 20) + 1
+2120 IF bats_2 = player_loc OR bats_2 = wumpus_loc OR bats_2 = pit_1 OR bats_2 = pit_2 OR bats_2 = bats_1 THEN GOTO 2110
+2130 PRINT
+2140 PRINT "HUNT THE WUMPUS"
+2150 PRINT
+2160 PRINT "YOU HAVE 5 CROOKED ARROWS."
+2170 PRINT "GOOD LUCK!"
+2180 RETURN

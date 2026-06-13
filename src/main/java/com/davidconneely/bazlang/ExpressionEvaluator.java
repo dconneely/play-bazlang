@@ -14,6 +14,9 @@ public class ExpressionEvaluator extends BazLangBaseVisitor<Void> {
   private final BazLangDisplay display;
   private final AntlrParser parser;
 
+  final int[] indexStack = new int[256];
+  int indexStackPtr = 0;
+
   public ExpressionEvaluator(EvalState state, BazLangDisplay display, AntlrParser parser) {
     this.state = state;
     this.display = display;
@@ -90,12 +93,17 @@ public class ExpressionEvaluator extends BazLangBaseVisitor<Void> {
     }
     EvalState.NumArray na = ref.array;
     int count = ctx.numExpr().size();
-    int[] indices = new int[count];
-    for (int i = 0; i < count; i++) {
-      indices[i] = (int) evalNum(ctx.numExpr(i));
+    int ptr = this.indexStackPtr;
+    this.indexStackPtr += count;
+    try {
+      for (int i = 0; i < count; i++) {
+        indexStack[ptr + i] = (int) evalNum(ctx.numExpr(i));
+      }
+      int idx = calculateArrayIndex(na.dimensions(), indexStack, ptr, count);
+      numResult = na.data()[idx];
+    } finally {
+      this.indexStackPtr = ptr;
     }
-    int idx = calculateArrayIndex(na.dimensions(), indices, count);
-    numResult = na.data()[idx];
     return null;
   }
 
@@ -344,26 +352,37 @@ public class ExpressionEvaluator extends BazLangBaseVisitor<Void> {
       return ctx.cachedNum;
     }
     if (ctx.NUM_IDENTIFIER() != null) {
-      // Either simple variable or array subscript
-      String name = ctx.NUM_IDENTIFIER().getText().toUpperCase();
       if (!ctx.numExpr().isEmpty()) {
-        // Array subscript: NUM_IDENTIFIER ( numExpr, ... )
-        if (!state.hasNumArray(name)) {
-          throw codedException(ReportCode.VARIABLE_NOT_FOUND, "Undefined array: " + name);
+        EvalState.NumArrayRef ref = (EvalState.NumArrayRef) ctx.varRef;
+        if (ref == null) {
+          ref = state.getOrAddNumArray(ctx.NUM_IDENTIFIER().getText().toUpperCase());
+          ctx.varRef = ref;
         }
-        EvalState.NumArray na = state.numArray(name);
+        if (ref.array == null) {
+          throw codedException(ReportCode.VARIABLE_NOT_FOUND, "Undefined array: " + ref.name);
+        }
         int count = ctx.numExpr().size();
-        int[] indices = new int[count];
-        for (int i = 0; i < count; i++) {
-          indices[i] = (int) evalNum(ctx.numExpr(i));
+        int ptr = this.indexStackPtr;
+        this.indexStackPtr += count;
+        try {
+          for (int i = 0; i < count; i++) {
+            indexStack[ptr + i] = (int) evalNum(ctx.numExpr(i));
+          }
+          int arrayIdx = calculateArrayIndex(ref.array.dimensions(), indexStack, ptr, count);
+          return ref.array.data()[arrayIdx];
+        } finally {
+          this.indexStackPtr = ptr;
         }
-        return na.data()[calculateArrayIndex(na.dimensions(), indices, count)];
       } else {
-        // Simple variable
-        if (!state.hasNumVar(name)) {
-          throw codedException(ReportCode.VARIABLE_NOT_FOUND, "Undefined variable: " + name);
+        EvalState.NumVarRef ref = (EvalState.NumVarRef) ctx.varRef;
+        if (ref == null) {
+          ref = state.getOrAddNumVar(ctx.NUM_IDENTIFIER().getText().toUpperCase());
+          ctx.varRef = ref;
         }
-        return state.numVar(name);
+        if (!ref.initialized) {
+          throw codedException(ReportCode.VARIABLE_NOT_FOUND, "Undefined variable: " + ref.name);
+        }
+        return ref.value;
       }
     }
     if (!ctx.numExpr().isEmpty()) {
@@ -433,68 +452,73 @@ public class ExpressionEvaluator extends BazLangBaseVisitor<Void> {
 
   private BStr evalStrSubscriptCore(EvalState.StrVar var, StrSubscriptContext subscript) {
     int indicesCount = subscript.indices != null ? subscript.indices.size() : 0;
-    int[] indices = new int[indicesCount];
-    if (indicesCount > 0) {
-      for (int i = 0; i < indicesCount; i++) {
-        indices[i] = (int) evalNum(subscript.indices.get(i));
-      }
-    }
-    int sliceStart = -1;
-    int sliceEnd = -1;
-    boolean hasSlice = subscript.slice != null;
-    if (hasSlice) {
-      if (subscript.slice.start != null) {
-        sliceStart = (int) evalNum(subscript.slice.start);
-      }
-      if (subscript.slice.end != null) {
-        sliceEnd = (int) evalNum(subscript.slice.end);
-      }
-    }
-
-    if (var instanceof EvalState.StrVar.Array ca) {
-      int n = ca.arrayDimensions().length;
-      int byteIndex = -1;
-      if (indicesCount == n + 1) {
-        byteIndex = indices[n];
-        indicesCount--;
-      } else if (indicesCount != n && n == 0 && indicesCount == 1) {
-        byteIndex = indices[0];
-        indicesCount--;
-      }
-      int arrayIdx = calculateArrayIndex(ca.arrayDimensions(), indices, indicesCount);
-
-      int st = (byteIndex != -1 ? byteIndex : 1) + (sliceStart != -1 ? sliceStart - 1 : 0);
-      int en =
-          (byteIndex != -1 ? byteIndex : 1)
-              + (sliceEnd != -1 ? sliceEnd - 1 : (byteIndex != -1 ? 0 : ca.stringLength() - 1));
-      if (st < 1 || en > ca.stringLength() || st > en + 1) {
-        throw codedException(ReportCode.SUBSCRIPT_WRONG, "Slice out of bounds");
-      }
-      int offset = arrayIdx * ca.stringLength() + (st - 1);
-      int length = en - st + 1;
-      return BStr.fromBytes(ca.data(), offset, length);
-    }
-    if (var instanceof EvalState.StrVar.Scalar scalar) {
-      BStr s = scalar.value();
-      int byteIndex = -1;
-      if (indicesCount == 1 && !hasSlice) {
-        byteIndex = indices[0];
-        indicesCount--;
-      }
+    int ptr = this.indexStackPtr;
+    this.indexStackPtr += indicesCount;
+    try {
       if (indicesCount > 0) {
-        throw codedException(
-            ReportCode.SUBSCRIPT_WRONG, "Scalar string only takes one index or slice");
+        for (int i = 0; i < indicesCount; i++) {
+          indexStack[ptr + i] = (int) evalNum(subscript.indices.get(i));
+        }
       }
-      int st = (byteIndex != -1 ? byteIndex : 1) + (sliceStart != -1 ? sliceStart - 1 : 0);
-      int en =
-          (byteIndex != -1 ? byteIndex : 1)
-              + (sliceEnd != -1 ? sliceEnd - 1 : (byteIndex != -1 ? 0 : s.length() - 1));
-      if (st < 1 || en > s.length() || st > en + 1) {
-        throw codedException(ReportCode.SUBSCRIPT_WRONG, "Slice out of bounds");
+      int sliceStart = -1;
+      int sliceEnd = -1;
+      boolean hasSlice = subscript.slice != null;
+      if (hasSlice) {
+        if (subscript.slice.start != null) {
+          sliceStart = (int) evalNum(subscript.slice.start);
+        }
+        if (subscript.slice.end != null) {
+          sliceEnd = (int) evalNum(subscript.slice.end);
+        }
       }
-      return s.slice(st, en);
+
+      if (var instanceof EvalState.StrVar.Array ca) {
+        int n = ca.arrayDimensions().length;
+        int byteIndex = -1;
+        if (indicesCount == n + 1) {
+          byteIndex = indexStack[ptr + n];
+          indicesCount--;
+        } else if (indicesCount != n && n == 0 && indicesCount == 1) {
+          byteIndex = indexStack[ptr + 0];
+          indicesCount--;
+        }
+        int arrayIdx = calculateArrayIndex(ca.arrayDimensions(), indexStack, ptr, indicesCount);
+
+        int st = (byteIndex != -1 ? byteIndex : 1) + (sliceStart != -1 ? sliceStart - 1 : 0);
+        int en =
+            (byteIndex != -1 ? byteIndex : 1)
+                + (sliceEnd != -1 ? sliceEnd - 1 : (byteIndex != -1 ? 0 : ca.stringLength() - 1));
+        if (st < 1 || en > ca.stringLength() || st > en + 1) {
+          throw codedException(ReportCode.SUBSCRIPT_WRONG, "Slice out of bounds");
+        }
+        int offset = arrayIdx * ca.stringLength() + (st - 1);
+        int length = en - st + 1;
+        return BStr.fromBytes(ca.data(), offset, length);
+      }
+      if (var instanceof EvalState.StrVar.Scalar scalar) {
+        BStr s = scalar.value();
+        int byteIndex = -1;
+        if (indicesCount == 1 && !hasSlice) {
+          byteIndex = indexStack[ptr + 0];
+          indicesCount--;
+        }
+        if (indicesCount > 0) {
+          throw codedException(
+              ReportCode.SUBSCRIPT_WRONG, "Scalar string only takes one index or slice");
+        }
+        int st = (byteIndex != -1 ? byteIndex : 1) + (sliceStart != -1 ? sliceStart - 1 : 0);
+        int en =
+            (byteIndex != -1 ? byteIndex : 1)
+                + (sliceEnd != -1 ? sliceEnd - 1 : (byteIndex != -1 ? 0 : s.length() - 1));
+        if (st < 1 || en > s.length() || st > en + 1) {
+          throw codedException(ReportCode.SUBSCRIPT_WRONG, "Slice out of bounds");
+        }
+        return s.slice(st, en);
+      }
+      throw codedException(ReportCode.NONSENSE_IN_BASIC, "Invalid string variable");
+    } finally {
+      this.indexStackPtr = ptr;
     }
-    throw new IllegalStateException("Unreachable");
   }
 
   @Override
@@ -600,7 +624,7 @@ public class ExpressionEvaluator extends BazLangBaseVisitor<Void> {
 
   // ===== Assignment Helpers =====
 
-  public int calculateArrayIndex(int[] dimensions, int[] indices, int indicesCount) {
+  public int calculateArrayIndex(int[] dimensions, int[] indices, int offset, int indicesCount) {
     int n = dimensions.length;
     if (indicesCount != n) {
       throw codedException(ReportCode.SUBSCRIPT_WRONG, "Incorrect dimensions");
@@ -609,7 +633,7 @@ public class ExpressionEvaluator extends BazLangBaseVisitor<Void> {
     int m = 1;
     for (int i = n - 1; i >= 0; i--) {
       int sz = dimensions[i];
-      int v = indices[i];
+      int v = indices[offset + i];
       if (v < 1 || v > sz) {
         throw codedException(ReportCode.SUBSCRIPT_WRONG, "Index out of bounds");
       }
@@ -665,7 +689,8 @@ public class ExpressionEvaluator extends BazLangBaseVisitor<Void> {
         oldStrs.put(paramName, state.hasStrVar(paramName) ? state.strVar(paramName) : null);
         state.setStrVar(paramName, new EvalState.StrVar.Scalar((BStr) val));
       } else {
-        oldNums.put(paramName, state.hasNumVar(paramName) ? state.numVar(paramName) : null);
+        EvalState.NumVarRef ref = state.getNumVarRef(paramName);
+        oldNums.put(paramName, (ref != null && ref.initialized) ? ref.value : null);
         state.setNumVar(paramName, (Double) val);
       }
     }

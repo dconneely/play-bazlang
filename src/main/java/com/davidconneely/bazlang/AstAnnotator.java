@@ -29,40 +29,10 @@ public class AstAnnotator extends BazLangBaseVisitor<Void> {
   }
 
   @Override
-  public Void visitNumVarExpr(NumVarExprContext ctx) {
-    return super.visitNumVarExpr(ctx);
-  }
-
-  @Override
-  public Void visitNumArrayExpr(NumArrayExprContext ctx) {
-    return super.visitNumArrayExpr(ctx);
-  }
-
-  @Override
-  public Void visitFnNumCallExpr(FnNumCallExprContext ctx) {
-    return super.visitFnNumCallExpr(ctx);
-  }
-
-  @Override
   public Void visitStrLiteralExpr(StrLiteralExprContext ctx) {
     String text = ctx.STR_LITERAL().getText();
     ctx.cachedStr = BStr.fromJavaString(text.substring(1, text.length() - 1).replace("\"\"", "\""));
     return super.visitStrLiteralExpr(ctx);
-  }
-
-  @Override
-  public Void visitStrVarExpr(StrVarExprContext ctx) {
-    return super.visitStrVarExpr(ctx);
-  }
-
-  @Override
-  public Void visitStrSubscriptExpr(StrSubscriptExprContext ctx) {
-    return super.visitStrSubscriptExpr(ctx);
-  }
-
-  @Override
-  public Void visitFnStrCallExpr(FnStrCallExprContext ctx) {
-    return super.visitFnStrCallExpr(ctx);
   }
 
   @Override
@@ -76,7 +46,6 @@ public class AstAnnotator extends BazLangBaseVisitor<Void> {
             ReportCode.NUMBER_TOO_BIG, lineNumber, "Binary literal exceeds 64 digits");
       }
       ctx.cachedNum = new BigInteger(digits, 2).doubleValue();
-    } else if (ctx.NUM_IDENTIFIER() != null) {
     }
     return super.visitNumAtom(ctx);
   }
@@ -87,7 +56,6 @@ public class AstAnnotator extends BazLangBaseVisitor<Void> {
       String text = ctx.STR_LITERAL().getText();
       ctx.cachedStr =
           BStr.fromJavaString(text.substring(1, text.length() - 1).replace("\"\"", "\""));
-    } else if (ctx.STR_IDENTIFIER() != null) {
     }
     return super.visitStrAtom(ctx);
   }

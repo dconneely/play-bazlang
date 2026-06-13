@@ -1,96 +1,76 @@
-# Hangman
-# Guess the hidden word before the man is hanged
-5 RAND 0
-10 DIM W$(16, 9)
-20 LET W$(1) = "COMPUTER"
-30 LET W$(2) = "BASIC"
-40 LET W$(3) = "PROGRAM"
-50 LET W$(4) = "VARIABLE"
-60 LET W$(5) = "FUNCTION"
-70 LET W$(6) = "KEYBOARD"
-80 LET W$(7) = "GRAPHICS"
-90 LET W$(8) = "MEMORY"
-100 LET W$(9) = "DYNAMIC"
-110 LET W$(10) = "CONSTANT"
-120 LET W$(11) = "INTEGER"
-130 LET W$(12) = "BOOLEAN"
-140 LET W$(13) = "STRING"
-150 LET W$(14) = "POINTER"
-160 LET W$(15) = "RECURSION"
-165 LET W$(16) = "SUCCESS"
-170 LET RI = INT(RND * 16) + 1
-180 LET TW$ = W$(RI)
-190 REM FIND ACTUAL WORD LENGTH
-200 LET WL = 9
-210 FOR I = 1 TO 9
-220 IF TW$(I) = " " THEN LET WL = I - 1
-230 IF TW$(I) = " " THEN GOTO 250
-240 NEXT I
-250 LET C$ = TW$(1 TO WL)
-260 LET G$ = ""
-270 FOR I = 1 TO WL
-280 LET G$ = G$ + "-"
-290 NEXT I
-300 LET M = 0
-310 LET L$ = ""
-320 REM MAIN LOOP
-330 CLS
-340 PRINT AT 0, 0; "WORD: "; G$
-350 PRINT AT 1, 0; "MISSES: "; M; "/6"
-360 PRINT AT 2, 0; "GUESSED: "; L$
-370 GOSUB 700
-380 IF M > 0 THEN GOSUB 840
-390 IF G$ = C$ THEN GOTO 620
-400 IF M = 6 THEN GOTO 660
-410 PRINT AT 22, 0; "GUESS A LETTER: ";
-420 INPUT A$
-430 IF LEN(A$) < 1 THEN GOTO 410
-440 LET UG$ = A$(1)
-450 LET AC = CODE UG$
-460 IF AC >= 97 AND AC <= 122 THEN LET UG$ = CHR$(AC - 32)
-470 FOR I = 1 TO LEN(L$)
-480 IF L$(I) = UG$ THEN GOTO 410
-490 NEXT I
-500 FOR I = 1 TO WL
-510 IF G$(I) = UG$ THEN GOTO 410
-520 NEXT I
-530 LET F = 0
-540 FOR I = 1 TO WL
-550 IF C$(I) = UG$ THEN LET G$(I) = UG$
-560 IF C$(I) = UG$ THEN LET F = 1
-570 NEXT I
-580 IF F <> 0 THEN GOTO 330
-590 LET M = M + 1
-600 LET L$ = L$ + UG$ + " "
-610 GOTO 330
-620 REM WIN
-630 PRINT AT 20, 0; "YOU GUESSED IT: "; C$
-640 PRINT "YOU WIN!"
-650 GOTO 960
-660 REM LOSE
-670 PRINT AT 20, 0; "YOU DIED! WORD WAS "; C$
-680 GOTO 960
-700 REM SUBROUTINE: DRAW GALLOWS
-710 PRINT AT 5, 25; "__________"
-720 PRINT AT 6, 35; "|"
-730 FOR Y = 6 TO 18
-740 PRINT AT Y, 25; "|"
-750 NEXT Y
-760 PRINT AT 6, 26; "/"
-770 PRINT AT 18, 22; "________________"
-780 RETURN
-840 REM SUBROUTINE: DRAW HANGMAN
-850 IF M >= 1 THEN PRINT AT 7, 35; "O"
-860 IF M >= 2 THEN PRINT AT 8, 35; "|"
-870 IF M >= 2 THEN PRINT AT 9, 35; "|"
-880 IF M >= 2 THEN PRINT AT 10, 35; "|"
-890 IF M >= 3 THEN PRINT AT 8, 34; "/"
-900 IF M >= 4 THEN PRINT AT 8, 36; "\"
-910 IF M >= 5 THEN PRINT AT 11, 34; "/"
-920 IF M >= 6 THEN PRINT AT 11, 36; "\"
-930 RETURN
-960 REM PLAY AGAIN
-970 PRINT "PLAY AGAIN (Y/N)? ";
-980 INPUT R$
-990 IF R$ = "Y" OR R$ = "y" THEN GOTO 170
-1000 PRINT "THANKS FOR PLAYING!"
+980 REM ### Hangman ###
+990 REM ### Guess the hidden word before the man is hanged ###
+1000 RAND 0
+1010 LET rand_idx = INT(RND * 50) + 1
+1020 RESTORE 2660
+1030 FOR i = 1 TO rand_idx : READ target_word$ : NEXT i
+2000 REM ### Find word length and set up working copy ###
+2010 LET word_len = LEN(target_word$)
+2040 LET clean_word$ = target_word$(1 TO word_len)
+2050 LET guess_word$ = ""
+2060 FOR i = 1 TO word_len
+2070 LET guess_word$ = guess_word$ + "-"
+2080 NEXT i
+2090 LET misses = 0
+2100 LET letters$ = ""
+2110 REM ### Main loop ###
+2120 CLS
+2130 PRINT AT 0, 0; "Word: "; guess_word$
+2140 PRINT AT 1, 0; "Misses: "; misses; "/6"
+2150 PRINT AT 2, 0; "Guessed: "; letters$
+2160 GOSUB 2440
+2170 IF misses > 0 THEN GOSUB 2530
+2180 IF guess_word$ = clean_word$ THEN GOTO 2400
+2190 IF misses = 6 THEN GOTO 2420
+2200 PRINT AT 22, 0; "Guess a letter: ";
+2210 INPUT a$
+2220 IF LEN(a$) < 1 THEN GOTO 2200
+2230 LET user_guess$ = a$(1)
+2240 LET ascii_code = CODE user_guess$
+2250 IF ascii_code >= 97 AND ascii_code <= 122 THEN LET user_guess$ = CHR$(ascii_code - 32)
+2260 FOR i = 1 TO LEN(letters$)
+2270 IF letters$(i) = user_guess$ THEN GOTO 2200
+2280 NEXT i
+2290 FOR i = 1 TO word_len
+2300 IF guess_word$(i) = user_guess$ THEN GOTO 2200
+2310 NEXT i
+2320 LET found = 0
+2330 FOR i = 1 TO word_len
+2340 IF clean_word$(i) = user_guess$ THEN LET guess_word$(i) = user_guess$ : LET found = 1
+2350 NEXT i
+2360 IF found <> 0 THEN GOTO 2120
+2370 LET misses = misses + 1
+2380 LET letters$ = letters$ + user_guess$ + " "
+2390 GOTO 2120
+2400 REM ### Win ###
+2410 PRINT AT 20, 0; "You guessed it: "; clean_word$ : PRINT "You win!" : GOTO 2610
+2420 REM ### Lose ###
+2430 PRINT AT 20, 0; "You died! word was "; clean_word$ : GOTO 2610
+2440 REM ### Subroutine: draw gallows ###
+2450 PRINT AT 5, 25; "__________"
+2460 PRINT AT 6, 35; "|"
+2470 FOR y = 6 TO 18
+2480 PRINT AT y, 25; "|"
+2490 NEXT y
+2500 PRINT AT 6, 26; "/"
+2510 PRINT AT 18, 22; "________________"
+2520 RETURN
+2530 REM ### Subroutine: draw hangman ###
+2540 IF misses >= 1 THEN PRINT AT 7, 35; "O"
+2550 IF misses >= 2 THEN PRINT AT 8, 35; "|" : PRINT AT 9, 35; "|" : PRINT AT 10, 35; "|"
+2560 IF misses >= 3 THEN PRINT AT 8, 34; "/"
+2570 IF misses >= 4 THEN PRINT AT 8, 36; "\"
+2580 IF misses >= 5 THEN PRINT AT 11, 34; "/"
+2590 IF misses >= 6 THEN PRINT AT 11, 36; "\"
+2600 RETURN
+2610 REM ### Play again ###
+2620 PRINT "Play again (y/n)? ";
+2630 INPUT r$
+2640 IF r$ = "Y" OR r$ = "y" THEN GOTO 1010
+2650 PRINT "Thanks for playing!"
+2660 REM ### Words data ###
+2670 DATA "ELEPHANT", "MOUNTAIN", "SUNFLOWER", "HOSPITAL", "UMBRELLA", "PENGUIN", "ASTRONAUT", "TELESCOPE", "DIAMOND", "BUTTERFLY"
+2680 DATA "FESTIVAL", "KANGAROO", "TREASURE", "ORCHESTRA", "CHAMPION", "ADVENTURE", "VOLCANO", "OCTOPUS", "SYMPHONY", "PYRAMID"
+2690 DATA "BICYCLE", "AQUARIUM", "CHOCOLATE", "DETECTIVE", "GALAXY", "HARMONY", "ISLAND", "JUNGLE", "LIBRARY", "MYSTERY"
+2700 DATA "NOTEBOOK", "OASIS", "PHANTOM", "QUARTZ", "RAINBOW", "SANDWICH", "TORNADO", "UNIVERSE", "VAMPIRE", "WATERFALL"
+2710 DATA "XYLOPHONE", "YACHT", "ZEPPELIN", "BLIZZARD", "CARNIVAL", "DINOSAUR", "ECLIPSE", "FIREWORK", "GLACIER", "HORIZON"

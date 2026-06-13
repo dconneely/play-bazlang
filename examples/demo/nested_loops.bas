@@ -1,9 +1,0 @@
-# Nested Loops
-# Demonstrates overlapping FOR-NEXT loops
-10 PRINT "UNSTRUCTURED LOOP DEMO"
-20 FOR M = 1 TO 3
-30 FOR N = 1 TO M
-40 PRINT "M="; M; " N="; N
-50 NEXT M
-60 NEXT N
-70 PRINT "LOOPS FINISHED."

@@ -1,170 +1,155 @@
-# Blackjack
-# Classic card game - try to get 21 without going bust
-5 RAND 0
-10 REM Blackjack
-20 LET M = 1000
-30 DIM D(52)
-35 DIM P(10)
-36 DIM DL(10)
-40 GOSUB 2000
-50 CLS
-60 PRINT AT 0,0; "BLACKJACK - MONEY: $"; M
-70 IF M <= 0 THEN GOTO 75
-72 GOTO 80
-75 PRINT AT 10,10; "GAME OVER"
-77 STOP
-80 PRINT "BET AMOUNT: ";
-82 INPUT B
-90 IF B > M THEN GOTO 80
-95 IF B <= 0 THEN GOTO 80
-100 REM Start Game
-110 REM Deal
-120 LET PC = 0
-130 LET DC = 0
-140 GOSUB 2100
-142 LET P(1) = C
-144 LET PC = 1
-150 GOSUB 2100
-152 LET DL(1) = C
-154 LET DC = 1
-160 GOSUB 2100
-162 LET P(2) = C
-164 LET PC = 2
-170 GOSUB 2100
-172 LET DL(2) = C
-174 LET DC = 2
-180 REM Draw Initial
-190 PRINT AT 3,0; "DEALER:"
-200 LET DX = 0
-205 LET DY = 4
-210 LET C = DL(1)
-215 GOSUB 3000
-220 LET DX = 6
-225 LET C = 0
-227 GOSUB 3000
-230 PRINT AT 9,0; "PLAYER:"
-240 LET DX = 0
-245 LET DY = 10
-250 FOR I = 1 TO PC
-260 LET C = P(I)
-265 GOSUB 3000
-270 LET DX = DX + 6
-280 NEXT I
-290 REM Player Turn
-300 PRINT AT 15,0; "STICK (S) OR TWIST (T)?"
-310 LET K$ = INKEY$
-320 IF K$ = "t" THEN GOTO 400
-325 IF K$ = "T" THEN GOTO 400
-330 IF K$ = "s" THEN GOTO 500
-335 IF K$ = "S" THEN GOTO 500
-340 GOTO 310
-400 REM Player Twist / Hit
-410 GOSUB 2100
-415 LET PC = PC + 1
-417 LET P(PC) = C
-420 LET DX = (PC-1)*6
-422 LET DY = 10
-425 GOSUB 3000
-430 GOSUB 2200
-440 IF S > 21 THEN GOTO 800
-450 GOTO 300
-500 REM Dealer Turn
-510 LET DX = 6
-512 LET DY = 4
-514 LET C = DL(2)
-516 GOSUB 3000
-520 REM Calc Dealer Score DS
-530 LET S = 0
-532 LET AC = 0
-540 FOR I = 1 TO DC
-550 LET V = (DL(I)-1) - INT((DL(I)-1)/13)*13 + 1
-560 IF V > 10 THEN LET V = 10
-570 IF V = 1 THEN LET AC = AC + 1
-580 LET S = S + V
-590 NEXT I
-600 IF AC > 0 THEN IF S <= 11 THEN LET S = S + 10
-610 LET DS = S
-620 IF DS >= 17 THEN GOTO 700
-630 GOSUB 2100
-632 LET DC = DC + 1
-634 LET DL(DC) = C
-640 LET DX = (DC-1)*6
-642 LET DY = 4
-645 GOSUB 3000
-650 PAUSE 20
-660 GOTO 520
-700 REM End Round
-710 GOSUB 2200
-715 LET PS = S
-720 PRINT AT 15,0; "PLAYER: "; PS; "  DEALER: "; DS; "      "
-730 IF DS > 21 THEN GOTO 735
-732 GOTO 740
-735 PRINT "DEALER BUST! YOU WIN!"
-737 LET M = M + B
-739 GOTO 900
-740 IF PS > DS THEN GOTO 745
-742 GOTO 750
-745 PRINT "YOU WIN!"
-747 LET M = M + B
-749 GOTO 900
-750 IF PS < DS THEN GOTO 755
-752 GOTO 760
-755 PRINT "DEALER WINS."
-757 LET M = M - B
-759 GOTO 900
-760 PRINT "PUSH."
-762 GOTO 900
-800 PRINT AT 15,0; "BUST! YOU LOSE.           "
-810 LET M = M - B
-900 PRINT "PRESS ANY KEY"
-910 IF INKEY$ = "" THEN GOTO 910
-920 GOTO 50
-2000 REM Init Deck
-2010 FOR I = 1 TO 52
-2015 LET D(I) = I
-2017 NEXT I
-2020 FOR I = 1 TO 52
-2030 LET R = INT(RND * 52) + 1
-2040 LET T = D(I)
-2042 LET D(I) = D(R)
-2044 LET D(R) = T
-2050 NEXT I
-2060 LET DP = 1
-2070 RETURN
-2100 REM Draw Card
-2110 IF DP > 52 THEN GOSUB 2000
-2120 LET C = D(DP)
-2125 LET DP = DP + 1
-2130 RETURN
-2200 REM Calc Player Score
-2210 LET S = 0
-2212 LET AC = 0
-2220 FOR I = 1 TO PC
-2230 LET V = (P(I)-1) - INT((P(I)-1)/13)*13 + 1
-2240 IF V > 10 THEN LET V = 10
-2250 IF V = 1 THEN LET AC = AC + 1
-2260 LET S = S + V
-2270 NEXT I
-2280 IF AC > 0 THEN IF S <= 11 THEN LET S = S + 10
-2290 RETURN
-3000 REM Draw Card C at DX,DY
-3010 LET V = (C-1) - INT((C-1)/13)*13 + 1
-3020 LET SU = INT((C-1)/13)
-3030 LET V$ = STR$(V)
-3040 IF V = 1 THEN LET V$ = "A"
-3050 IF V = 11 THEN LET V$ = "J"
-3060 IF V = 12 THEN LET V$ = "Q"
-3070 IF V = 13 THEN LET V$ = "K"
-3080 LET S$ = "?"
-3090 IF SU = 0 THEN LET S$ = CODEPOINT$(9824)
-3100 IF SU = 1 THEN LET S$ = CODEPOINT$(9829)
-3110 IF SU = 2 THEN LET S$ = CODEPOINT$(9827)
-3120 IF SU = 3 THEN LET S$ = CODEPOINT$(9830)
-3130 IF C = 0 THEN LET V$ = "?"
-3135 IF C = 0 THEN LET S$ = "?"
-3140 PRINT AT DY, DX; CODEPOINT$(9484); CODEPOINT$(9472); CODEPOINT$(9472); CODEPOINT$(9472); CODEPOINT$(9488)
-3150 IF LEN(V$) = 2 THEN PRINT AT DY+1, DX; CODEPOINT$(9474); V$; " "; CODEPOINT$(9474)
-3160 IF LEN(V$) = 1 THEN PRINT AT DY+1, DX; CODEPOINT$(9474); V$; "  "; CODEPOINT$(9474)
-3165 PRINT AT DY+2, DX; CODEPOINT$(9474); " "; S$; AT DY+2, DX+4; CODEPOINT$(9474)
-3170 PRINT AT DY+3, DX; CODEPOINT$(9492); CODEPOINT$(9472); CODEPOINT$(9472); CODEPOINT$(9472); CODEPOINT$(9496)
-3180 RETURN
+1000 REM ### Blackjack ###
+1010 REM ### Classic card game - try to get 21 without going bust ###
+1020 RAND 0
+1040 LET money = 1000 : LET dealer_money = 10000
+1050 DIM deck(52)
+1060 DIM player_hand(10)
+1070 DIM dealer_hand(10)
+1080 GOSUB 3500 : CLS
+1100 REM ### Start of round ###
+1110 PRINT AT 0,0; "Player: $"; money; "   Dealer: $"; dealer_money; "        "
+1120 IF money <= 0 THEN PRINT AT 10,10; "Game over! You went broke." : STOP
+1130 IF dealer_money <= 0 THEN PRINT AT 10,10; "Game over! You broke the bank!" : STOP
+1140 PRINT AT 1,0; "Choose bet: (1) $10  (2) $50  (3) $100  (4) All in!    "
+1200 LET k$ = INKEY$
+1210 IF k$ = "1" THEN LET bet = 10 : GOTO 1300
+1220 IF k$ = "2" THEN LET bet = 50 : GOTO 1300
+1230 IF k$ = "3" THEN LET bet = 100 : GOTO 1300
+1240 IF k$ = "4" THEN LET bet = money : GOTO 1300
+1250 GOTO 1200
+1300 IF bet > money THEN GOTO 1200
+1310 CLS
+1320 PRINT AT 0,0; "Player: $"; money; "   Dealer: $"; dealer_money; "   Bet: $"; bet; "    "
+1330 REM ### Start game ###
+1340 REM ### Deal ###
+1350 LET player_cards = 0
+1360 LET dealer_cards = 0
+1370 GOSUB 4000
+1380 LET player_hand(1) = c
+1390 LET player_cards = 1
+1400 GOSUB 4000
+1410 LET dealer_hand(1) = c
+1420 LET dealer_cards = 1
+1430 GOSUB 4000
+1440 LET player_hand(2) = c
+1450 LET player_cards = 2
+1460 GOSUB 4000
+1470 LET dealer_hand(2) = c
+1480 LET dealer_cards = 2
+1500 REM ### Draw initial ###
+1510 PRINT AT 3,0; "Dealer:"
+1520 LET draw_x = 0
+1530 LET draw_y = 4
+1540 LET c = dealer_hand(1)
+1550 GOSUB 5000
+1560 LET draw_x = 6
+1570 LET c = 0
+1580 GOSUB 5000
+1600 PRINT AT 9,0; "Player:"
+1610 LET draw_x = 0
+1620 LET draw_y = 10
+1630 FOR i = 1 TO player_cards
+1640 LET c = player_hand(i)
+1650 GOSUB 5000
+1660 LET draw_x = draw_x + 6
+1670 NEXT i
+1700 REM ## Player turn ###
+1710 PRINT AT 15,0; "Stick (S) or Twist (T)?"
+1720 LET k$ = INKEY$
+1730 IF k$ = "t" OR k$ = "T" THEN GOTO 1800
+1740 IF k$ = "s" OR k$ = "S" THEN GOTO 1900
+1750 GOTO 1720
+1800 REM ### Player twist / hit ###
+1810 GOSUB 4000
+1820 LET player_cards = player_cards + 1
+1830 LET player_hand(player_cards) = c
+1840 LET draw_x = (player_cards-1)*6
+1850 LET draw_y = 10
+1860 GOSUB 5000
+1870 GOSUB 4500
+1880 IF s > 21 THEN PRINT AT 15,0; "Bust! you lose.           " : LET money = money - bet : LET dealer_money = dealer_money + bet : GOTO 3000
+1890 GOTO 1710
+1900 REM ### Dealer turn ###
+1910 LET draw_x = 6
+1920 LET draw_y = 4
+1930 LET c = dealer_hand(2)
+1940 GOSUB 5000
+2000 REM ### Calc dealer score dealer_score ###
+2010 LET s = 0
+2020 LET ace_count = 0
+2030 FOR i = 1 TO dealer_cards
+2040 LET v = (dealer_hand(i)-1) - INT((dealer_hand(i)-1)/13)*13 + 1
+2050 IF v > 10 THEN LET v = 10
+2060 IF v = 1 THEN LET ace_count = ace_count + 1
+2070 LET s = s + v
+2080 NEXT i
+2090 IF ace_count > 0 AND s <= 11 THEN LET s = s + 10
+2100 LET dealer_score = s
+2110 IF dealer_score >= 17 THEN GOTO 2500
+2120 GOSUB 4000
+2130 LET dealer_cards = dealer_cards + 1
+2140 LET dealer_hand(dealer_cards) = c
+2150 LET draw_x = (dealer_cards-1)*6
+2160 LET draw_y = 4
+2170 GOSUB 5000
+2180 PAUSE 20
+2190 GOTO 2000
+2500 REM ### End round ###
+2510 GOSUB 4500
+2520 LET player_score = s
+2530 PRINT AT 15,0; "Player: "; player_score; "  dealer: "; dealer_score; "      "
+2540 IF dealer_score > 21 THEN PRINT "Dealer bust! you win!" : LET money = money + bet : LET dealer_money = dealer_money - bet : GOTO 3000
+2550 IF player_score > dealer_score THEN PRINT "You win!" : LET money = money + bet : LET dealer_money = dealer_money - bet : GOTO 3000
+2560 IF player_score < dealer_score THEN PRINT "Dealer wins." : LET money = money - bet : LET dealer_money = dealer_money + bet : GOTO 3000
+2570 PRINT "Push." : GOTO 3000
+3000 PRINT "Press any key"
+3010 IF INKEY$ = "" THEN GOTO 3010
+3020 GOTO 1100
+3500 REM ### Init deck ###
+3510 FOR i = 1 TO 52
+3520 LET deck(i) = i
+3530 NEXT i
+3540 FOR i = 1 TO 52
+3550 LET r = INT(RND * 52) + 1
+3560 LET t = deck(i)
+3570 LET deck(i) = deck(r)
+3580 LET deck(r) = t
+3590 NEXT i
+3600 LET deck_pos = 1
+3610 RETURN
+4000 REM ### Draw card ###
+4010 IF deck_pos > 52 THEN GOSUB 3500
+4020 LET c = deck(deck_pos)
+4030 LET deck_pos = deck_pos + 1
+4040 RETURN
+4500 REM ### Calc player score ###
+4510 LET s = 0
+4520 LET ace_count = 0
+4530 FOR i = 1 TO player_cards
+4540 LET v = (player_hand(i)-1) - INT((player_hand(i)-1)/13)*13 + 1
+4550 IF v > 10 THEN LET v = 10
+4560 IF v = 1 THEN LET ace_count = ace_count + 1
+4570 LET s = s + v
+4580 NEXT i
+4590 IF ace_count > 0 AND s <= 11 THEN LET s = s + 10
+4600 RETURN
+5000 REM ### Draw card c at draw_x,draw_y ###
+5005 IF c = 0 THEN LET val_str$ = "?" : LET suit_str$ = "?" : GOTO 5140
+5010 LET v = (c-1) - INT((c-1)/13)*13 + 1
+5020 LET suit = INT((c-1)/13)
+5030 LET val_str$ = STR$(v)
+5040 IF v = 1 THEN LET val_str$ = "A"
+5050 IF v = 11 THEN LET val_str$ = "J"
+5060 IF v = 12 THEN LET val_str$ = "Q"
+5070 IF v = 13 THEN LET val_str$ = "K"
+5080 LET suit_str$ = "?"
+5090 IF suit = 0 THEN LET suit_str$ = CODEPOINT$(9824)
+5100 IF suit = 1 THEN LET suit_str$ = CODEPOINT$(9829)
+5110 IF suit = 2 THEN LET suit_str$ = CODEPOINT$(9827)
+5120 IF suit = 3 THEN LET suit_str$ = CODEPOINT$(9830)
+5140 PRINT AT draw_y, draw_x; CODEPOINT$(9484); CODEPOINT$(9472); CODEPOINT$(9472); CODEPOINT$(9472); CODEPOINT$(9488)
+5150 IF LEN(val_str$) = 2 THEN PRINT AT draw_y+1, draw_x; CODEPOINT$(9474); val_str$; " "; CODEPOINT$(9474)
+5160 IF LEN(val_str$) = 1 THEN PRINT AT draw_y+1, draw_x; CODEPOINT$(9474); val_str$; "  "; CODEPOINT$(9474)
+5170 PRINT AT draw_y+2, draw_x; CODEPOINT$(9474); " "; suit_str$; AT draw_y+2, draw_x+4; CODEPOINT$(9474)
+5180 PRINT AT draw_y+3, draw_x; CODEPOINT$(9492); CODEPOINT$(9472); CODEPOINT$(9472); CODEPOINT$(9472); CODEPOINT$(9496)
+5190 RETURN

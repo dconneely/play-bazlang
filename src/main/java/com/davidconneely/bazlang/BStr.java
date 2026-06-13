@@ -70,7 +70,9 @@ public final class BStr implements Comparable<BStr> {
 
   /** Returns a completely isolated copy of this BStr, safe from underlying array mutations. */
   public BStr copy() {
-    if (length == 0) return EMPTY;
+    if (length == 0) {
+      return EMPTY;
+    }
     return new BStr(Arrays.copyOfRange(bytes, offset, offset + length), 0, length);
   }
 
@@ -322,10 +324,15 @@ public final class BStr implements Comparable<BStr> {
 
   @Override
   public boolean equals(Object obj) {
-    if (this == obj) return true;
-    if (!(obj instanceof BStr other)) return false;
-    return Arrays.equals(
-        bytes, offset, offset + length, other.bytes, other.offset, other.offset + other.length);
+    return this == obj
+        || (obj instanceof BStr other
+            && Arrays.equals(
+                bytes,
+                offset,
+                offset + length,
+                other.bytes,
+                other.offset,
+                other.offset + other.length));
   }
 
   @Override

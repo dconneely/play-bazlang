@@ -1,99 +1,56 @@
-10 REM Game of Life (Ghost Cells Optimisation)
-20 LET W = 160
-30 LET H = 50
-40 DIM C$(H+2, W+2)
-50 DIM N$(H+2, W+2)
-52 DIM E$(1, W+2)
-90 REM Init R-pentomino at 80,25 (shifted +1 for margins)
-92 LET CX = 81
-94 LET CY = 26
-96 LET C$(CY, CX) = CHR$ 33
-98 LET C$(CY, CX+1) = CHR$ 33
-100 LET C$(CY+1, CX-1) = CHR$ 33
-102 LET C$(CY+1, CX) = CHR$ 33
-104 LET C$(CY+2, CX) = CHR$ 33
-106 GOSUB 2000
-140 REM Initial Draw
-150 FOR Y = 2 TO H+1
-160 FOR X = 2 TO W+1
-170 IF CODE C$(Y, X) = 33 THEN PLOT X-2, Y-2
-180 NEXT X
-190 NEXT Y
-200 LET G = 0
-300 REM Generation Loop
-310 PRINT AT 0, 0; "GENERATION: "; G; "  (PRESS E TO EDIT)"
-320 FOR Y = 2 TO H+1
-322 LET U = Y - 1
-324 LET D = Y + 1
-325 IF C$(U) <> E$(1) OR C$(Y) <> E$(1) OR C$(D) <> E$(1) THEN GOTO 330
-326 LET N$(Y) = E$(1)
-328 GOTO 560
-330 FOR X = 2 TO W+1
-360 LET S = CODE C$(U, X-1) + CODE C$(U, X) + CODE C$(U, X+1) + CODE C$(Y, X-1) + CODE C$(Y, X+1) + CODE C$(D, X-1) + CODE C$(D, X) + CODE C$(D, X+1) - 256
-480 LET V = (S = 3) OR (S = 2 AND CODE C$(Y, X) = 33)
-510 LET N$(Y, X) = CHR$ (32 + V)
-520 IF CODE C$(Y, X) = 32 + V THEN GOTO 550
-530 IF V = 1 THEN PLOT X-2, Y-2
-540 IF V = 0 THEN UNPLOT X-2, Y-2
-550 NEXT X
-560 NEXT Y
-570 REM Update State
-580 FOR Y = 2 TO H+1
-600 LET C$(Y) = N$(Y)
-610 NEXT Y
-611 GOSUB 2000
-620 LET G = G + 1
-634 IF G / 10 <> INT(G/10) THEN GOTO 300
-635 LET K$ = INKEY$
-636 IF K$ = "" THEN GOTO 300
-637 IF K$ = "e" OR K$ = "E" THEN GOSUB 1000
-640 GOTO 300
-1000 REM Edit Mode
-1002 REM Drain key buffer
-1004 LET K$ = INKEY$
-1006 IF K$ <> "" THEN GOTO 1004
-1010 LET KX = 81
-1020 LET KY = 26
-1030 PRINT AT 0, 0; "EDIT: W/A/S/D MOVE, - CLEAR, + SET, E RUN"
-1040 LET K$ = INKEY$
-1045 IF K$ <> "" THEN GOTO 1120
-1050 IF CODE C$(KY, KX) = 33 THEN UNPLOT KX-2, KY-2
-1060 IF CODE C$(KY, KX) = 32 THEN PLOT KX-2, KY-2
-1070 PAUSE 5
-1080 IF CODE C$(KY, KX) = 33 THEN PLOT KX-2, KY-2
-1090 IF CODE C$(KY, KX) = 32 THEN UNPLOT KX-2, KY-2
-1100 PAUSE 5
-1110 GOTO 1040
-1120 IF K$ = "w" OR K$ = "W" THEN LET KY = KY - 1
-1130 IF K$ = "s" OR K$ = "S" THEN LET KY = KY + 1
-1140 IF K$ = "a" OR K$ = "A" THEN LET KX = KX - 1
-1150 IF K$ = "d" OR K$ = "D" THEN LET KX = KX + 1
-1152 IF KY < 2 THEN LET KY = H+1
-1154 IF KY > H+1 THEN LET KY = 2
-1156 IF KX < 2 THEN LET KX = W+1
-1158 IF KX > W+1 THEN LET KX = 2
-1160 IF K$ = "+" OR K$ = "=" THEN GOTO 1200
-1165 IF K$ = "-" OR K$ = "_" THEN GOTO 1250
-1170 IF K$ = "e" OR K$ = "E" THEN GOTO 1300
-1180 GOTO 1040
-1200 REM Set
-1220 LET C$(KY, KX) = CHR$ 33
-1230 PLOT KX-2, KY-2
-1235 GOSUB 2000
-1240 GOTO 1040
-1250 REM Clear
-1255 LET C$(KY, KX) = CHR$ 32
-1260 UNPLOT KX-2, KY-2
-1265 GOSUB 2000
-1270 GOTO 1040
-1300 REM Exit Edit
-1310 PRINT AT 0, 0; "GENERATION: "; G; "  (PRESS E TO EDIT)      "
-1320 RETURN
-2000 REM Toroidal wrap around (Ghost Cells)
-2010 LET C$(1) = C$(H+1)
-2020 LET C$(H+2) = C$(2)
-2030 FOR Y = 1 TO H+2
-2040 LET C$(Y, 1) = C$(Y, W+1)
-2050 LET C$(Y, W+2) = C$(Y, 2)
-2060 NEXT Y
-2070 RETURN
+1000 REM ### Game of Life ###
+1010 LET width = 160
+1020 LET height = 50
+1030 DIM cells$(height+2, width+2)
+1040 DIM next_cells$(height+2, width+2)
+1050 DIM empty_row$(1, width+2)
+1060 REM ### Init R-pentomino at 80,25 (shifted +1 for margins) ###
+1070 LET center_x = 81
+1080 LET center_y = 26
+1090 LET cells$(center_y, center_x) = CHR$ 33
+1100 LET cells$(center_y, center_x+1) = CHR$ 33
+1110 LET cells$(center_y+1, center_x-1) = CHR$ 33
+1120 LET cells$(center_y+1, center_x) = CHR$ 33
+1130 LET cells$(center_y+2, center_x) = CHR$ 33
+1140 GOSUB 1460
+1150 REM ### Initial draw ###
+1160 FOR y = 2 TO height+1
+1170 FOR x = 2 TO width+1
+1180 IF CODE cells$(y, x) = 33 THEN PLOT x-2, y-2
+1190 NEXT x
+1200 NEXT y
+1210 LET generation = 0
+1220 REM ### Generation loop ###
+1225 FAST
+1230 PRINT AT 0, 0; "GENERATION: "; generation
+1240 FOR y = 2 TO height+1
+1250 LET up_y = y - 1
+1260 LET down_y = y + 1
+1270 IF cells$(up_y) <> empty_row$(1) OR cells$(y) <> empty_row$(1) OR cells$(down_y) <> empty_row$(1) THEN GOTO 1300
+1280 LET next_cells$(y) = empty_row$(1)
+1290 GOTO 1380
+1300 FOR x = 2 TO width+1
+1310 LET neighbors = CODE cells$(up_y, x-1) + CODE cells$(up_y, x) + CODE cells$(up_y, x+1) + CODE cells$(y, x-1) + CODE cells$(y, x+1) + CODE cells$(down_y, x-1) + CODE cells$(down_y, x) + CODE cells$(down_y, x+1) - 256
+1320 LET alive = (neighbors = 3) OR (neighbors = 2 AND CODE cells$(y, x) = 33)
+1330 LET next_cells$(y, x) = CHR$ (32 + alive)
+1340 IF CODE cells$(y, x) = 32 + alive THEN GOTO 1370
+1350 IF alive = 1 THEN PLOT x-2, y-2
+1360 IF alive = 0 THEN UNPLOT x-2, y-2
+1370 NEXT x
+1380 NEXT y
+1390 REM ### Update state ###
+1400 FOR y = 2 TO height+1
+1410 LET cells$(y) = next_cells$(y)
+1420 NEXT y
+1430 GOSUB 1460
+1440 LET generation = generation + 1
+1445 SLOW
+1450 GOTO 1220
+1460 REM ### Toroidal wrap around (ghost cells) ###
+1470 LET cells$(1) = cells$(height+1)
+1480 LET cells$(height+2) = cells$(2)
+1490 FOR y = 1 TO height+2
+1500 LET cells$(y, 1) = cells$(y, width+1)
+1510 LET cells$(y, width+2) = cells$(y, 2)
+1520 NEXT y
+1530 RETURN

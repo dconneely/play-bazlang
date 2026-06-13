@@ -59,6 +59,8 @@ statement
     | DATA expression (',' expression)*                    # DataStmt
     | DEF FN name=(NUM_IDENTIFIER | STR_IDENTIFIER) '(' ( params+=(NUM_IDENTIFIER | STR_IDENTIFIER) (',' params+=(NUM_IDENTIFIER | STR_IDENTIFIER))* )? ')' '=' expression # DefFnStmt
     | DIM dimDecl                                          # DimStmt
+    | DRAW numExpr ',' numExpr                             # DrawStmt
+    | FAST                                                 # FastStmt
     | FOR NUM_IDENTIFIER '=' numExpr TO numExpr (STEP numExpr)? # ForStmt
     | (GO SUB | GOSUB) numExpr                             # GosubStmt
     | (GO TO | GOTO) numExpr                               # GotoStmt
@@ -83,7 +85,9 @@ statement
     | RUN numExpr?                                         # RunStmt
     | SAVE strExpr                                         # SaveStmt
     | SCROLL                                               # ScrollStmt
+    | SLOW                                                 # SlowStmt
     | STOP                                                 # StopStmt
+    | UNDRAW numExpr ',' numExpr                           # UndrawStmt
     | UNPLOT numExpr ',' numExpr                           # UnplotStmt
     ;
 
@@ -108,6 +112,7 @@ renumArgs
     ;
 
 assignmentTarget
+locals [ Object varRef ]
     : NUM_IDENTIFIER
     | NUM_IDENTIFIER '(' numExpr (',' numExpr)* ')'
     | STR_IDENTIFIER
@@ -255,7 +260,9 @@ DATA    : 'DATA';
 DEF     : 'DEF';
 DELETE  : 'DELETE';
 DIM     : 'DIM';
+DRAW    : 'DRAW';
 EDIT    : 'EDIT';
+FAST    : 'FAST';
 FN      : 'FN';
 FOR     : 'FOR';
 GO      : 'GO';
@@ -285,9 +292,11 @@ RETURN  : 'RETURN';
 RUN     : 'RUN';
 SAVE    : 'SAVE';
 SCROLL  : 'SCROLL';
+SLOW    : 'SLOW';
 STOP    : 'STOP';
 SUB     : 'SUB';
 UNPLOT  : 'UNPLOT';
+UNDRAW  : 'UNDRAW';
 
 // Keywords - Operators
 AND     : 'AND';

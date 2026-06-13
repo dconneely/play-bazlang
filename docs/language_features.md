@@ -192,6 +192,30 @@ You can slice strings and arrays. String indices are **byte offsets** (1-based).
 
 **Rule**: The `TO` slice must always be the last part of the index.
 
+### 2D string array row access
+
+When `A$` is declared as a 2D string array (e.g. `DIM A$(rows, cols)`), a single index `A$(i)` refers
+to the entire `i`-th row as a string of length `cols`. This can be used for reading, comparison, and
+assignment:
+
+```
+DIM board$(8, 8)
+LET board$(1) = board$(8)   : REM copy row 8 to row 1
+IF board$(3) = board$(4) THEN ...  : REM compare two rows
+```
+
+### String array initialisation
+
+String arrays (both fixed-length scalars and 2D arrays) are initialised to all spaces (`CHR$ 32`).
+This is consistent with ZX Spectrum BASIC. Simple (variable-length) string variables are initialised
+to the empty string `""`.
+
+```
+DIM grid$(24, 80)   : REM all 1920 bytes are spaces
+PRINT grid$(1, 1)   : REM prints " "
+PRINT CODE grid$(1, 1)  : REM prints 32
+```
+
 ## 7. Number Formatting
 
 Numbers are displayed in Sinclair ZX style:

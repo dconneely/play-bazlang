@@ -205,6 +205,9 @@ public class MockDisplay implements BazLangDisplay {
   }
 
   @Override
+  public void setFastMode(boolean fast) {}
+
+  @Override
   public void close() {
     // No-op
   }

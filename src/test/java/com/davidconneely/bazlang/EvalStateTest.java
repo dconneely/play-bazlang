@@ -3,6 +3,7 @@ package com.davidconneely.bazlang;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
@@ -76,7 +77,7 @@ class EvalStateTest {
   @Test
   void testNumScalars() {
     assertFalse(state.hasNumVar("X"));
-    assertNull(state.numVar("X"));
+    assertThrows(IllegalArgumentException.class, () -> state.numVar("X"));
     state.setNumVar("X", 42.0);
     assertTrue(state.hasNumVar("X"));
     assertEquals(42.0, state.numVar("X"));
