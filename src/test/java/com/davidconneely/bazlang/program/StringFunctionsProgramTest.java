@@ -137,4 +137,24 @@ class StringFunctionsProgramTest extends BaseProgramTest {
     assertEquals("A", ((EvalState.StrVar.Scalar) state.strVar("A$")).value().toJavaString());
     assertEquals("123", ((EvalState.StrVar.Scalar) state.strVar("B$")).value().toJavaString());
   }
+
+  @Test
+  void testInvalidUtf8SequenceRawByteHandling() {
+    // Tests that strings can be used as raw byte buffers with invalid UTF-8 sequences,
+    // and that CODE accesses the exact raw bytes, while CODEPOINT treats them as invalid
+    // individual byte codepoints.
+    EvalState state =
+        runProgram(
+            """
+            10 LET A$ = CHR$(128) + CHR$(255)
+            20 LET L = LEN(A$)
+            30 LET B1 = CODE(A$(1))
+            40 LET B2 = CODE(A$(2))
+            50 LET CP = CODEPOINT(A$)
+            """);
+    assertEquals(2.0, state.numVar("L")); // Exactly 2 raw bytes
+    assertEquals(128.0, state.numVar("B1")); // CODE retrieves raw byte 128
+    assertEquals(255.0, state.numVar("B2")); // CODE retrieves raw byte 255
+    assertEquals(128.0, state.numVar("CP")); // CODEPOINT returns raw byte value if invalid
+  }
 }

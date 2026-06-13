@@ -19,12 +19,16 @@ import java.util.Arrays;
  * decoded back to raw bytes, as this path is only used for string literals and input).
  */
 public final class BStr implements Comparable<BStr> {
-  public static final BStr EMPTY = new BStr(new byte[0]);
+  public static final BStr EMPTY = new BStr(new byte[0], 0, 0);
 
   private final byte[] bytes;
+  private final int offset;
+  private final int length;
 
-  private BStr(byte[] bytes) {
+  private BStr(byte[] bytes, int offset, int length) {
     this.bytes = bytes;
+    this.offset = offset;
+    this.length = length;
   }
 
   /** Creates a BStr by encoding a Java String using standard UTF-8. */
@@ -32,12 +36,13 @@ public final class BStr implements Comparable<BStr> {
     if (s == null || s.isEmpty()) {
       return EMPTY;
     }
-    return new BStr(s.getBytes(StandardCharsets.UTF_8));
+    byte[] b = s.getBytes(StandardCharsets.UTF_8);
+    return new BStr(b, 0, b.length);
   }
 
   /** Creates a single-byte BStr with the given raw byte value (caller must ensure 0-255). */
   public static BStr fromByte(int b) {
-    return new BStr(new byte[] {(byte) b});
+    return new BStr(new byte[] {(byte) b}, 0, 1);
   }
 
   /** Creates a BStr directly from a byte array (the array is copied). */
@@ -45,29 +50,33 @@ public final class BStr implements Comparable<BStr> {
     if (bytes.length == 0) {
       return EMPTY;
     }
-    return new BStr(Arrays.copyOf(bytes, bytes.length));
+    return new BStr(Arrays.copyOf(bytes, bytes.length), 0, bytes.length);
   }
 
-  /** Creates a BStr from a region of a byte array (bytes are copied). */
   static BStr fromBytes(byte[] bytes, int offset, int length) {
     if (length == 0) {
       return EMPTY;
     }
-    return new BStr(Arrays.copyOfRange(bytes, offset, offset + length));
+    return new BStr(bytes, offset, length);
   }
 
-  /** Returns the number of bytes in this BStr. */
+  /** Returns a completely isolated copy of this BStr, safe from underlying array mutations. */
+  public BStr copy() {
+    if (length == 0) return EMPTY;
+    return new BStr(Arrays.copyOfRange(bytes, offset, offset + length), 0, length);
+  }
+
   public int length() {
-    return bytes.length;
+    return length;
   }
 
   public boolean isEmpty() {
-    return bytes.length == 0;
+    return length == 0;
   }
 
   /** Returns the byte at 0-based index {@code i} as an unsigned integer (0-255). */
   public int byteAt(int i) {
-    return bytes[i] & 0xFF;
+    return bytes[offset + i] & 0xFF;
   }
 
   /**
@@ -75,7 +84,7 @@ public final class BStr implements Comparable<BStr> {
    * from} and {@code to} are 1-based byte positions.
    */
   public BStr slice(int from, int to) {
-    return fromBytes(bytes, from - 1, to - from + 1);
+    return fromBytes(bytes, offset + from - 1, to - from + 1);
   }
 
   /** Concatenates this BStr with another. */
@@ -86,10 +95,10 @@ public final class BStr implements Comparable<BStr> {
     if (other.isEmpty()) {
       return this;
     }
-    byte[] result = new byte[bytes.length + other.bytes.length];
-    System.arraycopy(bytes, 0, result, 0, bytes.length);
-    System.arraycopy(other.bytes, 0, result, bytes.length, other.bytes.length);
-    return new BStr(result);
+    byte[] result = new byte[length + other.length];
+    System.arraycopy(bytes, offset, result, 0, length);
+    System.arraycopy(other.bytes, other.offset, result, length, other.length);
+    return new BStr(result, 0, result.length);
   }
 
   /**
@@ -97,30 +106,33 @@ public final class BStr implements Comparable<BStr> {
    * replacement BStr. The replacement is padded with spaces or truncated to fit the slice length.
    */
   public BStr withSlice(int from, int to, BStr replacement) {
-    if (from < 1 || to > bytes.length || from > to + 1) {
+    if (from < 1 || to > length || from > to + 1) {
       throw new IllegalArgumentException("Slice out of bounds");
     }
     int sliceLen = to - from + 1;
-    byte[] result = Arrays.copyOf(bytes, bytes.length);
+    byte[] result = new byte[length];
+    System.arraycopy(bytes, offset, result, 0, length);
     for (int i = 0; i < sliceLen; i++) {
       result[from - 1 + i] = (i < replacement.length()) ? (byte) replacement.byteAt(i) : (byte) ' ';
     }
-    return new BStr(result);
+    return new BStr(result, 0, result.length);
   }
 
   /**
    * Returns a new BStr of the specified length. If this BStr is shorter, it is padded with spaces.
    * If it is longer, it is truncated.
    */
-  public BStr paddedOrTruncatedTo(int length) {
-    if (length == bytes.length) {
+  public BStr paddedOrTruncatedTo(int targetLength) {
+    if (targetLength == length) {
       return this;
     }
-    byte[] result = new byte[length];
-    for (int i = 0; i < length; i++) {
-      result[i] = (i < bytes.length) ? bytes[i] : (byte) ' ';
+    byte[] result = new byte[targetLength];
+    int copyLen = Math.min(targetLength, length);
+    System.arraycopy(bytes, offset, result, 0, copyLen);
+    for (int i = copyLen; i < targetLength; i++) {
+      result[i] = (byte) ' ';
     }
-    return new BStr(result);
+    return new BStr(result, 0, result.length);
   }
 
   /**
@@ -129,26 +141,29 @@ public final class BStr implements Comparable<BStr> {
    * 4-codepoint synthetic {@code [U+10FFFD, 'x', upper-hex-nibble, lower-hex-nibble]}.
    */
   public String toJavaString() {
-    if (bytes.length == 0) {
+    if (length == 0) {
       return "";
     }
-    StringBuilder sb = new StringBuilder(bytes.length);
+    StringBuilder sb = new StringBuilder(length);
     int i = 0;
-    while (i < bytes.length) {
-      int b = bytes[i] & 0xFF;
+    while (i < length) {
+      int b = bytes[offset + i] & 0xFF;
       if (b < 0x80) {
         sb.append((char) b);
         i++;
-      } else if (b >= 0xC2 && b <= 0xDF && i + 1 < bytes.length && isContByte(bytes[i + 1])) {
-        int cp = ((b & 0x1F) << 6) | (bytes[i + 1] & 0x3F);
+      } else if (b >= 0xC2 && b <= 0xDF && i + 1 < length && isContByte(bytes[offset + i + 1])) {
+        int cp = ((b & 0x1F) << 6) | (bytes[offset + i + 1] & 0x3F);
         sb.appendCodePoint(cp);
         i += 2;
       } else if (b >= 0xE0
           && b <= 0xEF
-          && i + 2 < bytes.length
-          && isContByte(bytes[i + 1])
-          && isContByte(bytes[i + 2])) {
-        int cp = ((b & 0x0F) << 12) | ((bytes[i + 1] & 0x3F) << 6) | (bytes[i + 2] & 0x3F);
+          && i + 2 < length
+          && isContByte(bytes[offset + i + 1])
+          && isContByte(bytes[offset + i + 2])) {
+        int cp =
+            ((b & 0x0F) << 12)
+                | ((bytes[offset + i + 1] & 0x3F) << 6)
+                | (bytes[offset + i + 2] & 0x3F);
         if (cp >= 0x800 && (cp < 0xD800 || cp > 0xDFFF)) {
           sb.appendCodePoint(cp);
           i += 3;
@@ -159,15 +174,15 @@ public final class BStr implements Comparable<BStr> {
         }
       } else if (b >= 0xF0
           && b <= 0xF4
-          && i + 3 < bytes.length
-          && isContByte(bytes[i + 1])
-          && isContByte(bytes[i + 2])
-          && isContByte(bytes[i + 3])) {
+          && i + 3 < length
+          && isContByte(bytes[offset + i + 1])
+          && isContByte(bytes[offset + i + 2])
+          && isContByte(bytes[offset + i + 3])) {
         int cp =
             ((b & 0x07) << 18)
-                | ((bytes[i + 1] & 0x3F) << 12)
-                | ((bytes[i + 2] & 0x3F) << 6)
-                | (bytes[i + 3] & 0x3F);
+                | ((bytes[offset + i + 1] & 0x3F) << 12)
+                | ((bytes[offset + i + 2] & 0x3F) << 6)
+                | (bytes[offset + i + 3] & 0x3F);
         if (cp >= 0x10000 && cp <= 0x10FFFF) {
           sb.appendCodePoint(cp);
           i += 4;
@@ -196,26 +211,26 @@ public final class BStr implements Comparable<BStr> {
   /**
    * Returns the first Unicode codepoint decoded from this BStr (valid UTF-8 decoded normally;
    * invalid or lone byte 0xNN returned as the raw value NN), or -1 if this BStr is empty. This uses
-   * Latin-1 fallback (not utf8-c8 synthetics) because it is used for the {@code CODE} and {@code
+   * raw byte fallback (not utf8-c8 synthetics) because it is used for the {@code CODE} and {@code
    * CODEPOINT} BASIC functions, which must return byte-level numeric values.
    */
   public int firstCodepoint() {
-    if (bytes.length == 0) {
+    if (length == 0) {
       return -1;
     }
-    int b = bytes[0] & 0xFF;
+    int b = bytes[offset] & 0xFF;
     if (b < 0x80) {
       return b;
     }
-    if (b >= 0xC2 && b <= 0xDF && bytes.length >= 2 && isContByte(bytes[1])) {
-      return ((b & 0x1F) << 6) | (bytes[1] & 0x3F);
+    if (b >= 0xC2 && b <= 0xDF && length >= 2 && isContByte(bytes[offset + 1])) {
+      return ((b & 0x1F) << 6) | (bytes[offset + 1] & 0x3F);
     }
     if (b >= 0xE0
         && b <= 0xEF
-        && bytes.length >= 3
-        && isContByte(bytes[1])
-        && isContByte(bytes[2])) {
-      int cp = ((b & 0x0F) << 12) | ((bytes[1] & 0x3F) << 6) | (bytes[2] & 0x3F);
+        && length >= 3
+        && isContByte(bytes[offset + 1])
+        && isContByte(bytes[offset + 2])) {
+      int cp = ((b & 0x0F) << 12) | ((bytes[offset + 1] & 0x3F) << 6) | (bytes[offset + 2] & 0x3F);
       if (cp >= 0x800 && (cp < 0xD800 || cp > 0xDFFF)) {
         return cp;
       }
@@ -223,15 +238,15 @@ public final class BStr implements Comparable<BStr> {
     }
     if (b >= 0xF0
         && b <= 0xF4
-        && bytes.length >= 4
-        && isContByte(bytes[1])
-        && isContByte(bytes[2])
-        && isContByte(bytes[3])) {
+        && length >= 4
+        && isContByte(bytes[offset + 1])
+        && isContByte(bytes[offset + 2])
+        && isContByte(bytes[offset + 3])) {
       int cp =
           ((b & 0x07) << 18)
-              | ((bytes[1] & 0x3F) << 12)
-              | ((bytes[2] & 0x3F) << 6)
-              | (bytes[3] & 0x3F);
+              | ((bytes[offset + 1] & 0x3F) << 12)
+              | ((bytes[offset + 2] & 0x3F) << 6)
+              | (bytes[offset + 3] & 0x3F);
       if (cp >= 0x10000 && cp <= 0x10FFFF) {
         return cp;
       }
@@ -248,41 +263,41 @@ public final class BStr implements Comparable<BStr> {
    * length()}, returns {@code length()}.
    */
   public int nextCodepointStart(int byteIndex0) {
-    if (byteIndex0 >= bytes.length) {
-      return bytes.length;
+    if (byteIndex0 >= length) {
+      return length;
     }
-    int b = bytes[byteIndex0] & 0xFF;
+    int b = bytes[offset + byteIndex0] & 0xFF;
     if (b < 0x80) {
       return byteIndex0 + 1;
     }
     if (b >= 0xC2
         && b <= 0xDF
-        && byteIndex0 + 1 < bytes.length
-        && isContByte(bytes[byteIndex0 + 1])) {
+        && byteIndex0 + 1 < length
+        && isContByte(bytes[offset + byteIndex0 + 1])) {
       return byteIndex0 + 2;
     }
     if (b >= 0xE0
         && b <= 0xEF
-        && byteIndex0 + 2 < bytes.length
-        && isContByte(bytes[byteIndex0 + 1])
-        && isContByte(bytes[byteIndex0 + 2])) {
+        && byteIndex0 + 2 < length
+        && isContByte(bytes[offset + byteIndex0 + 1])
+        && isContByte(bytes[offset + byteIndex0 + 2])) {
       int cp =
           ((b & 0x0F) << 12)
-              | ((bytes[byteIndex0 + 1] & 0x3F) << 6)
-              | (bytes[byteIndex0 + 2] & 0x3F);
+              | ((bytes[offset + byteIndex0 + 1] & 0x3F) << 6)
+              | (bytes[offset + byteIndex0 + 2] & 0x3F);
       return (cp >= 0x800 && (cp < 0xD800 || cp > 0xDFFF)) ? byteIndex0 + 3 : byteIndex0 + 1;
     }
     if (b >= 0xF0
         && b <= 0xF4
-        && byteIndex0 + 3 < bytes.length
-        && isContByte(bytes[byteIndex0 + 1])
-        && isContByte(bytes[byteIndex0 + 2])
-        && isContByte(bytes[byteIndex0 + 3])) {
+        && byteIndex0 + 3 < length
+        && isContByte(bytes[offset + byteIndex0 + 1])
+        && isContByte(bytes[offset + byteIndex0 + 2])
+        && isContByte(bytes[offset + byteIndex0 + 3])) {
       int cp =
           ((b & 0x07) << 18)
-              | ((bytes[byteIndex0 + 1] & 0x3F) << 12)
-              | ((bytes[byteIndex0 + 2] & 0x3F) << 6)
-              | (bytes[byteIndex0 + 3] & 0x3F);
+              | ((bytes[offset + byteIndex0 + 1] & 0x3F) << 12)
+              | ((bytes[offset + byteIndex0 + 2] & 0x3F) << 6)
+              | (bytes[offset + byteIndex0 + 3] & 0x3F);
       return (cp >= 0x10000 && cp <= 0x10FFFF) ? byteIndex0 + 4 : byteIndex0 + 1;
     }
     return byteIndex0 + 1; // invalid or lone byte
@@ -294,29 +309,36 @@ public final class BStr implements Comparable<BStr> {
 
   /** Package-private access to the raw byte array (defensive copy). */
   byte[] bytes() {
-    return Arrays.copyOf(bytes, bytes.length);
+    return Arrays.copyOfRange(bytes, offset, offset + length);
   }
 
   @Override
   public boolean equals(Object obj) {
-    return this == obj || (obj instanceof BStr other && Arrays.equals(bytes, other.bytes));
+    if (this == obj) return true;
+    if (!(obj instanceof BStr other)) return false;
+    return Arrays.equals(
+        bytes, offset, offset + length, other.bytes, other.offset, other.offset + other.length);
   }
 
   @Override
   public int hashCode() {
-    return Arrays.hashCode(bytes);
+    int result = 1;
+    for (int i = 0; i < length; i++) {
+      result = 31 * result + bytes[offset + i];
+    }
+    return result;
   }
 
   @Override
   public int compareTo(BStr other) {
-    int len = Math.min(bytes.length, other.bytes.length);
+    int len = Math.min(length, other.length);
     for (int i = 0; i < len; i++) {
-      int diff = (bytes[i] & 0xFF) - (other.bytes[i] & 0xFF);
+      int diff = (bytes[offset + i] & 0xFF) - (other.bytes[other.offset + i] & 0xFF);
       if (diff != 0) {
         return diff;
       }
     }
-    return bytes.length - other.bytes.length;
+    return length - other.length;
   }
 
   @Override

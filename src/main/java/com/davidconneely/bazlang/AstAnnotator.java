@@ -30,19 +30,16 @@ public class AstAnnotator extends BazLangBaseVisitor<Void> {
 
   @Override
   public Void visitNumVarExpr(NumVarExprContext ctx) {
-    ctx.varName = ctx.NUM_IDENTIFIER().getText().toUpperCase();
     return super.visitNumVarExpr(ctx);
   }
 
   @Override
   public Void visitNumArrayExpr(NumArrayExprContext ctx) {
-    ctx.varName = ctx.NUM_IDENTIFIER().getText().toUpperCase();
     return super.visitNumArrayExpr(ctx);
   }
 
   @Override
   public Void visitFnNumCallExpr(FnNumCallExprContext ctx) {
-    ctx.varName = ctx.NUM_IDENTIFIER().getText().toUpperCase();
     return super.visitFnNumCallExpr(ctx);
   }
 
@@ -55,19 +52,16 @@ public class AstAnnotator extends BazLangBaseVisitor<Void> {
 
   @Override
   public Void visitStrVarExpr(StrVarExprContext ctx) {
-    ctx.varName = ctx.STR_IDENTIFIER().getText().toUpperCase();
     return super.visitStrVarExpr(ctx);
   }
 
   @Override
   public Void visitStrSubscriptExpr(StrSubscriptExprContext ctx) {
-    ctx.varName = ctx.STR_IDENTIFIER().getText().toUpperCase();
     return super.visitStrSubscriptExpr(ctx);
   }
 
   @Override
   public Void visitFnStrCallExpr(FnStrCallExprContext ctx) {
-    ctx.varName = ctx.STR_IDENTIFIER().getText().toUpperCase();
     return super.visitFnStrCallExpr(ctx);
   }
 
@@ -83,7 +77,6 @@ public class AstAnnotator extends BazLangBaseVisitor<Void> {
       }
       ctx.cachedNum = new BigInteger(digits, 2).doubleValue();
     } else if (ctx.NUM_IDENTIFIER() != null) {
-      ctx.varName = ctx.NUM_IDENTIFIER().getText().toUpperCase();
     }
     return super.visitNumAtom(ctx);
   }
@@ -95,7 +88,6 @@ public class AstAnnotator extends BazLangBaseVisitor<Void> {
       ctx.cachedStr =
           BStr.fromJavaString(text.substring(1, text.length() - 1).replace("\"\"", "\""));
     } else if (ctx.STR_IDENTIFIER() != null) {
-      ctx.varName = ctx.STR_IDENTIFIER().getText().toUpperCase();
     }
     return super.visitStrAtom(ctx);
   }

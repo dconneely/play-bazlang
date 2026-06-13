@@ -25,6 +25,7 @@ target/
 # Local-only
 .env
 localonly-*.*
+scratch/
 
 # UI cache, Office backup
 .DS_Store

@@ -66,21 +66,29 @@ public class ExpressionEvaluator extends BazLangBaseVisitor<Void> {
 
   @Override
   public Void visitNumVarExpr(NumVarExprContext ctx) {
-    String name = ctx.varName;
-    if (!state.hasNumVar(name)) {
-      throw codedException(ReportCode.VARIABLE_NOT_FOUND, "Undefined variable: " + name);
+    EvalState.NumVarRef ref = (EvalState.NumVarRef) ctx.varRef;
+    if (ref == null) {
+      ref = state.getOrAddNumVar(ctx.NUM_IDENTIFIER().getText().toUpperCase());
+      ctx.varRef = ref;
     }
-    numResult = state.numVar(name);
+    if (!ref.initialized) {
+      throw codedException(ReportCode.VARIABLE_NOT_FOUND, "Undefined variable: " + ref.name);
+    }
+    numResult = ref.value;
     return null;
   }
 
   @Override
   public Void visitNumArrayExpr(NumArrayExprContext ctx) {
-    String name = ctx.varName;
-    if (!state.hasNumArray(name)) {
-      throw codedException(ReportCode.VARIABLE_NOT_FOUND, "Undefined array: " + name);
+    EvalState.NumArrayRef ref = (EvalState.NumArrayRef) ctx.varRef;
+    if (ref == null) {
+      ref = state.getOrAddNumArray(ctx.NUM_IDENTIFIER().getText().toUpperCase());
+      ctx.varRef = ref;
     }
-    EvalState.NumArray na = state.numArray(name);
+    if (ref.array == null) {
+      throw codedException(ReportCode.VARIABLE_NOT_FOUND, "Undefined array: " + ref.name);
+    }
+    EvalState.NumArray na = ref.array;
     int count = ctx.numExpr().size();
     int[] indices = new int[count];
     for (int i = 0; i < count; i++) {
@@ -105,7 +113,7 @@ public class ExpressionEvaluator extends BazLangBaseVisitor<Void> {
 
   @Override
   public Void visitFnNumCallExpr(FnNumCallExprContext ctx) {
-    String name = ctx.varName;
+    String name = ctx.NUM_IDENTIFIER().getText().toUpperCase();
     List<ExpressionContext> args = ctx.args != null ? ctx.args : List.of();
     evaluateFnCall(name, args);
     return null;
@@ -337,7 +345,7 @@ public class ExpressionEvaluator extends BazLangBaseVisitor<Void> {
     }
     if (ctx.NUM_IDENTIFIER() != null) {
       // Either simple variable or array subscript
-      String name = ctx.varName;
+      String name = ctx.NUM_IDENTIFIER().getText().toUpperCase();
       if (!ctx.numExpr().isEmpty()) {
         // Array subscript: NUM_IDENTIFIER ( numExpr, ... )
         if (!state.hasNumArray(name)) {
@@ -381,8 +389,15 @@ public class ExpressionEvaluator extends BazLangBaseVisitor<Void> {
 
   @Override
   public Void visitStrVarExpr(StrVarExprContext ctx) {
-    String name = ctx.varName;
-    EvalState.StrVar var = state.strVar(name);
+    EvalState.StrVarRef ref = (EvalState.StrVarRef) ctx.varRef;
+    if (ref == null) {
+      ref = state.getOrAddStrVar(ctx.STR_IDENTIFIER().getText().toUpperCase());
+      ctx.varRef = ref;
+    }
+    if (ref.value == null) {
+      throw codedException(ReportCode.VARIABLE_NOT_FOUND, "Undefined string: " + ref.name);
+    }
+    EvalState.StrVar var = ref.value;
     if (var instanceof EvalState.StrVar.Array ca) {
       if (ca.arrayDimensions().length == 0) {
         strResult = BStr.fromBytes(ca.data(), 0, ca.stringLength());
@@ -394,25 +409,35 @@ public class ExpressionEvaluator extends BazLangBaseVisitor<Void> {
       strResult = s.value();
       return null;
     }
-    throw codedException(ReportCode.VARIABLE_NOT_FOUND, "Undefined variable: " + name);
+    throw codedException(ReportCode.VARIABLE_NOT_FOUND, "Undefined string: " + ref.name);
   }
 
   @Override
   public Void visitStrSubscriptExpr(StrSubscriptExprContext ctx) {
-    String name = ctx.varName;
-    var subscript = ctx.strSubscript();
-    strResult = evalStrSubscript(name, subscript);
+    EvalState.StrVarRef ref = (EvalState.StrVarRef) ctx.varRef;
+    if (ref == null) {
+      ref = state.getOrAddStrVar(ctx.STR_IDENTIFIER().getText().toUpperCase());
+      ctx.varRef = ref;
+    }
+    if (ref.value == null) {
+      throw codedException(ReportCode.VARIABLE_NOT_FOUND, "Undefined string array: " + ref.name);
+    }
+    strResult = evalStrSubscriptCore(ref.value, ctx.strSubscript());
     return null;
   }
 
   private BStr evalStrSubscript(String name, StrSubscriptContext subscript) {
+    EvalState.StrVar var = state.strVar(name);
+    return evalStrSubscriptCore(var, subscript);
+  }
+
+  private BStr evalStrSubscriptCore(EvalState.StrVar var, StrSubscriptContext subscript) {
     ParsedSubscript parsed = parseStrSubscript(subscript);
     int[] indices = parsed.indices();
     int sliceStart = parsed.sliceStart();
     int sliceEnd = parsed.sliceEnd();
     boolean hasSlice = parsed.hasSlice();
     // Now evaluate the subscript based on variable type
-    EvalState.StrVar var = state.strVar(name);
     if (var instanceof EvalState.StrVar.Array ca) {
       int n = ca.arrayDimensions().length;
       int byteIndex = -1;
@@ -446,7 +471,7 @@ public class ExpressionEvaluator extends BazLangBaseVisitor<Void> {
       int[] bounds = calculateSliceBounds(s.length(), byteIndex, sliceStart, sliceEnd);
       return s.slice(bounds[0], bounds[1]);
     }
-    throw codedException(ReportCode.VARIABLE_NOT_FOUND, "Undefined variable: " + name);
+    throw new IllegalStateException("Unreachable");
   }
 
   @Override
@@ -478,7 +503,7 @@ public class ExpressionEvaluator extends BazLangBaseVisitor<Void> {
 
   @Override
   public Void visitFnStrCallExpr(FnStrCallExprContext ctx) {
-    String name = ctx.varName;
+    String name = ctx.STR_IDENTIFIER().getText().toUpperCase();
     List<ExpressionContext> args = ctx.args != null ? ctx.args : List.of();
     evaluateFnCall(name, args);
     return null;
@@ -524,10 +549,10 @@ public class ExpressionEvaluator extends BazLangBaseVisitor<Void> {
       return (BStr) ctx.cachedStr;
     }
     if (ctx.strSubscript() != null) {
-      return evalStrSubscript(ctx.varName, ctx.strSubscript());
+      return evalStrSubscript(ctx.STR_IDENTIFIER().getText().toUpperCase(), ctx.strSubscript());
     }
     if (ctx.STR_IDENTIFIER() != null) {
-      String name = ctx.varName;
+      String name = ctx.STR_IDENTIFIER().getText().toUpperCase();
       EvalState.StrVar var = state.strVar(name);
       if (var instanceof EvalState.StrVar.Array ca) {
         if (ca.arrayDimensions().length == 0) {

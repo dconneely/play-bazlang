@@ -23,11 +23,49 @@ public class EvalState {
 
   public record JumpLocation(int lineLabel, int statementIndex) {}
 
+  public static final class NumVarRef {
+    public final String name;
+    public double value;
+    public boolean initialized;
+
+    public NumVarRef(String name) {
+      this.name = name;
+    }
+  }
+
+  public static final class NumArrayRef {
+    public final String name;
+    public NumArray array;
+
+    public NumArrayRef(String name) {
+      this.name = name;
+    }
+  }
+
+  public static final class StrVarRef {
+    public final String name;
+    public StrVar value;
+
+    public StrVarRef(String name) {
+      this.name = name;
+    }
+  }
+
+  public static final class FnDefRef {
+    public final String name;
+    public FnDefinition def;
+
+    public FnDefRef(String name) {
+      this.name = name;
+    }
+  }
+
   private final Program program = new Program();
-  private final Map<String, Double> numScalars = new HashMap<>();
-  private final Map<String, NumArray> numArrays = new HashMap<>();
-  private final Map<String, StrVar> strVars = new HashMap<>();
-  private final Map<String, FnDefinition> fnDefinitions = new HashMap<>();
+  private final Map<String, NumVarRef> numScalars = new HashMap<>();
+  private final Map<String, NumArrayRef> numArrays = new HashMap<>();
+  private final Map<String, StrVarRef> strVars = new HashMap<>();
+  private final Map<String, FnDefRef> fnDefinitions = new HashMap<>();
+
   private final Map<String, ForLoopData> forLoops = new HashMap<>();
   private final Deque<JumpLocation> returnStack = new ArrayDeque<>();
   private final Random random = new Random();
@@ -55,54 +93,99 @@ public class EvalState {
     this.program.putAll(program);
   }
 
+  public NumVarRef getOrAddNumVar(String name) {
+    return numScalars.computeIfAbsent(name, NumVarRef::new);
+  }
+
+  public NumArrayRef getOrAddNumArray(String name) {
+    return numArrays.computeIfAbsent(name, NumArrayRef::new);
+  }
+
+  public StrVarRef getOrAddStrVar(String name) {
+    return strVars.computeIfAbsent(name, StrVarRef::new);
+  }
+
+  public FnDefRef getOrAddFnDef(String name) {
+    return fnDefinitions.computeIfAbsent(name, FnDefRef::new);
+  }
+
   // ===== Numeric scalar variables =====
 
   public boolean hasNumVar(String name) {
-    return numScalars.containsKey(name);
+    NumVarRef ref = numScalars.get(name);
+    return ref != null && ref.initialized;
   }
 
   public Double numVar(String name) {
-    return numScalars.get(name);
+    NumVarRef ref = numScalars.get(name);
+    return (ref != null && ref.initialized) ? ref.value : null;
   }
 
   public void setNumVar(String name, double val) {
-    numScalars.put(name, val);
+    NumVarRef ref = getOrAddNumVar(name);
+    ref.value = val;
+    ref.initialized = true;
   }
 
   // ===== Numeric arrays =====
 
   public boolean hasNumArray(String name) {
-    return numArrays.containsKey(name);
+    NumArrayRef ref = numArrays.get(name);
+    return ref != null && ref.array != null;
   }
 
   public NumArray numArray(String name) {
-    return numArrays.get(name);
+    NumArrayRef ref = numArrays.get(name);
+    return (ref != null) ? ref.array : null;
   }
 
   public void setNumArray(String name, NumArray arr) {
-    numArrays.put(name, arr);
+    NumArrayRef ref = getOrAddNumArray(name);
+    ref.array = arr;
   }
 
   // ===== String variables (Scalar and Array) =====
 
   public boolean hasStrVar(String name) {
-    return strVars.containsKey(name);
+    StrVarRef ref = strVars.get(name);
+    return ref != null && ref.value != null;
   }
 
   public StrVar strVar(String name) {
-    return strVars.get(name);
+    StrVarRef ref = strVars.get(name);
+    return (ref != null) ? ref.value : null;
   }
 
   public void setStrVar(String name, StrVar val) {
-    strVars.put(name, val);
+    StrVarRef ref = getOrAddStrVar(name);
+    ref.value = val;
+  }
+
+  // ===== Functions =====
+
+  public boolean hasFn(String name) {
+    FnDefRef ref = fnDefinitions.get(name);
+    return ref != null && ref.def != null;
+  }
+
+  public FnDefinition fn(String name) {
+    FnDefRef ref = fnDefinitions.get(name);
+    return (ref != null) ? ref.def : null;
+  }
+
+  public void setFn(String name, FnDefinition def) {
+    FnDefRef ref = getOrAddFnDef(name);
+    ref.def = def;
   }
 
   public void removeNumVar(String name) {
-    numScalars.remove(name);
+    NumVarRef ref = numScalars.get(name);
+    if (ref != null) ref.initialized = false;
   }
 
   public void removeStrVar(String name) {
-    strVars.remove(name);
+    StrVarRef ref = strVars.get(name);
+    if (ref != null) ref.value = null;
   }
 
   // ===== FOR loop tracking =====
@@ -228,14 +311,6 @@ public class EvalState {
     return dataStatementIndex;
   }
 
-  public FnDefinition fn(String name) {
-    return fnDefinitions.get(name);
-  }
-
-  public boolean hasFn(String name) {
-    return fnDefinitions.containsKey(name);
-  }
-
   public void setDataExpressionIndex(int index) {
     this.dataExpressionIndex = index;
   }
@@ -248,15 +323,11 @@ public class EvalState {
     this.dataStatementIndex = index;
   }
 
-  public void setFn(String name, FnDefinition def) {
-    fnDefinitions.put(name, def);
-  }
-
   public void clear() {
-    numScalars.clear();
-    numArrays.clear();
-    strVars.clear();
-    fnDefinitions.clear();
+    for (NumVarRef ref : numScalars.values()) ref.initialized = false;
+    for (NumArrayRef ref : numArrays.values()) ref.array = null;
+    for (StrVarRef ref : strVars.values()) ref.value = null;
+    for (FnDefRef ref : fnDefinitions.values()) ref.def = null;
     forLoops.clear();
     returnStack.clear();
     clearPendingJump();

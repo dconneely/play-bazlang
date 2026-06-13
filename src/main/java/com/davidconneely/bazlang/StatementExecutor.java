@@ -658,8 +658,9 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
           ca.data()[i] = (byte) 32;
         }
         return;
+      } else {
+        state.setStrVar(name, new EvalState.StrVar.Scalar(val.copy()));
       }
-      state.setStrVar(name, new EvalState.StrVar.Scalar(val));
       return;
     }
     // Subscripted assignment - parse subscript

@@ -231,4 +231,30 @@ class StringSubscriptProgramTest extends BaseProgramTest {
         """;
     runProgram(source, "WATER" + System.lineSeparator() + "PATH" + System.lineSeparator());
   }
+
+  @Test
+  void testFlyweightStringAssignmentIsolation() {
+    String source =
+        """
+        10 DIM A$(2, 5)
+        20 LET A$(1) = "HELLO"
+        30 LET A$(2) = "WORLD"
+        40 LET T$ = A$(1)
+        50 LET A$(1) = A$(2)
+        60 PRINT T$;" ";A$(1)
+        """;
+    runProgram(source, "HELLO WORLD\n");
+  }
+
+  @Test
+  void testFlyweightStringMathZeroCopy() {
+    String source =
+        """
+        10 DIM A$(2, 5)
+        20 LET A$(1) = "APPLE"
+        30 LET A$(2) = "ZOO"
+        40 IF A$(1) < A$(2) THEN PRINT "OK"
+        """;
+    runProgram(source, "OK\n");
+  }
 }

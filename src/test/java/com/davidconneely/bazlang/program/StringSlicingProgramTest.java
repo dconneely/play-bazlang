@@ -186,4 +186,16 @@ class StringSlicingProgramTest extends BaseProgramTest {
     runProgram(
         source, "ELLO WORLD H" + System.lineSeparator() + "LLO WORLD HE" + System.lineSeparator());
   }
+
+  @Test
+  void testFlyweightStringArrayModification() {
+    String source =
+        """
+        10 DIM A$(1, 5)
+        20 LET A$(1) = "ABCDE"
+        30 LET A$(1, 2 TO 4) = "XYZ"
+        40 PRINT A$(1)
+        """;
+    runProgram(source, "AXYZE\n");
+  }
 }

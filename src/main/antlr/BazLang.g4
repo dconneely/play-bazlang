@@ -144,7 +144,7 @@ expression
 // ANTLR: earlier alternatives = higher precedence (bind tighter)
 // Note: ** (10) binds tighter than unary minus (9), so -2**2 = -(2**2) = -4
 numExpr
-locals [ double cachedNum, String varName ]
+locals [ double cachedNum, Object varRef ]
     : NUM_LITERAL                                          # NumLiteralExpr
     | BIN_LITERAL                                          # BinLiteralExpr
     | NUM_IDENTIFIER                                       # NumVarExpr
@@ -167,7 +167,7 @@ locals [ double cachedNum, String varName ]
 // Subscripts can include indices and an optional slice at the end
 // A$(1), A$(1,2), A$(1 TO 5), A$(TO 5), A$(1, 2 TO 5), etc.
 strExpr
-locals [ Object cachedStr, String varName ]
+locals [ Object cachedStr, Object varRef ]
     : STR_LITERAL                                          # StrLiteralExpr
     | STR_IDENTIFIER                                       # StrVarExpr
     | STR_IDENTIFIER '(' strSubscript ')'                  # StrSubscriptExpr
@@ -216,7 +216,7 @@ numFunc
 
 // Atomic numeric expression (for function arguments without parens)
 numAtom
-locals [ double cachedNum, String varName ]
+locals [ double cachedNum, Object varRef ]
     : NUM_LITERAL
     | BIN_LITERAL
     | NUM_IDENTIFIER
@@ -236,7 +236,7 @@ strFunc
 
 // Atomic string expression (for function arguments without parens)
 strAtom
-locals [ Object cachedStr, String varName ]
+locals [ Object cachedStr, Object varRef ]
     : STR_LITERAL
     | STR_IDENTIFIER
     | STR_IDENTIFIER '(' strSubscript ')'
