@@ -644,7 +644,6 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
     String name = target.STR_IDENTIFIER().getText().toUpperCase();
     var subscript = target.strSubscript();
     if (subscript == null) {
-      // Scalar assignment
       EvalState.StrVar var = state.strVar(name);
       if (var instanceof EvalState.StrVar.Array ca) {
         if (ca.arrayDimensions().length != 0) {
@@ -663,17 +662,30 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
       }
       return;
     }
-    // Subscripted assignment - parse subscript
-    ExpressionEvaluator.ParsedSubscript parsed = exprEvaluator.parseStrSubscript(subscript);
-    int[] indices = parsed.indices();
-    int sliceStart = parsed.sliceStart();
-    int sliceEnd = parsed.sliceEnd();
-    boolean hasSlice = parsed.hasSlice();
+
+    int indicesCount = subscript.indices != null ? subscript.indices.size() : 0;
+    int[] indices = new int[indicesCount];
+    if (indicesCount > 0) {
+      for (int i = 0; i < indicesCount; i++) {
+        indices[i] = (int) evalNum(subscript.indices.get(i));
+      }
+    }
+    int sliceStart = -1;
+    int sliceEnd = -1;
+    boolean hasSlice = subscript.slice != null;
+    if (hasSlice) {
+      if (subscript.slice.start != null) {
+        sliceStart = (int) evalNum(subscript.slice.start);
+      }
+      if (subscript.slice.end != null) {
+        sliceEnd = (int) evalNum(subscript.slice.end);
+      }
+    }
+
     EvalState.StrVar var = state.strVar(name);
     if (var instanceof EvalState.StrVar.Array ca) {
       int n = ca.arrayDimensions().length;
       int byteIndex = -1;
-      int indicesCount = indices.length;
       if (indicesCount == n + 1) {
         byteIndex = indices[n];
         indicesCount--;
@@ -682,11 +694,18 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
         indicesCount--;
       }
       int arrayIdx = exprEvaluator.calculateArrayIndex(ca.arrayDimensions(), indices, indicesCount);
-      int[] bounds =
-          exprEvaluator.calculateSliceBounds(ca.stringLength(), byteIndex, sliceStart, sliceEnd);
-      int sliceLen = bounds[1] - bounds[0] + 1;
+
+      int st = (byteIndex != -1 ? byteIndex : 1) + (sliceStart != -1 ? sliceStart - 1 : 0);
+      int en =
+          (byteIndex != -1 ? byteIndex : 1)
+              + (sliceEnd != -1 ? sliceEnd - 1 : (byteIndex != -1 ? 0 : ca.stringLength() - 1));
+      if (st < 1 || en > ca.stringLength() || st > en + 1) {
+        throw codedException(ReportCode.SUBSCRIPT_WRONG, "Slice out of bounds");
+      }
+
+      int sliceLen = en - st + 1;
       int copyLen = Math.min(sliceLen, val.length());
-      int offset = arrayIdx * ca.stringLength() + (bounds[0] - 1);
+      int offset = arrayIdx * ca.stringLength() + (st - 1);
       for (int i = 0; i < copyLen; i++) {
         ca.data()[offset + i] = (byte) val.byteAt(i);
       }
@@ -696,7 +715,6 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
     } else if (var instanceof EvalState.StrVar.Scalar scalar) {
       BStr str = scalar.value();
       int byteIndex = -1;
-      int indicesCount = indices.length;
       if (indicesCount == 1 && !hasSlice) {
         byteIndex = indices[0];
         indicesCount--;
@@ -705,9 +723,16 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
         throw codedException(
             ReportCode.SUBSCRIPT_WRONG, "Scalar string only takes one index or slice");
       }
-      int[] bounds =
-          exprEvaluator.calculateSliceBounds(str.length(), byteIndex, sliceStart, sliceEnd);
-      state.setStrVar(name, new EvalState.StrVar.Scalar(str.withSlice(bounds[0], bounds[1], val)));
+
+      int st = (byteIndex != -1 ? byteIndex : 1) + (sliceStart != -1 ? sliceStart - 1 : 0);
+      int en =
+          (byteIndex != -1 ? byteIndex : 1)
+              + (sliceEnd != -1 ? sliceEnd - 1 : (byteIndex != -1 ? 0 : str.length() - 1));
+      if (st < 1 || en > str.length() || st > en + 1) {
+        throw codedException(ReportCode.SUBSCRIPT_WRONG, "Slice out of bounds");
+      }
+
+      state.setStrVar(name, new EvalState.StrVar.Scalar(str.withSlice(st, en, val)));
     } else {
       throw codedException(ReportCode.VARIABLE_NOT_FOUND, "Undefined variable: " + name);
     }

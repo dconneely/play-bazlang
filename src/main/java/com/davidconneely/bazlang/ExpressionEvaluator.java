@@ -432,17 +432,28 @@ public class ExpressionEvaluator extends BazLangBaseVisitor<Void> {
   }
 
   private BStr evalStrSubscriptCore(EvalState.StrVar var, StrSubscriptContext subscript) {
-    ParsedSubscript parsed = parseStrSubscript(subscript);
-    int[] indices = parsed.indices();
-    int sliceStart = parsed.sliceStart();
-    int sliceEnd = parsed.sliceEnd();
-    boolean hasSlice = parsed.hasSlice();
-    // Now evaluate the subscript based on variable type
+    int indicesCount = subscript.indices != null ? subscript.indices.size() : 0;
+    int[] indices = new int[indicesCount];
+    if (indicesCount > 0) {
+      for (int i = 0; i < indicesCount; i++) {
+        indices[i] = (int) evalNum(subscript.indices.get(i));
+      }
+    }
+    int sliceStart = -1;
+    int sliceEnd = -1;
+    boolean hasSlice = subscript.slice != null;
+    if (hasSlice) {
+      if (subscript.slice.start != null) {
+        sliceStart = (int) evalNum(subscript.slice.start);
+      }
+      if (subscript.slice.end != null) {
+        sliceEnd = (int) evalNum(subscript.slice.end);
+      }
+    }
+
     if (var instanceof EvalState.StrVar.Array ca) {
       int n = ca.arrayDimensions().length;
       int byteIndex = -1;
-      int indicesCount = indices.length;
-      // Handle char index (extra index beyond array dimensions)
       if (indicesCount == n + 1) {
         byteIndex = indices[n];
         indicesCount--;
@@ -451,15 +462,21 @@ public class ExpressionEvaluator extends BazLangBaseVisitor<Void> {
         indicesCount--;
       }
       int arrayIdx = calculateArrayIndex(ca.arrayDimensions(), indices, indicesCount);
-      int[] bounds = calculateSliceBounds(ca.stringLength(), byteIndex, sliceStart, sliceEnd);
-      int offset = arrayIdx * ca.stringLength() + (bounds[0] - 1);
-      int length = bounds[1] - bounds[0] + 1;
+
+      int st = (byteIndex != -1 ? byteIndex : 1) + (sliceStart != -1 ? sliceStart - 1 : 0);
+      int en =
+          (byteIndex != -1 ? byteIndex : 1)
+              + (sliceEnd != -1 ? sliceEnd - 1 : (byteIndex != -1 ? 0 : ca.stringLength() - 1));
+      if (st < 1 || en > ca.stringLength() || st > en + 1) {
+        throw codedException(ReportCode.SUBSCRIPT_WRONG, "Slice out of bounds");
+      }
+      int offset = arrayIdx * ca.stringLength() + (st - 1);
+      int length = en - st + 1;
       return BStr.fromBytes(ca.data(), offset, length);
     }
     if (var instanceof EvalState.StrVar.Scalar scalar) {
       BStr s = scalar.value();
       int byteIndex = -1;
-      int indicesCount = indices.length;
       if (indicesCount == 1 && !hasSlice) {
         byteIndex = indices[0];
         indicesCount--;
@@ -468,8 +485,14 @@ public class ExpressionEvaluator extends BazLangBaseVisitor<Void> {
         throw codedException(
             ReportCode.SUBSCRIPT_WRONG, "Scalar string only takes one index or slice");
       }
-      int[] bounds = calculateSliceBounds(s.length(), byteIndex, sliceStart, sliceEnd);
-      return s.slice(bounds[0], bounds[1]);
+      int st = (byteIndex != -1 ? byteIndex : 1) + (sliceStart != -1 ? sliceStart - 1 : 0);
+      int en =
+          (byteIndex != -1 ? byteIndex : 1)
+              + (sliceEnd != -1 ? sliceEnd - 1 : (byteIndex != -1 ? 0 : s.length() - 1));
+      if (st < 1 || en > s.length() || st > en + 1) {
+        throw codedException(ReportCode.SUBSCRIPT_WRONG, "Slice out of bounds");
+      }
+      return s.slice(st, en);
     }
     throw new IllegalStateException("Unreachable");
   }
@@ -577,30 +600,6 @@ public class ExpressionEvaluator extends BazLangBaseVisitor<Void> {
 
   // ===== Assignment Helpers =====
 
-  public record ParsedSubscript(int[] indices, int sliceStart, int sliceEnd, boolean hasSlice) {}
-
-  public ParsedSubscript parseStrSubscript(StrSubscriptContext subscript) {
-    int indicesCount = subscript.indices != null ? subscript.indices.size() : 0;
-    int[] indices = new int[indicesCount];
-    int sliceStart = -1;
-    int sliceEnd = -1;
-    boolean hasSlice = subscript.slice != null;
-    if (indicesCount > 0) {
-      for (int i = 0; i < indicesCount; i++) {
-        indices[i] = (int) evalNum(subscript.indices.get(i));
-      }
-    }
-    if (hasSlice) {
-      if (subscript.slice.start != null) {
-        sliceStart = (int) evalNum(subscript.slice.start);
-      }
-      if (subscript.slice.end != null) {
-        sliceEnd = (int) evalNum(subscript.slice.end);
-      }
-    }
-    return new ParsedSubscript(indices, sliceStart, sliceEnd, hasSlice);
-  }
-
   public int calculateArrayIndex(int[] dimensions, int[] indices, int indicesCount) {
     int n = dimensions.length;
     if (indicesCount != n) {
@@ -618,17 +617,6 @@ public class ExpressionEvaluator extends BazLangBaseVisitor<Void> {
       m *= sz;
     }
     return idx;
-  }
-
-  public int[] calculateSliceBounds(int len, int byteIdx, int sliceStart, int sliceEnd) {
-    int st = (byteIdx != -1 ? byteIdx : 1) + (sliceStart != -1 ? sliceStart - 1 : 0);
-    int en =
-        (byteIdx != -1 ? byteIdx : 1)
-            + (sliceEnd != -1 ? sliceEnd - 1 : (byteIdx != -1 ? 0 : len - 1));
-    if (st < 1 || en > len || st > en + 1) {
-      throw codedException(ReportCode.SUBSCRIPT_WRONG, "Slice out of bounds");
-    }
-    return new int[] {st, en};
   }
 
   private void evaluateFnCall(String name, List<ExpressionContext> callArgs) {

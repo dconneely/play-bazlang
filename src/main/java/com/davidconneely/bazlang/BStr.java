@@ -21,6 +21,14 @@ import java.util.Arrays;
 public final class BStr implements Comparable<BStr> {
   public static final BStr EMPTY = new BStr(new byte[0], 0, 0);
 
+  private static final BStr[] BYTE_CACHE = new BStr[256];
+
+  static {
+    for (int i = 0; i < 256; i++) {
+      BYTE_CACHE[i] = new BStr(new byte[] {(byte) i}, 0, 1);
+    }
+  }
+
   private final byte[] bytes;
   private final int offset;
   private final int length;
@@ -40,9 +48,9 @@ public final class BStr implements Comparable<BStr> {
     return new BStr(b, 0, b.length);
   }
 
-  /** Creates a single-byte BStr with the given raw byte value (caller must ensure 0-255). */
+  /** Creates a BStr representing a single byte (0-255). Avoids allocations by using a cache. */
   public static BStr fromByte(int b) {
-    return new BStr(new byte[] {(byte) b}, 0, 1);
+    return BYTE_CACHE[b & 0xFF];
   }
 
   /** Creates a BStr directly from a byte array (the array is copied). */
