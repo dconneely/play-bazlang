@@ -9,7 +9,7 @@ import java.util.Arrays;
  *
  * <p>Indexing is by byte offset (1-based in BazLang expressions; 0-based in the Java API). {@code
  * LEN} returns the byte count. {@code CODE} returns the first byte value (0-255). {@code CHR$}
- * produces a single-byte BStr for codes 0-255; {@code CODEPOINT$} produces the UTF-8 encoding of
+ * produces a single-byte BStr for codes 0-255; {@code UCHR$} produces the UTF-8 encoding of
  * any Unicode codepoint.
  *
  * <p>Conversion to {@code java.lang.String} uses UTF-8 Clean-8 (utf8-c8): valid UTF-8 sequences are
@@ -222,7 +222,7 @@ public final class BStr implements Comparable<BStr> {
    * Returns the first Unicode codepoint decoded from this BStr (valid UTF-8 decoded normally;
    * invalid or lone byte 0xNN returned as the raw value NN), or -1 if this BStr is empty. This uses
    * raw byte fallback (not utf8-c8 synthetics) because it is used for the {@code CODE} and {@code
-   * CODEPOINT} BASIC functions, which must return byte-level numeric values.
+   * UCODE} BASIC functions, which must return byte-level numeric values.
    */
   public int firstCodepoint() {
     if (length == 0) {

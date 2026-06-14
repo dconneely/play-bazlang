@@ -151,36 +151,37 @@ Returns `1` for True, `0` for False.
 ### Math Functions
 
 - **`ABS x`**: Absolute value.
+- **`CODE s`**: Raw byte value (0-255) of first byte in string.
 - **`INT x`**: Round down to integer.
+- **`LEN s`**: Byte length of string (not character count for multi-byte characters).
+- **`PI`**: 3.14159...
 - **`RND`**: Random number between 0 and 1.
 - **`SGN x`**: Sign (-1, 0, 1).
 - **`SQR x`**: Square root.
-- **`PI`**: 3.14159...
-- **`LEN s`**: Byte length of string (not character count for multi-byte characters).
-- **`VAL s`**: Evaluate string as numeric expression (not just parse a literal).
-- **`CODE s`**: Raw byte value (0-255) of first byte in string.
-- **`CODEPOINT s`**: Unicode codepoint value of first character (UTF-8 decoded).
-- **`NEXTCP(s, i)`**: Returns the 1-based byte position of the codepoint that starts immediately
+- **`TIMER`**: Number of ticks (1 tick = 20 milliseconds) since epoch. It increases by `50.0` every second. Fractional ticks are allowed.
+- **`UCNEXT(s, i)`**: Returns the 1-based byte position of the codepoint that starts immediately
   after position `i`. Consistent with utf8-c8: each invalid byte counts as one codepoint of width 1.
   Use for codepoint-by-codepoint iteration:
   ```
   LET I = 1
   WHILE I <= LEN(S$)
-    LET CP = CODEPOINT(S$(I TO LEN(S$)))
-    LET I = NEXTCP(S$, I)
+    LET CP = UCODE(S$(I TO LEN(S$)))
+    LET I = UCNEXT(S$, I)
   WEND
   ```
-- **Trig**: `SIN`, `COS`, `TAN`, `ASN`, `ACS`, `ATN`.
+- **`UCODE s`**: Unicode codepoint value of first character (UTF-8 decoded).
+- **`VAL s`**: Evaluate string as numeric expression (not just parse a literal).
 - **Logs**: `EXP`, `LN`.
+- **Trig**: `SIN`, `COS`, `TAN`, `ASN`, `ACS`, `ATN`.
 
 ### String Functions
 
 - **`CHR$ x`**: Single-byte string with raw byte value `x` (0-255). Error for x > 255.
-- **`CODEPOINT$ x`**: String containing the UTF-8 encoding of Unicode codepoint `x`. Use for
-  codepoints above U+007F, e.g. `CODEPOINT$(9608)` for the full-block character █.
-- **`STR$ x`**: Convert number to string.
-- **`VAL$ s$`**: Evaluate a string as a string expression.
 - **`INKEY$`**: Check key press.
+- **`STR$ x`**: Convert number to string.
+- **`UCHR$ x`**: String containing the UTF-8 encoding of Unicode codepoint `x`. Use for
+  codepoints above U+007F, e.g. `UCHR$(9608)` for the full-block character █.
+- **`VAL$ s$`**: Evaluate a string as a string expression.
 
 ## 6. Slicing
 

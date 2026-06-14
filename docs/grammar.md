@@ -93,12 +93,12 @@ atoms), consistent with ZX Spectrum BASIC functions like `ATTR` and `SCREEN$`:
 
 ```antlr
 numFunc
-    : NEXTCP '(' strExpr ',' numExpr ')'
+    : UCNEXT '(' strExpr ',' numExpr ')'
     // ...
     ;
 ```
 
-This means `NEXTCP(S$, I+1)` works as expected.
+This means `UCNEXT(S$, I+1)` works as expected.
 
 ### String Subscripts and Slicing
 

@@ -6,7 +6,7 @@
 1510 LET term_width = 80 : LET term_height = 25
 1520 LET road_width = 20 : LET road_max_left = term_width - road_width - 2
 1530 LET road_inner = road_width - 1 : LET mid_width = INT(road_inner / 2)
-1540 LET block_full$ = CODEPOINT$(9608) : LET block_lefth$ = CODEPOINT$(9612) : LET block_righth$ = CODEPOINT$(9616)
+1540 LET block_full$ = UCHR$(9608) : LET block_lefth$ = UCHR$(9612) : LET block_righth$ = UCHR$(9616)
 1550 LET bytes_per_block = LEN(block_full$) : LET wall$ = "" : LET spaces$ = ""
 1560 FOR col = 1 TO term_width : LET wall$ = wall$ + block_full$ : LET spaces$ = spaces$ + " " : NEXT col
 1570 DIM road_hpos(term_height)

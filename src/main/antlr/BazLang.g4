@@ -203,19 +203,20 @@ numFunc
     | ASN numAtom
     | ATN numAtom
     | CODE strAtom
-    | CODEPOINT strAtom
     | COS numAtom
     | EXP numAtom
     | INT numAtom
     | LEN strAtom
     | LN numAtom
-    | NEXTCP '(' strExpr ',' numExpr ')'
     | PI
     | RND
     | SGN numAtom
     | SIN numAtom
     | SQR numAtom
     | TAN numAtom
+    | TIMER
+    | UCNEXT '(' strExpr ',' numExpr ')'
+    | UCODE strAtom
     | VAL strAtom
     ;
 
@@ -233,9 +234,9 @@ locals [ double cachedNum, Object varRef ]
 // String functions - parentheses optional, function binds to atom
 strFunc
     : CHR_STR numAtom
-    | CODEPOINT_STR numAtom
     | INKEY_STR
     | STR_STR numAtom
+    | UCHR_STR numAtom
     | VAL_STR strAtom
     ;
 
@@ -304,6 +305,7 @@ NOT     : 'NOT';
 OR      : 'OR';
 STEP    : 'STEP';
 THEN    : 'THEN';
+TIMER   : 'TIMER';
 TO      : 'TO';
 AT      : 'AT';
 TAB     : 'TAB';
@@ -315,15 +317,12 @@ ASN     : 'ASN';
 ATN     : 'ATN';
 CHR_STR : 'CHR$';
 CODE    : 'CODE';
-CODEPOINT_STR : 'CODEPOINT$';
-CODEPOINT : 'CODEPOINT';
 COS     : 'COS';
 EXP     : 'EXP';
 INKEY_STR : 'INKEY$';
 INT     : 'INT';
 LEN     : 'LEN';
 LN      : 'LN';
-NEXTCP  : 'NEXTCP';
 PI      : 'PI';
 RND     : 'RND';
 SGN     : 'SGN';
@@ -331,6 +330,9 @@ SIN     : 'SIN';
 SQR     : 'SQR';
 STR_STR : 'STR$';
 TAN     : 'TAN';
+UCHR_STR : 'UCHR$';
+UCNEXT  : 'UCNEXT';
+UCODE   : 'UCODE';
 VAL     : 'VAL';
 VAL_STR : 'VAL$';
 

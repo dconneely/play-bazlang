@@ -143,13 +143,14 @@
 5060 IF v = 12 THEN LET val_str$ = "Q"
 5070 IF v = 13 THEN LET val_str$ = "K"
 5080 LET suit_str$ = "?"
-5090 IF suit = 0 THEN LET suit_str$ = CODEPOINT$(9824)
-5100 IF suit = 1 THEN LET suit_str$ = CODEPOINT$(9829)
-5110 IF suit = 2 THEN LET suit_str$ = CODEPOINT$(9827)
-5120 IF suit = 3 THEN LET suit_str$ = CODEPOINT$(9830)
-5140 PRINT AT draw_y, draw_x; CODEPOINT$(9484); CODEPOINT$(9472); CODEPOINT$(9472); CODEPOINT$(9472); CODEPOINT$(9488)
-5150 IF LEN(val_str$) = 2 THEN PRINT AT draw_y+1, draw_x; CODEPOINT$(9474); val_str$; " "; CODEPOINT$(9474)
-5160 IF LEN(val_str$) = 1 THEN PRINT AT draw_y+1, draw_x; CODEPOINT$(9474); val_str$; "  "; CODEPOINT$(9474)
-5170 PRINT AT draw_y+2, draw_x; CODEPOINT$(9474); " "; suit_str$; AT draw_y+2, draw_x+4; CODEPOINT$(9474)
-5180 PRINT AT draw_y+3, draw_x; CODEPOINT$(9492); CODEPOINT$(9472); CODEPOINT$(9472); CODEPOINT$(9472); CODEPOINT$(9496)
+5090 IF suit = 0 THEN LET suit_str$ = UCHR$(9824)
+5100 IF suit = 1 THEN LET suit_str$ = UCHR$(9829)
+5110 IF suit = 2 THEN LET suit_str$ = UCHR$(9827)
+5120 IF suit = 3 THEN LET suit_str$ = UCHR$(9830)
+5130 REM draw the card box
+5140 PRINT AT draw_y, draw_x; UCHR$(9484); UCHR$(9472); UCHR$(9472); UCHR$(9472); UCHR$(9488)
+5150 IF LEN(val_str$) = 2 THEN PRINT AT draw_y+1, draw_x; UCHR$(9474); val_str$; " "; UCHR$(9474)
+5160 IF LEN(val_str$) = 1 THEN PRINT AT draw_y+1, draw_x; UCHR$(9474); val_str$; "  "; UCHR$(9474)
+5170 PRINT AT draw_y+2, draw_x; UCHR$(9474); " "; suit_str$; AT draw_y+2, draw_x+4; UCHR$(9474)
+5180 PRINT AT draw_y+3, draw_x; UCHR$(9492); UCHR$(9472); UCHR$(9472); UCHR$(9472); UCHR$(9496)
 5190 RETURN

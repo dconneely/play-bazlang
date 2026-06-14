@@ -5,7 +5,7 @@
 1040 LET center_x = w / 2
 1050 LET center_y = h / 2
 1060 LET s = 45
-1070 LET n1 = 16
+1070 LET n1 = 12
 1080 LET n2 = 8
 1090 LET num_vertices = n1 * n2
 1100 LET num_edges = num_vertices * 2
@@ -17,6 +17,7 @@
 1160 LET a = 0 : LET b = 0 : LET c = 0
 1170 LET u = 0 : REM ### First frame flag ###
 
+1175 LET frames = 0 : LET start_t = TIMER : LET fps = 0
 1180 REM ### Main loop ###
 1190 LET sin_a = SIN(a) : LET cos_a = COS(a)
 1200 LET sin_b = SIN(b) : LET cos_b = COS(b)
@@ -42,15 +43,17 @@
 1390 REM ### Erase old lines ###
 1400 IF u = 0 THEN GOTO 1470
 1420 FOR i = 1 TO num_edges
-1430 LET x1 = INT(old_proj(edges(i, 1), 1)) : LET y1 = INT(old_proj(edges(i, 1), 2))
-1440 LET x2 = INT(old_proj(edges(i, 2), 1)) : LET y2 = INT(old_proj(edges(i, 2), 2))
+1425 LET e1 = edges(i, 1) : LET e2 = edges(i, 2)
+1430 LET x1 = old_proj(e1, 1) : LET y1 = old_proj(e1, 2)
+1440 LET x2 = old_proj(e2, 1) : LET y2 = old_proj(e2, 2)
 1450 PLOT x1, y1 : UNDRAW x2 - x1, y2 - y1
 1460 NEXT i
 
 1470 REM ### Draw new lines ###
 1490 FOR i = 1 TO num_edges
-1500 LET x1 = INT(projected(edges(i, 1), 1)) : LET y1 = INT(projected(edges(i, 1), 2))
-1510 LET x2 = INT(projected(edges(i, 2), 1)) : LET y2 = INT(projected(edges(i, 2), 2))
+1495 LET e1 = edges(i, 1) : LET e2 = edges(i, 2)
+1500 LET x1 = projected(e1, 1) : LET y1 = projected(e1, 2)
+1510 LET x2 = projected(e2, 1) : LET y2 = projected(e2, 2)
 1520 PLOT x1, y1 : DRAW x2 - x1, y2 - y1
 1530 NEXT i
 
@@ -64,7 +67,11 @@
 1600 LET a = a + 0.05
 1610 LET b = b + 0.03
 1620 LET c = c + 0.02
-1630 PRINT AT 0, 0; "Bazlang 3d torus (" ; num_vertices ; " vertices, " ; num_edges ; " edges)"
+1622 LET frames = frames + 1
+1624 LET now = TIMER
+1626 IF now - start_t < 50 THEN GOTO 1630
+1628 LET fps = INT(frames * 50 / (now - start_t)) : LET frames = 0 : LET start_t = now
+1630 PRINT AT 0, 0; "FPS: "; fps; " - Bazlang 3d torus (" ; num_vertices ; " vertices, " ; num_edges ; " edges)    "
 1640 GOTO 1180
 
 

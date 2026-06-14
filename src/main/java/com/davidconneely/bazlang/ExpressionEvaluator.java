@@ -268,14 +268,6 @@ public class ExpressionEvaluator extends BazLangBaseVisitor<Void> {
       numResult = (double) s.byteAt(0);
       return null;
     }
-    if (ctx.CODEPOINT() != null) {
-      BStr s = evalStrAtom(ctx.strAtom());
-      if (s.isEmpty()) {
-        throw codedException(ReportCode.NONSENSE_IN_BASIC, "CODEPOINT of empty string");
-      }
-      numResult = (double) s.firstCodepoint();
-      return null;
-    }
     if (ctx.COS() != null) {
       numResult = Math.cos(evalNumAtom(ctx.numAtom()));
       return null;
@@ -300,16 +292,6 @@ public class ExpressionEvaluator extends BazLangBaseVisitor<Void> {
       numResult = Math.log(arg);
       return null;
     }
-    if (ctx.NEXTCP() != null) {
-      BStr s = evalStr(ctx.strExpr());
-      int pos = (int) evalNum(ctx.numExpr()); // 1-based byte position
-      if (pos < 1 || pos > s.length() + 1) {
-        throw codedException(ReportCode.INTEGER_OUT_OF_RANGE, "NEXTCP position out of range");
-      }
-      numResult = (double) (s.nextCodepointStart(pos - 1) + 1);
-      return null; // numResult = 1-based
-    }
-
     if (ctx.PI() != null) {
       numResult = Math.PI;
       return null;
@@ -338,7 +320,27 @@ public class ExpressionEvaluator extends BazLangBaseVisitor<Void> {
       numResult = Math.tan(evalNumAtom(ctx.numAtom()));
       return null;
     }
-
+    if (ctx.TIMER() != null) {
+      numResult = System.currentTimeMillis() / 20.0;
+      return null;
+    }
+    if (ctx.UCNEXT() != null) {
+      BStr s = evalStr(ctx.strExpr());
+      int pos = (int) evalNum(ctx.numExpr()); // 1-based byte position
+      if (pos < 1 || pos > s.length() + 1) {
+        throw codedException(ReportCode.INTEGER_OUT_OF_RANGE, "UCNEXT position out of range");
+      }
+      numResult = (double) (s.nextCodepointStart(pos - 1) + 1);
+      return null; // numResult = 1-based
+    }
+    if (ctx.UCODE() != null) {
+      BStr s = evalStrAtom(ctx.strAtom());
+      if (s.isEmpty()) {
+        throw codedException(ReportCode.NONSENSE_IN_BASIC, "UCODE of empty string");
+      }
+      numResult = (double) s.firstCodepoint();
+      return null;
+    }
     if (ctx.VAL() != null) {
       String exprStr = evalStrAtom(ctx.strAtom()).toJavaString().trim();
       numResult = evaluateNumericExpression(exprStr);
@@ -562,17 +564,9 @@ public class ExpressionEvaluator extends BazLangBaseVisitor<Void> {
       int code = (int) evalNumAtom(ctx.numAtom());
       if (code < 0 || code > 255) {
         throw codedException(
-            ReportCode.INTEGER_OUT_OF_RANGE, "CHR$ argument out of range (0-255); use CODEPOINT$");
+            ReportCode.INTEGER_OUT_OF_RANGE, "CHR$ argument out of range (0-255); use UCHR$");
       }
       strResult = BStr.fromByte(code);
-      return null;
-    }
-    if (ctx.CODEPOINT_STR() != null) {
-      int code = (int) evalNumAtom(ctx.numAtom());
-      if (code < 0 || !Character.isValidCodePoint(code)) {
-        throw codedException(ReportCode.INTEGER_OUT_OF_RANGE, "CODEPOINT$ argument out of range");
-      }
-      strResult = BStr.fromJavaString(new String(Character.toChars(code)));
       return null;
     }
     if (ctx.INKEY_STR() != null) {
@@ -581,6 +575,14 @@ public class ExpressionEvaluator extends BazLangBaseVisitor<Void> {
     }
     if (ctx.STR_STR() != null) {
       strResult = BStr.fromJavaString(formatNum(evalNumAtom(ctx.numAtom())));
+      return null;
+    }
+    if (ctx.UCHR_STR() != null) {
+      int code = (int) evalNumAtom(ctx.numAtom());
+      if (code < 0 || !Character.isValidCodePoint(code)) {
+        throw codedException(ReportCode.INTEGER_OUT_OF_RANGE, "UCHR$ argument out of range");
+      }
+      strResult = BStr.fromJavaString(new String(Character.toChars(code)));
       return null;
     }
     if (ctx.VAL_STR() != null) {

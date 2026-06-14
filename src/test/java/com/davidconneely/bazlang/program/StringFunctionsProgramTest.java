@@ -12,42 +12,42 @@ class StringFunctionsProgramTest extends BaseProgramTest {
 
   @Test
   void testChrOutOfRange() {
-    // CHR$(n) for n > 255 is an error; use CODEPOINT$ instead
+    // CHR$(n) for n > 255 is an error; use UCHR$ instead
     assertThrows(ReportException.class, () -> runProgram("10 LET A$ = CHR$(256)"));
   }
 
   @Test
-  void testChrVsCodepointSemantics() {
-    // CHR$(n) produces a single raw byte; CODEPOINT$(n) produces UTF-8 encoding
+  void testChrVsUcodeSemantics() {
+    // CHR$(n) produces a single raw byte; UCHR$(n) produces UTF-8 encoding
     EvalState state =
         runProgram(
             """
             10 LET A = LEN(CHR$(255))
             20 LET B = CODE(CHR$(255))
-            30 LET C = LEN(CODEPOINT$(255))
-            40 LET D = CODEPOINT(CODEPOINT$(255))
+            30 LET C = LEN(UCHR$(255))
+            40 LET D = UCODE(UCHR$(255))
             """);
     assertEquals(1.0, state.numVar("A")); // CHR$(255) = 1 raw byte
     assertEquals(255.0, state.numVar("B")); // CODE returns raw byte value
     assertEquals(2.0, state.numVar("C")); // U+00FF encodes to 2 UTF-8 bytes
-    assertEquals(255.0, state.numVar("D")); // CODEPOINT recovers U+00FF codepoint
+    assertEquals(255.0, state.numVar("D")); // UCODE recovers U+00FF codepoint
   }
 
   @Test
-  void testCodepointStrFunction() {
-    // CODEPOINT$(n) produces the UTF-8 encoding of Unicode codepoint n
+  void testUchrStrFunction() {
+    // UCHR$(n) produces the UTF-8 encoding of Unicode codepoint n
     EvalState state =
         runProgram(
             """
-            10 LET A$ = CODEPOINT$(65)
-            20 LET B$ = CODEPOINT$(9608)
+            10 LET A$ = UCHR$(65)
+            20 LET B$ = UCHR$(9608)
             30 LET C = LEN(B$)
-            40 LET D = CODEPOINT(B$)
+            40 LET D = UCODE(B$)
             """);
     assertEquals("A", ((EvalState.StrVar.Scalar) state.strVar("A$")).value().toJavaString());
     assertEquals("█", ((EvalState.StrVar.Scalar) state.strVar("B$")).value().toJavaString());
     assertEquals(3.0, state.numVar("C")); // █ is 3 UTF-8 bytes
-    assertEquals(9608.0, state.numVar("D")); // CODEPOINT recovers original value
+    assertEquals(9608.0, state.numVar("D")); // UCODE recovers original value
   }
 
   @Test
@@ -57,8 +57,8 @@ class StringFunctionsProgramTest extends BaseProgramTest {
         runProgram(
             """
             10 LET A = LEN("Hello")
-            20 LET B = LEN(CODEPOINT$(9608))
-            30 LET C = LEN(CODEPOINT$(128512))
+            20 LET B = LEN(UCHR$(9608))
+            30 LET C = LEN(UCHR$(128512))
             """);
     assertEquals(5.0, state.numVar("A")); // ASCII: bytes == chars
     assertEquals(3.0, state.numVar("B")); // █ U+2588: 3 bytes
@@ -66,16 +66,16 @@ class StringFunctionsProgramTest extends BaseProgramTest {
   }
 
   @Test
-  void testNextcpFunction() {
-    // NEXTCP(s$, i) returns the 1-based byte position of the next codepoint after position i
+  void testUcnextFunction() {
+    // UCNEXT(s$, i) returns the 1-based byte position of the next codepoint after position i
     EvalState state =
         runProgram(
             """
-            10 LET S$ = CODEPOINT$(9608)
-            20 LET A = NEXTCP(S$, 1)
+            10 LET S$ = UCHR$(9608)
+            20 LET A = UCNEXT(S$, 1)
             30 LET B$ = "Hello"
-            40 LET C = NEXTCP(B$, 1)
-            50 LET D = NEXTCP(B$, 5)
+            40 LET C = UCNEXT(B$, 1)
+            50 LET D = UCNEXT(B$, 5)
             """);
     assertEquals(4.0, state.numVar("A")); // █ is 3 bytes: next cp starts at 4
     assertEquals(2.0, state.numVar("C")); // 'H' is 1 byte: next cp starts at 2
@@ -83,27 +83,27 @@ class StringFunctionsProgramTest extends BaseProgramTest {
   }
 
   @Test
-  void testNextcpFunctionBrokenLead() {
+  void testUcnextFunctionBrokenLead() {
     // [0xC2, 0x20]: broken lead 0xC2 advances by 1, then ASCII space advances by 1
     EvalState state =
         runProgram(
             """
             10 LET S$ = CHR$(194) + CHR$(32)
-            20 LET A = NEXTCP(S$, 1)
-            30 LET B = NEXTCP(S$, 2)
+            20 LET A = UCNEXT(S$, 1)
+            30 LET B = UCNEXT(S$, 2)
             """);
     assertEquals(2.0, state.numVar("A")); // 0xC2 invalid → next at 2
     assertEquals(3.0, state.numVar("B")); // 0x20 ASCII → next at 3
   }
 
   @Test
-  void testNextcpFunctionInvalidByte() {
-    // NEXTCP on an invalid byte advances by 1 (utf8-c8: each invalid byte is one "codepoint")
+  void testUcnextFunctionInvalidByte() {
+    // UCNEXT on an invalid byte advances by 1 (utf8-c8: each invalid byte is one "codepoint")
     EvalState state =
         runProgram(
             """
             10 LET S$ = CHR$(255)
-            20 LET A = NEXTCP(S$, 1)
+            20 LET A = UCNEXT(S$, 1)
             """);
     assertEquals(2.0, state.numVar("A"));
   }
@@ -141,7 +141,7 @@ class StringFunctionsProgramTest extends BaseProgramTest {
   @Test
   void testInvalidUtf8SequenceRawByteHandling() {
     // Tests that strings can be used as raw byte buffers with invalid UTF-8 sequences,
-    // and that CODE accesses the exact raw bytes, while CODEPOINT treats them as invalid
+    // and that CODE accesses the exact raw bytes, while UCODE treats them as invalid
     // individual byte codepoints.
     EvalState state =
         runProgram(
@@ -150,11 +150,11 @@ class StringFunctionsProgramTest extends BaseProgramTest {
             20 LET L = LEN(A$)
             30 LET B1 = CODE(A$(1))
             40 LET B2 = CODE(A$(2))
-            50 LET CP = CODEPOINT(A$)
+            50 LET CP = UCODE(A$)
             """);
     assertEquals(2.0, state.numVar("L")); // Exactly 2 raw bytes
     assertEquals(128.0, state.numVar("B1")); // CODE retrieves raw byte 128
     assertEquals(255.0, state.numVar("B2")); // CODE retrieves raw byte 255
-    assertEquals(128.0, state.numVar("CP")); // CODEPOINT returns raw byte value if invalid
+    assertEquals(128.0, state.numVar("CP")); // UCODE returns raw byte value if invalid
   }
 }
