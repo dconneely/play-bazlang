@@ -1,6 +1,7 @@
 980 REM ### Hangman ###
 990 REM ### Guess the hidden word before the man is hanged ###
 1000 RAND 0
+1005 PLOTMODE 4
 1010 LET rand_idx = INT(RND * 50) + 1
 1020 RESTORE 2660
 1030 FOR i = 1 TO rand_idx : READ target_word$ : NEXT i
@@ -22,9 +23,10 @@
 2170 IF misses > 0 THEN GOSUB 2530
 2180 IF guess_word$ = clean_word$ THEN GOTO 2400
 2190 IF misses = 6 THEN GOTO 2420
-2200 PRINT AT 22, 0; "Guess a letter: ";
-2210 INPUT a$
-2220 IF LEN(a$) < 1 THEN GOTO 2200
+2200 PRINT AT PRINTH - 2, 0; "Guess a letter: ";
+2210 LET a$ = INKEY$
+2220 IF LEN(a$) < 1 THEN GOTO 2210
+2225 PRINT a$;
 2230 LET user_guess$ = a$(1)
 2240 LET ascii_code = CODE user_guess$
 2250 IF ascii_code >= 97 AND ascii_code <= 122 THEN LET user_guess$ = CHR$(ascii_code - 32)
@@ -43,29 +45,30 @@
 2380 LET letters$ = letters$ + user_guess$ + " "
 2390 GOTO 2120
 2400 REM ### Win ###
-2410 PRINT AT 20, 0; "You guessed it: "; clean_word$ : PRINT "You win!" : GOTO 2610
+2410 PRINT AT PRINTH - 4, 0; "You guessed it: "; clean_word$ : PRINT "You win!" : GOTO 2610
 2420 REM ### Lose ###
-2430 PRINT AT 20, 0; "You died! word was "; clean_word$ : GOTO 2610
+2430 PRINT AT PRINTH - 4, 0; "You died! word was "; clean_word$ : GOTO 2610
 2440 REM ### Subroutine: draw gallows ###
-2450 PRINT AT 5, 25; "__________"
-2460 PRINT AT 6, 35; "|"
-2470 FOR y = 6 TO 18
-2480 PRINT AT y, 25; "|"
-2490 NEXT y
-2500 PRINT AT 6, 26; "/"
-2510 PRINT AT 18, 22; "________________"
+2445 LET cx = INT(PLOTW / 2) : LET cy = INT(PLOTH / 2)
+2450 PLOT cx - 30, cy - 20 : DRAW 60, 0
+2460 PLOT cx - 10, cy - 20 : DRAW 0, 36
+2470 DRAW 30, 0 : DRAW 0, -6
+2480 PLOT cx - 10, cy + 10 : DRAW 12, 6
 2520 RETURN
 2530 REM ### Subroutine: draw hangman ###
-2540 IF misses >= 1 THEN PRINT AT 7, 35; "O"
-2550 IF misses >= 2 THEN PRINT AT 8, 35; "|" : PRINT AT 9, 35; "|" : PRINT AT 10, 35; "|"
-2560 IF misses >= 3 THEN PRINT AT 8, 34; "/"
-2570 IF misses >= 4 THEN PRINT AT 8, 36; "\"
-2580 IF misses >= 5 THEN PRINT AT 11, 34; "/"
-2590 IF misses >= 6 THEN PRINT AT 11, 36; "\"
+2535 LET cx = INT(PLOTW / 2) : LET cy = INT(PLOTH / 2)
+2540 IF misses >= 1 THEN PLOT cx + 18, cy + 10 : DRAW 4, 0 : DRAW 0, -2 : DRAW -4, 0 : DRAW 0, 2
+2550 IF misses >= 2 THEN PLOT cx + 20, cy + 8 : DRAW 0, -10
+2560 IF misses >= 3 THEN PLOT cx + 20, cy + 4 : DRAW -8, -4
+2570 IF misses >= 4 THEN PLOT cx + 20, cy + 4 : DRAW 8, -4
+2580 IF misses >= 5 THEN PLOT cx + 20, cy - 2 : DRAW -8, -6
+2590 IF misses >= 6 THEN PLOT cx + 20, cy - 2 : DRAW 8, -6
 2600 RETURN
 2610 REM ### Play again ###
-2620 PRINT "Play again (y/n)? ";
-2630 INPUT r$
+2620 PRINT "Play again (Y/N)? ";
+2630 LET r$ = INKEY$
+2632 IF LEN(r$) < 1 THEN GOTO 2630
+2635 PRINT r$
 2640 IF r$ = "Y" OR r$ = "y" THEN GOTO 1010
 2650 PRINT "Thanks for playing!"
 2660 REM ### Words data ###

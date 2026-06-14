@@ -1,10 +1,10 @@
 1000 REM ### 3D rotating torus (donut) ###
 1010 PLOTMODE 8
-1020 LET w = 160
-1030 LET h = 96
+1020 LET w = PLOTW
+1030 LET h = PLOTH
 1040 LET center_x = w / 2
 1050 LET center_y = h / 2
-1060 LET s = 45
+1060 LET s = h * 0.47
 1070 LET n1 = 12
 1080 LET n2 = 8
 1090 LET num_vertices = n1 * n2
@@ -17,7 +17,7 @@
 1160 LET a = 0 : LET b = 0 : LET c = 0
 1170 LET u = 0 : REM ### First frame flag ###
 
-1175 LET frames = 0 : LET start_t = TIMER : LET fps = 0
+1175 LET cycles = 0 : LET start_t = FRAMES : LET cps = 0
 1180 REM ### Main loop ###
 1190 LET sin_a = SIN(a) : LET cos_a = COS(a)
 1200 LET sin_b = SIN(b) : LET cos_b = COS(b)
@@ -67,11 +67,11 @@
 1600 LET a = a + 0.05
 1610 LET b = b + 0.03
 1620 LET c = c + 0.02
-1622 LET frames = frames + 1
-1624 LET now = TIMER
+1622 LET cycles = cycles + 1
+1624 LET now = FRAMES
 1626 IF now - start_t < 50 THEN GOTO 1630
-1628 LET fps = INT(frames * 50 / (now - start_t)) : LET frames = 0 : LET start_t = now
-1630 PRINT AT 0, 0; "FPS: "; fps; " - Bazlang 3d torus (" ; num_vertices ; " vertices, " ; num_edges ; " edges)    "
+1628 LET cps = INT(cycles * 50 / (now - start_t)) : LET cycles = 0 : LET start_t = now
+1630 PRINT AT 0, 0; "Bazlang 3D Torus - " ; num_vertices ; " vertices, " ; num_edges ; " edges, "; cps; " CPS    "
 1640 GOTO 1180
 
 

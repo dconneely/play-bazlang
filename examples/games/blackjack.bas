@@ -5,18 +5,24 @@
 1050 DIM deck(52)
 1060 DIM player_hand(10)
 1070 DIM dealer_hand(10)
-1080 GOSUB 3500 : CLS
+1080 GOSUB 3500
 1100 REM ### Start of round ###
+1105 CLS
 1110 PRINT AT 0,0; "Player: $"; money; "   Dealer: $"; dealer_money; "        "
 1120 IF money <= 0 THEN PRINT AT 10,10; "Game over! You went broke." : STOP
 1130 IF dealer_money <= 0 THEN PRINT AT 10,10; "Game over! You broke the bank!" : STOP
-1140 PRINT AT 1,0; "Choose bet: (1) $10  (2) $50  (3) $100  (4) All in!    "
+1140 PRINT AT 1,0; "Choose bet: (1) $10  (2) $50  (3) $100  (4) All in!  (5) Custom"
 1200 LET k$ = INKEY$
 1210 IF k$ = "1" THEN LET bet = 10 : GOTO 1300
 1220 IF k$ = "2" THEN LET bet = 50 : GOTO 1300
 1230 IF k$ = "3" THEN LET bet = 100 : GOTO 1300
 1240 IF k$ = "4" THEN LET bet = money : GOTO 1300
+1245 IF k$ = "5" THEN GOTO 1260
 1250 GOTO 1200
+1260 PRINT AT 2,0; "Enter bet amount: $";
+1270 INPUT bet
+1280 IF bet <= 0 THEN PRINT AT 3,0; "Must be > $0!          " : GOTO 1260
+1290 IF bet > money THEN PRINT AT 3,0; "Insufficient funds!   " : GOTO 1260
 1300 IF bet > money THEN GOTO 1200
 1310 CLS
 1320 PRINT AT 0,0; "Player: $"; money; "   Dealer: $"; dealer_money; "   Bet: $"; bet; "    "
@@ -144,9 +150,9 @@
 5070 IF v = 13 THEN LET val_str$ = "K"
 5080 LET suit_str$ = "?"
 5090 IF suit = 0 THEN LET suit_str$ = UCHR$(9824)
-5100 IF suit = 1 THEN LET suit_str$ = UCHR$(9829)
+5100 IF suit = 1 THEN LET suit_str$ = UCHR$(9825)
 5110 IF suit = 2 THEN LET suit_str$ = UCHR$(9827)
-5120 IF suit = 3 THEN LET suit_str$ = UCHR$(9830)
+5120 IF suit = 3 THEN LET suit_str$ = UCHR$(9826)
 5130 REM draw the card box
 5140 PRINT AT draw_y, draw_x; UCHR$(9484); UCHR$(9472); UCHR$(9472); UCHR$(9472); UCHR$(9488)
 5150 IF LEN(val_str$) = 2 THEN PRINT AT draw_y+1, draw_x; UCHR$(9474); val_str$; " "; UCHR$(9474)

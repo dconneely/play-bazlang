@@ -37,6 +37,31 @@ public class StreamDisplay implements BazLangDisplay {
   }
 
   @Override
+  public int printWidth() {
+    return 80;
+  }
+
+  @Override
+  public int printHeight() {
+    return 24;
+  }
+
+  @Override
+  public int plotWidth() {
+    return 80;
+  }
+
+  @Override
+  public int plotHeight() {
+    return 24;
+  }
+
+  @Override
+  public int plotMode() {
+    return 4; // QuadrantMode
+  }
+
+  @Override
   public void cls() {
     currentCol = 0;
     // Cannot clear screen on standard stream

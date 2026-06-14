@@ -1,8 +1,8 @@
 1000 REM ### 3D rotating Rubik's cube ###
 1010 PLOTMODE 8
-1020 LET w = 160 : LET h = 96
+1020 LET w = PLOTW : LET h = PLOTH
 1030 LET center_x = w / 2 : LET center_y = h / 2
-1040 LET s = 70
+1040 LET s = h * 0.7
 1050 LET num_vertices = 64
 1060 LET num_edges = 36
 1070 DIM vertices(num_vertices, 3)
@@ -12,7 +12,7 @@
 1110 GOSUB 4000 : REM ### Init data ###
 1120 LET a = 0 : LET b = 0 : LET c = 0
 1130 LET u = 0
-1140 LET frames = 0 : LET start_t = TIMER : LET fps = 0
+1140 LET cycles = 0 : LET start_t = FRAMES : LET cps = 0
 2000 REM ### Main loop ###
 2010 LET sin_a = SIN(a) : LET cos_a = COS(a)
 2020 LET sin_b = SIN(b) : LET cos_b = COS(b)
@@ -55,11 +55,11 @@
 3220 LET a = a + 0.05
 3230 LET b = b + 0.03
 3240 LET c = c + 0.02
-3250 LET frames = frames + 1
-3252 LET now = TIMER
+3250 LET cycles = cycles + 1
+3252 LET now = FRAMES
 3254 IF now - start_t < 50 THEN GOTO 3260
-3256 LET fps = INT(frames * 50 / (now - start_t)) : LET frames = 0 : LET start_t = now
-3258 PRINT AT 0, 0; "FPS: "; fps; "   "
+3256 LET cps = INT(cycles * 50 / (now - start_t)) : LET cycles = 0 : LET start_t = now
+3258 PRINT AT 0, 0; "Bazlang 3D Cube - " ; num_vertices ; " vertices, " ; num_edges ; " edges, "; cps; " CPS    "
 3260 GOTO 2000
 4000 RESTORE 5000
 4010 FOR i = 1 TO num_vertices

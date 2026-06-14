@@ -205,16 +205,21 @@ numFunc
     | CODE strAtom
     | COS numAtom
     | EXP numAtom
+    | FRAMES
     | INT numAtom
     | LEN strAtom
     | LN numAtom
     | PI
+    | PLOTH
+    | PLOTMODE
+    | PLOTW
+    | PRINTH
+    | PRINTW
     | RND
     | SGN numAtom
     | SIN numAtom
     | SQR numAtom
     | TAN numAtom
-    | TIMER
     | UCNEXT '(' strExpr ',' numExpr ')'
     | UCODE strAtom
     | VAL strAtom
@@ -305,7 +310,6 @@ NOT     : 'NOT';
 OR      : 'OR';
 STEP    : 'STEP';
 THEN    : 'THEN';
-TIMER   : 'TIMER';
 TO      : 'TO';
 AT      : 'AT';
 TAB     : 'TAB';
@@ -319,11 +323,16 @@ CHR_STR : 'CHR$';
 CODE    : 'CODE';
 COS     : 'COS';
 EXP     : 'EXP';
+FRAMES  : 'FRAMES';
 INKEY_STR : 'INKEY$';
 INT     : 'INT';
 LEN     : 'LEN';
 LN      : 'LN';
 PI      : 'PI';
+PLOTH   : 'PLOTH';
+PLOTW   : 'PLOTW';
+PRINTH  : 'PRINTH';
+PRINTW  : 'PRINTW';
 RND     : 'RND';
 SGN     : 'SGN';
 SIN     : 'SIN';

@@ -9,8 +9,8 @@ import java.util.Arrays;
  *
  * <p>Indexing is by byte offset (1-based in BazLang expressions; 0-based in the Java API). {@code
  * LEN} returns the byte count. {@code CODE} returns the first byte value (0-255). {@code CHR$}
- * produces a single-byte BStr for codes 0-255; {@code UCHR$} produces the UTF-8 encoding of
- * any Unicode codepoint.
+ * produces a single-byte BStr for codes 0-255; {@code UCHR$} produces the UTF-8 encoding of any
+ * Unicode codepoint.
  *
  * <p>Conversion to {@code java.lang.String} uses UTF-8 Clean-8 (utf8-c8): valid UTF-8 sequences are
  * decoded to their natural Unicode codepoints; any invalid or lone byte 0xNN is represented as the

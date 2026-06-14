@@ -231,6 +231,31 @@ public class TerminalDisplay implements BazLangDisplay {
   }
 
   @Override
+  public int printWidth() {
+    return cellBuffer.cols();
+  }
+
+  @Override
+  public int printHeight() {
+    return cellBuffer.rows();
+  }
+
+  @Override
+  public int plotWidth() {
+    return cellBuffer.pixelWidth();
+  }
+
+  @Override
+  public int plotHeight() {
+    return cellBuffer.pixelHeight();
+  }
+
+  @Override
+  public int plotMode() {
+    return cellBuffer.mode().pixelsPerCellX() * cellBuffer.mode().pixelsPerCellY();
+  }
+
+  @Override
   public void cls() {
     clearBuffer();
     render();

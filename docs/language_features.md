@@ -152,13 +152,18 @@ Returns `1` for True, `0` for False.
 
 - **`ABS x`**: Absolute value.
 - **`CODE s`**: Raw byte value (0-255) of first byte in string.
+- **`FRAMES`**: Number of ticks (1 tick = 20 milliseconds) since epoch. It increases by `50.0` every second. Fractional ticks are allowed.
 - **`INT x`**: Round down to integer.
 - **`LEN s`**: Byte length of string (not character count for multi-byte characters).
 - **`PI`**: 3.14159...
+- **`PLOTH`**: Logical plot height for the current PLOTMODE (in pixels).
+- **`PLOTMODE`**: The current pixel mode id (e.g. 1, 2, 4, 6, 8).
+- **`PLOTW`**: Logical plot width for the current PLOTMODE (in pixels).
+- **`PRINTH`**: Screen height (in character cells).
+- **`PRINTW`**: Screen width (in character cells).
 - **`RND`**: Random number between 0 and 1.
 - **`SGN x`**: Sign (-1, 0, 1).
 - **`SQR x`**: Square root.
-- **`TIMER`**: Number of ticks (1 tick = 20 milliseconds) since epoch. It increases by `50.0` every second. Fractional ticks are allowed.
 - **`UCNEXT(s, i)`**: Returns the 1-based byte position of the codepoint that starts immediately
   after position `i`. Consistent with utf8-c8: each invalid byte counts as one codepoint of width 1.
   Use for codepoint-by-codepoint iteration:

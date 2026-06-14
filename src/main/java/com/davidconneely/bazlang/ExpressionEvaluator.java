@@ -276,6 +276,10 @@ public class ExpressionEvaluator extends BazLangBaseVisitor<Void> {
       numResult = requireFinite(Math.exp(evalNumAtom(ctx.numAtom())));
       return null;
     }
+    if (ctx.FRAMES() != null) {
+      numResult = System.currentTimeMillis() / 20.0;
+      return null;
+    }
     if (ctx.INT() != null) {
       numResult = Math.floor(evalNumAtom(ctx.numAtom()));
       return null;
@@ -294,6 +298,26 @@ public class ExpressionEvaluator extends BazLangBaseVisitor<Void> {
     }
     if (ctx.PI() != null) {
       numResult = Math.PI;
+      return null;
+    }
+    if (ctx.PLOTH() != null) {
+      numResult = display.plotHeight();
+      return null;
+    }
+    if (ctx.PLOTMODE() != null) {
+      numResult = display.plotMode();
+      return null;
+    }
+    if (ctx.PLOTW() != null) {
+      numResult = display.plotWidth();
+      return null;
+    }
+    if (ctx.PRINTH() != null) {
+      numResult = display.printHeight();
+      return null;
+    }
+    if (ctx.PRINTW() != null) {
+      numResult = display.printWidth();
       return null;
     }
     if (ctx.RND() != null) {
@@ -318,10 +342,6 @@ public class ExpressionEvaluator extends BazLangBaseVisitor<Void> {
     }
     if (ctx.TAN() != null) {
       numResult = Math.tan(evalNumAtom(ctx.numAtom()));
-      return null;
-    }
-    if (ctx.TIMER() != null) {
-      numResult = System.currentTimeMillis() / 20.0;
       return null;
     }
     if (ctx.UCNEXT() != null) {

@@ -38,6 +38,10 @@ public final class CellBuffer {
     this.mode = mode;
   }
 
+  public PixelMode mode() {
+    return mode;
+  }
+
   public int rows() {
     return rows;
   }

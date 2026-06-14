@@ -1,9 +1,12 @@
 980 REM ### Racer game ###
-990 REM ### Avoid the walls as the road twists AND turns (80 x 25 window) ###
+990 REM ### Avoid the walls as the road twists AND turns ###
 1000 CLS
 1010 RAND
 1500 REM ### Initialise constants ###
-1510 LET term_width = 80 : LET term_height = 25
+1510 LET term_width = 80 : IF PRINTW < 80 THEN LET term_width = PRINTW
+1512 LET term_height = 25 : IF PRINTH < 25 THEN LET term_height = PRINTH
+1514 LET offset_x = INT((PRINTW - term_width) / 2)
+1516 LET offset_y = INT((PRINTH - term_height) / 2)
 1520 LET road_width = 20 : LET road_max_left = term_width - road_width - 2
 1530 LET road_inner = road_width - 1 : LET mid_width = INT(road_inner / 2)
 1540 LET block_full$ = UCHR$(9608) : LET block_lefth$ = UCHR$(9612) : LET block_righth$ = UCHR$(9616)
@@ -41,7 +44,7 @@
 2290 REM ### Draw road (top row, 0, shows the score and instructions) ###
 2300 FOR row = 1 TO term_height - 1
 2310 LET left_idx = road_hpos(row+1) : LET int_left = INT(left_idx) : LET fraction = left_idx - int_left
-2320 PRINT AT row, 0; wall$(1 TO int_left * bytes_per_block);
+2320 PRINT AT row + offset_y, offset_x; wall$(1 TO int_left * bytes_per_block);
 2330 IF fraction < 0.5 THEN PRINT " ";
 2340 IF fraction >= 0.5 THEN PRINT block_lefth$;
 2350 LET dash$ = " " : IF (score + row) / 2 = INT((score + row) / 2) THEN LET dash$ = "|"
@@ -51,21 +54,23 @@
 2390 PRINT wall$(1 TO (term_width - (int_left + road_inner + 2)) * bytes_per_block);
 2400 NEXT row
 2410 REM ### Draw car and score ###
-2420 PRINT AT car_vpos, car_hpos; "|H|"; AT car_vpos + 1, car_hpos; " ¯ ";
-2430 PRINT AT 0, 1; " Score: "; score; " "; AT 0, term_width - 19; " Steer with A & D ";
+2420 PRINT AT car_vpos + offset_y, car_hpos + offset_x; "|H|"; AT car_vpos + 1 + offset_y, car_hpos + offset_x; " ¯ ";
+2430 PRINT AT offset_y, offset_x + 1; " Score: "; score; " "; AT offset_y, offset_x + term_width - 19; " Steer with A & D ";
 2440 LET score = score + 5 + INT(ABS(road_curve) * 5)
 2450 PAUSE car_vpos / 5
 2460 GOTO 2050
 2470 REM ### Game over ###
-2480 PRINT AT term_height - 4, 0; "Crash! Final score: "; score
-2490 IF score < 500 THEN PRINT "Did you forget your glasses?"
-2500 IF score >= 500 AND score < 1500 THEN PRINT "Not bad for a learner!"
-2510 IF score >= 1500 AND score < 2500 THEN PRINT "Getting the hang of it!"
-2520 IF score >= 2500 AND score < 3500 THEN PRINT "Vroom vroom! Professional driver!"
-2530 IF score >= 3500 AND score < 5000 THEN PRINT "Speed demon! Almost there!"
-2540 IF score >= 5000 THEN PRINT "Formula 1 champion!"
-2550 PRINT AT term_height - 2, 0; "Play again? (Y/N) ";
-2560 LET k$ = INKEY$
-2570 IF k$ = "Y" OR k$ = "y" THEN GOTO 2000
-2580 IF k$ = "N" OR k$ = "n" THEN STOP
-2590 GOTO 2560
+2480 PRINT AT term_height - 4 + offset_y, offset_x; "Crash! Final score: "; score; "          "
+2490 LET msg$ = ""
+2500 IF score < 500 THEN LET msg$ = "Did you forget your glasses?"
+2510 IF score >= 500 AND score < 1500 THEN LET msg$ = "Not bad for a learner!"
+2520 IF score >= 1500 AND score < 2500 THEN LET msg$ = "Getting the hang of it!"
+2530 IF score >= 2500 AND score < 3500 THEN LET msg$ = "Vroom vroom! Pro driver!"
+2540 IF score >= 3500 AND score < 5000 THEN LET msg$ = "Speed demon! Almost there!"
+2545 IF score >= 5000 THEN LET msg$ = "Formula 1 champion!"
+2550 PRINT AT term_height - 3 + offset_y, offset_x; msg$; "                                 "
+2560 PRINT AT term_height - 2 + offset_y, offset_x; "Play again? (Y/N)                  ";
+2570 LET k$ = INKEY$
+2580 IF k$ = "Y" OR k$ = "y" THEN GOTO 2000
+2590 IF k$ = "N" OR k$ = "n" THEN STOP
+2600 GOTO 2570

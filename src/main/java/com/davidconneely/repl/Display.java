@@ -16,6 +16,16 @@ public interface Display extends AutoCloseable {
 
   void plot(int x, int y);
 
+  int printWidth();
+
+  int printHeight();
+
+  int plotWidth();
+
+  int plotHeight();
+
+  int plotMode();
+
   void unplot(int x, int y);
 
   void scroll();

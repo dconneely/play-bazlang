@@ -42,6 +42,12 @@ class MathFunctionsProgramTest extends BaseProgramTest {
         10 LET P = PI
         20 LET R = RND
         30 LET I$ = INKEY$
+        40 LET F = FRAMES
+        50 LET W1 = PRINTH
+        60 LET W2 = PRINTW
+        70 LET W3 = PLOTH
+        80 LET W4 = PLOTW
+        90 LET W5 = PLOTMODE
         """;
     EvalState state = runProgram(source);
     assertEquals(Math.PI, state.numVar("P"), 0.0001);
@@ -49,6 +55,12 @@ class MathFunctionsProgramTest extends BaseProgramTest {
     double r = state.numVar("R");
     assertTrue(r >= 0.0 && r < 1.0);
     assertEquals("", ((EvalState.StrVar.Scalar) state.strVar("I$")).value().toJavaString());
+    assertTrue(state.numVar("F") > 0);
+    assertTrue(state.numVar("W1") > 0);
+    assertTrue(state.numVar("W2") > 0);
+    assertTrue(state.numVar("W3") > 0);
+    assertTrue(state.numVar("W4") > 0);
+    assertEquals(4.0, state.numVar("W5")); // default QuadrantMode = 4
   }
 
   @Test
