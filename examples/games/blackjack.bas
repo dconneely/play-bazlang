@@ -2,16 +2,19 @@
 1010 REM ### Classic card game - try to get 21 without going bust ###
 1020 RAND 0
 1040 LET money = 1000 : LET dealer_money = 10000
+1045 LET ox = 0 : LET oy = 0
+1046 IF PRINTW > 80 THEN LET ox = INT((PRINTW - 80) / 2)
+1047 IF PRINTH > 25 THEN LET oy = INT((PRINTH - 25) / 2)
 1050 DIM deck(52)
 1060 DIM player_hand(10)
 1070 DIM dealer_hand(10)
 1080 GOSUB 3500
 1100 REM ### Start of round ###
 1105 CLS
-1110 PRINT AT 0,0; "Player: $"; money; "   Dealer: $"; dealer_money; "        "
-1120 IF money <= 0 THEN PRINT AT 10,10; "Game over! You went broke." : STOP
-1130 IF dealer_money <= 0 THEN PRINT AT 10,10; "Game over! You broke the bank!" : STOP
-1140 PRINT AT 1,0; "Choose bet: (1) $10  (2) $50  (3) $100  (4) All in!  (5) Custom"
+1110 PRINT AT oy, ox; "Player: $"; money; "   Dealer: $"; dealer_money; "        "
+1120 IF money <= 0 THEN PRINT AT oy+10, ox+10; "Game over! You went broke." : STOP
+1130 IF dealer_money <= 0 THEN PRINT AT oy+10, ox+10; "Game over! You broke the bank!" : STOP
+1140 PRINT AT oy+1, ox; "Choose bet: (1) $10  (2) $50  (3) $100  (4) All in!  (5) Custom"
 1200 LET k$ = INKEY$
 1210 IF k$ = "1" THEN LET bet = 10 : GOTO 1300
 1220 IF k$ = "2" THEN LET bet = 50 : GOTO 1300
@@ -19,13 +22,13 @@
 1240 IF k$ = "4" THEN LET bet = money : GOTO 1300
 1245 IF k$ = "5" THEN GOTO 1260
 1250 GOTO 1200
-1260 PRINT AT 2,0; "Enter bet amount: $";
+1260 PRINT AT oy+2, ox; "Enter bet amount: $";
 1270 INPUT bet
-1280 IF bet <= 0 THEN PRINT AT 3,0; "Must be > $0!          " : GOTO 1260
-1290 IF bet > money THEN PRINT AT 3,0; "Insufficient funds!   " : GOTO 1260
+1280 IF bet <= 0 THEN PRINT AT oy+3, ox; "Must be > $0!          " : GOTO 1260
+1290 IF bet > money THEN PRINT AT oy+3, ox; "Insufficient funds!   " : GOTO 1260
 1300 IF bet > money THEN GOTO 1200
 1310 CLS
-1320 PRINT AT 0,0; "Player: $"; money; "   Dealer: $"; dealer_money; "   Bet: $"; bet; "    "
+1320 PRINT AT oy, ox; "Player: $"; money; "   Dealer: $"; dealer_money; "   Bet: $"; bet; "    "
 1330 REM ### Start game ###
 1340 REM ### Deal ###
 1350 LET player_cards = 0
@@ -43,24 +46,24 @@
 1470 LET dealer_hand(2) = c
 1480 LET dealer_cards = 2
 1500 REM ### Draw initial ###
-1510 PRINT AT 3,0; "Dealer:"
-1520 LET draw_x = 0
-1530 LET draw_y = 4
+1510 PRINT AT oy+3, ox; "Dealer:"
+1520 LET draw_x = ox
+1530 LET draw_y = oy+4
 1540 LET c = dealer_hand(1)
 1550 GOSUB 5000
-1560 LET draw_x = 6
+1560 LET draw_x = ox+6
 1570 LET c = 0
 1580 GOSUB 5000
-1600 PRINT AT 9,0; "Player:"
-1610 LET draw_x = 0
-1620 LET draw_y = 10
+1600 PRINT AT oy+9, ox; "Player:"
+1610 LET draw_x = ox
+1620 LET draw_y = oy+10
 1630 FOR i = 1 TO player_cards
 1640 LET c = player_hand(i)
 1650 GOSUB 5000
 1660 LET draw_x = draw_x + 6
 1670 NEXT i
 1700 REM ## Player turn ###
-1710 PRINT AT 15,0; "Stick (S) or Twist (T)?"
+1710 PRINT AT oy+15, ox; "Stick (S) or Twist (T)?"
 1720 LET k$ = INKEY$
 1730 IF k$ = "t" OR k$ = "T" THEN GOTO 1800
 1740 IF k$ = "s" OR k$ = "S" THEN GOTO 1900
@@ -69,15 +72,15 @@
 1810 GOSUB 4000
 1820 LET player_cards = player_cards + 1
 1830 LET player_hand(player_cards) = c
-1840 LET draw_x = (player_cards-1)*6
-1850 LET draw_y = 10
+1840 LET draw_x = ox + (player_cards-1)*6
+1850 LET draw_y = oy+10
 1860 GOSUB 5000
 1870 GOSUB 4500
-1880 IF s > 21 THEN PRINT AT 15,0; "Bust! you lose.           " : LET money = money - bet : LET dealer_money = dealer_money + bet : GOTO 3000
-1890 GOTO 1710
+1880 IF s > 21 THEN PRINT AT oy+15, ox; "Bust! you lose.           " : LET money = money - bet : LET dealer_money = dealer_money + bet : GOTO 3000
+1890 GOTO 1700
 1900 REM ### Dealer turn ###
-1910 LET draw_x = 6
-1920 LET draw_y = 4
+1910 LET draw_x = ox+6
+1920 LET draw_y = oy+4
 1930 LET c = dealer_hand(2)
 1940 GOSUB 5000
 2000 REM ### Calc dealer score dealer_score ###
@@ -95,21 +98,21 @@
 2120 GOSUB 4000
 2130 LET dealer_cards = dealer_cards + 1
 2140 LET dealer_hand(dealer_cards) = c
-2150 LET draw_x = (dealer_cards-1)*6
-2160 LET draw_y = 4
+2150 LET draw_x = ox + (dealer_cards-1)*6
+2160 LET draw_y = oy+4
 2170 GOSUB 5000
 2180 PAUSE 20
 2190 GOTO 2000
 2500 REM ### End round ###
 2510 GOSUB 4500
 2520 LET player_score = s
-2530 PRINT AT 15,0; "Player: "; player_score; "  dealer: "; dealer_score; "      "
-2540 IF dealer_score > 21 THEN PRINT "Dealer bust! you win!" : LET money = money + bet : LET dealer_money = dealer_money - bet : GOTO 3000
-2550 IF player_score > dealer_score THEN PRINT "You win!" : LET money = money + bet : LET dealer_money = dealer_money - bet : GOTO 3000
-2560 IF player_score < dealer_score THEN PRINT "Dealer wins." : LET money = money - bet : LET dealer_money = dealer_money + bet : GOTO 3000
-2570 PRINT "Push." : GOTO 3000
-3000 PRINT "Press any key"
-3010 IF INKEY$ = "" THEN GOTO 3010
+2530 PRINT AT oy+15, ox; "Player: "; player_score; "  dealer: "; dealer_score; "      "
+2540 IF dealer_score > 21 THEN PRINT AT oy+16, ox; "Dealer bust! you win!" : LET money = money + bet : LET dealer_money = dealer_money - bet : GOTO 3000
+2550 IF player_score > dealer_score THEN PRINT AT oy+16, ox; "You win!" : LET money = money + bet : LET dealer_money = dealer_money - bet : GOTO 3000
+2560 IF player_score < dealer_score THEN PRINT AT oy+16, ox; "Dealer wins." : LET money = money - bet : LET dealer_money = dealer_money + bet : GOTO 3000
+2570 PRINT AT oy+16, ox; "Push." : GOTO 3000
+3000 PRINT AT oy+17, ox; "Press any key"
+3010 IF UINKEY$ = "" THEN GOTO 3010
 3020 GOTO 1100
 3500 REM ### Init deck ###
 3510 FOR i = 1 TO 52

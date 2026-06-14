@@ -242,6 +242,7 @@ strFunc
     | INKEY_STR
     | STR_STR numAtom
     | UCHR_STR numAtom
+    | UINKEY_STR
     | VAL_STR strAtom
     ;
 
@@ -258,92 +259,93 @@ locals [ Object cachedStr, Object varRef ]
 // ===== Lexer Rules =====
 
 // Keywords - Statements
-CLEAR   : 'CLEAR';
-CLS     : 'CLS';
-CONT    : 'CONT';
-CONTINUE: 'CONTINUE';
-DATA    : 'DATA';
-DEF     : 'DEF';
-DELETE  : 'DELETE';
-DIM     : 'DIM';
-DRAW    : 'DRAW';
-EDIT    : 'EDIT';
-FAST    : 'FAST';
-FN      : 'FN';
-FOR     : 'FOR';
-GO      : 'GO';
-GOSUB   : 'GOSUB';
-GOTO    : 'GOTO';
-IF      : 'IF';
-INPUT   : 'INPUT';
-LET     : 'LET';
-LIST    : 'LIST';
-LLIST   : 'LLIST';
-LOAD    : 'LOAD';
-LPRINT  : 'LPRINT';
-NEW     : 'NEW';
-NEXT    : 'NEXT';
-PAUSE   : 'PAUSE';
-PLOT    : 'PLOT';
-PLOTMODE: 'PLOTMODE';
-PRINT   : 'PRINT';
-RAND    : 'RAND';
+CLEAR    : 'CLEAR';
+CLS      : 'CLS';
+CONT     : 'CONT';
+CONTINUE : 'CONTINUE';
+DATA     : 'DATA';
+DEF      : 'DEF';
+DELETE   : 'DELETE';
+DIM      : 'DIM';
+DRAW     : 'DRAW';
+EDIT     : 'EDIT';
+FAST     : 'FAST';
+FN       : 'FN';
+FOR      : 'FOR';
+GO       : 'GO';
+GOSUB    : 'GOSUB';
+GOTO     : 'GOTO';
+IF       : 'IF';
+INPUT    : 'INPUT';
+LET      : 'LET';
+LIST     : 'LIST';
+LLIST    : 'LLIST';
+LOAD     : 'LOAD';
+LPRINT   : 'LPRINT';
+NEW      : 'NEW';
+NEXT     : 'NEXT';
+PAUSE    : 'PAUSE';
+PLOT     : 'PLOT';
+PLOTMODE : 'PLOTMODE';
+PRINT    : 'PRINT';
+RAND     : 'RAND';
 RANDOMISE: 'RANDOMISE';
 RANDOMIZE: 'RANDOMIZE';
-READ    : 'READ';
-REFORMAT: 'REFORMAT';
-RENUM   : 'RENUM';
-RESTORE : 'RESTORE';
-RETURN  : 'RETURN';
-RUN     : 'RUN';
-SAVE    : 'SAVE';
-SCROLL  : 'SCROLL';
-SLOW    : 'SLOW';
-STOP    : 'STOP';
-SUB     : 'SUB';
-UNPLOT  : 'UNPLOT';
-UNDRAW  : 'UNDRAW';
+READ     : 'READ';
+REFORMAT : 'REFORMAT';
+RENUM    : 'RENUM';
+RESTORE  : 'RESTORE';
+RETURN   : 'RETURN';
+RUN      : 'RUN';
+SAVE     : 'SAVE';
+SCROLL   : 'SCROLL';
+SLOW     : 'SLOW';
+STOP     : 'STOP';
+SUB      : 'SUB';
+UNPLOT   : 'UNPLOT';
+UNDRAW   : 'UNDRAW';
 
 // Keywords - Operators
-AND     : 'AND';
-NOT     : 'NOT';
-OR      : 'OR';
-STEP    : 'STEP';
-THEN    : 'THEN';
-TO      : 'TO';
-AT      : 'AT';
-TAB     : 'TAB';
+AND      : 'AND';
+NOT      : 'NOT';
+OR       : 'OR';
+STEP     : 'STEP';
+THEN     : 'THEN';
+TO       : 'TO';
+AT       : 'AT';
+TAB      : 'TAB';
 
 // Functions
-ABS     : 'ABS';
-ACS     : 'ACS';
-ASN     : 'ASN';
-ATN     : 'ATN';
-CHR_STR : 'CHR$';
-CODE    : 'CODE';
-COS     : 'COS';
-EXP     : 'EXP';
-FRAMES  : 'FRAMES';
-INKEY_STR : 'INKEY$';
-INT     : 'INT';
-LEN     : 'LEN';
-LN      : 'LN';
-PI      : 'PI';
-PLOTH   : 'PLOTH';
-PLOTW   : 'PLOTW';
-PRINTH  : 'PRINTH';
-PRINTW  : 'PRINTW';
-RND     : 'RND';
-SGN     : 'SGN';
-SIN     : 'SIN';
-SQR     : 'SQR';
-STR_STR : 'STR$';
-TAN     : 'TAN';
+ABS      : 'ABS';
+ACS      : 'ACS';
+ASN      : 'ASN';
+ATN      : 'ATN';
+CHR_STR  : 'CHR$';
+CODE     : 'CODE';
+COS      : 'COS';
+EXP      : 'EXP';
+FRAMES   : 'FRAMES';
+INKEY_STR: 'INKEY$';
+INT      : 'INT';
+LEN      : 'LEN';
+LN       : 'LN';
+PI       : 'PI';
+PLOTH    : 'PLOTH';
+PLOTW    : 'PLOTW';
+PRINTH   : 'PRINTH';
+PRINTW   : 'PRINTW';
+RND      : 'RND';
+SGN      : 'SGN';
+SIN      : 'SIN';
+SQR      : 'SQR';
+STR_STR  : 'STR$';
+TAN      : 'TAN';
 UCHR_STR : 'UCHR$';
-UCNEXT  : 'UCNEXT';
-UCODE   : 'UCODE';
-VAL     : 'VAL';
-VAL_STR : 'VAL$';
+UCNEXT   : 'UCNEXT';
+UCODE    : 'UCODE';
+UINKEY_STR: 'UINKEY$';
+VAL      : 'VAL';
+VAL_STR  : 'VAL$';
 
 // Identifiers - matched case-insensitively, normalized to uppercase
 STR_IDENTIFIER
@@ -364,19 +366,19 @@ STR_LITERAL
     ;
 
 // Whitespace and comments
-NEWLINE : '\r'? '\n';
-WS      : [ \t\r]+ -> skip;
-LINE_COMMENT : '#' ~[\r\n]* -> skip;
+NEWLINE  : '\r'? '\n';
+WS       : [ \t\r]+ -> skip;
+LINE_COMMENT: '#' ~[\r\n]* -> skip;
 
 // REM consumes rest of line as part of the token
-REM     : 'REM' ~[\r\n]* ;
+REM      : 'REM' ~[\r\n]* ;
 
 // Operators (order matters for multi-char operators)
-POWER   : '**';
-CARET   : '^';
-LE      : '<=';
-GE      : '>=';
-NE      : '<>';
+POWER    : '**';
+CARET    : '^';
+LE       : '<=';
+GE       : '>=';
+NE       : '<>';
 
 // BIN: binary literal notation (Spectrum). Digits 0/1 only, spaces allowed between digits.
 // BIN is a keyword prefix - the lexer captures the whole token including the BIN prefix.

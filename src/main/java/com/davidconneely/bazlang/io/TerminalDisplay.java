@@ -517,6 +517,47 @@ public class TerminalDisplay implements BazLangDisplay {
   }
 
   @Override
+  public String uinkey() {
+    renderIfDue(true);
+    String lastKey = "";
+    try {
+      while (true) {
+        int ch = engine.readKey(1L);
+        if (ch < 0) {
+          return lastKey;
+        }
+        if (ch == 3) { // Ctrl+C
+          breakFlag.set(true);
+          return "";
+        }
+        StringBuilder sb = new StringBuilder();
+        sb.append((char) ch);
+        if (ch == 27) { // ESC sequence
+          int nextCh = engine.readKey(1L);
+          if (nextCh >= 0) {
+            sb.append((char) nextCh);
+            if (nextCh == '[' || nextCh == 'O') {
+              while (true) {
+                int seqCh = engine.readKey(1L);
+                if (seqCh < 0) {
+                  break;
+                }
+                sb.append((char) seqCh);
+                if (seqCh >= 0x40 && seqCh <= 0x7E) {
+                  break;
+                }
+              }
+            }
+          }
+        }
+        lastKey = sb.toString();
+      }
+    } catch (IOException e) {
+      return lastKey;
+    }
+  }
+
+  @Override
   public void waitForKey() {
     if (!inputVisible) {
       inputVisible = true;

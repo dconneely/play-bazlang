@@ -18,9 +18,9 @@
 2030 LET car_vpos = term_height - 5 : LET score = 0 : LET road_curve = 0
 2040 FOR row = 1 TO term_height : LET road_hpos(row) = road_left : NEXT row
 2050 REM ### Main loop ###
-2060 LET k$ = INKEY$
-2070 IF k$ = "a" OR k$ = "A" THEN LET car_hpos = car_hpos - 1
-2080 IF k$ = "d" OR k$ = "D" THEN LET car_hpos = car_hpos + 1
+2060 LET k$ = UINKEY$
+2070 IF k$="a" OR k$="A" OR k$="h" OR k$="H" OR k$=CHR$(27)+"[D" OR k$=CHR$(27)+"OD" THEN LET car_hpos = car_hpos - 1
+2080 IF k$="d" OR k$="D" OR k$="l" OR k$="L" OR k$=CHR$(27)+"[C" OR k$=CHR$(27)+"OC" THEN LET car_hpos = car_hpos + 1
 2090 REM ### Update road ###
 2100 LET chance = RND
 2110 IF chance < 0.15 THEN LET road_curve = road_curve - 0.3
@@ -55,7 +55,7 @@
 2400 NEXT row
 2410 REM ### Draw car and score ###
 2420 PRINT AT car_vpos + offset_y, car_hpos + offset_x; "|H|"; AT car_vpos + 1 + offset_y, car_hpos + offset_x; " ¯ ";
-2430 PRINT AT offset_y, offset_x + 1; " Score: "; score; " "; AT offset_y, offset_x + term_width - 19; " Steer with A & D ";
+2430 PRINT AT offset_y, offset_x + 1; " Score: "; score; " "; AT offset_y, offset_x + term_width - 19; " Use Arrows/AD/HL ";
 2440 LET score = score + 5 + INT(ABS(road_curve) * 5)
 2450 PAUSE car_vpos / 5
 2460 GOTO 2050

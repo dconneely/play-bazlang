@@ -6,7 +6,7 @@ BazLang uses ANTLR 4 to generate its lexer and parser from a declarative grammar
 ## Why ANTLR?
 
 | Aspect              | Hand-Written              | ANTLR                        |
-| ------------------- | ------------------------- | ---------------------------- |
+|---------------------|---------------------------|------------------------------|
 | **Style**           | Imperative (how to parse) | Declarative (what to parse)  |
 | **Precedence**      | Manual climbing           | Automatic from structure     |
 | **Maintainability** | Tedious changes           | Update grammar rules         |
@@ -50,8 +50,9 @@ options { caseInsensitive=true; }
 PRINT : 'PRINT';  // Matches PRINT, print, Print, etc.
 ```
 
-This allows `PRINT`, `print`, and `Print` to all match the same token. Variable names are normalized
-to uppercase when building the AST, so `myVar`, `MYVAR`, and `MyVar` all refer to the same variable.
+This allows `PRINT`, `print`, and `Print` to all match the same token. Variable names are
+normalised to uppercase when building the AST, so `myVar`, `MYVAR`, and `MyVar` all refer
+to the same variable.
 
 String literal _contents_ remain case-sensitive since they're captured as-is between quotes.
 
@@ -64,7 +65,7 @@ STR_IDENTIFIER : [A-Z][A-Z0-9_]*'$' ;
 NUM_IDENTIFIER : [A-Z][A-Z0-9_]* ;
 ```
 
-This ensures `A` is always a numeric variable and `A$` is always a string variable, without
+This ensures `a` is always a numeric variable and `a$` is always a string variable, without
 ambiguity. (The pattern uses `[A-Z]` but matches case-insensitively due to the grammar option.)
 
 ### Function Binding
@@ -88,8 +89,8 @@ numAtom
 
 This means `SIN PI/2` parses as `SIN(PI)/2`, not `SIN(PI/2)`.
 
-Multi-argument functions require explicit parentheses and comma-separated full expressions (not just
-atoms), consistent with ZX Spectrum BASIC functions like `ATTR` and `SCREEN$`:
+Multi-argument functions require explicit parentheses and comma-separated full expressions
+(not just atoms), consistent with ZX Spectrum BASIC functions like `ATTR` and `SCREEN$`:
 
 ```antlr
 numFunc
@@ -98,7 +99,7 @@ numFunc
     ;
 ```
 
-This means `UCNEXT(S$, I+1)` works as expected.
+This means `UCNEXT(a$, i+1)` works as expected.
 
 ### String Subscripts and Slicing
 
@@ -112,8 +113,8 @@ strSubscript
     ;
 ```
 
-This supports: `A$(1)`, `A$(1,2)`, `A$(1 TO 5)`, `A$(TO 5)`, `A$(1 TO)`, `A$(TO)`, `A$(1, 2 TO 5)`,
-etc.
+This supports: `a$(1)`, `a$(1,2)`, `a$(1 TO 5)`, `a$(TO 5)`, `a$(1 TO)`, `a$(TO)`,
+`a$(1, 2 TO 5)`, etc.
 
 ## Adding New Features
 

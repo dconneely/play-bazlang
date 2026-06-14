@@ -230,6 +230,11 @@ public class MockDisplay implements BazLangDisplay {
   }
 
   @Override
+  public String uinkey() {
+    return inkey();
+  }
+
+  @Override
   public void setFastMode(boolean fast) {}
 
   @Override

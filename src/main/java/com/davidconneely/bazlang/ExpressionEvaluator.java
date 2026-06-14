@@ -605,6 +605,10 @@ public class ExpressionEvaluator extends BazLangBaseVisitor<Void> {
       strResult = BStr.fromJavaString(new String(Character.toChars(code)));
       return null;
     }
+    if (ctx.UINKEY_STR() != null) {
+      strResult = BStr.fromJavaString(display.uinkey());
+      return null;
+    }
     if (ctx.VAL_STR() != null) {
       String exprStr = evalStrAtom(ctx.strAtom()).toJavaString().trim();
       strResult = evaluateStringExpression(exprStr);

@@ -198,6 +198,12 @@ public class StreamDisplay implements BazLangDisplay {
   }
 
   @Override
+  public String uinkey() {
+    // Simple fallback for streams without ANSI handling
+    return inkey();
+  }
+
+  @Override
   public void setFastMode(boolean fast) {
     // No-op for stream display
   }

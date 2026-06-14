@@ -2,6 +2,10 @@
 990 REM ### Guess the hidden word before the man is hanged ###
 1000 RAND 0
 1005 PLOTMODE 4
+1006 LET tw = PRINTW : LET th = PRINTH
+1007 LET ox = 0 : LET oy = 0 : LET eh = th
+1008 IF tw > 80 THEN LET ox = INT((tw - 80) / 2)
+1009 IF th > 25 THEN LET oy = INT((th - 25) / 2) : LET eh = 25
 1010 LET rand_idx = INT(RND * 50) + 1
 1020 RESTORE 2660
 1030 FOR i = 1 TO rand_idx : READ target_word$ : NEXT i
@@ -16,16 +20,16 @@
 2100 LET letters$ = ""
 2110 REM ### Main loop ###
 2120 CLS
-2130 PRINT AT 0, 0; "Word: "; guess_word$
-2140 PRINT AT 1, 0; "Misses: "; misses; "/6"
-2150 PRINT AT 2, 0; "Guessed: "; letters$
+2130 PRINT AT oy, ox; "Word: "; guess_word$
+2140 PRINT AT oy + 1, ox; "Misses: "; misses; "/6"
+2150 PRINT AT oy + 2, ox; "Guessed: "; letters$
 2160 GOSUB 2440
 2170 IF misses > 0 THEN GOSUB 2530
 2180 IF guess_word$ = clean_word$ THEN GOTO 2400
 2190 IF misses = 6 THEN GOTO 2420
-2200 PRINT AT PRINTH - 2, 0; "Guess a letter: ";
-2210 LET a$ = INKEY$
-2220 IF LEN(a$) < 1 THEN GOTO 2210
+2200 PRINT AT oy + eh - 2, ox; "Guess a letter: ";
+2210 LET a$ = UINKEY$
+2220 IF LEN(a$) <> 1 THEN GOTO 2210
 2225 PRINT a$;
 2230 LET user_guess$ = a$(1)
 2240 LET ascii_code = CODE user_guess$
@@ -45,9 +49,9 @@
 2380 LET letters$ = letters$ + user_guess$ + " "
 2390 GOTO 2120
 2400 REM ### Win ###
-2410 PRINT AT PRINTH - 4, 0; "You guessed it: "; clean_word$ : PRINT "You win!" : GOTO 2610
+2410 PRINT AT oy + eh - 4, ox; "You guessed it: "; clean_word$ : PRINT AT oy + eh - 3, ox; "You win!" : GOTO 2610
 2420 REM ### Lose ###
-2430 PRINT AT PRINTH - 4, 0; "You died! word was "; clean_word$ : GOTO 2610
+2430 PRINT AT oy + eh - 4, ox; "You died! word was "; clean_word$ : GOTO 2610
 2440 REM ### Subroutine: draw gallows ###
 2445 LET cx = INT(PLOTW / 2) : LET cy = INT(PLOTH / 2)
 2450 PLOT cx - 30, cy - 20 : DRAW 60, 0
@@ -65,12 +69,12 @@
 2590 IF misses >= 6 THEN PLOT cx + 20, cy - 2 : DRAW 8, -6
 2600 RETURN
 2610 REM ### Play again ###
-2620 PRINT "Play again (Y/N)? ";
-2630 LET r$ = INKEY$
-2632 IF LEN(r$) < 1 THEN GOTO 2630
+2620 PRINT AT oy + eh - 1, ox; "Play again (Y/N)? ";
+2630 LET r$ = UINKEY$
+2632 IF LEN(r$) <> 1 THEN GOTO 2630
 2635 PRINT r$
 2640 IF r$ = "Y" OR r$ = "y" THEN GOTO 1010
-2650 PRINT "Thanks for playing!"
+2650 PRINT AT oy + eh - 1, ox + 18; "Thanks for playing!"
 2660 REM ### Words data ###
 2670 DATA "ELEPHANT", "MOUNTAIN", "SUNFLOWER", "HOSPITAL", "UMBRELLA", "PENGUIN", "ASTRONAUT", "TELESCOPE", "DIAMOND", "BUTTERFLY"
 2680 DATA "FESTIVAL", "KANGAROO", "TREASURE", "ORCHESTRA", "CHAMPION", "ADVENTURE", "VOLCANO", "OCTOPUS", "SYMPHONY", "PYRAMID"
