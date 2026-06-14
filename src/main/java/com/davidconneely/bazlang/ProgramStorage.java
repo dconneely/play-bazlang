@@ -61,6 +61,9 @@ public class ProgramStorage {
   public void save(String filename) {
     try (var writer = Files.newBufferedWriter(Path.of(filename))) {
       for (var entry : state.program().entrySet()) {
+        if (entry.getKey() == 0) {
+          continue; // Skip immediate execution line
+        }
         ProgramLine line = entry.getValue();
         writer.write(line.lineNumber() + " " + line.sourceText());
         writer.newLine();

@@ -1,83 +1,83 @@
-980 REM ### Hangman ###
-990 REM ### Guess the hidden word before the man is hanged ###
-1000 RAND 0
-1005 PLOTMODE 4
-1006 LET tw = PRINTW : LET th = PRINTH
-1007 LET ox = 0 : LET oy = 0 : LET eh = th
-1008 IF tw > 80 THEN LET ox = INT((tw - 80) / 2)
-1009 IF th > 25 THEN LET oy = INT((th - 25) / 2) : LET eh = 25
-1010 LET rand_idx = INT(RND * 50) + 1
-1020 RESTORE 2660
-1030 FOR i = 1 TO rand_idx : READ target_word$ : NEXT i
+1000 REM ### Hangman ###
+1010 REM ### Guess the hidden word before the man is hanged ###
+1020 RANDOMIZE
+1030 PLOTMODE 4
+1040 LET tw = PRINTW : LET th = PRINTH
+1050 LET ox = 0 : LET oy = 0 : LET eh = th
+1060 IF tw > 80 THEN LET ox = INT ((tw - 80) / 2)
+1070 IF th > 25 THEN LET oy = INT ((th - 25) / 2) : LET eh = 25
+1080 LET rand_idx = INT (RND * 50) + 1
+1090 RESTORE 6000
+1100 FOR i = 1 TO rand_idx : READ target_word$ : NEXT i
 2000 REM ### Find word length and set up working copy ###
-2010 LET word_len = LEN(target_word$)
-2040 LET clean_word$ = target_word$(1 TO word_len)
-2050 LET guess_word$ = ""
-2060 FOR i = 1 TO word_len
-2070 LET guess_word$ = guess_word$ + "-"
-2080 NEXT i
-2090 LET misses = 0
-2100 LET letters$ = ""
-2110 REM ### Main loop ###
-2120 CLS
-2130 PRINT AT oy, ox; "Word: "; guess_word$
-2140 PRINT AT oy + 1, ox; "Misses: "; misses; "/6"
-2150 PRINT AT oy + 2, ox; "Guessed: "; letters$
-2160 GOSUB 2440
-2170 IF misses > 0 THEN GOSUB 2530
-2180 IF guess_word$ = clean_word$ THEN GOTO 2400
-2190 IF misses = 6 THEN GOTO 2420
-2200 PRINT AT oy + eh - 2, ox; "Guess a letter: ";
-2210 LET a$ = UINKEY$
-2220 IF LEN(a$) <> 1 THEN GOTO 2210
-2225 PRINT a$;
-2230 LET user_guess$ = a$(1)
-2240 LET ascii_code = CODE user_guess$
-2250 IF ascii_code >= 97 AND ascii_code <= 122 THEN LET user_guess$ = CHR$(ascii_code - 32)
-2260 FOR i = 1 TO LEN(letters$)
-2270 IF letters$(i) = user_guess$ THEN GOTO 2200
-2280 NEXT i
-2290 FOR i = 1 TO word_len
-2300 IF guess_word$(i) = user_guess$ THEN GOTO 2200
-2310 NEXT i
-2320 LET found = 0
-2330 FOR i = 1 TO word_len
-2340 IF clean_word$(i) = user_guess$ THEN LET guess_word$(i) = user_guess$ : LET found = 1
-2350 NEXT i
-2360 IF found <> 0 THEN GOTO 2120
-2370 LET misses = misses + 1
-2380 LET letters$ = letters$ + user_guess$ + " "
-2390 GOTO 2120
-2400 REM ### Win ###
-2410 PRINT AT oy + eh - 4, ox; "You guessed it: "; clean_word$ : PRINT AT oy + eh - 3, ox; "You win!" : GOTO 2610
-2420 REM ### Lose ###
-2430 PRINT AT oy + eh - 4, ox; "You died! word was "; clean_word$ : GOTO 2610
-2440 REM ### Subroutine: draw gallows ###
-2445 LET cx = INT(PLOTW / 2) : LET cy = INT(PLOTH / 2)
-2450 PLOT cx - 30, cy - 20 : DRAW 60, 0
-2460 PLOT cx - 10, cy - 20 : DRAW 0, 36
-2470 DRAW 30, 0 : DRAW 0, -6
-2480 PLOT cx - 10, cy + 10 : DRAW 12, 6
-2520 RETURN
-2530 REM ### Subroutine: draw hangman ###
-2535 LET cx = INT(PLOTW / 2) : LET cy = INT(PLOTH / 2)
-2540 IF misses >= 1 THEN PLOT cx + 18, cy + 10 : DRAW 4, 0 : DRAW 0, -2 : DRAW -4, 0 : DRAW 0, 2
-2550 IF misses >= 2 THEN PLOT cx + 20, cy + 8 : DRAW 0, -10
-2560 IF misses >= 3 THEN PLOT cx + 20, cy + 4 : DRAW -8, -4
-2570 IF misses >= 4 THEN PLOT cx + 20, cy + 4 : DRAW 8, -4
-2580 IF misses >= 5 THEN PLOT cx + 20, cy - 2 : DRAW -8, -6
-2590 IF misses >= 6 THEN PLOT cx + 20, cy - 2 : DRAW 8, -6
-2600 RETURN
-2610 REM ### Play again ###
-2620 PRINT AT oy + eh - 1, ox; "Play again (Y/N)? ";
-2630 LET r$ = UINKEY$
-2632 IF LEN(r$) <> 1 THEN GOTO 2630
-2635 PRINT r$
-2640 IF r$ = "Y" OR r$ = "y" THEN GOTO 1010
-2650 PRINT AT oy + eh - 1, ox + 18; "Thanks for playing!"
-2660 REM ### Words data ###
-2670 DATA "ELEPHANT", "MOUNTAIN", "SUNFLOWER", "HOSPITAL", "UMBRELLA", "PENGUIN", "ASTRONAUT", "TELESCOPE", "DIAMOND", "BUTTERFLY"
-2680 DATA "FESTIVAL", "KANGAROO", "TREASURE", "ORCHESTRA", "CHAMPION", "ADVENTURE", "VOLCANO", "OCTOPUS", "SYMPHONY", "PYRAMID"
-2690 DATA "BICYCLE", "AQUARIUM", "CHOCOLATE", "DETECTIVE", "GALAXY", "HARMONY", "ISLAND", "JUNGLE", "LIBRARY", "MYSTERY"
-2700 DATA "NOTEBOOK", "OASIS", "PHANTOM", "QUARTZ", "RAINBOW", "SANDWICH", "TORNADO", "UNIVERSE", "VAMPIRE", "WATERFALL"
-2710 DATA "XYLOPHONE", "YACHT", "ZEPPELIN", "BLIZZARD", "CARNIVAL", "DINOSAUR", "ECLIPSE", "FIREWORK", "GLACIER", "HORIZON"
+2010 LET word_len = LEN (target_word$)
+2020 LET clean_word$ = target_word$(1 TO word_len)
+2030 LET guess_word$ = ""
+2040 FOR i = 1 TO word_len
+2050 LET guess_word$ = guess_word$ + "-"
+2060 NEXT i
+2070 LET misses = 0
+2080 LET letters$ = ""
+2090 REM ### Main loop ###
+2100 CLS
+2110 PRINT AT oy, ox; "Word: "; guess_word$
+2120 PRINT AT oy + 1, ox; "Misses: "; misses; "/6"
+2130 PRINT AT oy + 2, ox; "Guessed: "; letters$
+2140 GO SUB 3000
+2150 IF misses > 0 THEN GO SUB 4000
+2160 IF guess_word$ = clean_word$ THEN GO TO 2390
+2170 IF misses = 6 THEN GO TO 2410
+2180 PRINT AT oy + eh - 2, ox; "Guess a letter: "; 
+2190 LET a$ = UINKEY$
+2200 IF LEN (a$) <> 1 THEN GO TO 2190
+2210 PRINT a$; 
+2220 LET user_guess$ = a$(1)
+2230 LET ascii_code = CODE user_guess$
+2240 IF ascii_code >= 97 AND ascii_code <= 122 THEN LET user_guess$ = CHR$ (ascii_code - 32)
+2250 FOR i = 1 TO LEN (letters$)
+2260 IF letters$(i) = user_guess$ THEN GO TO 2180
+2270 NEXT i
+2280 FOR i = 1 TO word_len
+2290 IF guess_word$(i) = user_guess$ THEN GO TO 2180
+2300 NEXT i
+2310 LET found = 0
+2320 FOR i = 1 TO word_len
+2330 IF clean_word$(i) = user_guess$ THEN LET guess_word$(i) = user_guess$ : LET found = 1
+2340 NEXT i
+2350 IF found <> 0 THEN GO TO 2100
+2360 LET misses = misses + 1
+2370 LET letters$ = letters$ + user_guess$ + " "
+2380 GO TO 2100
+2390 REM ### Win ###
+2400 PRINT AT oy + eh - 4, ox; "You guessed it: "; clean_word$ : PRINT AT oy + eh - 3, ox; "You win!" : GO TO 5000
+2410 REM ### Lose ###
+2420 PRINT AT oy + eh - 4, ox; "You died! It was: "; clean_word$ : GO TO 5000
+3000 REM ### Subroutine: Render gallows ###
+3010 LET cx = INT (PLOTW / 2) : LET cy = INT (PLOTH / 2)
+3020 PLOT cx - 30, cy - 20 : DRAW 60, 0
+3030 PLOT cx - 10, cy - 20 : DRAW 0, 36
+3040 DRAW 30, 0 : DRAW 0, -6
+3050 PLOT cx - 10, cy + 10 : DRAW 12, 6
+3060 RETURN
+4000 REM ### Subroutine: Render hangman ###
+4010 LET cx = INT (PLOTW / 2) : LET cy = INT (PLOTH / 2)
+4020 IF misses >= 1 THEN PLOT cx + 18, cy + 10 : DRAW 4, 0 : DRAW 0, -2 : DRAW -4, 0 : DRAW 0, 2
+4030 IF misses >= 2 THEN PLOT cx + 20, cy + 8 : DRAW 0, -10
+4040 IF misses >= 3 THEN PLOT cx + 20, cy + 4 : DRAW -8, -4
+4050 IF misses >= 4 THEN PLOT cx + 20, cy + 4 : DRAW 8, -4
+4060 IF misses >= 5 THEN PLOT cx + 20, cy - 2 : DRAW -8, -6
+4070 IF misses >= 6 THEN PLOT cx + 20, cy - 2 : DRAW 8, -6
+4080 RETURN
+5000 REM ### Play again ###
+5010 PRINT AT oy + eh - 1, ox; "Play again (Y/N)? "; 
+5020 LET r$ = UINKEY$
+5030 IF LEN (r$) <> 1 THEN GO TO 5020
+5040 PRINT r$
+5050 IF r$ = "Y" OR r$ = "y" THEN GO TO 1080
+5060 PRINT AT oy + eh - 1, ox + 18; "Thanks for playing!"
+6000 REM ### Word data ###
+6010 DATA "ELEPHANT", "MOUNTAIN", "SUNFLOWER", "HOSPITAL", "UMBRELLA", "PENGUIN", "ASTRONAUT", "TELESCOPE", "DIAMOND", "BUTTERFLY"
+6020 DATA "FESTIVAL", "KANGAROO", "TREASURE", "ORCHESTRA", "CHAMPION", "ADVENTURE", "VOLCANO", "OCTOPUS", "SYMPHONY", "PYRAMID"
+6030 DATA "BICYCLE", "AQUARIUM", "CHOCOLATE", "DETECTIVE", "GALAXY", "HARMONY", "ISLAND", "JUNGLE", "LIBRARY", "MYSTERY"
+6040 DATA "NOTEBOOK", "OASIS", "PHANTOM", "QUARTZ", "RAINBOW", "SANDWICH", "TORNADO", "UNIVERSE", "VAMPIRE", "WATERFALL"
+6050 DATA "XYLOPHONE", "YACHT", "ZEPPELIN", "BLIZZARD", "CARNIVAL", "DINOSAUR", "ECLIPSE", "FIREWORK", "GLACIER", "HORIZON"

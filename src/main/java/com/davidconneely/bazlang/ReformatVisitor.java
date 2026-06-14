@@ -10,6 +10,10 @@ import org.antlr.v4.runtime.tree.TerminalNode;
  * built-in function names are upper-cased, and whitespace is normalized.
  */
 public class ReformatVisitor extends BazLangBaseVisitor<String> {
+  @Override
+  public String visitStatements(StatementsContext ctx) {
+    return ctx.statement().stream().map(this::visit).collect(Collectors.joining(" : "));
+  }
 
   @Override
   public String visitClearStmt(ClearStmtContext ctx) {
@@ -34,12 +38,12 @@ public class ReformatVisitor extends BazLangBaseVisitor<String> {
   @Override
   public String visitDimDecl(DimDeclContext ctx) {
     if (ctx.NUM_IDENTIFIER() != null) {
-      return ctx.NUM_IDENTIFIER().getText().toUpperCase()
+      return ctx.NUM_IDENTIFIER().getText().toLowerCase()
           + "("
           + ctx.numExpr().stream().map(this::visit).collect(Collectors.joining(", "))
           + ")";
     } else {
-      return ctx.STR_IDENTIFIER().getText().toUpperCase()
+      return ctx.STR_IDENTIFIER().getText().toLowerCase()
           + "("
           + ctx.numExpr().stream().map(this::visit).collect(Collectors.joining(", "))
           + ")";
@@ -50,7 +54,7 @@ public class ReformatVisitor extends BazLangBaseVisitor<String> {
   public String visitForStmt(ForStmtContext ctx) {
     StringBuilder sb =
         new StringBuilder("FOR ")
-            .append(ctx.NUM_IDENTIFIER().getText().toUpperCase())
+            .append(ctx.NUM_IDENTIFIER().getText().toLowerCase())
             .append(" = ")
             .append(visit(ctx.numExpr(0)))
             .append(" TO ")
@@ -151,7 +155,7 @@ public class ReformatVisitor extends BazLangBaseVisitor<String> {
 
   @Override
   public String visitNextStmt(NextStmtContext ctx) {
-    return "NEXT " + ctx.NUM_IDENTIFIER().getText().toUpperCase();
+    return "NEXT " + ctx.NUM_IDENTIFIER().getText().toLowerCase();
   }
 
   @Override
@@ -162,6 +166,16 @@ public class ReformatVisitor extends BazLangBaseVisitor<String> {
   @Override
   public String visitPlotStmt(PlotStmtContext ctx) {
     return "PLOT " + visit(ctx.numExpr(0)) + ", " + visit(ctx.numExpr(1));
+  }
+
+  @Override
+  public String visitDrawStmt(DrawStmtContext ctx) {
+    return "DRAW " + visit(ctx.numExpr(0)) + ", " + visit(ctx.numExpr(1));
+  }
+
+  @Override
+  public String visitUndrawStmt(UndrawStmtContext ctx) {
+    return "UNDRAW " + visit(ctx.numExpr(0)) + ", " + visit(ctx.numExpr(1));
   }
 
   @Override
@@ -259,15 +273,58 @@ public class ReformatVisitor extends BazLangBaseVisitor<String> {
   }
 
   @Override
+  public String visitDataStmt(DataStmtContext ctx) {
+    return "DATA " + ctx.expression().stream().map(this::visit).collect(Collectors.joining(", "));
+  }
+
+  @Override
+  public String visitDefFnStmt(DefFnStmtContext ctx) {
+    String params =
+        ctx.params != null
+            ? ctx.params.stream()
+                .map(org.antlr.v4.runtime.Token::getText)
+                .map(String::toLowerCase)
+                .collect(Collectors.joining(", "))
+            : "";
+    return "DEF FN "
+        + ctx.name.getText().toLowerCase()
+        + "("
+        + params
+        + ") = "
+        + visit(ctx.expression());
+  }
+
+  @Override
+  public String visitReadStmt(ReadStmtContext ctx) {
+    return "READ "
+        + ctx.assignmentTarget().stream().map(this::visit).collect(Collectors.joining(", "));
+  }
+
+  @Override
+  public String visitRestoreStmt(RestoreStmtContext ctx) {
+    return ctx.numExpr() != null ? "RESTORE " + visit(ctx.numExpr()) : "RESTORE";
+  }
+
+  @Override
+  public String visitFastStmt(FastStmtContext ctx) {
+    return "FAST";
+  }
+
+  @Override
+  public String visitSlowStmt(SlowStmtContext ctx) {
+    return "SLOW";
+  }
+
+  @Override
   public String visitAssignmentTarget(AssignmentTargetContext ctx) {
     if (ctx.STR_IDENTIFIER() != null) {
-      String res = ctx.STR_IDENTIFIER().getText().toUpperCase();
+      String res = ctx.STR_IDENTIFIER().getText().toLowerCase();
       if (ctx.strSubscript() != null) {
         res += "(" + visit(ctx.strSubscript()) + ")";
       }
       return res;
     } else {
-      String res = ctx.NUM_IDENTIFIER().getText().toUpperCase();
+      String res = ctx.NUM_IDENTIFIER().getText().toLowerCase();
       if (!ctx.numExpr().isEmpty()) {
         res +=
             "(" + ctx.numExpr().stream().map(this::visit).collect(Collectors.joining(", ")) + ")";
@@ -289,12 +346,12 @@ public class ReformatVisitor extends BazLangBaseVisitor<String> {
 
   @Override
   public String visitNumVarExpr(NumVarExprContext ctx) {
-    return ctx.NUM_IDENTIFIER().getText().toUpperCase();
+    return ctx.NUM_IDENTIFIER().getText().toLowerCase();
   }
 
   @Override
   public String visitNumArrayExpr(NumArrayExprContext ctx) {
-    return ctx.NUM_IDENTIFIER().getText().toUpperCase()
+    return ctx.NUM_IDENTIFIER().getText().toLowerCase()
         + "("
         + ctx.numExpr().stream().map(this::visit).collect(Collectors.joining(", "))
         + ")";
@@ -363,12 +420,12 @@ public class ReformatVisitor extends BazLangBaseVisitor<String> {
 
   @Override
   public String visitStrVarExpr(StrVarExprContext ctx) {
-    return ctx.STR_IDENTIFIER().getText().toUpperCase();
+    return ctx.STR_IDENTIFIER().getText().toLowerCase();
   }
 
   @Override
   public String visitStrSubscriptExpr(StrSubscriptExprContext ctx) {
-    return ctx.STR_IDENTIFIER().getText().toUpperCase() + "(" + visit(ctx.strSubscript()) + ")";
+    return ctx.STR_IDENTIFIER().getText().toLowerCase() + "(" + visit(ctx.strSubscript()) + ")";
   }
 
   @Override
@@ -394,38 +451,52 @@ public class ReformatVisitor extends BazLangBaseVisitor<String> {
   @Override
   public String visitStrSubscript(StrSubscriptContext ctx) {
     StringBuilder sb = new StringBuilder();
-    var numExprs = ctx.numExpr();
-    String text = ctx.getText().toUpperCase();
-    int toPos = text.indexOf("TO");
-
-    if (toPos >= 0) {
-      // Logic from ExpressionEvaluator.evalStrSubscript but for formatting
-      int commaCount = (int) text.substring(0, toPos).chars().filter(c -> c == ',').count();
-      for (int i = 0; i < commaCount; i++) {
-        sb.append(visit(numExprs.get(i))).append(", ");
+    if (ctx.indices != null && !ctx.indices.isEmpty()) {
+      sb.append(ctx.indices.stream().map(this::visit).collect(Collectors.joining(", ")));
+      if (ctx.slice != null) {
+        sb.append(", ");
       }
-      int sliceExprStart = commaCount;
-      boolean hasStart = !text.substring(text.lastIndexOf(',', toPos) + 1, toPos).isBlank();
-      if (hasStart) {
-        sb.append(visit(numExprs.get(sliceExprStart++)));
+    }
+    if (ctx.slice != null) {
+      if (ctx.slice.start != null) {
+        sb.append(visit(ctx.slice.start)).append(' ');
       }
-      sb.append(" TO ");
-      if (sliceExprStart < numExprs.size()) {
-        sb.append(visit(numExprs.get(sliceExprStart)));
+      sb.append("TO");
+      if (ctx.slice.end != null) {
+        sb.append(' ').append(visit(ctx.slice.end));
       }
-    } else {
-      sb.append(numExprs.stream().map(this::visit).collect(Collectors.joining(", ")));
     }
     return sb.toString();
   }
 
   @Override
   public String visitNumFunc(NumFuncContext ctx) {
+    if (ctx.FRAMES() != null) {
+      return "FRAMES";
+    }
     if (ctx.PI() != null) {
       return "PI";
     }
+    if (ctx.PLOTH() != null) {
+      return "PLOTH";
+    }
+    if (ctx.PLOTMODE() != null) {
+      return "PLOTMODE";
+    }
+    if (ctx.PLOTW() != null) {
+      return "PLOTW";
+    }
+    if (ctx.PRINTH() != null) {
+      return "PRINTH";
+    }
+    if (ctx.PRINTW() != null) {
+      return "PRINTW";
+    }
     if (ctx.RND() != null) {
       return "RND";
+    }
+    if (ctx.UCNEXT() != null) {
+      return "UCNEXT(" + visit(ctx.strExpr()) + ", " + visit(ctx.numExpr()) + ")";
     }
 
     String funcName = ctx.getChild(0).getText().toUpperCase();
@@ -437,6 +508,9 @@ public class ReformatVisitor extends BazLangBaseVisitor<String> {
   public String visitStrFunc(StrFuncContext ctx) {
     if (ctx.INKEY_STR() != null) {
       return "INKEY$";
+    }
+    if (ctx.UINKEY_STR() != null) {
+      return "UINKEY$";
     }
     String funcName = ctx.getChild(0).getText().toUpperCase();
     String arg = visit(ctx.getChild(1));
@@ -450,9 +524,9 @@ public class ReformatVisitor extends BazLangBaseVisitor<String> {
     }
     if (ctx.NUM_IDENTIFIER() != null) {
       if (ctx.numExpr().isEmpty()) {
-        return ctx.NUM_IDENTIFIER().getText().toUpperCase();
+        return ctx.NUM_IDENTIFIER().getText().toLowerCase();
       }
-      return ctx.NUM_IDENTIFIER().getText().toUpperCase()
+      return ctx.NUM_IDENTIFIER().getText().toLowerCase()
           + "("
           + ctx.numExpr().stream().map(this::visit).collect(Collectors.joining(", "))
           + ")";
@@ -473,9 +547,9 @@ public class ReformatVisitor extends BazLangBaseVisitor<String> {
     }
     if (ctx.STR_IDENTIFIER() != null) {
       if (ctx.strSubscript() == null) {
-        return ctx.STR_IDENTIFIER().getText().toUpperCase();
+        return ctx.STR_IDENTIFIER().getText().toLowerCase();
       }
-      return ctx.STR_IDENTIFIER().getText().toUpperCase() + "(" + visit(ctx.strSubscript()) + ")";
+      return ctx.STR_IDENTIFIER().getText().toLowerCase() + "(" + visit(ctx.strSubscript()) + ")";
     }
     if (ctx.strExpr() != null) {
       return "(" + visit(ctx.strExpr()) + ")";

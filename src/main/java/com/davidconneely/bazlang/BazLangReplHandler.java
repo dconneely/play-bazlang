@@ -2,10 +2,8 @@ package com.davidconneely.bazlang;
 
 import com.davidconneely.bazlang.antlr.AntlrParser;
 import com.davidconneely.bazlang.antlr.BazLangParser;
-import com.davidconneely.bazlang.antlr.BazLangParser.StatementContext;
 import com.davidconneely.repl.ReplHandler;
 import com.davidconneely.repl.Shell;
-import java.util.List;
 
 public final class BazLangReplHandler implements ReplHandler {
   private final AntlrParser parser;
@@ -41,9 +39,6 @@ public final class BazLangReplHandler implements ReplHandler {
         // REPL command is immediate execution at 0:1
         state.setCurrentLineLabel(0);
         state.setCurrentStatementIndex(1);
-        if (ui != null) {
-          ui.systemPrintln("❯ " + line.trim());
-        }
         handleReplCommand(ctx, ui);
       } else if (parsed instanceof AntlrParser.ParsedLine.Immediate(var _)) {
         if (ui != null) {
@@ -115,51 +110,7 @@ public final class BazLangReplHandler implements ReplHandler {
   }
 
   private boolean handleImmediateStatement(String rawLine) {
-    state.setRunning(true);
-    ProgramLine dummyLine = new ProgramLine(0, rawLine);
-    int index = 1;
-    List<StatementContext> flatStmts = dummyLine.getFlattenedStatements(parser);
-    for (var stmt : flatStmts) {
-      state.setCurrentLineLabel(0);
-      state.setCurrentStatementIndex(index);
-      executor.visit(stmt);
-      if (state.hasPendingJump() || !state.isRunning()) {
-        break;
-      }
-      index++;
-    }
-    // Handle returning to immediate mode from loops/subroutines
-    while (state.hasPendingJump()
-        && state.pendingJumpLabel() != null
-        && state.pendingJumpLabel() == 0) {
-      int startIndex = state.pendingJumpStatementIndex();
-      state.clearPendingJump();
-      index = 1;
-      for (var stmt : flatStmts) {
-        if (index >= startIndex) {
-          state.setCurrentLineLabel(0);
-          state.setCurrentStatementIndex(index);
-          executor.visit(stmt);
-          if (state.hasPendingJump() || !state.isRunning()) {
-            break;
-          }
-        }
-        index++;
-      }
-      // If a jump occurred to > 0 (like RUN or GO TO), resume the interpreter
-      if (state.hasPendingJump()
-          && state.pendingJumpLabel() != null
-          && state.pendingJumpLabel() > 0) {
-        interpreter.resume();
-      }
-    }
-    // Check if the FIRST set of statements caused a jump to > 0
-    if (state.hasPendingJump()
-        && state.pendingJumpLabel() != null
-        && state.pendingJumpLabel() > 0) {
-      interpreter.resume();
-    }
-    state.setRunning(false);
+    interpreter.executeImmediate(rawLine);
     return true;
   }
 }

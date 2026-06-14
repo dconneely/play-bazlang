@@ -39,6 +39,17 @@ public class Interpreter {
     resume();
   }
 
+  public void executeImmediate(String rawLine) {
+    ProgramLine immediateLine = new ProgramLine(0, rawLine);
+    state.program().put(0, immediateLine);
+    try {
+      state.setPendingJumpLocation(0, 1);
+      resume();
+    } finally {
+      state.program().remove(0);
+    }
+  }
+
   public void resume() {
     state.setRunning(true);
     while (state.isRunning()) {
@@ -46,12 +57,16 @@ public class Interpreter {
       int startIndex = 1;
       if (state.hasPendingJump()) {
         nextLabel = state.pendingJumpLabel();
-        if (nextLabel < Limits.MIN_LINE_LABEL) {
-          break; // Return control to immediate statement handler
+        if (nextLabel < 0) {
+          break; // Line numbers must be >= 0
         }
         startIndex = state.pendingJumpStatementIndex();
         state.clearPendingJump();
       } else {
+        if (state.currentLineLabel() == 0) {
+          state.setRunning(false);
+          break;
+        }
         nextLabel = state.program().higherKey(state.currentLineLabel());
       }
 

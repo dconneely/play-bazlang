@@ -124,8 +124,8 @@ Returns `1` for True, `0` for False.
 
 ### Program Management
 
-- **`LIST [n [TO [m]]]`**: Show program code. `LIST` shows all; `LIST n` shows from line `n` to end;
-  `LIST TO m` shows from start to line `m`; `LIST n TO m` shows lines `n` through `m`.
+- **`LIST [n [TO [m]]]`**: Show program code. `LIST` shows all; `LIST n` shows from line `n` to
+  end; `LIST TO m` shows from start to line `m`; `LIST n TO m` shows lines `n` through `m`.
 - **`LLIST [n [TO [m]]]`**: Same as `LIST` but outputs to standard error.
 
 ### Environment
@@ -171,8 +171,8 @@ Returns `1` for True, `0` for False.
 - **`SGN x`**: Signum (-1, 0, 1).
 - **`SQR x`**: Square root.
 - **`UCNEXT(s$, i)`**: Returns the 1-based byte position of the codepoint that starts immediately
-  after position `i`. Consistent with utf8-c8: each invalid byte counts as one codepoint of width 1.
-  Use for codepoint-by-codepoint iteration:
+  after position `i`. Consistent with utf8-c8: each invalid byte counts as one codepoint of width
+  1. Use for codepoint-by-codepoint iteration:
   ```
   10 LET i = 1
   20 IF i > LEN(s$) THEN GOTO 60
@@ -245,14 +245,14 @@ Examples: `42`, `3.14159`, `1.23E+15`, `-5E-8`
 
 BazLang follows Sinclair ZX BASIC semantics where practical, with these intentional differences:
 
-| Feature        | BazLang                                                                  | Sinclair ZX BASIC              |
-|:---------------|:-------------------------------------------------------------------------|:-------------------------------|
-| Character set  | UTF-8                                                                    | Proprietary ZX charset         |
-| Variable names | Multi-character allowed                                                  | Single letters for arrays/FOR  |
-| PAUSE >= 32767 | Waits that many frames                                                   | Waits forever until keypress   |
-| File I/O       | File system                                                              | Tape                           |
-| RND algorithm  | Java Random                                                              | Linear feedback shift register |
-| Report codes   | Same codes & messages, but includes statement index and detailed context | Same codes, different messages |
+| Feature        | BazLang                              | Sinclair ZX BASIC              |
+|:---------------|:-------------------------------------|:-------------------------------|
+| Character set  | UTF-8                                | Proprietary ZX charset         |
+| Variable names | Multi-character allowed              | Single letters for arrays/FOR  |
+| PAUSE >= 32767 | Waits that many frames               | Waits forever until keypress   |
+| File I/O       | File system                          | Tape                           |
+| RND algorithm  | Java Random                          | Linear feedback shift register |
+| Report codes   | Same codes & messages, extra context | Same codes & messages          |
 
 ## 9. REPL-Only Commands
 
@@ -273,8 +273,8 @@ DELETE TO
 
 `DELETE n` deletes only line `n`; `DELETE n TO m` deletes lines `n` through `m`; `DELETE TO m`
 deletes from start to `m`; `DELETE n TO` deletes from `n` to end; `DELETE TO` deletes all lines.
-Requires at least one line number or the `TO` keyword. Typing just a line number (e.g., `100`) at
-the REPL also deletes that line.
+Requires at least one line number or the `TO` keyword. Typing just a line number (e.g., `100`)
+at the REPL also deletes that line.
 
 ### EDIT
 

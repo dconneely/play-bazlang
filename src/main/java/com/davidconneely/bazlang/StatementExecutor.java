@@ -307,7 +307,9 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
     int[] range = parseListLineRange(ctx.lineRange());
     for (var entry : state.program().subMapEntries(range[0], true, range[1], true)) {
       ProgramLine line = entry.getValue();
-      display.println(line.lineNumber() + " " + line.sourceText());
+      if (line.lineNumber() >= Limits.MIN_LINE_LABEL) {
+        display.println(line.lineNumber() + " " + line.sourceText());
+      }
     }
     return null;
   }
@@ -317,7 +319,9 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
     int[] range = parseListLineRange(ctx.lineRange());
     for (var entry : state.program().subMapEntries(range[0], true, range[1], true)) {
       ProgramLine line = entry.getValue();
-      display.lprintln(line.lineNumber() + " " + line.sourceText());
+      if (line.lineNumber() >= Limits.MIN_LINE_LABEL) {
+        display.lprintln(line.lineNumber() + " " + line.sourceText());
+      }
     }
     return null;
   }

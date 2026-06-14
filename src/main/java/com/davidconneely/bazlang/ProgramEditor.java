@@ -136,7 +136,7 @@ public class ProgramEditor {
       newNum += newStep;
     }
 
-    updateGotoGosubTargets(program, mapping, oldStart, oldEnd);
+    updateLineReferences(program, mapping, oldStart, oldEnd);
 
     Map<Integer, ProgramLine> extracted = new HashMap<>();
     for (var entry : toRenumber) {
@@ -151,7 +151,7 @@ public class ProgramEditor {
     }
   }
 
-  private void updateGotoGosubTargets(
+  private void updateLineReferences(
       Program program, Map<Integer, Integer> mapping, int oldStart, int oldEnd) {
     Map<Integer, String> updates = new HashMap<>();
 
@@ -163,86 +163,110 @@ public class ProgramEditor {
 
       if (!upperSource.contains("GOTO")
           && !upperSource.contains("GOSUB")
+          && !upperSource.contains("RESTORE")
+          && !upperSource.contains("RUN")
           && !(upperSource.contains("GO")
               && (upperSource.contains("TO") || upperSource.contains("SUB")))) {
         continue;
       }
 
-      CharStream input = CharStreams.fromString(source);
-      BazLangLexer lexer = new BazLangLexer(input);
-      CommonTokenStream tokens = new CommonTokenStream(lexer);
-      tokens.fill();
-      List<Token> tokenList = tokens.getTokens();
-
-      StringBuilder newSource = new StringBuilder();
-      int lastCopiedPos = 0;
-      boolean modified = false;
-
-      int i = 0;
-      while (i < tokenList.size()) {
-        Token t = tokenList.get(i);
-        Token targetToken = null;
-        int skip = 1;
-
-        if ((t.getType() == BazLangLexer.GOTO || t.getType() == BazLangLexer.GOSUB)
-            && i + 1 < tokenList.size()) {
-          Token next = tokenList.get(i + 1);
-          if (next.getType() == BazLangLexer.NUM_LITERAL) {
-            targetToken = next;
-            skip = 2;
-          }
-        } else if (t.getType() == BazLangLexer.GO && i + 2 < tokenList.size()) {
-          Token next1 = tokenList.get(i + 1);
-          if (next1.getType() == BazLangLexer.TO || next1.getType() == BazLangLexer.SUB) {
-            Token next2 = tokenList.get(i + 2);
-            if (next2.getType() == BazLangLexer.NUM_LITERAL) {
-              targetToken = next2;
-              skip = 3;
-            }
-          }
-        }
-
-        if (targetToken != null) {
-          double val = Double.parseDouble(targetToken.getText());
-          int target = (int) Math.round(val);
-
-          Integer newTarget = null;
-          if (mapping.containsKey(target)) {
-            newTarget = mapping.get(target);
-          } else if (target >= oldStart && target <= oldEnd) {
-            Integer ceilingKey = program.ceilingKey(target);
-            if (ceilingKey != null && mapping.containsKey(ceilingKey)) {
-              newTarget = mapping.get(ceilingKey);
-              display.println(
-                  "Warning: Line "
-                      + lineNum
-                      + " references non-existent line "
-                      + target
-                      + ", updated to "
-                      + newTarget);
-            }
-          }
-
-          if (newTarget != null) {
-            newSource.append(source, lastCopiedPos, targetToken.getStartIndex()).append(newTarget);
-            lastCopiedPos = targetToken.getStopIndex() + 1;
-            modified = true;
-          }
-        }
-        i += skip;
-      }
-
-      if (modified) {
-        newSource.append(source.substring(lastCopiedPos));
-        updates.put(lineNum, newSource.toString());
+      String updatedSource = updateLineTargets(lineNum, source, program, mapping, oldStart, oldEnd);
+      if (updatedSource != null) {
+        updates.put(lineNum, updatedSource);
       }
     }
 
     for (Map.Entry<Integer, String> update : updates.entrySet()) {
       int lineNum = update.getKey();
-      String newSource = update.getValue();
-      program.put(lineNum, new ProgramLine(lineNum, newSource));
+      program.put(lineNum, new ProgramLine(lineNum, update.getValue()));
     }
+  }
+
+  private String updateLineTargets(
+      int lineNum,
+      String source,
+      Program program,
+      Map<Integer, Integer> mapping,
+      int oldStart,
+      int oldEnd) {
+    CharStream input = CharStreams.fromString(source);
+    BazLangLexer lexer = new BazLangLexer(input);
+    CommonTokenStream tokens = new CommonTokenStream(lexer);
+    tokens.fill();
+    List<Token> tokenList = tokens.getTokens();
+
+    StringBuilder newSource = new StringBuilder();
+    int lastCopiedPos = 0;
+    boolean modified = false;
+
+    int i = 0;
+    while (i < tokenList.size()) {
+      Token t = tokenList.get(i);
+      Token targetToken = null;
+      int skip = 1;
+
+      if ((t.getType() == BazLangLexer.GOTO
+              || t.getType() == BazLangLexer.GOSUB
+              || t.getType() == BazLangLexer.RESTORE
+              || t.getType() == BazLangLexer.RUN)
+          && i + 1 < tokenList.size()) {
+        Token next = tokenList.get(i + 1);
+        if (next.getType() == BazLangLexer.NUM_LITERAL) {
+          targetToken = next;
+          skip = 2;
+        }
+      } else if (t.getType() == BazLangLexer.GO && i + 2 < tokenList.size()) {
+        Token next1 = tokenList.get(i + 1);
+        if (next1.getType() == BazLangLexer.TO || next1.getType() == BazLangLexer.SUB) {
+          Token next2 = tokenList.get(i + 2);
+          if (next2.getType() == BazLangLexer.NUM_LITERAL) {
+            targetToken = next2;
+            skip = 3;
+          }
+        }
+      }
+
+      if (targetToken != null) {
+        double val = Double.parseDouble(targetToken.getText());
+        int target = (int) Math.round(val);
+
+        Integer newTarget = null;
+        if (mapping.containsKey(target)) {
+          newTarget = mapping.get(target);
+        } else if (target >= oldStart && target <= oldEnd) {
+          Integer ceilingKey = program.ceilingKey(target);
+          if (ceilingKey != null && mapping.containsKey(ceilingKey)) {
+            newTarget = mapping.get(ceilingKey);
+            Integer newLineNum = mapping.getOrDefault(lineNum, lineNum);
+            display.println(
+                "Warning: Line "
+                    + lineNum
+                    + " (now "
+                    + newLineNum
+                    + ") references non-existent line "
+                    + target
+                    + ", updated to "
+                    + ceilingKey
+                    + " (now "
+                    + newTarget
+                    + ")");
+          }
+        }
+
+        if (newTarget != null) {
+          newSource.append(source, lastCopiedPos, targetToken.getStartIndex()).append(newTarget);
+          lastCopiedPos = targetToken.getStopIndex() + 1;
+          modified = true;
+        }
+      }
+      i += skip;
+    }
+
+    if (modified) {
+      newSource.append(source.substring(lastCopiedPos));
+      return newSource.toString();
+    }
+    return null;
   }
 
   /**

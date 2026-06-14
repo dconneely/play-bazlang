@@ -116,6 +116,26 @@ strSubscript
 This supports: `a$(1)`, `a$(1,2)`, `a$(1 TO 5)`, `a$(TO 5)`, `a$(1 TO)`, `a$(TO)`,
 `a$(1, 2 TO 5)`, etc.
 
+## Statements vs. REPL Commands
+
+BazLang strictly separates program execution logic (statements) from interactive IDE/environment
+actions (REPL commands). 
+
+```antlr
+replLine
+    : NUM_LITERAL statements? EOF                          # NumberedLine
+    | replCommand EOF                                      # ReplCommandLine
+    | statements EOF                                       # ImmediateLine
+    ;
+```
+
+As defined in the `replLine` root parsing rule:
+- **Statements** (`PRINT`, `LET`, `IF`, etc.) can be placed inside numbered program lines, or
+  chained together with colons in immediate execution mode (e.g., `PRINT 1 : PRINT 2`).
+- **REPL Commands** (`RENUM`, `REFORMAT`, `EDIT`, `DELETE`) modify the program or interact with the
+  editor. They **cannot** be placed inside numbered program lines, they **cannot** be combined with
+  other statements using a colon, and they **must** be the only instruction entered on the line.
+
 ## Adding New Features
 
 To add a new operator (e.g., modulo `%`):

@@ -29,8 +29,8 @@ class ReformatProgramTest extends BaseProgramTest {
 
     editor.executeReformat(null);
 
-    assertEquals("LET A = 1 + 2 * 3", state.program().get(10).sourceText());
-    assertEquals("PRINT \"hello\", A", state.program().get(20).sourceText());
+    assertEquals("LET a = 1 + 2 * 3", state.program().get(10).sourceText());
+    assertEquals("PRINT \"hello\", a", state.program().get(20).sourceText());
   }
 
   @Test
@@ -45,8 +45,8 @@ class ReformatProgramTest extends BaseProgramTest {
 
     editor.executeReformat(null);
 
-    assertEquals("IF A = 1 THEN GO TO 100", state.program().get(10).sourceText());
-    assertEquals("FOR I = 1 TO 10 STEP 2", state.program().get(20).sourceText());
+    assertEquals("IF a = 1 THEN GO TO 100", state.program().get(10).sourceText());
+    assertEquals("FOR i = 1 TO 10 STEP 2", state.program().get(20).sourceText());
     assertEquals(
         "REM this is a comment", state.program().get(30).sourceText()); // REM is capitalized
   }
@@ -61,7 +61,7 @@ class ReformatProgramTest extends BaseProgramTest {
 
     editor.executeReformat(null);
 
-    assertEquals("LET X = SIN (0) + COS (PI)", state.program().get(10).sourceText());
+    assertEquals("LET x = SIN (0) + COS (PI)", state.program().get(10).sourceText());
   }
 
   @Test
@@ -78,8 +78,8 @@ class ReformatProgramTest extends BaseProgramTest {
         ((BazLangParser.ReformatCmdContext) ((AntlrParser.ParsedLine.ReplCommand) parsed).context())
             .lineRange());
 
-    assertEquals("LET A = 1", state.program().get(10).sourceText());
-    assertEquals("LET B = 2", state.program().get(20).sourceText());
+    assertEquals("LET a = 1", state.program().get(10).sourceText());
+    assertEquals("LET b = 2", state.program().get(20).sourceText());
   }
 
   @Test
@@ -95,7 +95,7 @@ class ReformatProgramTest extends BaseProgramTest {
 
     editor.executeReformat(null);
 
-    assertEquals("FOR I = 1 TO 10", state.program().get(10).sourceText());
+    assertEquals("FOR i = 1 TO 10", state.program().get(10).sourceText());
     assertEquals("RANDOMIZE", state.program().get(20).sourceText());
     assertEquals("RUN", state.program().get(30).sourceText());
     assertEquals("LIST", state.program().get(40).sourceText());
@@ -117,7 +117,7 @@ class ReformatProgramTest extends BaseProgramTest {
             .lineRange());
 
     assertEquals("let a = 1", state.program().get(10).sourceText()); // Untouched
-    assertEquals("LET B = 2", state.program().get(20).sourceText()); // Reformatted
+    assertEquals("LET b = 2", state.program().get(20).sourceText()); // Reformatted
     assertEquals("let c = 3", state.program().get(30).sourceText()); // Untouched
   }
 }

@@ -9,14 +9,14 @@
 1080 DIM projected(num_vertices, 2)
 1090 DIM old_proj(num_vertices, 2)
 1100 DIM edges(num_edges, 2)
-1110 GOSUB 4000 : REM ### Init data ###
+1110 GO SUB 4000 : REM ### Init data ###
 1120 LET a = 0 : LET b = 0 : LET c = 0
 1130 LET u = 0
 1140 LET cycles = 0 : LET start_t = FRAMES : LET cps = 0
 2000 REM ### Main loop ###
-2010 LET sin_a = SIN(a) : LET cos_a = COS(a)
-2020 LET sin_b = SIN(b) : LET cos_b = COS(b)
-2030 LET sin_c = SIN(c) : LET cos_c = COS(c)
+2010 LET sin_a = SIN (a) : LET cos_a = COS (a)
+2020 LET sin_b = SIN (b) : LET cos_b = COS (b)
+2030 LET sin_c = SIN (c) : LET cos_c = COS (c)
 2040 FOR i = 1 TO num_vertices
 2050 LET x = vertices(i, 1) : LET y = vertices(i, 2) : LET z = vertices(i, 3)
 2060 LET y1 = y * cos_a - z * sin_a
@@ -31,36 +31,36 @@
 2150 NEXT i
 3000 FAST
 3010 REM ### Erase old lines ###
-3020 IF u = 0 THEN GOTO 3100
-3040 FOR i = 1 TO num_edges
-3045 LET e1 = edges(i, 1) : LET e2 = edges(i, 2)
+3020 IF u = 0 THEN GO TO 3110
+3030 FOR i = 1 TO num_edges
+3040 LET e1 = edges(i, 1) : LET e2 = edges(i, 2)
 3050 LET x1 = old_proj(e1, 1) : LET y1 = old_proj(e1, 2)
 3060 LET x2 = old_proj(e2, 1) : LET y2 = old_proj(e2, 2)
 3070 PLOT x1, y1
 3080 UNDRAW x2 - x1, y2 - y1
 3090 NEXT i
-3095 REM ### Draw new lines ###
+3100 REM ### Draw new lines ###
 3110 FOR i = 1 TO num_edges
-3115 LET e1 = edges(i, 1) : LET e2 = edges(i, 2)
-3120 LET x1 = projected(e1, 1) : LET y1 = projected(e1, 2)
-3130 LET x2 = projected(e2, 1) : LET y2 = projected(e2, 2)
-3140 PLOT x1, y1
-3150 DRAW x2 - x1, y2 - y1
-3160 NEXT i
-3170 FOR i = 1 TO num_vertices
-3180 LET old_proj(i, 1) = projected(i, 1) : LET old_proj(i, 2) = projected(i, 2)
-3190 NEXT i
-3200 LET u = 1
-3210 SLOW
-3220 LET a = a + 0.05
-3230 LET b = b + 0.03
-3240 LET c = c + 0.02
-3250 LET cycles = cycles + 1
-3252 LET now = FRAMES
-3254 IF now - start_t < 50 THEN GOTO 3260
-3256 LET cps = INT(cycles * 50 / (now - start_t)) : LET cycles = 0 : LET start_t = now
-3258 PRINT AT 0, 0; "Bazlang 3D Cube - " ; num_vertices ; " vertices, " ; num_edges ; " edges, "; cps; " CPS    "
-3260 GOTO 2000
+3120 LET e1 = edges(i, 1) : LET e2 = edges(i, 2)
+3130 LET x1 = projected(e1, 1) : LET y1 = projected(e1, 2)
+3140 LET x2 = projected(e2, 1) : LET y2 = projected(e2, 2)
+3150 PLOT x1, y1
+3160 DRAW x2 - x1, y2 - y1
+3170 NEXT i
+3180 FOR i = 1 TO num_vertices
+3190 LET old_proj(i, 1) = projected(i, 1) : LET old_proj(i, 2) = projected(i, 2)
+3200 NEXT i
+3210 LET u = 1
+3220 SLOW
+3230 LET a = a + 0.05
+3240 LET b = b + 0.03
+3250 LET c = c + 0.02
+3260 LET cycles = cycles + 1
+3270 LET now = FRAMES
+3280 IF now - start_t < 50 THEN GO TO 3300
+3290 LET cps = INT (cycles * 50 / (now - start_t)) : LET cycles = 0 : LET start_t = now
+3300 PRINT AT 0, 0; "Bazlang 3D Cube - "; num_vertices; " vertices, "; num_edges; " edges, "; cps; " CPS    "
+3310 GO TO 2000
 4000 RESTORE 5000
 4010 FOR i = 1 TO num_vertices
 4020 READ vertices(i, 1), vertices(i, 2), vertices(i, 3)
@@ -68,8 +68,8 @@
 4040 FOR i = 1 TO num_edges
 4050 READ edges(i, 1), edges(i, 2)
 4060 NEXT i
-4065 CLS
-4070 RETURN
+4070 CLS
+4080 RETURN
 5000 REM ### Vertex data ###
 5010 DATA -1, -1, -1, -1, -1, -0.333333, -1, -1, 0.333333, -1, -1, 1
 5020 DATA -1, -0.333333, -1, -1, -0.333333, -0.333333, -1, -0.333333, 0.333333, -1, -0.333333, 1
@@ -93,4 +93,3 @@
 5200 DATA 17, 29, 20, 32, 33, 45, 36, 48, 49, 61, 50, 62, 51, 63, 52, 64
 5210 DATA 1, 4, 5, 8, 9, 12, 13, 16, 17, 20, 29, 32, 33, 36, 45, 48
 5220 DATA 49, 52, 53, 56, 57, 60, 61, 64
-
