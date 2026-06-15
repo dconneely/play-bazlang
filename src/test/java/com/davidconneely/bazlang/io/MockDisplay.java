@@ -61,6 +61,12 @@ public class MockDisplay implements BazLangDisplay {
   }
 
   @Override
+  public void setInk(int color) {}
+
+  @Override
+  public void setPaper(int color) {}
+
+  @Override
   public int plotMode() {
     return 4; // QuadrantMode
   }

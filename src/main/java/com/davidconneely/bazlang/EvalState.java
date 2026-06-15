@@ -84,8 +84,27 @@ public class EvalState {
   private int lastReportLabel = 0;
   private int lastReportStatementIndex = 1;
 
+  private int defaultInk = 8; // Terminal default (Transparent)
+  private int defaultPaper = 8; // Terminal default (Transparent)
+
   public Program program() {
     return program;
+  }
+
+  public int defaultInk() {
+    return defaultInk;
+  }
+
+  public void setDefaultInk(int defaultInk) {
+    this.defaultInk = defaultInk;
+  }
+
+  public int defaultPaper() {
+    return defaultPaper;
+  }
+
+  public void setDefaultPaper(int defaultPaper) {
+    this.defaultPaper = defaultPaper;
   }
 
   public void setProgram(Map<Integer, ProgramLine> program) {
@@ -355,5 +374,7 @@ public class EvalState {
     dataExpressionIndex = -1;
     dataLineLabel = -1;
     dataStatementIndex = -1;
+    defaultInk = 8; // Terminal default (Transparent)
+    defaultPaper = 8; // Terminal default (Transparent)
   }
 }

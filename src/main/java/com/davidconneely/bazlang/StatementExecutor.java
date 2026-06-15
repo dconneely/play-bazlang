@@ -479,37 +479,46 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
 
   @Override
   public Void visitPrintStmt(PrintStmtContext ctx) {
-    int tabPos = display.currentCol();
-    boolean suppressNewline = false;
-    var printList = ctx.printList();
-    if (printList != null) {
-      for (int i = 0; i < printList.getChildCount(); i++) {
-        var child = printList.getChild(i);
-        if (child instanceof PrintItemContext item) {
-          tabPos = executePrintItem(item, tabPos);
-          suppressNewline = false;
-        } else if (child instanceof PrintSepContext sep) {
-          String sepText = sep.getText();
-          if (sepText.equals(",")) {
-            // Comma moves to next tab stop
-            int nextTab = ((tabPos / Limits.TAB_WIDTH) + 1) * Limits.TAB_WIDTH;
-            if (nextTab > tabPos) {
-              display.print(" ".repeat(nextTab - tabPos));
-              tabPos = display.currentCol();
+    int prevInk = state.defaultInk();
+    int prevPaper = state.defaultPaper();
+    display.setInk(prevInk);
+    display.setPaper(prevPaper);
+    try {
+      int tabPos = display.currentCol();
+      boolean suppressNewline = false;
+      var printList = ctx.printList();
+      if (printList != null) {
+        for (int i = 0; i < printList.getChildCount(); i++) {
+          var child = printList.getChild(i);
+          if (child instanceof PrintItemContext item) {
+            tabPos = executePrintItem(item, tabPos);
+            suppressNewline = false;
+          } else if (child instanceof PrintSepContext sep) {
+            String sepText = sep.getText();
+            if (sepText.equals(",")) {
+              // Comma moves to next tab stop
+              int nextTab = ((tabPos / Limits.TAB_WIDTH) + 1) * Limits.TAB_WIDTH;
+              if (nextTab > tabPos) {
+                display.print(" ".repeat(nextTab - tabPos));
+                tabPos = display.currentCol();
+              }
+            } else if (sepText.equals("'")) {
+              display.println();
+              tabPos = 0;
             }
-          } else if (sepText.equals("'")) {
-            display.println();
-            tabPos = 0;
+            // Semicolon does nothing (items concatenate)
+            suppressNewline = true;
           }
-          // Semicolon does nothing (items concatenate)
-          suppressNewline = true;
         }
       }
+      if (!suppressNewline) {
+        display.println();
+      }
+      display.flush(); // Ensure output is visible, including semicolon-terminated lines
+    } finally {
+      display.setInk(prevInk);
+      display.setPaper(prevPaper);
     }
-    if (!suppressNewline) {
-      display.println();
-    }
-    display.flush(); // Ensure output is visible, including semicolon-terminated lines
     return null;
   }
 
@@ -535,6 +544,12 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
         display.print(" ".repeat(t - tabPos));
       }
       return display.currentCol();
+    } else if (item instanceof PrintInkItemContext ink) {
+      display.setInk((int) evalNum(ink.numExpr()));
+      return tabPos;
+    } else if (item instanceof PrintPaperItemContext paper) {
+      display.setPaper((int) evalNum(paper.numExpr()));
+      return tabPos;
     }
     return tabPos;
   }
@@ -853,6 +868,22 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
     }
 
     ref.value = new EvalState.StrVar.Scalar(str.withSlice(st, en, val));
+  }
+
+  @Override
+  public Void visitInkStmt(InkStmtContext ctx) {
+    int color = (int) evalNum(ctx.numExpr());
+    state.setDefaultInk(color);
+    display.setInk(color);
+    return null;
+  }
+
+  @Override
+  public Void visitPaperStmt(PaperStmtContext ctx) {
+    int color = (int) evalNum(ctx.numExpr());
+    state.setDefaultPaper(color);
+    display.setPaper(color);
+    return null;
   }
 
   private ReportException codedException(ReportCode rc, String msg) {

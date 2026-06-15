@@ -44,18 +44,20 @@
 3240 REM ### Draw road (top row, 0, shows the score and instructions) ###
 3250 FOR row = 1 TO term_height - 1
 3260 LET left_idx = road_hpos(row + 1) : LET int_left = INT (left_idx) : LET fraction = left_idx - int_left
-3270 PRINT AT row + offset_y, offset_x; wall$(1 TO int_left * bytes_per_block); 
-3280 IF fraction < 0.5 THEN PRINT " "; 
-3290 IF fraction >= 0.5 THEN PRINT block_lefth$; 
+3265 LET c_val = INT(score / 10) + row : LET curb = 2 : IF c_val - 2 * INT(c_val / 2) = 0 THEN LET curb = 7
+3270 PRINT AT row + offset_y, offset_x; INK 4; PAPER 0; wall$(1 TO int_left * bytes_per_block); 
+3280 IF fraction < 0.5 THEN PRINT PAPER 0; " "; 
+3290 IF fraction >= 0.5 THEN PRINT INK 4; PAPER 0; block_lefth$; 
 3300 LET dash$ = " " : IF (score + row) / 2 = INT ((score + row) / 2) THEN LET dash$ = "|"
-3310 PRINT spaces$(1 TO mid_width); dash$; spaces$(1 TO road_inner - mid_width - 1); 
-3320 IF fraction < 0.5 THEN PRINT block_full$; 
-3330 IF fraction >= 0.5 THEN PRINT block_righth$; 
-3340 PRINT wall$(1 TO (term_width - (int_left + road_inner + 2)) * bytes_per_block); 
+3310 PRINT PAPER curb; " "; PAPER 0; spaces$(1 TO mid_width - 1); INK 6; dash$; INK 4; PAPER 0; spaces$(1 TO road_inner - mid_width - 2); PAPER curb; " "; PAPER 0; 
+3320 IF fraction < 0.5 THEN PRINT INK 4; PAPER 0; block_full$; 
+3330 IF fraction >= 0.5 THEN PRINT INK 4; PAPER 0; block_righth$; 
+3340 PRINT INK 4; PAPER 0; wall$(1 TO (term_width - (int_left + road_inner + 2)) * bytes_per_block); 
 3350 NEXT row
 3360 REM ### Draw car and score ###
-3370 PRINT AT car_vpos + offset_y, car_hpos + offset_x; "|H|"; AT car_vpos + 1 + offset_y, car_hpos + offset_x; " ¯ "; 
-3380 PRINT AT offset_y, offset_x + 1; " Score: "; score; " "; AT offset_y, offset_x + term_width - 19; " Use Arrows/AD/HL "; 
+3370 PRINT AT car_vpos + offset_y, car_hpos + offset_x; INK 5; PAPER 0; "|H|"; AT car_vpos + 1 + offset_y, car_hpos + offset_x; " ¯ "; 
+3380 PRINT AT offset_y, offset_x + 1; INK 7; PAPER 0; " Score: "; score; " "; AT offset_y, offset_x + term_width - 19; " Use Arrows/AD/HL "; 
+3385 PRINT INK 8; PAPER 8; 
 3390 LET score = score + 5 + INT (ABS (road_curve) * 5)
 3400 PAUSE car_vpos / 5
 3410 GO TO 3000

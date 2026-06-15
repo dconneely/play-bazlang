@@ -194,14 +194,22 @@ public final class CellBuffer {
   }
 
   public void plot(int x, int y) {
-    updatePixel(x, y, true);
+    updatePixel(x, y, true, -1, -1, 0);
+  }
+
+  public void plot(int x, int y, int fgColor, int bgColor, int style) {
+    updatePixel(x, y, true, fgColor, bgColor, style);
   }
 
   public void unplot(int x, int y) {
-    updatePixel(x, y, false);
+    updatePixel(x, y, false, -1, -1, 0);
   }
 
-  private void updatePixel(int x, int y, boolean set) {
+  public void unplot(int x, int y, int fgColor, int bgColor, int style) {
+    updatePixel(x, y, false, fgColor, bgColor, style);
+  }
+
+  private void updatePixel(int x, int y, boolean set, int fgColor, int bgColor, int style) {
     if (!isPixelInBounds(x, y)) {
       return;
     }
@@ -217,5 +225,8 @@ public final class CellBuffer {
     int idx = index(row, col);
     int state = mode.decode(codepoints[idx]);
     codepoints[idx] = mode.encode(set ? (state | mask) : (state & ~mask));
+    if (fgColor != -1 && bgColor != -1) {
+      attributes[idx] = packAttributes(fgColor, bgColor, style);
+    }
   }
 }

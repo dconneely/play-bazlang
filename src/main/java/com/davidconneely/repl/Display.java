@@ -59,6 +59,10 @@ public interface Display extends AutoCloseable {
 
   void setFastMode(boolean fast);
 
+  void setInk(int color);
+
+  void setPaper(int color);
+
   @Override
   void close();
 }

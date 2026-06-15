@@ -84,6 +84,12 @@ public class StreamDisplay implements BazLangDisplay {
   }
 
   @Override
+  public void setInk(int color) {}
+
+  @Override
+  public void setPaper(int color) {}
+
+  @Override
   public void scroll() {
     out.println();
   }

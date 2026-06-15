@@ -10,6 +10,8 @@
 1090 DIM old_proj(num_vertices, 2)
 1100 DIM edges(num_edges, 2)
 1110 GO SUB 4000 : REM ### Init data ###
+1115 DIM colors(6)
+1116 LET colors(1)=1 : LET colors(2)=2 : LET colors(3)=7 : LET colors(4)=4 : LET colors(5)=6 : LET colors(6)=3
 1120 LET a = 0 : LET b = 0 : LET c = 0
 1130 LET u = 0
 1140 LET cycles = 0 : LET start_t = FRAMES : LET cps = 0
@@ -36,6 +38,7 @@
 3040 LET e1 = edges(i, 1) : LET e2 = edges(i, 2)
 3050 LET x1 = old_proj(e1, 1) : LET y1 = old_proj(e1, 2)
 3060 LET x2 = old_proj(e2, 1) : LET y2 = old_proj(e2, 2)
+3065 INK colors((i - 6 * INT (i / 6)) + 1)
 3070 PLOT x1, y1
 3080 UNDRAW x2 - x1, y2 - y1
 3090 NEXT i
@@ -44,6 +47,7 @@
 3120 LET e1 = edges(i, 1) : LET e2 = edges(i, 2)
 3130 LET x1 = projected(e1, 1) : LET y1 = projected(e1, 2)
 3140 LET x2 = projected(e2, 1) : LET y2 = projected(e2, 2)
+3145 INK colors((i - 6 * INT (i / 6)) + 1)
 3150 PLOT x1, y1
 3160 DRAW x2 - x1, y2 - y1
 3170 NEXT i
@@ -57,10 +61,11 @@
 3250 LET c = c + 0.02
 3260 LET cycles = cycles + 1
 3270 LET now = FRAMES
-3280 IF now - start_t < 50 THEN GO TO 3300
-3290 LET cps = INT (cycles * 50 / (now - start_t)) : LET cycles = 0 : LET start_t = now
-3300 PRINT AT 0, 0; "Bazlang 3D Cube - "; num_vertices; " vertices, "; num_edges; " edges, "; cps; " CPS    "
-3310 GO TO 2000
+3280 INK 8
+3290 IF now - start_t < 50 THEN GO TO 3310
+3300 LET cps = INT (cycles * 50 / (now - start_t)) : LET cycles = 0 : LET start_t = now
+3310 PRINT AT 0, 0; "Bazlang 3D Cube - "; num_vertices; " vertices, "; num_edges; " edges, "; cps; " CPS    "
+3320 GO TO 2000
 4000 RESTORE 5000
 4010 FOR i = 1 TO num_vertices
 4020 READ vertices(i, 1), vertices(i, 2), vertices(i, 3)

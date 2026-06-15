@@ -58,6 +58,13 @@ public class TerminalDisplay implements BazLangDisplay {
   // Pending render: print() marks dirty; flush()/println()/cls() drive render()
   private boolean dirty = false;
 
+  // Color state
+  private int activeInk = 8;
+  private int activePaper = 8;
+  private static final int[] ZX_TO_RGB = {
+    0x000000, 0x0000D7, 0xD70000, 0xD700D7, 0x00D700, 0x00D7D7, 0xD7D700, 0xD7D7D7
+  };
+
   // Rate-limiting: frame-boundary renders (println, inkey, plot) cap at ~50fps (~20ms).
   // flush()-driven renders use a longer threshold so that game drawing loops (which call flush()
   // after every PRINT with a semicolon) do not trigger partial mid-frame renders.
@@ -104,8 +111,10 @@ public class TerminalDisplay implements BazLangDisplay {
   }
 
   private void initBuffer() {
-    int rows = Math.max(1, engine.getRows() - currentReservedRows());
-    int cols = engine.getColumns();
+    int rawCols = engine.getColumns();
+    int cols = rawCols > 0 ? rawCols : 80;
+    int rawRows = engine.getRows();
+    int rows = Math.max(1, (rawRows > 0 ? rawRows : 24) - currentReservedRows());
     cellBuffer = new CellBuffer(rows, cols, QuadrantMode.INSTANCE);
   }
 
@@ -116,8 +125,10 @@ public class TerminalDisplay implements BazLangDisplay {
   }
 
   private void resizeBufferIfNeeded() {
-    int newCols = engine.getColumns();
-    int newRows = Math.max(1, engine.getRows() - currentReservedRows());
+    int rawCols = engine.getColumns();
+    int newCols = rawCols > 0 ? rawCols : 80;
+    int rawRows = engine.getRows();
+    int newRows = Math.max(1, (rawRows > 0 ? rawRows : 24) - currentReservedRows());
     if (newRows != cellBuffer.rows() || newCols != cellBuffer.cols()) {
       cellBuffer.resize(newRows, newCols);
       cursorRow = Math.min(cursorRow, cellBuffer.rows() - 1);
@@ -251,6 +262,16 @@ public class TerminalDisplay implements BazLangDisplay {
   }
 
   @Override
+  public void setInk(int color) {
+    this.activeInk = color;
+  }
+
+  @Override
+  public void setPaper(int color) {
+    this.activePaper = color;
+  }
+
+  @Override
   public int plotMode() {
     return cellBuffer.mode().pixelsPerCellX() * cellBuffer.mode().pixelsPerCellY();
   }
@@ -295,11 +316,12 @@ public class TerminalDisplay implements BazLangDisplay {
                   }
                 }
                 if (cursorRow < cellBuffer.rows()) {
-                  int cellFg = CellAttributes.COLOR_DEFAULT;
-                  int cellBg = CellAttributes.COLOR_DEFAULT;
+                  int cellFg = getMappedColor(activeInk, activePaper);
+                  int cellBg = getMappedColor(activePaper, activeInk);
                   int cellStyle = 0;
                   if (printingSystemPrompt) {
-                    cellFg = 4; // Index 4 (blue)
+                    cellFg = CellAttributes.COLOR_TYPE_INDEX | 4; // ANSI Blue
+                    cellBg = CellAttributes.COLOR_DEFAULT; // Default terminal background
                   }
                   cellBuffer.setCell(cursorRow, cursorCol, cp, cellFg, cellBg, cellStyle);
                   cursorCol++;
@@ -326,6 +348,26 @@ public class TerminalDisplay implements BazLangDisplay {
     if (dirty) {
       render();
     }
+  }
+
+  private int getMappedColor(int colorCode, int opposingCode) {
+    if (colorCode == 8) {
+      // Transparent - just use default for now (or could look up existing cell attr)
+      return CellAttributes.COLOR_DEFAULT;
+    }
+    if (colorCode == 9) {
+      // Contrast: if opposing color is dark (0,1,2,3), pick White (7).
+      // If light (4,5,6,7), pick Black (0).
+      if (opposingCode >= 0 && opposingCode <= 3) {
+        return CellAttributes.COLOR_TYPE_RGB | ZX_TO_RGB[7];
+      } else {
+        return CellAttributes.COLOR_TYPE_RGB | ZX_TO_RGB[0];
+      }
+    }
+    if (colorCode >= 0 && colorCode <= 7) {
+      return CellAttributes.COLOR_TYPE_RGB | ZX_TO_RGB[colorCode];
+    }
+    return CellAttributes.COLOR_DEFAULT;
   }
 
   @Override
@@ -371,7 +413,9 @@ public class TerminalDisplay implements BazLangDisplay {
 
   @Override
   public void plot(int x, int y) {
-    cellBuffer.plot(x, y);
+    int cellFg = getMappedColor(activeInk, activePaper);
+    int cellBg = getMappedColor(activePaper, activeInk);
+    cellBuffer.plot(x, y, cellFg, cellBg, 0);
     if (cellBuffer.isPixelInBounds(x, y)) {
       cursorRow = cellBuffer.pixelToCellRow(y);
       cursorCol = cellBuffer.pixelToCellCol(x) + 1;
@@ -382,7 +426,9 @@ public class TerminalDisplay implements BazLangDisplay {
 
   @Override
   public void unplot(int x, int y) {
-    cellBuffer.unplot(x, y);
+    int cellFg = getMappedColor(activeInk, activePaper);
+    int cellBg = getMappedColor(activePaper, activeInk);
+    cellBuffer.unplot(x, y, cellFg, cellBg, 0);
     if (cellBuffer.isPixelInBounds(x, y)) {
       cursorRow = cellBuffer.pixelToCellRow(y);
       cursorCol = cellBuffer.pixelToCellCol(x) + 1;

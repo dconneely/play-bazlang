@@ -47,6 +47,9 @@
 3070 PLOT x1, y1 : UNDRAW x2 - x1, y2 - y1
 3080 NEXT i
 3090 REM ### Draw new lines ###
+3094 LET col = INT (a * 5)
+3095 LET col = 1 + col - 7 * INT (col / 7)
+3096 INK col
 3100 FOR i = 1 TO num_edges
 3110 LET e1 = edges(i, 1) : LET e2 = edges(i, 2)
 3120 LET x1 = projected(e1, 1) : LET y1 = projected(e1, 2)
@@ -66,10 +69,10 @@
 3260 LET now = FRAMES
 3270 IF now - start_t < 50 THEN GO TO 3290
 3280 LET cps = INT (cycles * 50 / (now - start_t)) : LET cycles = 0 : LET start_t = now
-3290 PRINT AT 0, 0; "Bazlang 3D Torus - "; num_vertices; " vertices, "; num_edges; " edges, "; cps; " CPS    "
+3290 PRINT AT 0, 0; INK 8; PAPER 8; "Bazlang 3D Torus - "; num_vertices; " vertices, "; num_edges; " edges, "; cps; " CPS    "
 3300 GO TO 2000
 4000 REM ### Init torus vertices and edges ###
-4010 PRINT "Generating mesh..."
+4010 PRINT INK 8; PAPER 8; "Generating mesh..."
 4020 LET r1 = 1.5
 4030 LET r2 = 0.6
 4040 LET idx = 1
@@ -100,5 +103,5 @@
 4290 LET idx = idx + 2
 4300 NEXT j
 4310 NEXT i
-4320 CLS
+4320 PAPER 8 : INK 8 : CLS
 4330 RETURN

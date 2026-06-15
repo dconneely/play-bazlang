@@ -65,6 +65,7 @@ statement
     | (GO SUB | GOSUB) numExpr                             # GosubStmt
     | (GO TO | GOTO) numExpr                               # GotoStmt
     | IF numExpr THEN statements                           # IfStmt
+    | INK numExpr                                          # InkStmt
     | INPUT assignmentTarget                               # InputStmt
     | LET assignmentTarget '=' expression                  # LetStmt
     | LIST lineRange?                                      # ListStmt
@@ -74,6 +75,7 @@ statement
     | NEW                                                  # NewStmt
     | NEXT NUM_IDENTIFIER                                  # NextStmt
     | PAUSE numExpr                                        # PauseStmt
+    | PAPER numExpr                                        # PaperStmt
     | PLOT numExpr ',' numExpr                             # PlotStmt
     | PLOTMODE numExpr                                     # PlotmodeStmt
     | PRINT printList?                                     # PrintStmt
@@ -127,6 +129,8 @@ printList
 printItem
     : AT numExpr ',' numExpr                               # PrintAtItem
     | TAB numExpr                                          # PrintTabItem
+    | INK numExpr                                          # PrintInkItem
+    | PAPER numExpr                                        # PrintPaperItem
     | expression                                           # PrintExprItem
     ;
 
@@ -276,6 +280,7 @@ GO       : 'GO';
 GOSUB    : 'GOSUB';
 GOTO     : 'GOTO';
 IF       : 'IF';
+INK      : 'INK';
 INPUT    : 'INPUT';
 LET      : 'LET';
 LIST     : 'LIST';
@@ -285,6 +290,7 @@ LPRINT   : 'LPRINT';
 NEW      : 'NEW';
 NEXT     : 'NEXT';
 PAUSE    : 'PAUSE';
+PAPER    : 'PAPER';
 PLOT     : 'PLOT';
 PLOTMODE : 'PLOTMODE';
 PRINT    : 'PRINT';
