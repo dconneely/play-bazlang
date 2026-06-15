@@ -109,14 +109,14 @@ public class MockDisplay implements BazLangDisplay {
 
   @Override
   public void println(String text) {
-    output.append(text).append(System.lineSeparator());
+    output.append(text).append('\n');
     currentRow++;
     currentCol = 0;
   }
 
   @Override
   public void println() {
-    output.append(System.lineSeparator());
+    output.append('\n');
     currentRow++;
     currentCol = 0;
   }
@@ -140,12 +140,12 @@ public class MockDisplay implements BazLangDisplay {
 
   @Override
   public void lprintln(String text) {
-    output.append(text).append(System.lineSeparator());
+    output.append(text).append('\n');
   }
 
   @Override
   public void lprintln() {
-    output.append(System.lineSeparator());
+    output.append('\n');
   }
 
   @Override
