@@ -10,29 +10,30 @@ public class CellBufferRenderer {
       out.print(r + 1);
       out.print(";1H");
       long activeAttr =
-          CellBuffer.packAttributes(CellAttributes.COLOR_DEFAULT, CellAttributes.COLOR_DEFAULT, 0);
-      int activeFgColor = CellAttributes.COLOR_DEFAULT;
-      int activeBgColor = CellAttributes.COLOR_DEFAULT;
+          CellBuffer.packAttributes(
+              CellAttributes.COLOUR_DEFAULT, CellAttributes.COLOUR_DEFAULT, 0);
+      int activeFgColor = CellAttributes.COLOUR_DEFAULT;
+      int activeBgColor = CellAttributes.COLOUR_DEFAULT;
       int activeStyles = 0;
       for (int c = 0; c < colsToRender; c++) {
         long attr = cellBuffer.getAttr(r, c);
         if (attr != activeAttr) {
-          int fg = CellBuffer.unpackFgColor(attr);
-          int bg = CellBuffer.unpackBgColor(attr);
+          int fg = CellBuffer.unpackFgColour(attr);
+          int bg = CellBuffer.unpackBgColour(attr);
           int style = CellBuffer.unpackStyle(attr);
           boolean resetNeeded =
               (activeStyles & ~style) != 0
-                  || ((activeFgColor & CellAttributes.COLOR_TYPE_MASK)
-                          != CellAttributes.COLOR_DEFAULT
-                      && (fg & CellAttributes.COLOR_TYPE_MASK) == CellAttributes.COLOR_DEFAULT)
-                  || ((activeBgColor & CellAttributes.COLOR_TYPE_MASK)
-                          != CellAttributes.COLOR_DEFAULT
-                      && (bg & CellAttributes.COLOR_TYPE_MASK) == CellAttributes.COLOR_DEFAULT);
+                  || ((activeFgColor & CellAttributes.COLOUR_TYPE_MASK)
+                          != CellAttributes.COLOUR_DEFAULT
+                      && (fg & CellAttributes.COLOUR_TYPE_MASK) == CellAttributes.COLOUR_DEFAULT)
+                  || ((activeBgColor & CellAttributes.COLOUR_TYPE_MASK)
+                          != CellAttributes.COLOUR_DEFAULT
+                      && (bg & CellAttributes.COLOUR_TYPE_MASK) == CellAttributes.COLOUR_DEFAULT);
           if (resetNeeded) {
             out.print("\033[m");
             activeStyles = 0;
-            activeFgColor = CellAttributes.COLOR_DEFAULT;
-            activeBgColor = CellAttributes.COLOR_DEFAULT;
+            activeFgColor = CellAttributes.COLOUR_DEFAULT;
+            activeBgColor = CellAttributes.COLOUR_DEFAULT;
           }
           activeStyles = emitStyles(out, style, activeStyles);
           activeFgColor = emitColor(out, fg, activeFgColor, 38, 30, 90, "\033[39m");
@@ -49,8 +50,8 @@ public class CellBufferRenderer {
         }
       }
       if (activeStyles != 0
-          || activeFgColor != CellAttributes.COLOR_DEFAULT
-          || activeBgColor != CellAttributes.COLOR_DEFAULT) {
+          || activeFgColor != CellAttributes.COLOUR_DEFAULT
+          || activeBgColor != CellAttributes.COLOUR_DEFAULT) {
         out.print("\033[m");
       }
       out.print("\033[K");
@@ -93,11 +94,11 @@ public class CellBufferRenderer {
       int ansi8Base,
       int ansi8HiBase,
       String resetSeq) {
-    int colorType = color & CellAttributes.COLOR_TYPE_MASK;
-    if (colorType == CellAttributes.COLOR_TYPE_RGB
-        || colorType == CellAttributes.COLOR_TYPE_INDEX) {
-      if (activeColor == CellAttributes.COLOR_DEFAULT || color != activeColor) {
-        if (colorType == CellAttributes.COLOR_TYPE_RGB) {
+    int colorType = color & CellAttributes.COLOUR_TYPE_MASK;
+    if (colorType == CellAttributes.COLOUR_TYPE_RGB
+        || colorType == CellAttributes.COLOUR_TYPE_INDEX) {
+      if (activeColor == CellAttributes.COLOUR_DEFAULT || color != activeColor) {
+        if (colorType == CellAttributes.COLOUR_TYPE_RGB) {
           out.print("\033[");
           out.print(trueColorSgr);
           out.print(";2;");
@@ -126,7 +127,7 @@ public class CellBufferRenderer {
           }
         }
       }
-    } else if ((activeColor & CellAttributes.COLOR_TYPE_MASK) != CellAttributes.COLOR_DEFAULT) {
+    } else if ((activeColor & CellAttributes.COLOUR_TYPE_MASK) != CellAttributes.COLOUR_DEFAULT) {
       out.print(resetSeq);
     }
     return color;

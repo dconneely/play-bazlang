@@ -15,7 +15,7 @@ import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 
-/** Tests exercising interpreter STOP statement execution and runtime behavior. */
+/** Tests exercising interpreter STOP statement execution and runtime behaviour. */
 class StopProgramTest extends BaseProgramTest {
 
   @Test
@@ -43,7 +43,7 @@ class StopProgramTest extends BaseProgramTest {
     executor.visitContStmt(null);
     interpreter.resume();
 
-    assertEquals("STOP\n42\n42\n", display.getOutput().replace(System.lineSeparator(), "\n"));
+    assertEquals("STOP\n42\n42\n", display.getOutput());
   }
 
   @Test
@@ -52,10 +52,10 @@ class StopProgramTest extends BaseProgramTest {
     String output =
         runProgramCapture(
             """
-        10 PRINT "START"
-        20 STOP
-        30 PRINT "END"
-        """);
+                10 PRINT "START"
+                20 STOP
+                30 PRINT "END"
+                """);
     assertTrue(output.contains("START"));
     assertFalse(output.contains("END"));
   }

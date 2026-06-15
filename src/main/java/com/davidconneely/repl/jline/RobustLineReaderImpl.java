@@ -138,7 +138,7 @@ public class RobustLineReaderImpl extends LineReaderImpl {
 
   @Override
   public boolean redisplay() {
-    int termWidth = terminal.getWidth();
+    int termWidth = terminal.getColumns();
     if (termWidth > 0 && inputHeightListener != null) {
       org.jline.utils.AttributedStringBuilder sbAll =
           new org.jline.utils.AttributedStringBuilder().tabs(getTabWidth());

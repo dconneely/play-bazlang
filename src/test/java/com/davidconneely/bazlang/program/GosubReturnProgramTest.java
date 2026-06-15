@@ -23,7 +23,7 @@ class GosubReturnProgramTest extends BaseProgramTest {
   void testGosub() {
     runProgram(
         "10 GOSUB 100\n20 PRINT \"WORLD\"\n30 STOP\n100 PRINT \"HELLO \"\n110 RETURN",
-        "HELLO " + System.lineSeparator() + "WORLD" + System.lineSeparator());
+        "HELLO \nWORLD\n");
   }
 
   @Test
@@ -32,10 +32,10 @@ class GosubReturnProgramTest extends BaseProgramTest {
     String output =
         runProgramCapture(
             """
-        10 PRINT "BEFORE" : GOSUB 100 : PRINT "AFTER" : STOP
-        100 PRINT "SUBROUTINE" : RETURN : PRINT "NOT"
-        """);
-    assertEquals("BEFORE\nSUBROUTINE\nAFTER\n", output.replace(System.lineSeparator(), "\n"));
+                10 PRINT "BEFORE" : GOSUB 100 : PRINT "AFTER" : STOP
+                100 PRINT "SUBROUTINE" : RETURN : PRINT "NOT"
+                """);
+    assertEquals("BEFORE\nSUBROUTINE\nAFTER\n", output);
   }
 
   @Test
@@ -43,18 +43,18 @@ class GosubReturnProgramTest extends BaseProgramTest {
     String output =
         runProgramCapture(
             """
-        10 IF 1=1 THEN PRINT "BEFORE" : GOSUB 100 : PRINT "AFTER" : STOP
-        100 PRINT "SUBROUTINE" : RETURN
-        """);
-    assertEquals("BEFORE\nSUBROUTINE\nAFTER\n", output.replace(System.lineSeparator(), "\n"));
+                10 IF 1=1 THEN PRINT "BEFORE" : GOSUB 100 : PRINT "AFTER" : STOP
+                100 PRINT "SUBROUTINE" : RETURN
+                """);
+    assertEquals("BEFORE\nSUBROUTINE\nAFTER\n", output);
 
     String skippedOutput =
         runProgramCapture(
             """
-        10 IF 0=1 THEN PRINT "BEFORE" : GOSUB 100 : PRINT "AFTER" : STOP
-        20 STOP
-        100 PRINT "NOT_RUN" : RETURN
-        """);
+                10 IF 0=1 THEN PRINT "BEFORE" : GOSUB 100 : PRINT "AFTER" : STOP
+                20 STOP
+                100 PRINT "NOT_RUN" : RETURN
+                """);
     assertEquals("", skippedOutput);
   }
 
@@ -74,9 +74,7 @@ class GosubReturnProgramTest extends BaseProgramTest {
 
     // The output should be the subroutine's line being echoed, then the subroutine executing,
     // and then returning to the REPL cleanly without throwing "RETURN without GOSUB".
-    assertEquals(
-        "❯ 10 PRINT \"SUB\" : RETURN\n❯ GOSUB 10\nSUB\n",
-        display.getOutput().replace(System.lineSeparator(), "\n"));
+    assertEquals("❯ 10 PRINT \"SUB\" : RETURN\n❯ GOSUB 10\nSUB\n", display.getOutput());
     assertFalse(state.isRunning());
   }
 

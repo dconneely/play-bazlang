@@ -10,6 +10,6 @@ class ScrollProgramTest extends BaseProgramTest {
   @Test
   void testScroll() {
     String output = runProgramCapture("10 SCROLL");
-    assertEquals(System.lineSeparator(), output);
+    assertEquals("\n", output);
   }
 }

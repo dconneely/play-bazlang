@@ -9,9 +9,7 @@ class IfThenProgramTest extends BaseProgramTest {
 
   @Test
   void testIfStatement() {
-    runProgram(
-        "10 LET a = 1\n20 IF a = 1 THEN PRINT \"Y\"\n30 IF a = 0 THEN PRINT \"N\"",
-        "Y" + System.lineSeparator());
+    runProgram("10 LET a = 1\n20 IF a = 1 THEN PRINT \"Y\"\n30 IF a = 0 THEN PRINT \"N\"", "Y\n");
   }
 
   @Test
@@ -20,6 +18,6 @@ class IfThenProgramTest extends BaseProgramTest {
     assertEquals("", output);
 
     output = runProgramCapture("10 IF 1 = 1 THEN PRINT 1 : PRINT 2");
-    assertEquals("1\n2\n", output.replace(System.lineSeparator(), "\n"));
+    assertEquals("1\n2\n", output);
   }
 }

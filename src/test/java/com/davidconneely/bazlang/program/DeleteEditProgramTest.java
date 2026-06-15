@@ -118,7 +118,7 @@ class DeleteEditProgramTest extends BaseProgramTest {
     var ex1 = assertThrows(ReportException.class, () -> executeReplCommand("DELETE"));
     assertTrue(ex1.getMessage().contains("requires at least one line number"));
 
-    // DELETE TO should delete everything (matching LIST TO behavior)
+    // DELETE TO should delete everything (matching LIST TO behaviour)
     executeReplCommand("DELETE TO");
     assertTrue(state.program().isEmpty());
   }

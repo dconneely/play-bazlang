@@ -52,7 +52,7 @@ public interface Display extends AutoCloseable {
 
   String inkey();
 
-  /** Reads a multi-byte sequence (UTF-8 character or terminal escape sequence) without blocking. */
+  /** Reads a multibyte sequence (UTF-8 character or terminal escape sequence) without blocking. */
   String uinkey();
 
   boolean pollForBreak();

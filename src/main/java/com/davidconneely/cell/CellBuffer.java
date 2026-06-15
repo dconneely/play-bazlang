@@ -60,22 +60,22 @@ public final class CellBuffer {
 
   // === Attribute packing ===
   // Layout in 64-bit long (guaranteed positive since top 3 bits are 0):
-  // [0..25]  fgColor (26 bits: 2-bit type + 24-bit RGB/Index payload)
-  // [26..51] bgColor (26 bits: 2-bit type + 24-bit RGB/Index payload)
+  // [0..25]  fgColour (26 bits: 2-bit type + 24-bit RGB/Index payload)
+  // [26..51] bgColour (26 bits: 2-bit type + 24-bit RGB/Index payload)
   // [52..62] style   (11 bits)
   // [63]     unused  (1 bit sign, always 0)
 
-  public static long packAttributes(int fgColor, int bgColor, int style) {
-    return (fgColor & ATTR_MASK)
-        | ((bgColor & ATTR_MASK) << 26)
+  public static long packAttributes(int fgColour, int bgColour, int style) {
+    return (fgColour & ATTR_MASK)
+        | ((bgColour & ATTR_MASK) << 26)
         | (((long) style & STYLE_MASK) << 52);
   }
 
-  public static int unpackFgColor(long attr) {
+  public static int unpackFgColour(long attr) {
     return (int) (attr & ATTR_MASK);
   }
 
-  public static int unpackBgColor(long attr) {
+  public static int unpackBgColour(long attr) {
     return (int) ((attr >>> 26) & ATTR_MASK);
   }
 
@@ -97,12 +97,12 @@ public final class CellBuffer {
     return attributes[index(row, col)];
   }
 
-  public int getFgColor(int row, int col) {
-    return unpackFgColor(attributes[index(row, col)]);
+  public int getFgColour(int row, int col) {
+    return unpackFgColour(attributes[index(row, col)]);
   }
 
-  public int getBgColor(int row, int col) {
-    return unpackBgColor(attributes[index(row, col)]);
+  public int getBgColour(int row, int col) {
+    return unpackBgColour(attributes[index(row, col)]);
   }
 
   public int getStyle(int row, int col) {
@@ -115,11 +115,11 @@ public final class CellBuffer {
     }
   }
 
-  public void setCell(int row, int col, int codepoint, int fgColor, int bgColor, int style) {
+  public void setCell(int row, int col, int codepoint, int fgColour, int bgColour, int style) {
     if (row >= 0 && row < rows && col >= 0 && col < cols) {
       int idx = index(row, col);
       codepoints[idx] = codepoint;
-      attributes[idx] = packAttributes(fgColor, bgColor, style);
+      attributes[idx] = packAttributes(fgColour, bgColour, style);
     }
   }
 
@@ -129,7 +129,7 @@ public final class CellBuffer {
       int[] targetCodepoints, long[] targetAttributes, int fromCell, int cellCount) {
     int endCell = fromCell + cellCount;
     long defaultAttr =
-        packAttributes(CellAttributes.COLOR_DEFAULT, CellAttributes.COLOR_DEFAULT, 0);
+        packAttributes(CellAttributes.COLOUR_DEFAULT, CellAttributes.COLOUR_DEFAULT, 0);
     for (int i = fromCell; i < endCell; i++) {
       targetCodepoints[i] = ' ';
       targetAttributes[i] = defaultAttr;
@@ -150,7 +150,7 @@ public final class CellBuffer {
   }
 
   /**
-   * Resize the buffer, anchoring existing content at the top-left corner. New cells are initialised
+   * Resize the buffer, anchoring existing content to the top-left corner. New cells are initialised
    * to space / default colours / no style.
    */
   public void resize(int newRows, int newCols) {
@@ -197,19 +197,19 @@ public final class CellBuffer {
     updatePixel(x, y, true, -1, -1, 0);
   }
 
-  public void plot(int x, int y, int fgColor, int bgColor, int style) {
-    updatePixel(x, y, true, fgColor, bgColor, style);
+  public void plot(int x, int y, int fgColour, int bgColour, int style) {
+    updatePixel(x, y, true, fgColour, bgColour, style);
   }
 
   public void unplot(int x, int y) {
     updatePixel(x, y, false, -1, -1, 0);
   }
 
-  public void unplot(int x, int y, int fgColor, int bgColor, int style) {
-    updatePixel(x, y, false, fgColor, bgColor, style);
+  public void unplot(int x, int y, int fgColour, int bgColour, int style) {
+    updatePixel(x, y, false, fgColour, bgColour, style);
   }
 
-  private void updatePixel(int x, int y, boolean set, int fgColor, int bgColor, int style) {
+  private void updatePixel(int x, int y, boolean set, int fgColour, int bgColour, int style) {
     if (!isPixelInBounds(x, y)) {
       return;
     }
@@ -225,8 +225,8 @@ public final class CellBuffer {
     int idx = index(row, col);
     int state = mode.decode(codepoints[idx]);
     codepoints[idx] = mode.encode(set ? (state | mask) : (state & ~mask));
-    if (fgColor != -1 && bgColor != -1) {
-      attributes[idx] = packAttributes(fgColor, bgColor, style);
+    if (fgColour != -1 && bgColour != -1) {
+      attributes[idx] = packAttributes(fgColour, bgColour, style);
     }
   }
 }

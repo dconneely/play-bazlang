@@ -151,14 +151,13 @@ public class ExpressionEvaluator extends BazLangBaseVisitor<Void> {
     String op = ctx.getChild(1).getText();
     if (op.equals("*")) {
       numResult = requireFinite(l * r);
-      return null;
     } else {
       if (r == 0.0) {
         throw codedException(ReportCode.NUMBER_TOO_BIG, "Division by zero");
       }
       numResult = l / r;
-      return null;
     }
+    return null;
   }
 
   @Override
@@ -439,15 +438,16 @@ public class ExpressionEvaluator extends BazLangBaseVisitor<Void> {
       throw codedException(ReportCode.VARIABLE_NOT_FOUND, "Undefined string: " + ref.name);
     }
     EvalState.StrVar var = ref.value;
-    if (var instanceof EvalState.StrVar.Array ca) {
-      if (ca.arrayDimensions().length == 0) {
-        strResult = BStr.fromBytes(ca.data(), 0, ca.stringLength());
+    if (var
+        instanceof EvalState.StrVar.Array(int[] arrayDimensions, int stringLength, byte[] data)) {
+      if (arrayDimensions.length == 0) {
+        strResult = BStr.fromBytes(data, 0, stringLength);
         return null;
       }
       throw codedException(ReportCode.SUBSCRIPT_WRONG, "Subscript wrong");
     }
-    if (var instanceof EvalState.StrVar.Scalar s) {
-      strResult = s.value();
+    if (var instanceof EvalState.StrVar.Scalar(BStr value)) {
+      strResult = value;
       return null;
     }
     throw codedException(ReportCode.VARIABLE_NOT_FOUND, "Undefined string: " + ref.name);
@@ -494,8 +494,9 @@ public class ExpressionEvaluator extends BazLangBaseVisitor<Void> {
         }
       }
 
-      if (var instanceof EvalState.StrVar.Array ca) {
-        int n = ca.arrayDimensions().length;
+      if (var
+          instanceof EvalState.StrVar.Array(int[] arrayDimensions, int stringLength, byte[] data)) {
+        int n = arrayDimensions.length;
         int byteIndex = -1;
         if (indicesCount == n + 1) {
           byteIndex = indexStack[ptr + n];
@@ -504,21 +505,20 @@ public class ExpressionEvaluator extends BazLangBaseVisitor<Void> {
           byteIndex = indexStack[ptr + 0];
           indicesCount--;
         }
-        int arrayIdx = calculateArrayIndex(ca.arrayDimensions(), indexStack, ptr, indicesCount);
+        int arrayIdx = calculateArrayIndex(arrayDimensions, indexStack, ptr, indicesCount);
 
         int st = (byteIndex != -1 ? byteIndex : 1) + (sliceStart != -1 ? sliceStart - 1 : 0);
         int en =
             (byteIndex != -1 ? byteIndex : 1)
-                + (sliceEnd != -1 ? sliceEnd - 1 : (byteIndex != -1 ? 0 : ca.stringLength() - 1));
-        if (st < 1 || en > ca.stringLength() || st > en + 1) {
+                + (sliceEnd != -1 ? sliceEnd - 1 : (byteIndex != -1 ? 0 : stringLength - 1));
+        if (st < 1 || en > stringLength || st > en + 1) {
           throw codedException(ReportCode.SUBSCRIPT_WRONG, "Slice out of bounds");
         }
-        int offset = arrayIdx * ca.stringLength() + (st - 1);
+        int offset = arrayIdx * stringLength + (st - 1);
         int length = en - st + 1;
-        return BStr.fromBytes(ca.data(), offset, length);
+        return BStr.fromBytes(data, offset, length);
       }
-      if (var instanceof EvalState.StrVar.Scalar scalar) {
-        BStr s = scalar.value();
+      if (var instanceof EvalState.StrVar.Scalar(BStr s)) {
         int byteIndex = -1;
         if (indicesCount == 1 && !hasSlice) {
           byteIndex = indexStack[ptr + 0];
@@ -627,14 +627,15 @@ public class ExpressionEvaluator extends BazLangBaseVisitor<Void> {
     if (ctx.STR_IDENTIFIER() != null) {
       String name = ctx.STR_IDENTIFIER().getText().toUpperCase();
       EvalState.StrVar var = state.strVar(name);
-      if (var instanceof EvalState.StrVar.Array ca) {
-        if (ca.arrayDimensions().length == 0) {
-          return BStr.fromBytes(ca.data(), 0, ca.stringLength());
+      if (var
+          instanceof EvalState.StrVar.Array(int[] arrayDimensions, int stringLength, byte[] data)) {
+        if (arrayDimensions.length == 0) {
+          return BStr.fromBytes(data, 0, stringLength);
         }
         throw codedException(ReportCode.SUBSCRIPT_WRONG, "Subscript wrong");
       }
-      if (var instanceof EvalState.StrVar.Scalar s) {
-        return s.value();
+      if (var instanceof EvalState.StrVar.Scalar(BStr value)) {
+        return value;
       }
       throw codedException(ReportCode.VARIABLE_NOT_FOUND, "Undefined variable: " + name);
     }

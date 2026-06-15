@@ -29,11 +29,11 @@ class ArithmeticProgramTest extends BaseProgramTest {
   void testNumOps() {
     String source =
         """
-        10 LET A = 1 + 2 * 3
-        20 LET B = (1 + 2) * 3
-        30 LET C = 2 ** 3
-        40 LET D = 5 / 2
-        """;
+            10 LET A = 1 + 2 * 3
+            20 LET B = (1 + 2) * 3
+            30 LET C = 2 ** 3
+            40 LET D = 5 / 2
+            """;
     EvalState state = runProgram(source);
     assertEquals(7.0, state.numVar("A"));
     assertEquals(9.0, state.numVar("B"));
@@ -55,10 +55,10 @@ class ArithmeticProgramTest extends BaseProgramTest {
     // So -2**2 = -(2**2) = -4 (not (-2)**2 = 4 as in some BASIC dialects)
     String source =
         """
-        10 LET A = -2**2
-        20 LET B = (-2)**2
-        30 LET C = 0-2**2
-        """;
+            10 LET A = -2**2
+            20 LET B = (-2)**2
+            30 LET C = 0-2**2
+            """;
     EvalState state = runProgram(source);
     assertEquals(-4.0, state.numVar("A")); // -(2**2) = -4
     assertEquals(4.0, state.numVar("B")); // (-2)**2 = 4

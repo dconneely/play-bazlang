@@ -54,7 +54,7 @@ class ReplProgramTest extends BaseProgramTest {
     executor.visitContStmt(null);
     interpreter.resume();
 
-    assertEquals("A\nB\nC\n", display.getOutput().replace(System.lineSeparator(), "\n"));
+    assertEquals("A\nB\nC\n", display.getOutput());
   }
 
   @Test
@@ -80,7 +80,7 @@ class ReplProgramTest extends BaseProgramTest {
     executor.visitContStmt(null);
     interpreter.resume();
 
-    assertEquals("BEFORE\nAFTER\n", display.getOutput().replace(System.lineSeparator(), "\n"));
+    assertEquals("BEFORE\nAFTER\n", display.getOutput());
   }
 
   @Test
@@ -97,9 +97,7 @@ class ReplProgramTest extends BaseProgramTest {
     repl.handleReplInput("LIST", display);
 
     // The output should just be the line 10 being echoed, then the list showing just line 10.
-    assertEquals(
-        "❯ 10 PRINT \"HELLO\"\n❯ LIST\n10 PRINT \"HELLO\"\n",
-        display.getOutput().replace(System.lineSeparator(), "\n"));
+    assertEquals("❯ 10 PRINT \"HELLO\"\n❯ LIST\n10 PRINT \"HELLO\"\n", display.getOutput());
   }
 
   @Test
@@ -115,9 +113,7 @@ class ReplProgramTest extends BaseProgramTest {
     repl.handleReplInput("10 PRINT \"HELLO\"", display);
     repl.handleReplInput("RUN", display);
 
-    assertEquals(
-        "❯ 10 PRINT \"HELLO\"\n❯ RUN\nHELLO\n",
-        display.getOutput().replace(System.lineSeparator(), "\n"));
+    assertEquals("❯ 10 PRINT \"HELLO\"\n❯ RUN\nHELLO\n", display.getOutput());
     assertFalse(state.isRunning()); // Should stop gracefully
   }
 
@@ -166,8 +162,6 @@ class ReplProgramTest extends BaseProgramTest {
 
     repl.handleReplInput("PRINT \"hello\" : PRINT \"there\"", display);
 
-    assertEquals(
-        "❯ PRINT \"hello\" : PRINT \"there\"\nhello\nthere\n",
-        display.getOutput().replace(System.lineSeparator(), "\n"));
+    assertEquals("❯ PRINT \"hello\" : PRINT \"there\"\nhello\nthere\n", display.getOutput());
   }
 }

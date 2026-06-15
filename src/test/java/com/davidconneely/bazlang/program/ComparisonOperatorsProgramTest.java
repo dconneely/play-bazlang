@@ -12,14 +12,14 @@ class ComparisonOperatorsProgramTest extends BaseProgramTest {
   void testNumericComparisons() {
     String source =
         """
-        10 LET A = (5 = 5)
-        20 LET B = (5 <> 3)
-        30 LET C = (3 < 5)
-        40 LET D = (5 > 3)
-        50 LET E = (3 <= 3)
-        60 LET F = (5 >= 5)
-        70 LET G = (3 > 5)
-        """;
+            10 LET A = (5 = 5)
+            20 LET B = (5 <> 3)
+            30 LET C = (3 < 5)
+            40 LET D = (5 > 3)
+            50 LET E = (3 <= 3)
+            60 LET F = (5 >= 5)
+            70 LET G = (3 > 5)
+            """;
     EvalState state = runProgram(source);
     assertEquals(1.0, state.numVar("A"));
     assertEquals(1.0, state.numVar("B"));
@@ -34,13 +34,13 @@ class ComparisonOperatorsProgramTest extends BaseProgramTest {
   void testStringComparisons() {
     String source =
         """
-        10 LET A = ("ABC" = "ABC")
-        20 LET B = ("ABC" <> "DEF")
-        30 LET C = ("ABC" < "DEF")
-        40 LET D = ("DEF" > "ABC")
-        50 LET E = ("ABC" <= "ABC")
-        60 LET F = ("ABC" >= "ABC")
-        """;
+            10 LET A = ("ABC" = "ABC")
+            20 LET B = ("ABC" <> "DEF")
+            30 LET C = ("ABC" < "DEF")
+            40 LET D = ("DEF" > "ABC")
+            50 LET E = ("ABC" <= "ABC")
+            60 LET F = ("ABC" >= "ABC")
+            """;
     EvalState state = runProgram(source);
     assertEquals(1.0, state.numVar("A"));
     assertEquals(1.0, state.numVar("B"));

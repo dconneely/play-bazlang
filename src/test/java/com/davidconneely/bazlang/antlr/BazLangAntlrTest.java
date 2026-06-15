@@ -1,14 +1,24 @@
 package com.davidconneely.bazlang.antlr;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.davidconneely.bazlang.*;
-import com.davidconneely.bazlang.antlr.BazLangParser.*;
+import com.davidconneely.bazlang.ProgramLine;
+import com.davidconneely.bazlang.antlr.BazLangParser.DimStmtContext;
+import com.davidconneely.bazlang.antlr.BazLangParser.ForStmtContext;
+import com.davidconneely.bazlang.antlr.BazLangParser.GosubStmtContext;
+import com.davidconneely.bazlang.antlr.BazLangParser.GotoStmtContext;
+import com.davidconneely.bazlang.antlr.BazLangParser.IfStmtContext;
+import com.davidconneely.bazlang.antlr.BazLangParser.LetStmtContext;
+import com.davidconneely.bazlang.antlr.BazLangParser.PrintStmtContext;
+import com.davidconneely.bazlang.antlr.BazLangParser.StatementContext;
 import java.util.NavigableMap;
 import org.junit.jupiter.api.Test;
 
 /**
- * Tests ANTLR parsing produces correct ParseTree structure. Behavioral testing is done in
+ * Tests ANTLR parsing produces correct ParseTree structure. Behavioural testing is done in
  * InterpreterTest and other test classes.
  */
 class BazLangAntlrTest {
@@ -64,10 +74,10 @@ class BazLangAntlrTest {
   void testMultipleLines() {
     String code =
         """
-        10 LET A = 1
-        20 LET B = 2
-        30 PRINT A + B
-        """;
+            10 LET A = 1
+            20 LET B = 2
+            30 PRINT A + B
+            """;
     NavigableMap<Integer, ProgramLine> program = parser.parseProgramLines(code);
 
     assertEquals(3, program.size());
@@ -89,9 +99,9 @@ class BazLangAntlrTest {
   void testGotoGosub() {
     String code =
         """
-        100 GOTO 200
-        110 GOSUB 300
-        """;
+            100 GOTO 200
+            110 GOSUB 300
+            """;
     NavigableMap<Integer, ProgramLine> program = parser.parseProgramLines(code);
 
     assertInstanceOf(GotoStmtContext.class, program.get(100).getStatements(parser).statement(0));
@@ -174,7 +184,7 @@ class BazLangAntlrTest {
 
   @Test
   void testCaseInsensitiveVariables() {
-    // Variables should be normalized but parse correctly
+    // Variables should be normalised but parse correctly
     assertDoesNotThrow(
         () ->
             parser.parseProgramLines("10 LET a = 1\n").get(10).getStatements(parser).statement(0));

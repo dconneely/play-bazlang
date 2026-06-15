@@ -784,16 +784,17 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
 
   private void assignStrSubscriptNull(EvalState.StrVarRef ref, BStr val) {
     EvalState.StrVar var = ref.value;
-    if (var instanceof EvalState.StrVar.Array ca) {
-      if (ca.arrayDimensions().length != 0) {
+    if (var
+        instanceof EvalState.StrVar.Array(int[] arrayDimensions, int stringLength, byte[] data)) {
+      if (arrayDimensions.length != 0) {
         throw codedException(ReportCode.SUBSCRIPT_WRONG, "Subscript wrong");
       }
-      int copyLen = Math.min(ca.stringLength(), val.length());
+      int copyLen = Math.min(stringLength, val.length());
       for (int i = 0; i < copyLen; i++) {
-        ca.data()[i] = (byte) val.byteAt(i);
+        data[i] = (byte) val.byteAt(i);
       }
-      for (int i = copyLen; i < ca.stringLength(); i++) {
-        ca.data()[i] = (byte) 32;
+      for (int i = copyLen; i < stringLength; i++) {
+        data[i] = (byte) 32;
       }
     } else {
       ref.value = new EvalState.StrVar.Scalar(val.copy());

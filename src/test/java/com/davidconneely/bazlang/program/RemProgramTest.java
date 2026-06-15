@@ -13,13 +13,13 @@ class RemProgramTest extends BaseProgramTest {
     String output =
         runProgramCapture(
             """
-        # comment
+                # comment
 
-        10 PRINT "OK"
+                10 PRINT "OK"
 
-        # endLabel
-        """);
-    assertEquals("OK" + System.lineSeparator(), output);
+                # endLabel
+                """);
+    assertEquals("OK\n", output);
   }
 
   @Test
@@ -31,6 +31,6 @@ class RemProgramTest extends BaseProgramTest {
   @Test
   void testRemStatement() {
     // REM should be ignored
-    runProgram("10 REM This is a comment\n20 PRINT \"OK\"", "OK" + System.lineSeparator());
+    runProgram("10 REM This is a comment\n20 PRINT \"OK\"", "OK\n");
   }
 }

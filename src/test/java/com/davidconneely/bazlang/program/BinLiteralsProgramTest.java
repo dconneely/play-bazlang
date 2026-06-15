@@ -14,10 +14,10 @@ class BinLiteralsProgramTest extends BaseProgramTest {
   void testBinLiterals() {
     String source =
         """
-        10 LET A = BIN 1010
-        20 LET B = BIN 1 0 1 0
-        30 LET C = BIN 1111111111111111111111111111111111111111111111111111111111111111
-        """;
+            10 LET A = BIN 1010
+            20 LET B = BIN 1 0 1 0
+            30 LET C = BIN 1111111111111111111111111111111111111111111111111111111111111111
+            """;
     EvalState state = runProgram(source);
     assertEquals(10.0, state.numVar("A"));
     assertEquals(10.0, state.numVar("B"));

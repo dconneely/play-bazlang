@@ -12,6 +12,7 @@ import com.davidconneely.repl.TerminalEngine;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.concurrent.atomic.AtomicBoolean;
+import org.jline.reader.LineReader;
 
 /**
  * Terminal-based Display implementation with dynamic screen regions:
@@ -58,7 +59,7 @@ public class TerminalDisplay implements BazLangDisplay {
   // Pending render: print() marks dirty; flush()/println()/cls() drive render()
   private boolean dirty = false;
 
-  // Color state
+  // Colour state
   private int activeInk = 8;
   private int activePaper = 8;
   private static final int[] ZX_TO_RGB = {
@@ -83,7 +84,7 @@ public class TerminalDisplay implements BazLangDisplay {
   // render()
   private final AtomicBoolean resizePending = new AtomicBoolean(false);
 
-  // Track whether close() has been called (for idempotent cleanup between main thread and shutdown
+  // Track whether close() has been called (for idempotent clean-up between main thread and shutdown
   // hook)
   private final AtomicBoolean closed = new AtomicBoolean(false);
 
@@ -262,13 +263,13 @@ public class TerminalDisplay implements BazLangDisplay {
   }
 
   @Override
-  public void setInk(int color) {
-    this.activeInk = color;
+  public void setInk(int colour) {
+    this.activeInk = colour;
   }
 
   @Override
-  public void setPaper(int color) {
-    this.activePaper = color;
+  public void setPaper(int colour) {
+    this.activePaper = colour;
   }
 
   @Override
@@ -284,8 +285,8 @@ public class TerminalDisplay implements BazLangDisplay {
 
   @Override
   public void locate(int row, int col) {
-    cursorRow = Math.max(0, Math.min(row, cellBuffer.rows() - 1));
-    cursorCol = Math.max(0, Math.min(col, cellBuffer.cols() - 1));
+    cursorRow = Math.clamp(row, 0, cellBuffer.rows() - 1);
+    cursorCol = Math.clamp(col, 0, cellBuffer.cols() - 1);
   }
 
   @Override
@@ -320,8 +321,8 @@ public class TerminalDisplay implements BazLangDisplay {
                   int cellBg = getMappedColor(activePaper, activeInk);
                   int cellStyle = 0;
                   if (printingSystemPrompt) {
-                    cellFg = CellAttributes.COLOR_TYPE_INDEX | 4; // ANSI Blue
-                    cellBg = CellAttributes.COLOR_DEFAULT; // Default terminal background
+                    cellFg = CellAttributes.COLOUR_TYPE_INDEX | 4; // ANSI Blue
+                    cellBg = CellAttributes.COLOUR_DEFAULT; // Default terminal background
                   }
                   cellBuffer.setCell(cursorRow, cursorCol, cp, cellFg, cellBg, cellStyle);
                   cursorCol++;
@@ -353,21 +354,21 @@ public class TerminalDisplay implements BazLangDisplay {
   private int getMappedColor(int colorCode, int opposingCode) {
     if (colorCode == 8) {
       // Transparent - just use default for now (or could look up existing cell attr)
-      return CellAttributes.COLOR_DEFAULT;
+      return CellAttributes.COLOUR_DEFAULT;
     }
     if (colorCode == 9) {
-      // Contrast: if opposing color is dark (0,1,2,3), pick White (7).
+      // Contrast: if opposing colour is dark (0,1,2,3), pick White (7).
       // If light (4,5,6,7), pick Black (0).
       if (opposingCode >= 0 && opposingCode <= 3) {
-        return CellAttributes.COLOR_TYPE_RGB | ZX_TO_RGB[7];
+        return CellAttributes.COLOUR_TYPE_RGB | ZX_TO_RGB[7];
       } else {
-        return CellAttributes.COLOR_TYPE_RGB | ZX_TO_RGB[0];
+        return CellAttributes.COLOUR_TYPE_RGB | ZX_TO_RGB[0];
       }
     }
     if (colorCode >= 0 && colorCode <= 7) {
-      return CellAttributes.COLOR_TYPE_RGB | ZX_TO_RGB[colorCode];
+      return CellAttributes.COLOUR_TYPE_RGB | ZX_TO_RGB[colorCode];
     }
-    return CellAttributes.COLOR_DEFAULT;
+    return CellAttributes.COLOUR_DEFAULT;
   }
 
   @Override

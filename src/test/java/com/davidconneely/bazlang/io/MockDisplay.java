@@ -61,10 +61,10 @@ public class MockDisplay implements BazLangDisplay {
   }
 
   @Override
-  public void setInk(int color) {}
+  public void setInk(int colour) {}
 
   @Override
-  public void setPaper(int color) {}
+  public void setPaper(int colour) {}
 
   @Override
   public int plotMode() {

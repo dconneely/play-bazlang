@@ -18,7 +18,7 @@ class PixelModeTest {
     assertEquals(0, mode.decode(0x2800));
     assertEquals(0xFF, mode.decode(0x28FF));
 
-    // Test bitmasks (dot positions in unicode braille)
+    // Test bitmasks (dot positions in Unicode braille)
     assertEquals(1, mode.bitMask(0, 3)); // top-left (dot 1)
     assertEquals(8, mode.bitMask(1, 3)); // top-right (dot 4)
     assertEquals(128, mode.bitMask(1, 0)); // bottom-right (dot 8)

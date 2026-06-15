@@ -14,9 +14,9 @@ class StringSubscriptProgramTest extends BaseProgramTest {
   void testAssignMultiDimArrayWithoutSubscriptThrows() {
     String source =
         """
-        10 DIM a$(5,10)
-        20 LET a$="HI"
-        """;
+            10 DIM a$(5,10)
+            20 LET a$="HI"
+            """;
     ReportException e = assertThrows(ReportException.class, () -> runProgram(source));
     assertEquals(ReportCode.SUBSCRIPT_WRONG, e.reportCode());
   }
@@ -25,23 +25,23 @@ class StringSubscriptProgramTest extends BaseProgramTest {
   void testCharArrayCharacterAccess() {
     String source =
         """
-        10 DIM a$(2, 10)
-        15 LET a$(1) = "ABCDEFGHIJ"
-        20 PRINT a$(1, 3)
-        """;
-    runProgram(source, "C" + System.lineSeparator());
+            10 DIM a$(2, 10)
+            15 LET a$(1) = "ABCDEFGHIJ"
+            20 PRINT a$(1, 3)
+            """;
+    runProgram(source, "C\n");
   }
 
   @Test
   void testCharArrayCharacterAssignment() {
     String source =
         """
-        10 DIM a$(2, 10)
-        20 LET a$(1) = "ABCDEFGHIJ"
-        30 LET a$(1, 2) = "X"
-        40 PRINT a$(1)
-        """;
-    runProgram(source, "AXCDEFGHIJ" + System.lineSeparator());
+            10 DIM a$(2, 10)
+            20 LET a$(1) = "ABCDEFGHIJ"
+            30 LET a$(1, 2) = "X"
+            40 PRINT a$(1)
+            """;
+    runProgram(source, "AXCDEFGHIJ\n");
   }
 
   @Test
@@ -68,28 +68,28 @@ class StringSubscriptProgramTest extends BaseProgramTest {
   void testCharArrayWholeAssignment() {
     String source =
         """
-        10 DIM a$(10)
-        20 LET a$="123456789012345"
-        30 PRINT a$
-        """;
-    runProgram(source, "1234567890" + System.lineSeparator());
+            10 DIM a$(10)
+            20 LET a$="123456789012345"
+            30 PRINT a$
+            """;
+    runProgram(source, "1234567890\n");
   }
 
   @Test
   void testEmptyStringOperations() {
     // Empty string LEN
-    runProgram("10 LET A$=\"\"\n20 PRINT LEN(A$)", "0" + System.lineSeparator());
+    runProgram("10 LET A$=\"\"\n20 PRINT LEN(A$)", "0\n");
   }
 
   @Test
   void testReadMultiDimArrayWithoutSubscriptThrows() {
     String source =
         """
-        10 DIM a$(2,5)
-        20 LET a$(1)="HELLO"
-        30 LET a$(2)="THERE"
-        40 PRINT a$
-        """;
+            10 DIM a$(2,5)
+            20 LET a$(1)="HELLO"
+            30 LET a$(2)="THERE"
+            40 PRINT a$
+            """;
     ReportException e = assertThrows(ReportException.class, () -> runProgram(source));
     assertEquals(ReportCode.SUBSCRIPT_WRONG, e.reportCode());
   }
@@ -97,39 +97,33 @@ class StringSubscriptProgramTest extends BaseProgramTest {
   @Test
   void testReferencingNDimensionalWithNMinus1Indices() {
     // 1D: DIM A$(10) -> A$ is 10 chars
-    runProgram(
-        "10 DIM A$(10)\n20 LET A$=\"HELLO\"\n30 PRINT A$", "HELLO     " + System.lineSeparator());
+    runProgram("10 DIM A$(10)\n20 LET A$=\"HELLO\"\n30 PRINT A$", "HELLO     \n");
 
     // 2D: DIM A$(5, 10) -> A$(3) is 10 chars
-    runProgram(
-        "10 DIM A$(5, 10)\n20 LET A$(3)=\"WORLD\"\n30 PRINT A$(3)",
-        "WORLD     " + System.lineSeparator());
+    runProgram("10 DIM A$(5, 10)\n20 LET A$(3)=\"WORLD\"\n30 PRINT A$(3)", "WORLD     \n");
 
     // 3D: DIM A$(2, 2, 5) -> A$(1, 2) is 5 chars
-    runProgram(
-        "10 DIM A$(2, 2, 5)\n20 LET A$(1, 2)=\"HI\"\n30 PRINT A$(1, 2)",
-        "HI   " + System.lineSeparator());
+    runProgram("10 DIM A$(2, 2, 5)\n20 LET A$(1, 2)=\"HI\"\n30 PRINT A$(1, 2)", "HI   \n");
 
     // 4D: DIM A$(2, 2, 2, 5) -> A$(1, 2, 1) is 5 chars
     runProgram(
-        "10 DIM A$(2, 2, 2, 5)\n20 LET A$(1, 2, 1)=\"FOUR\"\n30 PRINT A$(1, 2, 1)",
-        "FOUR " + System.lineSeparator());
+        "10 DIM A$(2, 2, 2, 5)\n20 LET A$(1, 2, 1)=\"FOUR\"\n30 PRINT A$(1, 2, 1)", "FOUR \n");
   }
 
   @Test
   void testStrVarCharacterAssignment() {
     String source =
         """
-        10 LET a$ = "ABCDE"
-        20 LET a$(3) = "X"
-        30 PRINT a$
-        """;
-    runProgram(source, "ABXDE" + System.lineSeparator());
+            10 LET a$ = "ABCDE"
+            20 LET a$(3) = "X"
+            30 PRINT a$
+            """;
+    runProgram(source, "ABXDE\n");
   }
 
   @Test
   void testStrVarCharacterIndexing() {
-    runProgram("10 LET A$=\"HELLO\"\n20 PRINT A$(2)", "E" + System.lineSeparator());
+    runProgram("10 LET A$=\"HELLO\"\n20 PRINT A$(2)", "E\n");
   }
 
   @Test
@@ -137,11 +131,11 @@ class StringSubscriptProgramTest extends BaseProgramTest {
     // Assign single character to string index
     String source =
         """
-        10 LET A$="HELLO"
-        20 LET A$(1)="X"
-        30 PRINT A$
-        """;
-    runProgram(source, "XELLO" + System.lineSeparator());
+            10 LET A$="HELLO"
+            20 LET A$(1)="X"
+            30 PRINT A$
+            """;
+    runProgram(source, "XELLO\n");
   }
 
   @Test
@@ -149,18 +143,16 @@ class StringSubscriptProgramTest extends BaseProgramTest {
     // Assign multi-char to single index - only first char used
     String source =
         """
-        10 LET A$="HELLO"
-        20 LET A$(1)="XYZ"
-        30 PRINT A$
-        """;
-    runProgram(source, "XELLO" + System.lineSeparator());
+            10 LET A$="HELLO"
+            20 LET A$(1)="XYZ"
+            30 PRINT A$
+            """;
+    runProgram(source, "XELLO\n");
   }
 
   @Test
   void testStringConcatenation() {
-    runProgram(
-        "10 LET A$ = \"HELLO\" + \" \" + \"WORLD\"\n20 PRINT A$",
-        "HELLO WORLD" + System.lineSeparator());
+    runProgram("10 LET A$ = \"HELLO\" + \" \" + \"WORLD\"\n20 PRINT A$", "HELLO WORLD\n");
   }
 
   @Test
@@ -191,58 +183,58 @@ class StringSubscriptProgramTest extends BaseProgramTest {
   void testZx81MonthsArray() {
     String source =
         """
-        10 DIM M$(12, 3)
-        20 LET M$(1)="JAN"
-        30 LET M$(2)="FEBRUARY"
-        40 LET M$(3)="MAR"
-        50 PRINT M$(2)
-        60 PRINT M$(2, 1 TO 2)
-        """;
+            10 DIM M$(12, 3)
+            20 LET M$(1)="JAN"
+            30 LET M$(2)="FEBRUARY"
+            40 LET M$(3)="MAR"
+            50 PRINT M$(2)
+            60 PRINT M$(2, 1 TO 2)
+            """;
     // "FEBRUARY" is truncated to 3 characters: "FEB"
     // "FEB" sliced 1 TO 2 is "FE"
-    runProgram(source, "FEB" + System.lineSeparator() + "FE" + System.lineSeparator());
+    runProgram(source, "FEB\nFE\n");
   }
 
   @Test
   void testZx81VariableStringBuilding() {
     String source =
         """
-        10 LET A$=""
-        20 LET A$=A$+"Z"
-        30 LET A$=A$+"X"
-        40 LET A$=A$+"8"
-        50 LET A$=A$+"1"
-        60 PRINT A$
-        """;
-    runProgram(source, "ZX81" + System.lineSeparator());
+            10 LET A$=""
+            20 LET A$=A$+"Z"
+            30 LET A$=A$+"X"
+            40 LET A$=A$+"8"
+            50 LET A$=A$+"1"
+            60 PRINT A$
+            """;
+    runProgram(source, "ZX81\n");
   }
 
   @Test
   void testZxSpectrumAdventureMap3DArray() {
     String source =
         """
-        10 DIM M$(2, 2, 5)
-        20 LET M$(1, 1)="TREES"
-        30 LET M$(1, 2)="WATER"
-        40 LET M$(2, 1)="PATH "
-        50 LET M$(2, 2)="CAVE "
-        60 PRINT M$(1, 2)
-        70 PRINT M$(2, 1, 1 TO 4)
-        """;
-    runProgram(source, "WATER" + System.lineSeparator() + "PATH" + System.lineSeparator());
+            10 DIM M$(2, 2, 5)
+            20 LET M$(1, 1)="TREES"
+            30 LET M$(1, 2)="WATER"
+            40 LET M$(2, 1)="PATH "
+            50 LET M$(2, 2)="CAVE "
+            60 PRINT M$(1, 2)
+            70 PRINT M$(2, 1, 1 TO 4)
+            """;
+    runProgram(source, "WATER\nPATH\n");
   }
 
   @Test
   void testFlyweightStringAssignmentIsolation() {
     String source =
         """
-        10 DIM A$(2, 5)
-        20 LET A$(1) = "HELLO"
-        30 LET A$(2) = "WORLD"
-        40 LET T$ = A$(1)
-        50 LET A$(1) = A$(2)
-        60 PRINT T$;" ";A$(1)
-        """;
+            10 DIM A$(2, 5)
+            20 LET A$(1) = "HELLO"
+            30 LET A$(2) = "WORLD"
+            40 LET T$ = A$(1)
+            50 LET A$(1) = A$(2)
+            60 PRINT T$;" ";A$(1)
+            """;
     runProgram(source, "HELLO WORLD\n");
   }
 
@@ -250,11 +242,11 @@ class StringSubscriptProgramTest extends BaseProgramTest {
   void testFlyweightStringMathZeroCopy() {
     String source =
         """
-        10 DIM A$(2, 5)
-        20 LET A$(1) = "APPLE"
-        30 LET A$(2) = "ZOO"
-        40 IF A$(1) < A$(2) THEN PRINT "OK"
-        """;
+            10 DIM A$(2, 5)
+            20 LET A$(1) = "APPLE"
+            30 LET A$(2) = "ZOO"
+            40 IF A$(1) < A$(2) THEN PRINT "OK"
+            """;
     runProgram(source, "OK\n");
   }
 }

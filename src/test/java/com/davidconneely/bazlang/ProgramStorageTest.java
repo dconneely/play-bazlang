@@ -4,7 +4,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.davidconneely.bazlang.antlr.AntlrParser;
-import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
@@ -14,7 +13,7 @@ class ProgramStorageTest {
   private static final AntlrParser PARSER = AntlrParser.INSTANCE;
 
   @Test
-  void testSaveAndLoad(@TempDir Path tempDir) throws IOException {
+  void testSaveAndLoad(@TempDir Path tempDir) {
     EvalState state = new EvalState();
     ProgramStorage storage = new ProgramStorage(state, PARSER);
 

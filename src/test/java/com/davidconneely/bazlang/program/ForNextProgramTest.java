@@ -22,7 +22,7 @@ class ForNextProgramTest extends BaseProgramTest {
     String output =
         runProgramCapture(
             "10 PRINT \"BEFORE\" : FOR I=1 TO 3 : PRINT I : NEXT I : PRINT \"AFTER\" : STOP");
-    assertEquals("BEFORE\n1\n2\n3\nAFTER\n", output.replace(System.lineSeparator(), "\n"));
+    assertEquals("BEFORE\n1\n2\n3\nAFTER\n", output);
   }
 
   @Test
@@ -31,13 +31,12 @@ class ForNextProgramTest extends BaseProgramTest {
         runProgramCapture(
             "10 IF 1=1 THEN PRINT \"BEFORE\" "
                 + ": FOR I=1 TO 3 : PRINT I : NEXT I : PRINT \"AFTER\" : STOP");
-    assertEquals("BEFORE\n1\n2\n3\nAFTER\n", output.replace(System.lineSeparator(), "\n"));
+    assertEquals("BEFORE\n1\n2\n3\nAFTER\n", output);
   }
 
   @Test
   void testForLoop() {
-    String expected =
-        "1" + System.lineSeparator() + "2" + System.lineSeparator() + "3" + System.lineSeparator();
+    String expected = "1\n2\n3\n";
     runProgram("10 FOR i = 1 TO 3\n20 PRINT i\n30 NEXT i", expected);
   }
 
@@ -57,28 +56,20 @@ class ForNextProgramTest extends BaseProgramTest {
     } catch (ReportException re) {
       // Ignore expected
     }
-    String expected =
-        "M=1"
-            + System.lineSeparator()
-            + "M=2"
-            + System.lineSeparator()
-            + "M=3"
-            + System.lineSeparator()
-            + "M=4"
-            + System.lineSeparator();
+    String expected = "M=1\nM=2\nM=3\nM=4\n";
     assertEquals(expected, display.getOutput());
   }
 
   @Test
   void testForSkipVariableRetention() {
-    // Documented: Loop variable is initialized but NOT incremented if skipped.
+    // Documented: Loop variable is initialised but NOT incremented if skipped.
     EvalState state =
         runProgram(
             """
-        10 LET I = 0
-        20 FOR I = 10 TO 1
-        30 NEXT I
-        """);
+                10 LET I = 0
+                20 FOR I = 10 TO 1
+                30 NEXT I
+                """);
     assertEquals(10.0, state.numVar("I"));
   }
 
@@ -88,9 +79,9 @@ class ForNextProgramTest extends BaseProgramTest {
     try {
       runProgramCapture(
           """
-          10 FOR I = 10 TO 1
-          20 PRINT I
-          """);
+              10 FOR I = 10 TO 1
+              20 PRINT I
+              """);
       org.junit.jupiter.api.Assertions.fail("Expected ReportException");
     } catch (ReportException e) {
       assertEquals(ReportCode.FOR_WITHOUT_NEXT, e.reportCode());
@@ -108,22 +99,12 @@ class ForNextProgramTest extends BaseProgramTest {
     BazLangReplHandler repl = new BazLangReplHandler(PARSER, state, executor, editor, interpreter);
 
     repl.handleReplInput("FOR I=1 TO 3 : PRINT I : NEXT I", null);
-    assertEquals("1\n2\n3\n", display.getOutput().replace(System.lineSeparator(), "\n"));
+    assertEquals("1\n2\n3\n", display.getOutput());
   }
 
   @Test
   void testOverlappingForLoops() {
-    String expected =
-        "11"
-            + System.lineSeparator()
-            + "21"
-            + System.lineSeparator()
-            + "31"
-            + System.lineSeparator()
-            + "42"
-            + System.lineSeparator()
-            + "53"
-            + System.lineSeparator();
+    String expected = "11\n21\n31\n42\n53\n";
     runProgram("10 FOR M=1 TO 3\n20 FOR N=1 TO M\n30 PRINT M;N\n40 NEXT M\n50 NEXT N", expected);
   }
 }

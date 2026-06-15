@@ -15,90 +15,85 @@ class DefFnProgramTest extends BaseProgramTest {
     String output1 =
         runProgramCapture(
             """
-        10 DEF FN AVERAGE(X, Y) = (X + Y) / 2
-        20 PRINT FN AVERAGE(10, 20)
-        """);
-    assertEquals("15\n", output1.replace(System.lineSeparator(), "\n"));
+                10 DEF FN AVERAGE(X, Y) = (X + Y) / 2
+                20 PRINT FN AVERAGE(10, 20)
+                """);
+    assertEquals("15\n", output1);
 
     String output2 =
         runProgramCapture(
             """
-        10 DEF FN CONCAT$(A$, B$) = A$ + B$
-        20 PRINT FN CONCAT$("HELLO ", "WORLD")
-        """);
-    assertEquals("HELLO WORLD\n", output2.replace(System.lineSeparator(), "\n"));
+                10 DEF FN CONCAT$(A$, B$) = A$ + B$
+                20 PRINT FN CONCAT$("HELLO ", "WORLD")
+                """);
+    assertEquals("HELLO WORLD\n", output2);
 
     String output3 =
         runProgramCapture(
             """
-        10 DEF FN CONSTANT() = 42
-        20 PRINT FN CONSTANT()
-        """);
-    assertEquals("42\n", output3.replace(System.lineSeparator(), "\n"));
+                10 DEF FN CONSTANT() = 42
+                20 PRINT FN CONSTANT()
+                """);
+    assertEquals("42\n", output3);
   }
 
   @Test
   void testDefFnErrors() {
-    // 1. Definition time type mismatch (numeric name with string expression)
+    // 1. Definition-time type mismatch (numeric name with string expression)
     ReportException exDefType =
         assertThrows(
             ReportException.class,
-            () -> {
-              runProgram(
-                  """
-          10 DEF FN A() = "HELLO"
-          """);
-            });
+            () ->
+                runProgram(
+                    """
+                    10 DEF FN A() = "HELLO"
+                    """));
     assertEquals(ReportCode.NONSENSE_IN_BASIC, exDefType.reportCode());
 
-    // 2. Definition time duplicate parameter names
+    // 2. Definition-time duplicate parameter names
     ReportException exDefDup =
         assertThrows(
             ReportException.class,
-            () -> {
-              runProgram(
-                  """
-          10 DEF FN A(X, X) = X
-          """);
-            });
+            () ->
+                runProgram(
+                    """
+                    10 DEF FN A(X, X) = X
+                    """));
     assertEquals(ReportCode.NONSENSE_IN_BASIC, exDefDup.reportCode());
 
-    // 3. Call time undefined function
+    // 3. Call-time undefined function
     ReportException exCallUndefined =
         assertThrows(
             ReportException.class,
-            () -> {
-              runProgram(
-                  """
-              10 PRINT FN A()
-              """);
-            });
+            () ->
+                runProgram(
+                    """
+                    10 PRINT FN A()
+                    """));
     assertEquals(ReportCode.FN_WITHOUT_DEF, exCallUndefined.reportCode());
 
-    // 4. Call time incorrect parameter count
+    // 4. Call-time incorrect parameter count
     ReportException exCount =
         assertThrows(
             ReportException.class,
-            () -> {
-              runProgram(
-                  """
-              10 DEF FN A(X) = X
-              20 PRINT FN A(1, 2)
-              """);
-            });
+            () ->
+                runProgram(
+                    """
+                    10 DEF FN A(X) = X
+                    20 PRINT FN A(1, 2)
+                    """));
     assertEquals(ReportCode.PARAMETER_ERROR, exCount.reportCode());
 
-    // 5. Call time type mismatch in parameter (passing string for number)
+    // 5. Call-time type mismatch in parameter (passing string for number)
     ReportException exType =
         assertThrows(
             ReportException.class,
-            () -> {
-              runProgram(
-                  """
-              10 DEF FN A(X) = X
-              20 PRINT FN A("HELLO")
-              """);
-            });
+            () ->
+                runProgram(
+                    """
+                    10 DEF FN A(X) = X
+                    20 PRINT FN A("HELLO")
+                    """));
     assertEquals(ReportCode.PARAMETER_ERROR, exType.reportCode());
   }
 
@@ -107,16 +102,16 @@ class DefFnProgramTest extends BaseProgramTest {
     EvalState state =
         runProgram(
             """
-        10 DEF FN ADD(X) = X + Y
-        15 DEF FN REPEAT$(A$) = A$ + A$
-        20 DEF FN DOUBLE(X) = FN ADD(X) * 2
-        25 LET X = 10
-        30 LET Y = 5
-        35 LET A$ = "GLOBAL"
-        40 LET Z = FN ADD(1)
-        45 LET B$ = FN REPEAT$("LOCAL")
-        50 LET W = FN DOUBLE(2)
-        """);
+                10 DEF FN ADD(X) = X + Y
+                15 DEF FN REPEAT$(A$) = A$ + A$
+                20 DEF FN DOUBLE(X) = FN ADD(X) * 2
+                25 LET X = 10
+                30 LET Y = 5
+                35 LET A$ = "GLOBAL"
+                40 LET Z = FN ADD(1)
+                45 LET B$ = FN REPEAT$("LOCAL")
+                50 LET W = FN DOUBLE(2)
+                """);
     // Z = 1 + Y = 1 + 5 = 6
     assertEquals(6.0, state.numVar("Z"));
     // Shadowed parameter X must restore to original value 10 after call

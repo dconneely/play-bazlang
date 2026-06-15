@@ -86,7 +86,7 @@ public class JLineTerminalEngine implements TerminalEngine {
 
   @Override
   public void setInputHeightListener(IntConsumer listener) {
-    lineReader.setInputHeightListener(listener::accept);
+    lineReader.setInputHeightListener(listener);
   }
 
   @Override

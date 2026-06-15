@@ -18,12 +18,12 @@ class LetProgramTest extends BaseProgramTest {
   void testPointerOptimizationVariableReassignment() {
     String source =
         """
-        10 LET A = 0
-        20 FOR I = 1 TO 5
-        30 LET A = A + I
-        40 NEXT I
-        50 PRINT A
-        """;
+            10 LET A = 0
+            20 FOR I = 1 TO 5
+            30 LET A = A + I
+            40 NEXT I
+            50 PRINT A
+            """;
     runProgram(source, "15\n");
   }
 }

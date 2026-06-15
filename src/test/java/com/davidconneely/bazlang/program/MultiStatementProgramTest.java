@@ -10,6 +10,6 @@ class MultiStatementProgramTest extends BaseProgramTest {
   @Test
   void testMultiStatementLines() {
     String output = runProgramCapture("10 PRINT 1 : PRINT 2");
-    assertEquals("1\n2\n", output.replace(System.lineSeparator(), "\n"));
+    assertEquals("1\n2\n", output);
   }
 }

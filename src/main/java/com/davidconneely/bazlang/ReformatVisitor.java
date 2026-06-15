@@ -7,7 +7,7 @@ import org.antlr.v4.runtime.tree.TerminalNode;
 
 /**
  * A visitor that returns a reformatted string representation of a BazLang statement. Keywords and
- * built-in function names are upper-cased, and whitespace is normalized.
+ * built-in function names are upper-cased, and whitespace is normalised.
  */
 public class ReformatVisitor extends BazLangBaseVisitor<String> {
   @Override
