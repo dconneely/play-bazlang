@@ -59,7 +59,7 @@ statement
     | DATA expression (',' expression)*                    # DataStmt
     | DEF FN name=(NUM_IDENTIFIER | STR_IDENTIFIER) '(' ( params+=(NUM_IDENTIFIER | STR_IDENTIFIER) (',' params+=(NUM_IDENTIFIER | STR_IDENTIFIER))* )? ')' '=' expression # DefFnStmt
     | DIM dimDecl                                          # DimStmt
-    | DRAW numExpr ',' numExpr                             # DrawStmt
+    | DRAW styleList numExpr ',' numExpr                   # DrawStmt
     | FAST                                                 # FastStmt
     | FOR NUM_IDENTIFIER '=' numExpr TO numExpr (STEP numExpr)? # ForStmt
     | (GO SUB | GOSUB) numExpr                             # GosubStmt
@@ -76,7 +76,7 @@ statement
     | NEXT NUM_IDENTIFIER                                  # NextStmt
     | PAUSE numExpr                                        # PauseStmt
     | PAPER numExpr                                        # PaperStmt
-    | PLOT numExpr ',' numExpr                             # PlotStmt
+    | PLOT styleList numExpr ',' numExpr                   # PlotStmt
     | PLOTMODE numExpr                                     # PlotmodeStmt
     | PRINT printList?                                     # PrintStmt
     | (RAND | RANDOMISE | RANDOMIZE) numExpr?              # RandStmt
@@ -89,8 +89,8 @@ statement
     | SCROLL                                               # ScrollStmt
     | SLOW                                                 # SlowStmt
     | STOP                                                 # StopStmt
-    | UNDRAW numExpr ',' numExpr                           # UndrawStmt
-    | UNPLOT numExpr ',' numExpr                           # UnplotStmt
+    | UNDRAW styleList numExpr ',' numExpr                 # UndrawStmt
+    | UNPLOT styleList numExpr ',' numExpr                 # UnplotStmt
     ;
 
 dimDecl
@@ -126,11 +126,19 @@ printList
     | printSep+
     ;
 
+styleList
+    : (styleItem printSep?)*
+    ;
+
+styleItem
+    : INK numExpr                                          # StyleInkItem
+    | PAPER numExpr                                        # StylePaperItem
+    ;
+
 printItem
     : AT numExpr ',' numExpr                               # PrintAtItem
     | TAB numExpr                                          # PrintTabItem
-    | INK numExpr                                          # PrintInkItem
-    | PAPER numExpr                                        # PrintPaperItem
+    | styleItem                                            # PrintStyleItem
     | expression                                           # PrintExprItem
     ;
 

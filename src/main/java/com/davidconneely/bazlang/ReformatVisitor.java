@@ -165,17 +165,38 @@ public class ReformatVisitor extends BazLangBaseVisitor<String> {
 
   @Override
   public String visitPlotStmt(PlotStmtContext ctx) {
-    return "PLOT " + visit(ctx.numExpr(0)) + ", " + visit(ctx.numExpr(1));
+    String res = "PLOT";
+    if (ctx.styleList() != null && ctx.styleList().getChildCount() > 0) {
+      String styles = visit(ctx.styleList());
+      if (!styles.isEmpty()) {
+        res += " " + styles.trim();
+      }
+    }
+    return res + " " + visit(ctx.numExpr(0)) + ", " + visit(ctx.numExpr(1));
   }
 
   @Override
   public String visitDrawStmt(DrawStmtContext ctx) {
-    return "DRAW " + visit(ctx.numExpr(0)) + ", " + visit(ctx.numExpr(1));
+    String res = "DRAW";
+    if (ctx.styleList() != null && ctx.styleList().getChildCount() > 0) {
+      String styles = visit(ctx.styleList());
+      if (!styles.isEmpty()) {
+        res += " " + styles.trim();
+      }
+    }
+    return res + " " + visit(ctx.numExpr(0)) + ", " + visit(ctx.numExpr(1));
   }
 
   @Override
   public String visitUndrawStmt(UndrawStmtContext ctx) {
-    return "UNDRAW " + visit(ctx.numExpr(0)) + ", " + visit(ctx.numExpr(1));
+    String res = "UNDRAW";
+    if (ctx.styleList() != null && ctx.styleList().getChildCount() > 0) {
+      String styles = visit(ctx.styleList());
+      if (!styles.isEmpty()) {
+        res += " " + styles.trim();
+      }
+    }
+    return res + " " + visit(ctx.numExpr(0)) + ", " + visit(ctx.numExpr(1));
   }
 
   @Override
@@ -206,6 +227,37 @@ public class ReformatVisitor extends BazLangBaseVisitor<String> {
       }
     }
     return sb.toString();
+  }
+
+  @Override
+  public String visitStyleList(StyleListContext ctx) {
+    StringBuilder sb = new StringBuilder();
+    for (int i = 0; i < ctx.getChildCount(); i++) {
+      var child = ctx.getChild(i);
+      if (child instanceof PrintSepContext) {
+        sb.append(child.getText()).append(' ');
+      } else if (child instanceof TerminalNode) {
+        sb.append(child.getText());
+      } else {
+        sb.append(visit(child));
+      }
+    }
+    return sb.toString();
+  }
+
+  @Override
+  public String visitStyleInkItem(StyleInkItemContext ctx) {
+    return "INK " + visit(ctx.numExpr());
+  }
+
+  @Override
+  public String visitStylePaperItem(StylePaperItemContext ctx) {
+    return "PAPER " + visit(ctx.numExpr());
+  }
+
+  @Override
+  public String visitPrintStyleItem(PrintStyleItemContext ctx) {
+    return visit(ctx.styleItem());
   }
 
   @Override
@@ -269,7 +321,14 @@ public class ReformatVisitor extends BazLangBaseVisitor<String> {
 
   @Override
   public String visitUnplotStmt(UnplotStmtContext ctx) {
-    return "UNPLOT " + visit(ctx.numExpr(0)) + ", " + visit(ctx.numExpr(1));
+    String res = "UNPLOT";
+    if (ctx.styleList() != null && ctx.styleList().getChildCount() > 0) {
+      String styles = visit(ctx.styleList());
+      if (!styles.isEmpty()) {
+        res += " " + styles.trim();
+      }
+    }
+    return res + " " + visit(ctx.numExpr(0)) + ", " + visit(ctx.numExpr(1));
   }
 
   @Override

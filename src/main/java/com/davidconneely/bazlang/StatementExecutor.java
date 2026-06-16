@@ -145,17 +145,37 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
 
   @Override
   public Void visitDrawStmt(DrawStmtContext ctx) {
-    int dx = (int) Math.round(evalNum(ctx.numExpr(0)));
-    int dy = (int) Math.round(evalNum(ctx.numExpr(1)));
-    drawLine(graphicsCursorX, graphicsCursorY, graphicsCursorX + dx, graphicsCursorY + dy, true);
+    int prevInk = state.defaultInk();
+    int prevPaper = state.defaultPaper();
+    display.setInk(prevInk);
+    display.setPaper(prevPaper);
+    try {
+      applyStyleList(ctx.styleList());
+      int dx = (int) Math.round(evalNum(ctx.numExpr(0)));
+      int dy = (int) Math.round(evalNum(ctx.numExpr(1)));
+      drawLine(graphicsCursorX, graphicsCursorY, graphicsCursorX + dx, graphicsCursorY + dy, true);
+    } finally {
+      display.setInk(prevInk);
+      display.setPaper(prevPaper);
+    }
     return null;
   }
 
   @Override
   public Void visitUndrawStmt(UndrawStmtContext ctx) {
-    int dx = (int) Math.round(evalNum(ctx.numExpr(0)));
-    int dy = (int) Math.round(evalNum(ctx.numExpr(1)));
-    drawLine(graphicsCursorX, graphicsCursorY, graphicsCursorX + dx, graphicsCursorY + dy, false);
+    int prevInk = state.defaultInk();
+    int prevPaper = state.defaultPaper();
+    display.setInk(prevInk);
+    display.setPaper(prevPaper);
+    try {
+      applyStyleList(ctx.styleList());
+      int dx = (int) Math.round(evalNum(ctx.numExpr(0)));
+      int dy = (int) Math.round(evalNum(ctx.numExpr(1)));
+      drawLine(graphicsCursorX, graphicsCursorY, graphicsCursorX + dx, graphicsCursorY + dy, false);
+    } finally {
+      display.setInk(prevInk);
+      display.setPaper(prevPaper);
+    }
     return null;
   }
 
@@ -447,14 +467,22 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
 
   @Override
   public Void visitPlotStmt(PlotStmtContext ctx) {
-    int x = (int) evalNum(ctx.numExpr(0));
-    int y = (int) evalNum(ctx.numExpr(1));
+    int prevInk = state.defaultInk();
+    int prevPaper = state.defaultPaper();
+    display.setInk(prevInk);
+    display.setPaper(prevPaper);
     try {
+      applyStyleList(ctx.styleList());
+      int x = (int) evalNum(ctx.numExpr(0));
+      int y = (int) evalNum(ctx.numExpr(1));
       display.plot(x, y);
       graphicsCursorX = x;
       graphicsCursorY = y;
     } catch (IllegalArgumentException e) {
       throw codedException(ReportCode.INTEGER_OUT_OF_RANGE, e.getMessage());
+    } finally {
+      display.setInk(prevInk);
+      display.setPaper(prevPaper);
     }
     return null;
   }
@@ -544,14 +572,28 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
         display.print(" ".repeat(t - tabPos));
       }
       return display.currentCol();
-    } else if (item instanceof PrintInkItemContext ink) {
-      display.setInk((int) evalNum(ink.numExpr()));
-      return tabPos;
-    } else if (item instanceof PrintPaperItemContext paper) {
-      display.setPaper((int) evalNum(paper.numExpr()));
+    } else if (item instanceof PrintStyleItemContext style) {
+      applyStyleItem(style.styleItem());
       return tabPos;
     }
     return tabPos;
+  }
+
+  private void applyStyleList(StyleListContext ctx) {
+    if (ctx == null) {
+      return;
+    }
+    for (StyleItemContext style : ctx.styleItem()) {
+      applyStyleItem(style);
+    }
+  }
+
+  private void applyStyleItem(StyleItemContext style) {
+    if (style instanceof StyleInkItemContext ink) {
+      display.setInk((int) evalNum(ink.numExpr()));
+    } else if (style instanceof StylePaperItemContext paper) {
+      display.setPaper((int) evalNum(paper.numExpr()));
+    }
   }
 
   @Override
@@ -678,14 +720,22 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
 
   @Override
   public Void visitUnplotStmt(UnplotStmtContext ctx) {
-    int x = (int) evalNum(ctx.numExpr(0));
-    int y = (int) evalNum(ctx.numExpr(1));
+    int prevInk = state.defaultInk();
+    int prevPaper = state.defaultPaper();
+    display.setInk(prevInk);
+    display.setPaper(prevPaper);
     try {
+      applyStyleList(ctx.styleList());
+      int x = (int) evalNum(ctx.numExpr(0));
+      int y = (int) evalNum(ctx.numExpr(1));
       display.unplot(x, y);
       graphicsCursorX = x;
       graphicsCursorY = y;
     } catch (IllegalArgumentException e) {
       throw codedException(ReportCode.INTEGER_OUT_OF_RANGE, e.getMessage());
+    } finally {
+      display.setInk(prevInk);
+      display.setPaper(prevPaper);
     }
     return null;
   }
