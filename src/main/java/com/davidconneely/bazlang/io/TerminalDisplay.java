@@ -317,8 +317,8 @@ public class TerminalDisplay implements BazLangDisplay {
                   }
                 }
                 if (cursorRow < cellBuffer.rows()) {
-                  int cellFg = getMappedColor(activeInk, activePaper);
-                  int cellBg = getMappedColor(activePaper, activeInk);
+                  int cellFg = getMappedColour(activeInk, activePaper);
+                  int cellBg = getMappedColour(activePaper, activeInk);
                   int cellStyle = 0;
                   if (printingSystemPrompt) {
                     cellFg = CellAttributes.COLOUR_TYPE_INDEX | 4; // ANSI Blue
@@ -351,12 +351,12 @@ public class TerminalDisplay implements BazLangDisplay {
     }
   }
 
-  private int getMappedColor(int colorCode, int opposingCode) {
-    if (colorCode == 8) {
+  private int getMappedColour(int colourCode, int opposingCode) {
+    if (colourCode == 8) {
       // Transparent - just use default for now (or could look up existing cell attr)
       return CellAttributes.COLOUR_DEFAULT;
     }
-    if (colorCode == 9) {
+    if (colourCode == 9) {
       // Contrast: if opposing colour is dark (0,1,2,3), pick White (7).
       // If light (4,5,6,7), pick Black (0).
       if (opposingCode >= 0 && opposingCode <= 3) {
@@ -365,8 +365,8 @@ public class TerminalDisplay implements BazLangDisplay {
         return CellAttributes.COLOUR_TYPE_RGB | ZX_TO_RGB[0];
       }
     }
-    if (colorCode >= 0 && colorCode <= 7) {
-      return CellAttributes.COLOUR_TYPE_RGB | ZX_TO_RGB[colorCode];
+    if (colourCode >= 0 && colourCode <= 7) {
+      return CellAttributes.COLOUR_TYPE_RGB | ZX_TO_RGB[colourCode];
     }
     return CellAttributes.COLOUR_DEFAULT;
   }
@@ -414,8 +414,8 @@ public class TerminalDisplay implements BazLangDisplay {
 
   @Override
   public void plot(int x, int y) {
-    int cellFg = getMappedColor(activeInk, activePaper);
-    int cellBg = getMappedColor(activePaper, activeInk);
+    int cellFg = getMappedColour(activeInk, activePaper);
+    int cellBg = getMappedColour(activePaper, activeInk);
     cellBuffer.plot(x, y, cellFg, cellBg, 0);
     if (cellBuffer.isPixelInBounds(x, y)) {
       cursorRow = cellBuffer.pixelToCellRow(y);
@@ -427,8 +427,8 @@ public class TerminalDisplay implements BazLangDisplay {
 
   @Override
   public void unplot(int x, int y) {
-    int cellFg = getMappedColor(activeInk, activePaper);
-    int cellBg = getMappedColor(activePaper, activeInk);
+    int cellFg = getMappedColour(activeInk, activePaper);
+    int cellBg = getMappedColour(activePaper, activeInk);
     cellBuffer.unplot(x, y, cellFg, cellBg, 0);
     if (cellBuffer.isPixelInBounds(x, y)) {
       cursorRow = cellBuffer.pixelToCellRow(y);

@@ -873,17 +873,17 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
 
   @Override
   public Void visitInkStmt(InkStmtContext ctx) {
-    int color = (int) evalNum(ctx.numExpr());
-    state.setDefaultInk(color);
-    display.setInk(color);
+    int colour = (int) evalNum(ctx.numExpr());
+    state.setDefaultInk(colour);
+    display.setInk(colour);
     return null;
   }
 
   @Override
   public Void visitPaperStmt(PaperStmtContext ctx) {
-    int color = (int) evalNum(ctx.numExpr());
-    state.setDefaultPaper(color);
-    display.setPaper(color);
+    int colour = (int) evalNum(ctx.numExpr());
+    state.setDefaultPaper(colour);
+    display.setPaper(colour);
     return null;
   }
 

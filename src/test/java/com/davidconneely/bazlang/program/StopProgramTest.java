@@ -47,7 +47,7 @@ class StopProgramTest extends BaseProgramTest {
   }
 
   @Test
-  void testStopStatementBehavior() {
+  void testStopStatementBehaviour() {
     // STOP should terminate execution cleanly.
     String output =
         runProgramCapture(

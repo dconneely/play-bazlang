@@ -12,8 +12,8 @@ public class CellBufferRenderer {
       long activeAttr =
           CellBuffer.packAttributes(
               CellAttributes.COLOUR_DEFAULT, CellAttributes.COLOUR_DEFAULT, 0);
-      int activeFgColor = CellAttributes.COLOUR_DEFAULT;
-      int activeBgColor = CellAttributes.COLOUR_DEFAULT;
+      int activeFgColour = CellAttributes.COLOUR_DEFAULT;
+      int activeBgColour = CellAttributes.COLOUR_DEFAULT;
       int activeStyles = 0;
       for (int c = 0; c < colsToRender; c++) {
         long attr = cellBuffer.getAttr(r, c);
@@ -23,21 +23,21 @@ public class CellBufferRenderer {
           int style = CellBuffer.unpackStyle(attr);
           boolean resetNeeded =
               (activeStyles & ~style) != 0
-                  || ((activeFgColor & CellAttributes.COLOUR_TYPE_MASK)
+                  || ((activeFgColour & CellAttributes.COLOUR_TYPE_MASK)
                           != CellAttributes.COLOUR_DEFAULT
                       && (fg & CellAttributes.COLOUR_TYPE_MASK) == CellAttributes.COLOUR_DEFAULT)
-                  || ((activeBgColor & CellAttributes.COLOUR_TYPE_MASK)
+                  || ((activeBgColour & CellAttributes.COLOUR_TYPE_MASK)
                           != CellAttributes.COLOUR_DEFAULT
                       && (bg & CellAttributes.COLOUR_TYPE_MASK) == CellAttributes.COLOUR_DEFAULT);
           if (resetNeeded) {
             out.print("\033[m");
             activeStyles = 0;
-            activeFgColor = CellAttributes.COLOUR_DEFAULT;
-            activeBgColor = CellAttributes.COLOUR_DEFAULT;
+            activeFgColour = CellAttributes.COLOUR_DEFAULT;
+            activeBgColour = CellAttributes.COLOUR_DEFAULT;
           }
           activeStyles = emitStyles(out, style, activeStyles);
-          activeFgColor = emitColor(out, fg, activeFgColor, 38, 30, 90, "\033[39m");
-          activeBgColor = emitColor(out, bg, activeBgColor, 48, 40, 100, "\033[49m");
+          activeFgColour = emitColour(out, fg, activeFgColour, 38, 30, 90, "\033[39m");
+          activeBgColour = emitColour(out, bg, activeBgColour, 48, 40, 100, "\033[49m");
           activeAttr = attr;
         }
         int cp = cellBuffer.getCell(r, c);
@@ -50,8 +50,8 @@ public class CellBufferRenderer {
         }
       }
       if (activeStyles != 0
-          || activeFgColor != CellAttributes.COLOUR_DEFAULT
-          || activeBgColor != CellAttributes.COLOUR_DEFAULT) {
+          || activeFgColour != CellAttributes.COLOUR_DEFAULT
+          || activeBgColour != CellAttributes.COLOUR_DEFAULT) {
         out.print("\033[m");
       }
       out.print("\033[K");
@@ -86,30 +86,30 @@ public class CellBufferRenderer {
     return style;
   }
 
-  private int emitColor(
+  private int emitColour(
       PrintWriter out,
-      int color,
-      int activeColor,
-      int trueColorSgr,
+      int colour,
+      int activeColour,
+      int trueColourSgr,
       int ansi8Base,
       int ansi8HiBase,
       String resetSeq) {
-    int colorType = color & CellAttributes.COLOUR_TYPE_MASK;
-    if (colorType == CellAttributes.COLOUR_TYPE_RGB
-        || colorType == CellAttributes.COLOUR_TYPE_INDEX) {
-      if (activeColor == CellAttributes.COLOUR_DEFAULT || color != activeColor) {
-        if (colorType == CellAttributes.COLOUR_TYPE_RGB) {
+    int colourType = colour & CellAttributes.COLOUR_TYPE_MASK;
+    if (colourType == CellAttributes.COLOUR_TYPE_RGB
+        || colourType == CellAttributes.COLOUR_TYPE_INDEX) {
+      if (activeColour == CellAttributes.COLOUR_DEFAULT || colour != activeColour) {
+        if (colourType == CellAttributes.COLOUR_TYPE_RGB) {
           out.print("\033[");
-          out.print(trueColorSgr);
+          out.print(trueColourSgr);
           out.print(";2;");
-          out.print((color >> 16) & 0xFF);
+          out.print((colour >> 16) & 0xFF);
           out.print(";");
-          out.print((color >> 8) & 0xFF);
+          out.print((colour >> 8) & 0xFF);
           out.print(";");
-          out.print(color & 0xFF);
+          out.print(colour & 0xFF);
           out.print("m");
         } else {
-          int index = color & 0xFFFFFF;
+          int index = colour & 0xFFFFFF;
           if (index < 8) {
             out.print("\033[");
             out.print(ansi8Base + index);
@@ -120,16 +120,16 @@ public class CellBufferRenderer {
             out.print("m");
           } else {
             out.print("\033[");
-            out.print(trueColorSgr);
+            out.print(trueColourSgr);
             out.print(";5;");
             out.print(index);
             out.print("m");
           }
         }
       }
-    } else if ((activeColor & CellAttributes.COLOUR_TYPE_MASK) != CellAttributes.COLOUR_DEFAULT) {
+    } else if ((activeColour & CellAttributes.COLOUR_TYPE_MASK) != CellAttributes.COLOUR_DEFAULT) {
       out.print(resetSeq);
     }
-    return color;
+    return colour;
   }
 }
