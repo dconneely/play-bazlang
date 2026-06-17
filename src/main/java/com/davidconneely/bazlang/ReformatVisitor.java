@@ -165,38 +165,29 @@ public class ReformatVisitor extends BazLangBaseVisitor<String> {
 
   @Override
   public String visitPlotStmt(PlotStmtContext ctx) {
-    String res = "PLOT";
-    if (ctx.styleList() != null && ctx.styleList().getChildCount() > 0) {
-      String styles = visit(ctx.styleList());
-      if (!styles.isEmpty()) {
-        res += " " + styles.trim();
-      }
-    }
-    return res + " " + visit(ctx.numExpr(0)) + ", " + visit(ctx.numExpr(1));
+    return formatCommandWithStyles("PLOT", ctx.styleList())
+        + " "
+        + visit(ctx.numExpr(0))
+        + ", "
+        + visit(ctx.numExpr(1));
   }
 
   @Override
   public String visitDrawStmt(DrawStmtContext ctx) {
-    String res = "DRAW";
-    if (ctx.styleList() != null && ctx.styleList().getChildCount() > 0) {
-      String styles = visit(ctx.styleList());
-      if (!styles.isEmpty()) {
-        res += " " + styles.trim();
-      }
-    }
-    return res + " " + visit(ctx.numExpr(0)) + ", " + visit(ctx.numExpr(1));
+    return formatCommandWithStyles("DRAW", ctx.styleList())
+        + " "
+        + visit(ctx.numExpr(0))
+        + ", "
+        + visit(ctx.numExpr(1));
   }
 
   @Override
   public String visitUndrawStmt(UndrawStmtContext ctx) {
-    String res = "UNDRAW";
-    if (ctx.styleList() != null && ctx.styleList().getChildCount() > 0) {
-      String styles = visit(ctx.styleList());
-      if (!styles.isEmpty()) {
-        res += " " + styles.trim();
-      }
-    }
-    return res + " " + visit(ctx.numExpr(0)) + ", " + visit(ctx.numExpr(1));
+    return formatCommandWithStyles("UNDRAW", ctx.styleList())
+        + " "
+        + visit(ctx.numExpr(0))
+        + ", "
+        + visit(ctx.numExpr(1));
   }
 
   @Override
@@ -321,14 +312,22 @@ public class ReformatVisitor extends BazLangBaseVisitor<String> {
 
   @Override
   public String visitUnplotStmt(UnplotStmtContext ctx) {
-    String res = "UNPLOT";
-    if (ctx.styleList() != null && ctx.styleList().getChildCount() > 0) {
-      String styles = visit(ctx.styleList());
+    return formatCommandWithStyles("UNPLOT", ctx.styleList())
+        + " "
+        + visit(ctx.numExpr(0))
+        + ", "
+        + visit(ctx.numExpr(1));
+  }
+
+  private String formatCommandWithStyles(String command, StyleListContext styleList) {
+    String res = command;
+    if (styleList != null && styleList.getChildCount() > 0) {
+      String styles = visit(styleList);
       if (!styles.isEmpty()) {
         res += " " + styles.trim();
       }
     }
-    return res + " " + visit(ctx.numExpr(0)) + ", " + visit(ctx.numExpr(1));
+    return res;
   }
 
   @Override

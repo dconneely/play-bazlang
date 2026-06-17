@@ -145,37 +145,27 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
 
   @Override
   public Void visitDrawStmt(DrawStmtContext ctx) {
-    int prevInk = state.defaultInk();
-    int prevPaper = state.defaultPaper();
-    display.setInk(prevInk);
-    display.setPaper(prevPaper);
-    try {
-      applyStyleList(ctx.styleList());
-      int dx = (int) Math.round(evalNum(ctx.numExpr(0)));
-      int dy = (int) Math.round(evalNum(ctx.numExpr(1)));
-      drawLine(graphicsCursorX, graphicsCursorY, graphicsCursorX + dx, graphicsCursorY + dy, true);
-    } finally {
-      display.setInk(prevInk);
-      display.setPaper(prevPaper);
-    }
+    withRestoredStyles(
+        () -> {
+          applyStyleList(ctx.styleList());
+          int dx = (int) Math.round(evalNum(ctx.numExpr(0)));
+          int dy = (int) Math.round(evalNum(ctx.numExpr(1)));
+          drawLine(
+              graphicsCursorX, graphicsCursorY, graphicsCursorX + dx, graphicsCursorY + dy, true);
+        });
     return null;
   }
 
   @Override
   public Void visitUndrawStmt(UndrawStmtContext ctx) {
-    int prevInk = state.defaultInk();
-    int prevPaper = state.defaultPaper();
-    display.setInk(prevInk);
-    display.setPaper(prevPaper);
-    try {
-      applyStyleList(ctx.styleList());
-      int dx = (int) Math.round(evalNum(ctx.numExpr(0)));
-      int dy = (int) Math.round(evalNum(ctx.numExpr(1)));
-      drawLine(graphicsCursorX, graphicsCursorY, graphicsCursorX + dx, graphicsCursorY + dy, false);
-    } finally {
-      display.setInk(prevInk);
-      display.setPaper(prevPaper);
-    }
+    withRestoredStyles(
+        () -> {
+          applyStyleList(ctx.styleList());
+          int dx = (int) Math.round(evalNum(ctx.numExpr(0)));
+          int dy = (int) Math.round(evalNum(ctx.numExpr(1)));
+          drawLine(
+              graphicsCursorX, graphicsCursorY, graphicsCursorX + dx, graphicsCursorY + dy, false);
+        });
     return null;
   }
 
@@ -467,23 +457,19 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
 
   @Override
   public Void visitPlotStmt(PlotStmtContext ctx) {
-    int prevInk = state.defaultInk();
-    int prevPaper = state.defaultPaper();
-    display.setInk(prevInk);
-    display.setPaper(prevPaper);
-    try {
-      applyStyleList(ctx.styleList());
-      int x = (int) evalNum(ctx.numExpr(0));
-      int y = (int) evalNum(ctx.numExpr(1));
-      display.plot(x, y);
-      graphicsCursorX = x;
-      graphicsCursorY = y;
-    } catch (IllegalArgumentException e) {
-      throw codedException(ReportCode.INTEGER_OUT_OF_RANGE, e.getMessage());
-    } finally {
-      display.setInk(prevInk);
-      display.setPaper(prevPaper);
-    }
+    withRestoredStyles(
+        () -> {
+          applyStyleList(ctx.styleList());
+          int x = (int) evalNum(ctx.numExpr(0));
+          int y = (int) evalNum(ctx.numExpr(1));
+          try {
+            display.plot(x, y);
+            graphicsCursorX = x;
+            graphicsCursorY = y;
+          } catch (IllegalArgumentException e) {
+            throw codedException(ReportCode.INTEGER_OUT_OF_RANGE, e.getMessage());
+          }
+        });
     return null;
   }
 
@@ -507,46 +493,40 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
 
   @Override
   public Void visitPrintStmt(PrintStmtContext ctx) {
-    int prevInk = state.defaultInk();
-    int prevPaper = state.defaultPaper();
-    display.setInk(prevInk);
-    display.setPaper(prevPaper);
-    try {
-      int tabPos = display.currentCol();
-      boolean suppressNewline = false;
-      var printList = ctx.printList();
-      if (printList != null) {
-        for (int i = 0; i < printList.getChildCount(); i++) {
-          var child = printList.getChild(i);
-          if (child instanceof PrintItemContext item) {
-            tabPos = executePrintItem(item, tabPos);
-            suppressNewline = false;
-          } else if (child instanceof PrintSepContext sep) {
-            String sepText = sep.getText();
-            if (sepText.equals(",")) {
-              // Comma moves to next tab stop
-              int nextTab = ((tabPos / Limits.TAB_WIDTH) + 1) * Limits.TAB_WIDTH;
-              if (nextTab > tabPos) {
-                display.print(" ".repeat(nextTab - tabPos));
-                tabPos = display.currentCol();
+    withRestoredStyles(
+        () -> {
+          int tabPos = display.currentCol();
+          boolean suppressNewline = false;
+          var printList = ctx.printList();
+          if (printList != null) {
+            for (int i = 0; i < printList.getChildCount(); i++) {
+              var child = printList.getChild(i);
+              if (child instanceof PrintItemContext item) {
+                tabPos = executePrintItem(item, tabPos);
+                suppressNewline = false;
+              } else if (child instanceof PrintSepContext sep) {
+                String sepText = sep.getText();
+                if (sepText.equals(",")) {
+                  // Comma moves to next tab stop
+                  int nextTab = ((tabPos / Limits.TAB_WIDTH) + 1) * Limits.TAB_WIDTH;
+                  if (nextTab > tabPos) {
+                    display.print(" ".repeat(nextTab - tabPos));
+                    tabPos = display.currentCol();
+                  }
+                } else if (sepText.equals("'")) {
+                  display.println();
+                  tabPos = 0;
+                }
+                // Semicolon does nothing (items concatenate)
+                suppressNewline = true;
               }
-            } else if (sepText.equals("'")) {
-              display.println();
-              tabPos = 0;
             }
-            // Semicolon does nothing (items concatenate)
-            suppressNewline = true;
           }
-        }
-      }
-      if (!suppressNewline) {
-        display.println();
-      }
-      display.flush(); // Ensure output is visible, including semicolon-terminated lines
-    } finally {
-      display.setInk(prevInk);
-      display.setPaper(prevPaper);
-    }
+          if (!suppressNewline) {
+            display.println();
+          }
+          display.flush(); // Ensure output is visible, including semicolon-terminated lines
+        });
     return null;
   }
 
@@ -593,6 +573,19 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
       display.setInk((int) evalNum(ink.numExpr()));
     } else if (style instanceof StylePaperItemContext paper) {
       display.setPaper((int) evalNum(paper.numExpr()));
+    }
+  }
+
+  private void withRestoredStyles(Runnable action) {
+    int prevInk = state.defaultInk();
+    int prevPaper = state.defaultPaper();
+    display.setInk(prevInk);
+    display.setPaper(prevPaper);
+    try {
+      action.run();
+    } finally {
+      display.setInk(prevInk);
+      display.setPaper(prevPaper);
     }
   }
 
@@ -720,23 +713,19 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
 
   @Override
   public Void visitUnplotStmt(UnplotStmtContext ctx) {
-    int prevInk = state.defaultInk();
-    int prevPaper = state.defaultPaper();
-    display.setInk(prevInk);
-    display.setPaper(prevPaper);
-    try {
-      applyStyleList(ctx.styleList());
-      int x = (int) evalNum(ctx.numExpr(0));
-      int y = (int) evalNum(ctx.numExpr(1));
-      display.unplot(x, y);
-      graphicsCursorX = x;
-      graphicsCursorY = y;
-    } catch (IllegalArgumentException e) {
-      throw codedException(ReportCode.INTEGER_OUT_OF_RANGE, e.getMessage());
-    } finally {
-      display.setInk(prevInk);
-      display.setPaper(prevPaper);
-    }
+    withRestoredStyles(
+        () -> {
+          applyStyleList(ctx.styleList());
+          int x = (int) evalNum(ctx.numExpr(0));
+          int y = (int) evalNum(ctx.numExpr(1));
+          try {
+            display.unplot(x, y);
+            graphicsCursorX = x;
+            graphicsCursorY = y;
+          } catch (IllegalArgumentException e) {
+            throw codedException(ReportCode.INTEGER_OUT_OF_RANGE, e.getMessage());
+          }
+        });
     return null;
   }
 
