@@ -1,6 +1,7 @@
 1000 REM ### 3D rotating Rubik's cube ###
 1010 PLOTMODE 8
 1020 LET w = PLOTW : LET h = PLOTH
+1025 BRIGHT 1
 1030 LET center_x = w / 2 : LET center_y = h / 2
 1040 LET s = h * 0.7
 1050 LET num_vertices = 64
@@ -39,8 +40,8 @@
 3050 LET x1 = old_proj(e1, 1) : LET y1 = old_proj(e1, 2)
 3060 LET x2 = old_proj(e2, 1) : LET y2 = old_proj(e2, 2)
 3065 INK colors((i - 6 * INT (i / 6)) + 1)
-3070 PLOT x1, y1
-3080 UNDRAW x2 - x1, y2 - y1
+3070 PLOT OVER 1; x1, y1
+3080 DRAW OVER 1; x2 - x1, y2 - y1
 3090 NEXT i
 3100 REM ### Draw new lines ###
 3110 FOR i = 1 TO num_edges
@@ -48,8 +49,8 @@
 3130 LET x1 = projected(e1, 1) : LET y1 = projected(e1, 2)
 3140 LET x2 = projected(e2, 1) : LET y2 = projected(e2, 2)
 3145 INK colors((i - 6 * INT (i / 6)) + 1)
-3150 PLOT x1, y1
-3160 DRAW x2 - x1, y2 - y1
+3150 PLOT OVER 1; x1, y1
+3160 DRAW OVER 1; x2 - x1, y2 - y1
 3170 NEXT i
 3180 FOR i = 1 TO num_vertices
 3190 LET old_proj(i, 1) = projected(i, 1) : LET old_proj(i, 2) = projected(i, 2)

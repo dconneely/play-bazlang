@@ -27,8 +27,6 @@ class CellBufferTest {
     assertEquals('\u259B', buf.getCell(23, 0)); // ▛ upper+lower-left
     buf.plot(1, 0);
     assertEquals('\u2588', buf.getCell(23, 0)); // █ full
-    buf.unplot(0, 1);
-    assertEquals('\u259F', buf.getCell(23, 0)); // ▟ all except upper-left
   }
 
   @Test

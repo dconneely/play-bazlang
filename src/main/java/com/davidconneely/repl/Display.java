@@ -26,8 +26,6 @@ public interface Display extends AutoCloseable {
 
   int plotMode();
 
-  void unplot(int x, int y);
-
   void scroll();
 
   void print(String text);
@@ -62,6 +60,14 @@ public interface Display extends AutoCloseable {
   void setInk(int colour);
 
   void setPaper(int colour);
+
+  void setBright(int bright);
+
+  void setFlash(int flash);
+
+  void setInverse(int inverse);
+
+  void setOver(int over);
 
   @Override
   void close();

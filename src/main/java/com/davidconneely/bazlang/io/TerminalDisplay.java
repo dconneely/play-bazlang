@@ -29,6 +29,7 @@ import org.jline.reader.LineReader;
  * Unicode box-drawing characters, block elements, sextants, and braille render correctly on modern
  * UTF-8 terminals. Line input uses JLine's {@link LineReader} for proper line-editing behaviour.
  */
+@SuppressWarnings("PMD.TooManyFields")
 public class TerminalDisplay implements BazLangDisplay {
   private boolean printingSystemPrompt = false;
   private int currentInputHeight = 1;
@@ -62,8 +63,15 @@ public class TerminalDisplay implements BazLangDisplay {
   // Colour state
   private int activeInk = 8;
   private int activePaper = 8;
+  private int activeBright = 8;
+  private int activeFlash = 8;
+  private int activeInverse = 8;
+  private int activeOver = 8;
   private static final int[] ZX_TO_RGB = {
     0x000000, 0x0000D7, 0xD70000, 0xD700D7, 0x00D700, 0x00D7D7, 0xD7D700, 0xD7D7D7
+  };
+  private static final int[] ZX_TO_RGB_BRIGHT = {
+    0x000000, 0x0000FF, 0xFF0000, 0xFF00FF, 0x00FF00, 0x00FFFF, 0xFFFF00, 0xFFFFFF
   };
 
   // Rate-limiting: frame-boundary renders (println, inkey, plot) cap at ~50fps (~20ms).
@@ -215,7 +223,7 @@ public class TerminalDisplay implements BazLangDisplay {
 
   /**
    * Renders only if dirty and at least ~20ms have elapsed since the last render (~50fps cap). Used
-   * by println(), plot(), unplot(), scroll(), and inkey() as frame-boundary render points.
+   * by println(), plot(), scroll(), and inkey() as frame-boundary render points.
    */
   private void renderIfDue() {
     renderIfDue(false);
@@ -273,6 +281,26 @@ public class TerminalDisplay implements BazLangDisplay {
   }
 
   @Override
+  public void setBright(int bright) {
+    this.activeBright = bright;
+  }
+
+  @Override
+  public void setFlash(int flash) {
+    this.activeFlash = flash;
+  }
+
+  @Override
+  public void setInverse(int inverse) {
+    this.activeInverse = inverse;
+  }
+
+  @Override
+  public void setOver(int over) {
+    this.activeOver = over;
+  }
+
+  @Override
   public int plotMode() {
     return cellBuffer.mode().pixelsPerCellX() * cellBuffer.mode().pixelsPerCellY();
   }
@@ -317,9 +345,11 @@ public class TerminalDisplay implements BazLangDisplay {
                   }
                 }
                 if (cursorRow < cellBuffer.rows()) {
-                  int cellFg = getMappedColour(activeInk, activePaper);
-                  int cellBg = getMappedColour(activePaper, activeInk);
-                  int cellStyle = 0;
+                  int ink = activeInverse == 1 ? activePaper : activeInk;
+                  int paper = activeInverse == 1 ? activeInk : activePaper;
+                  int cellFg = getMappedColour(ink, paper);
+                  int cellBg = getMappedColour(paper, ink);
+                  int cellStyle = getMappedStyle();
                   if (printingSystemPrompt) {
                     cellFg = CellAttributes.COLOUR_TYPE_INDEX | 4; // ANSI Blue
                     cellBg = CellAttributes.COLOUR_DEFAULT; // Default terminal background
@@ -351,6 +381,15 @@ public class TerminalDisplay implements BazLangDisplay {
     }
   }
 
+  private int getMappedStyle() {
+    int style = 0;
+    if (activeFlash == 1) {
+      style |= CellAttributes.STYLE_BLINK;
+      style |= CellAttributes.STYLE_BOLD;
+    }
+    return style;
+  }
+
   private int getMappedColour(int colourCode, int opposingCode) {
     if (colourCode == 8) {
       // Transparent - just use default for now (or could look up existing cell attr)
@@ -360,13 +399,16 @@ public class TerminalDisplay implements BazLangDisplay {
       // Contrast: if opposing colour is dark (0,1,2,3), pick White (7).
       // If light (4,5,6,7), pick Black (0).
       if (opposingCode >= 0 && opposingCode <= 3) {
-        return CellAttributes.COLOUR_TYPE_RGB | ZX_TO_RGB[7];
+        return CellAttributes.COLOUR_TYPE_RGB
+            | (activeBright == 1 ? ZX_TO_RGB_BRIGHT[7] : ZX_TO_RGB[7]);
       } else {
-        return CellAttributes.COLOUR_TYPE_RGB | ZX_TO_RGB[0];
+        return CellAttributes.COLOUR_TYPE_RGB
+            | (activeBright == 1 ? ZX_TO_RGB_BRIGHT[0] : ZX_TO_RGB[0]);
       }
     }
     if (colourCode >= 0 && colourCode <= 7) {
-      return CellAttributes.COLOUR_TYPE_RGB | ZX_TO_RGB[colourCode];
+      return CellAttributes.COLOUR_TYPE_RGB
+          | (activeBright == 1 ? ZX_TO_RGB_BRIGHT[colourCode] : ZX_TO_RGB[colourCode]);
     }
     return CellAttributes.COLOUR_DEFAULT;
   }
@@ -414,22 +456,11 @@ public class TerminalDisplay implements BazLangDisplay {
 
   @Override
   public void plot(int x, int y) {
-    int cellFg = getMappedColour(activeInk, activePaper);
-    int cellBg = getMappedColour(activePaper, activeInk);
-    cellBuffer.plot(x, y, cellFg, cellBg, 0);
-    if (cellBuffer.isPixelInBounds(x, y)) {
-      cursorRow = cellBuffer.pixelToCellRow(y);
-      cursorCol = cellBuffer.pixelToCellCol(x) + 1;
-    }
-    dirty = true;
-    renderIfDue();
-  }
-
-  @Override
-  public void unplot(int x, int y) {
-    int cellFg = getMappedColour(activeInk, activePaper);
-    int cellBg = getMappedColour(activePaper, activeInk);
-    cellBuffer.unplot(x, y, cellFg, cellBg, 0);
+    int ink = activeInverse == 1 ? activePaper : activeInk;
+    int paper = activeInverse == 1 ? activeInk : activePaper;
+    int cellFg = getMappedColour(ink, paper);
+    int cellBg = getMappedColour(paper, ink);
+    cellBuffer.plot(x, y, cellFg, cellBg, getMappedStyle(), activeOver == 1);
     if (cellBuffer.isPixelInBounds(x, y)) {
       cursorRow = cellBuffer.pixelToCellRow(y);
       cursorCol = cellBuffer.pixelToCellCol(x) + 1;

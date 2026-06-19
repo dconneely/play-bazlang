@@ -53,7 +53,8 @@ replCommand
 
 // Statements
 statement
-    : CLEAR                                                # ClearStmt
+    : BRIGHT numExpr                                       # BrightStmt
+    | CLEAR                                                # ClearStmt
     | CLS                                                  # ClsStmt
     | (CONT | CONTINUE)                                    # ContStmt
     | DATA expression (',' expression)*                    # DataStmt
@@ -61,12 +62,14 @@ statement
     | DIM dimDecl                                          # DimStmt
     | DRAW styleList numExpr ',' numExpr                   # DrawStmt
     | FAST                                                 # FastStmt
+    | FLASH numExpr                                        # FlashStmt
     | FOR NUM_IDENTIFIER '=' numExpr TO numExpr (STEP numExpr)? # ForStmt
     | (GO SUB | GOSUB) numExpr                             # GosubStmt
     | (GO TO | GOTO) numExpr                               # GotoStmt
     | IF numExpr THEN statements                           # IfStmt
     | INK numExpr                                          # InkStmt
     | INPUT assignmentTarget                               # InputStmt
+    | INVERSE numExpr                                      # InverseStmt
     | LET assignmentTarget '=' expression                  # LetStmt
     | LIST lineRange?                                      # ListStmt
     | LLIST lineRange?                                     # LListStmt
@@ -74,8 +77,9 @@ statement
     | LPRINT printList?                                    # LPrintStmt
     | NEW                                                  # NewStmt
     | NEXT NUM_IDENTIFIER                                  # NextStmt
-    | PAUSE numExpr                                        # PauseStmt
+    | OVER numExpr                                         # OverStmt
     | PAPER numExpr                                        # PaperStmt
+    | PAUSE numExpr                                        # PauseStmt
     | PLOT styleList numExpr ',' numExpr                   # PlotStmt
     | PLOTMODE numExpr                                     # PlotmodeStmt
     | PRINT printList?                                     # PrintStmt
@@ -89,8 +93,6 @@ statement
     | SCROLL                                               # ScrollStmt
     | SLOW                                                 # SlowStmt
     | STOP                                                 # StopStmt
-    | UNDRAW styleList numExpr ',' numExpr                 # UndrawStmt
-    | UNPLOT styleList numExpr ',' numExpr                 # UnplotStmt
     ;
 
 dimDecl
@@ -131,7 +133,11 @@ styleList
     ;
 
 styleItem
-    : INK numExpr                                          # StyleInkItem
+    : BRIGHT numExpr                                       # StyleBrightItem
+    | FLASH numExpr                                        # StyleFlashItem
+    | INK numExpr                                          # StyleInkItem
+    | INVERSE numExpr                                      # StyleInverseItem
+    | OVER numExpr                                         # StyleOverItem
     | PAPER numExpr                                        # StylePaperItem
     ;
 
@@ -271,6 +277,7 @@ locals [ Object cachedStr, Object varRef ]
 // ===== Lexer Rules =====
 
 // Keywords - Statements
+BRIGHT   : 'BRIGHT';
 CLEAR    : 'CLEAR';
 CLS      : 'CLS';
 CONT     : 'CONT';
@@ -282,6 +289,7 @@ DIM      : 'DIM';
 DRAW     : 'DRAW';
 EDIT     : 'EDIT';
 FAST     : 'FAST';
+FLASH    : 'FLASH';
 FN       : 'FN';
 FOR      : 'FOR';
 GO       : 'GO';
@@ -290,6 +298,7 @@ GOTO     : 'GOTO';
 IF       : 'IF';
 INK      : 'INK';
 INPUT    : 'INPUT';
+INVERSE  : 'INVERSE';
 LET      : 'LET';
 LIST     : 'LIST';
 LLIST    : 'LLIST';
@@ -297,8 +306,9 @@ LOAD     : 'LOAD';
 LPRINT   : 'LPRINT';
 NEW      : 'NEW';
 NEXT     : 'NEXT';
-PAUSE    : 'PAUSE';
+OVER     : 'OVER';
 PAPER    : 'PAPER';
+PAUSE    : 'PAUSE';
 PLOT     : 'PLOT';
 PLOTMODE : 'PLOTMODE';
 PRINT    : 'PRINT';
@@ -316,8 +326,6 @@ SCROLL   : 'SCROLL';
 SLOW     : 'SLOW';
 STOP     : 'STOP';
 SUB      : 'SUB';
-UNPLOT   : 'UNPLOT';
-UNDRAW   : 'UNDRAW';
 
 // Keywords - Operators
 AND      : 'AND';

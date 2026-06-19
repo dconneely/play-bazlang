@@ -58,6 +58,5 @@ class ReformatVisitorTest {
     assertFormatsTo("save \"game\"", "SAVE \"game\"");
     assertFormatsTo("scroll", "SCROLL");
     assertFormatsTo("stop", "STOP");
-    assertFormatsTo("unplot 10,20", "UNPLOT 10, 20");
   }
 }

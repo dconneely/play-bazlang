@@ -67,6 +67,18 @@ public class MockDisplay implements BazLangDisplay {
   public void setPaper(int colour) {}
 
   @Override
+  public void setBright(int bright) {}
+
+  @Override
+  public void setFlash(int flash) {}
+
+  @Override
+  public void setInverse(int inverse) {}
+
+  @Override
+  public void setOver(int over) {}
+
+  @Override
   public int plotMode() {
     return 4; // QuadrantMode
   }
@@ -89,11 +101,6 @@ public class MockDisplay implements BazLangDisplay {
   @Override
   public void plot(int x, int y) {
     print("█");
-  }
-
-  @Override
-  public void unplot(int x, int y) {
-    print(" ");
   }
 
   @Override

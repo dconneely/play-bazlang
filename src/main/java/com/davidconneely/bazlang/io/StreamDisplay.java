@@ -79,15 +79,22 @@ public class StreamDisplay implements BazLangDisplay {
   }
 
   @Override
-  public void unplot(int x, int y) {
-    // No-op for stream display
-  }
-
-  @Override
   public void setInk(int colour) {}
 
   @Override
   public void setPaper(int colour) {}
+
+  @Override
+  public void setBright(int bright) {}
+
+  @Override
+  public void setFlash(int flash) {}
+
+  @Override
+  public void setInverse(int inverse) {}
+
+  @Override
+  public void setOver(int over) {}
 
   @Override
   public void scroll() {

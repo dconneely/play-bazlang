@@ -46,11 +46,10 @@ class ExampleProgramTest extends BaseProgramTest {
             110 PLOT CX+X, CY-Y
             120 PLOT CX-X, CY+Y
             130 PLOT CX-X, CY-Y
-            140 UNPLOT CX, CY
             150 RETURN
             200 PRINT "CIRCLE DRAWN"
             """;
-    String expected = "████ ████ ████ ████ ████ ████ CIRCLE DRAWN\n";
+    String expected = "████████████████████████CIRCLE DRAWN\n";
     String output = runProgramCapture(source);
     assertEquals(expected, output);
   }

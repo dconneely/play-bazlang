@@ -159,6 +159,31 @@ public class ReformatVisitor extends BazLangBaseVisitor<String> {
   }
 
   @Override
+  public String visitPaperStmt(PaperStmtContext ctx) {
+    return "PAPER " + visit(ctx.numExpr());
+  }
+
+  @Override
+  public String visitBrightStmt(BrightStmtContext ctx) {
+    return "BRIGHT " + visit(ctx.numExpr());
+  }
+
+  @Override
+  public String visitFlashStmt(FlashStmtContext ctx) {
+    return "FLASH " + visit(ctx.numExpr());
+  }
+
+  @Override
+  public String visitInverseStmt(InverseStmtContext ctx) {
+    return "INVERSE " + visit(ctx.numExpr());
+  }
+
+  @Override
+  public String visitOverStmt(OverStmtContext ctx) {
+    return "OVER " + visit(ctx.numExpr());
+  }
+
+  @Override
   public String visitPauseStmt(PauseStmtContext ctx) {
     return "PAUSE " + visit(ctx.numExpr());
   }
@@ -175,15 +200,6 @@ public class ReformatVisitor extends BazLangBaseVisitor<String> {
   @Override
   public String visitDrawStmt(DrawStmtContext ctx) {
     return formatCommandWithStyles("DRAW", ctx.styleList())
-        + " "
-        + visit(ctx.numExpr(0))
-        + ", "
-        + visit(ctx.numExpr(1));
-  }
-
-  @Override
-  public String visitUndrawStmt(UndrawStmtContext ctx) {
-    return formatCommandWithStyles("UNDRAW", ctx.styleList())
         + " "
         + visit(ctx.numExpr(0))
         + ", "
@@ -244,6 +260,26 @@ public class ReformatVisitor extends BazLangBaseVisitor<String> {
   @Override
   public String visitStylePaperItem(StylePaperItemContext ctx) {
     return "PAPER " + visit(ctx.numExpr());
+  }
+
+  @Override
+  public String visitStyleBrightItem(StyleBrightItemContext ctx) {
+    return "BRIGHT " + visit(ctx.numExpr());
+  }
+
+  @Override
+  public String visitStyleFlashItem(StyleFlashItemContext ctx) {
+    return "FLASH " + visit(ctx.numExpr());
+  }
+
+  @Override
+  public String visitStyleInverseItem(StyleInverseItemContext ctx) {
+    return "INVERSE " + visit(ctx.numExpr());
+  }
+
+  @Override
+  public String visitStyleOverItem(StyleOverItemContext ctx) {
+    return "OVER " + visit(ctx.numExpr());
   }
 
   @Override
@@ -308,15 +344,6 @@ public class ReformatVisitor extends BazLangBaseVisitor<String> {
   @Override
   public String visitStopStmt(StopStmtContext ctx) {
     return "STOP";
-  }
-
-  @Override
-  public String visitUnplotStmt(UnplotStmtContext ctx) {
-    return formatCommandWithStyles("UNPLOT", ctx.styleList())
-        + " "
-        + visit(ctx.numExpr(0))
-        + ", "
-        + visit(ctx.numExpr(1));
   }
 
   private String formatCommandWithStyles(String command, StyleListContext styleList) {

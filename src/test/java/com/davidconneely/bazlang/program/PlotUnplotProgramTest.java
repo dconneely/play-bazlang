@@ -10,8 +10,7 @@ class PlotUnplotProgramTest extends BaseProgramTest {
   @Test
   void testPlotUnplot() {
     // PLOT and UNPLOT should use Unicode █
-    String output = runProgramCapture("10 PLOT 0, 0\n20 UNPLOT 0, 0");
-    assertTrue(output.contains("█"));
-    assertTrue(output.contains(" "));
+    String output = runProgramCapture("10 PLOT 0, 0\n20 PLOT OVER 1; 0, 0");
+    assertTrue(output.contains("██"));
   }
 }

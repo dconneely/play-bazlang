@@ -194,22 +194,19 @@ public final class CellBuffer {
   }
 
   public void plot(int x, int y) {
-    updatePixel(x, y, true, -1, -1, 0);
+    updatePixel(x, y, true, -1, -1, 0, false);
   }
 
   public void plot(int x, int y, int fgColour, int bgColour, int style) {
-    updatePixel(x, y, true, fgColour, bgColour, style);
+    updatePixel(x, y, true, fgColour, bgColour, style, false);
   }
 
-  public void unplot(int x, int y) {
-    updatePixel(x, y, false, -1, -1, 0);
+  public void plot(int x, int y, int fgColour, int bgColour, int style, boolean over) {
+    updatePixel(x, y, true, fgColour, bgColour, style, over);
   }
 
-  public void unplot(int x, int y, int fgColour, int bgColour, int style) {
-    updatePixel(x, y, false, fgColour, bgColour, style);
-  }
-
-  private void updatePixel(int x, int y, boolean set, int fgColour, int bgColour, int style) {
+  private void updatePixel(
+      int x, int y, boolean set, int fgColour, int bgColour, int style, boolean over) {
     if (!isPixelInBounds(x, y)) {
       return;
     }
@@ -224,7 +221,13 @@ public final class CellBuffer {
     int mask = mode.bitMask(subX, subY);
     int idx = index(row, col);
     int state = mode.decode(codepoints[idx]);
-    codepoints[idx] = mode.encode(set ? (state | mask) : (state & ~mask));
+    int newState;
+    if (over) {
+      newState = state ^ mask;
+    } else {
+      newState = set ? (state | mask) : (state & ~mask);
+    }
+    codepoints[idx] = mode.encode(newState);
     if (fgColour != -1 && bgColour != -1) {
       attributes[idx] = packAttributes(fgColour, bgColour, style);
     }

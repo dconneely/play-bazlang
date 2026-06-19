@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
+@SuppressWarnings("PMD.TooManyFields")
 public class EvalState {
   public record NumArray(int[] dimensions, double[] data) {}
 
@@ -86,6 +87,10 @@ public class EvalState {
 
   private int defaultInk = 8; // Terminal default (Transparent)
   private int defaultPaper = 8; // Terminal default (Transparent)
+  private int defaultBright = 8; // Terminal default (Transparent)
+  private int defaultFlash = 8; // Terminal default (Transparent)
+  private int defaultInverse = 8; // Terminal default (Transparent)
+  private int defaultOver = 8; // Terminal default (Transparent)
 
   public Program program() {
     return program;
@@ -105,6 +110,38 @@ public class EvalState {
 
   public void setDefaultPaper(int defaultPaper) {
     this.defaultPaper = defaultPaper;
+  }
+
+  public int defaultBright() {
+    return defaultBright;
+  }
+
+  public void setDefaultBright(int defaultBright) {
+    this.defaultBright = defaultBright;
+  }
+
+  public int defaultFlash() {
+    return defaultFlash;
+  }
+
+  public void setDefaultFlash(int defaultFlash) {
+    this.defaultFlash = defaultFlash;
+  }
+
+  public int defaultInverse() {
+    return defaultInverse;
+  }
+
+  public void setDefaultInverse(int defaultInverse) {
+    this.defaultInverse = defaultInverse;
+  }
+
+  public int defaultOver() {
+    return defaultOver;
+  }
+
+  public void setDefaultOver(int defaultOver) {
+    this.defaultOver = defaultOver;
   }
 
   public void setProgram(Map<Integer, ProgramLine> program) {
@@ -376,5 +413,9 @@ public class EvalState {
     dataStatementIndex = -1;
     defaultInk = 8; // Terminal default (Transparent)
     defaultPaper = 8; // Terminal default (Transparent)
+    defaultBright = 8; // Terminal default (Transparent)
+    defaultFlash = 8; // Terminal default (Transparent)
+    defaultInverse = 8; // Terminal default (Transparent)
+    defaultOver = 8; // Terminal default (Transparent)
   }
 }

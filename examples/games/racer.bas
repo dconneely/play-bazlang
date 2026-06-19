@@ -55,14 +55,14 @@
 3340 PRINT INK 4; PAPER 0; wall$(1 TO (term_width - (int_left + road_inner + 2)) * bytes_per_block); 
 3350 NEXT row
 3360 REM ### Draw car and score ###
-3370 PRINT AT car_vpos + offset_y, car_hpos + offset_x; INK 5; PAPER 0; "|H|"; AT car_vpos + 1 + offset_y, car_hpos + offset_x; " ¯ "; 
+3370 PRINT AT car_vpos + offset_y, car_hpos + offset_x; BRIGHT 1; INK 5; PAPER 0; "|H|"; AT car_vpos + 1 + offset_y, car_hpos + offset_x; " ¯ "; BRIGHT 0;
 3380 PRINT AT offset_y, offset_x + 1; INK 7; PAPER 0; " Score: "; score; " "; AT offset_y, offset_x + term_width - 19; " Use Arrows/AD/HL "; 
 3385 PRINT INK 8; PAPER 8; 
 3390 LET score = score + 5 + INT (ABS (road_curve) * 5)
 3400 PAUSE car_vpos / 5
 3410 GO TO 3000
 4000 REM ### Game over ###
-4010 PRINT AT term_height - 4 + offset_y, offset_x; "Crash! Final score: "; score; "          "
+4010 PRINT AT term_height - 4 + offset_y, offset_x; FLASH 1; INVERSE 1; " *** CRASH *** "; FLASH 0; INVERSE 0; " Final score: "; score; "          "
 4020 LET msg$ = ""
 4030 IF score < 500 THEN LET msg$ = "Did you forget your glasses?"
 4040 IF score >= 500 AND score < 1500 THEN LET msg$ = "Not bad for a learner!"

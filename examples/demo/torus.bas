@@ -1,6 +1,7 @@
 1000 REM ### 3D rotating torus (doughnut) ###
 1010 PLOTMODE 8
 1020 LET w = PLOTW
+1025 BRIGHT 1
 1030 LET h = PLOTH
 1040 LET center_x = w / 2
 1050 LET center_y = h / 2
@@ -44,17 +45,17 @@
 3040 LET e1 = edges(i, 1) : LET e2 = edges(i, 2)
 3050 LET x1 = old_proj(e1, 1) : LET y1 = old_proj(e1, 2)
 3060 LET x2 = old_proj(e2, 1) : LET y2 = old_proj(e2, 2)
-3070 PLOT x1, y1 : UNDRAW x2 - x1, y2 - y1
+3070 PLOT OVER 1; x1, y1 : DRAW OVER 1; x2 - x1, y2 - y1
 3080 NEXT i
 3090 REM ### Draw new lines ###
-3094 LET col = INT (a * 5)
+3094 LET col = INT (a)
 3095 LET col = 1 + col - 7 * INT (col / 7)
 3096 INK col
 3100 FOR i = 1 TO num_edges
 3110 LET e1 = edges(i, 1) : LET e2 = edges(i, 2)
 3120 LET x1 = projected(e1, 1) : LET y1 = projected(e1, 2)
 3130 LET x2 = projected(e2, 1) : LET y2 = projected(e2, 2)
-3140 PLOT x1, y1 : DRAW x2 - x1, y2 - y1
+3140 PLOT OVER 1; x1, y1 : DRAW OVER 1; x2 - x1, y2 - y1
 3150 NEXT i
 3160 REM ### Save old points ###
 3170 FOR i = 1 TO num_vertices

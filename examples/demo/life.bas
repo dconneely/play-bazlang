@@ -56,7 +56,7 @@
 3240 LET buf(y, x) = a
 3250 LET buf_sum(y) = buf_sum(y) + a - c
 3260 IF a = 1 THEN PLOT x - 2 + ox, py
-3270 IF a = 0 THEN UNPLOT x - 2 + ox, py
+3270 IF a = 0 THEN PLOT OVER 1; x - 2 + ox, py
 3280 LET c1 = c2 : LET c2 = c3
 3290 NEXT x
 3300 NEXT y

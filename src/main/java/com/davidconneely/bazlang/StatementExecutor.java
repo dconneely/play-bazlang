@@ -150,26 +150,12 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
           applyStyleList(ctx.styleList());
           int dx = (int) Math.round(evalNum(ctx.numExpr(0)));
           int dy = (int) Math.round(evalNum(ctx.numExpr(1)));
-          drawLine(
-              graphicsCursorX, graphicsCursorY, graphicsCursorX + dx, graphicsCursorY + dy, true);
+          drawLine(graphicsCursorX, graphicsCursorY, graphicsCursorX + dx, graphicsCursorY + dy);
         });
     return null;
   }
 
-  @Override
-  public Void visitUndrawStmt(UndrawStmtContext ctx) {
-    withRestoredStyles(
-        () -> {
-          applyStyleList(ctx.styleList());
-          int dx = (int) Math.round(evalNum(ctx.numExpr(0)));
-          int dy = (int) Math.round(evalNum(ctx.numExpr(1)));
-          drawLine(
-              graphicsCursorX, graphicsCursorY, graphicsCursorX + dx, graphicsCursorY + dy, false);
-        });
-    return null;
-  }
-
-  private void drawLine(int startX, int startY, int endX, int endY, boolean plot) {
+  private void drawLine(int startX, int startY, int endX, int endY) {
     int x1 = startX;
     int y1 = startY;
     int x2 = endX;
@@ -181,11 +167,7 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
     int err = diffX + diffY;
 
     while (true) {
-      if (plot) {
-        display.plot(x1, y1);
-      } else {
-        display.unplot(x1, y1);
-      }
+      display.plot(x1, y1);
       if (x1 == x2 && y1 == y2) {
         break;
       }
@@ -573,19 +555,39 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
       display.setInk((int) evalNum(ink.numExpr()));
     } else if (style instanceof StylePaperItemContext paper) {
       display.setPaper((int) evalNum(paper.numExpr()));
+    } else if (style instanceof StyleBrightItemContext bright) {
+      display.setBright((int) evalNum(bright.numExpr()));
+    } else if (style instanceof StyleFlashItemContext flash) {
+      display.setFlash((int) evalNum(flash.numExpr()));
+    } else if (style instanceof StyleInverseItemContext inverse) {
+      display.setInverse((int) evalNum(inverse.numExpr()));
+    } else if (style instanceof StyleOverItemContext over) {
+      display.setOver((int) evalNum(over.numExpr()));
     }
   }
 
   private void withRestoredStyles(Runnable action) {
     int prevInk = state.defaultInk();
     int prevPaper = state.defaultPaper();
+    int prevBright = state.defaultBright();
+    int prevFlash = state.defaultFlash();
+    int prevInverse = state.defaultInverse();
+    int prevOver = state.defaultOver();
     display.setInk(prevInk);
     display.setPaper(prevPaper);
+    display.setBright(prevBright);
+    display.setFlash(prevFlash);
+    display.setInverse(prevInverse);
+    display.setOver(prevOver);
     try {
       action.run();
     } finally {
       display.setInk(prevInk);
       display.setPaper(prevPaper);
+      display.setBright(prevBright);
+      display.setFlash(prevFlash);
+      display.setInverse(prevInverse);
+      display.setOver(prevOver);
     }
   }
 
@@ -709,24 +711,6 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
   public Void visitStopStmt(StopStmtContext ctx) {
     state.setRunning(false);
     throw codedException(ReportCode.STOP_STATEMENT, ReportCode.STOP_STATEMENT.getMessage());
-  }
-
-  @Override
-  public Void visitUnplotStmt(UnplotStmtContext ctx) {
-    withRestoredStyles(
-        () -> {
-          applyStyleList(ctx.styleList());
-          int x = (int) evalNum(ctx.numExpr(0));
-          int y = (int) evalNum(ctx.numExpr(1));
-          try {
-            display.unplot(x, y);
-            graphicsCursorX = x;
-            graphicsCursorY = y;
-          } catch (IllegalArgumentException e) {
-            throw codedException(ReportCode.INTEGER_OUT_OF_RANGE, e.getMessage());
-          }
-        });
-    return null;
   }
 
   // ===== Expression Evaluation =====
@@ -923,6 +907,38 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
     int colour = (int) evalNum(ctx.numExpr());
     state.setDefaultPaper(colour);
     display.setPaper(colour);
+    return null;
+  }
+
+  @Override
+  public Void visitBrightStmt(BrightStmtContext ctx) {
+    int bright = (int) evalNum(ctx.numExpr());
+    state.setDefaultBright(bright);
+    display.setBright(bright);
+    return null;
+  }
+
+  @Override
+  public Void visitFlashStmt(FlashStmtContext ctx) {
+    int flash = (int) evalNum(ctx.numExpr());
+    state.setDefaultFlash(flash);
+    display.setFlash(flash);
+    return null;
+  }
+
+  @Override
+  public Void visitInverseStmt(InverseStmtContext ctx) {
+    int inverse = (int) evalNum(ctx.numExpr());
+    state.setDefaultInverse(inverse);
+    display.setInverse(inverse);
+    return null;
+  }
+
+  @Override
+  public Void visitOverStmt(OverStmtContext ctx) {
+    int over = (int) evalNum(ctx.numExpr());
+    state.setDefaultOver(over);
+    display.setOver(over);
     return null;
   }
 
