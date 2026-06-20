@@ -85,12 +85,17 @@ public class EvalState {
   private int lastReportLabel = 0;
   private int lastReportStatementIndex = 1;
 
-  private int defaultInk = 8; // Terminal default (Transparent)
-  private int defaultPaper = 8; // Terminal default (Transparent)
-  private int defaultBright = 8; // Terminal default (Transparent)
-  private int defaultFlash = 8; // Terminal default (Transparent)
-  private int defaultInverse = 8; // Terminal default (Transparent)
-  private int defaultOver = 8; // Terminal default (Transparent)
+  // Default ink/paper color codes:
+  // - -1: Default terminal color
+  // - 0..7: ZX Spectrum color codes
+  // - 8: Transparent/preserve existing cell color
+  // - 9: Contrast color
+  private int defaultInk = -1;
+  private int defaultPaper = -1;
+  private int defaultBright = 0;
+  private int defaultFlash = 0;
+  private int defaultInverse = 0;
+  private int defaultOver = 0;
 
   public Program program() {
     return program;
@@ -142,6 +147,25 @@ public class EvalState {
 
   public void setDefaultOver(int defaultOver) {
     this.defaultOver = defaultOver;
+  }
+
+  private int graphicsCursorX = 0;
+  private int graphicsCursorY = 0;
+
+  public int graphicsCursorX() {
+    return graphicsCursorX;
+  }
+
+  public int graphicsCursorY() {
+    return graphicsCursorY;
+  }
+
+  public void setGraphicsCursorX(int x) {
+    this.graphicsCursorX = x;
+  }
+
+  public void setGraphicsCursorY(int y) {
+    this.graphicsCursorY = y;
   }
 
   public void setProgram(Map<Integer, ProgramLine> program) {
@@ -411,11 +435,11 @@ public class EvalState {
     dataExpressionIndex = -1;
     dataLineLabel = -1;
     dataStatementIndex = -1;
-    defaultInk = 8; // Terminal default (Transparent)
-    defaultPaper = 8; // Terminal default (Transparent)
-    defaultBright = 8; // Terminal default (Transparent)
-    defaultFlash = 8; // Terminal default (Transparent)
-    defaultInverse = 8; // Terminal default (Transparent)
-    defaultOver = 8; // Terminal default (Transparent)
+    defaultInk = -1; // Terminal default
+    defaultPaper = -1; // Terminal default
+    defaultBright = 0;
+    defaultFlash = 0;
+    defaultInverse = 0;
+    defaultOver = 0;
   }
 }

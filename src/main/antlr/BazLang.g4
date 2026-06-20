@@ -231,13 +231,18 @@ numFunc
     | PLOTH
     | PLOTMODE
     | PLOTW
-    | PRINTH
-    | PRINTW
+    | PLOTX
+    | PLOTY
+    | POINT '(' numExpr ',' numExpr ')'
     | RND
     | SGN numAtom
     | SIN numAtom
     | SQR numAtom
     | TAN numAtom
+    | TEXTH
+    | TEXTW
+    | TEXTX
+    | TEXTY
     | UCNEXT '(' strExpr ',' numExpr ')'
     | UCODE strAtom
     | VAL strAtom
@@ -311,6 +316,7 @@ PAPER    : 'PAPER';
 PAUSE    : 'PAUSE';
 PLOT     : 'PLOT';
 PLOTMODE : 'PLOTMODE';
+POINT    : 'POINT';
 PRINT    : 'PRINT';
 RAND     : 'RAND';
 RANDOMISE: 'RANDOMISE';
@@ -354,14 +360,18 @@ LN       : 'LN';
 PI       : 'PI';
 PLOTH    : 'PLOTH';
 PLOTW    : 'PLOTW';
-PRINTH   : 'PRINTH';
-PRINTW   : 'PRINTW';
+PLOTX    : 'PLOTX';
+PLOTY    : 'PLOTY';
 RND      : 'RND';
 SGN      : 'SGN';
 SIN      : 'SIN';
 SQR      : 'SQR';
 STR_STR  : 'STR$';
 TAN      : 'TAN';
+TEXTH    : 'TEXTH';
+TEXTW    : 'TEXTW';
+TEXTX    : 'TEXTX';
+TEXTY    : 'TEXTY';
 UCHR_STR : 'UCHR$';
 UCNEXT   : 'UCNEXT';
 UCODE    : 'UCODE';

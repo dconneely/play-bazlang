@@ -104,6 +104,11 @@ public class MockDisplay implements BazLangDisplay {
   }
 
   @Override
+  public int point(int x, int y) {
+    return 0; // Not fully mocked for tests yet
+  }
+
+  @Override
   public void scroll() {
     println();
   }

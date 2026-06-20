@@ -79,6 +79,11 @@ public class StreamDisplay implements BazLangDisplay {
   }
 
   @Override
+  public int point(int x, int y) {
+    return 0; // Not supported
+  }
+
+  @Override
   public void setInk(int colour) {}
 
   @Override

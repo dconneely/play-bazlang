@@ -16,6 +16,8 @@ public interface Display extends AutoCloseable {
 
   void plot(int x, int y);
 
+  int point(int x, int y);
+
   int printWidth();
 
   int printHeight();

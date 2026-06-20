@@ -24,9 +24,6 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
   protected final ProgramStorage storage;
   protected final ExpressionEvaluator exprEvaluator;
 
-  private int graphicsCursorX = 0;
-  private int graphicsCursorY = 0;
-
   public StatementExecutor(
       EvalState state,
       BazLangDisplay display,
@@ -132,25 +129,17 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
   }
 
   @Override
-  public Void visitFastStmt(FastStmtContext ctx) {
-    display.setFastMode(true);
-    return null;
-  }
-
-  @Override
-  public Void visitSlowStmt(SlowStmtContext ctx) {
-    display.setFastMode(false);
-    return null;
-  }
-
-  @Override
   public Void visitDrawStmt(DrawStmtContext ctx) {
     withRestoredStyles(
         () -> {
           applyStyleList(ctx.styleList());
           int dx = (int) Math.round(evalNum(ctx.numExpr(0)));
           int dy = (int) Math.round(evalNum(ctx.numExpr(1)));
-          drawLine(graphicsCursorX, graphicsCursorY, graphicsCursorX + dx, graphicsCursorY + dy);
+          drawLine(
+              state.graphicsCursorX(),
+              state.graphicsCursorY(),
+              state.graphicsCursorX() + dx,
+              state.graphicsCursorY() + dy);
         });
     return null;
   }
@@ -181,8 +170,14 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
         y1 += sy;
       }
     }
-    graphicsCursorX = x2;
-    graphicsCursorY = y2;
+    state.setGraphicsCursorX(x2);
+    state.setGraphicsCursorY(y2);
+  }
+
+  @Override
+  public Void visitFastStmt(FastStmtContext ctx) {
+    display.setFastMode(true);
+    return null;
   }
 
   @Override
@@ -442,12 +437,17 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
     withRestoredStyles(
         () -> {
           applyStyleList(ctx.styleList());
-          int x = (int) evalNum(ctx.numExpr(0));
-          int y = (int) evalNum(ctx.numExpr(1));
+          var exprs = ctx.numExpr();
           try {
-            display.plot(x, y);
-            graphicsCursorX = x;
-            graphicsCursorY = y;
+            if (exprs == null || exprs.isEmpty()) {
+              display.plot(state.graphicsCursorX(), state.graphicsCursorY());
+            } else if (exprs.size() == 2) {
+              int x = (int) evalNum(ctx.numExpr(0));
+              int y = (int) evalNum(ctx.numExpr(1));
+              display.plot(x, y);
+              state.setGraphicsCursorX(x);
+              state.setGraphicsCursorY(y);
+            }
           } catch (IllegalArgumentException e) {
             throw codedException(ReportCode.INTEGER_OUT_OF_RANGE, e.getMessage());
           }
@@ -704,6 +704,12 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
   @Override
   public Void visitScrollStmt(ScrollStmtContext ctx) {
     display.scroll();
+    return null;
+  }
+
+  @Override
+  public Void visitSlowStmt(SlowStmtContext ctx) {
+    display.setFastMode(false);
     return null;
   }
 

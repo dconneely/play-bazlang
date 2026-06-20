@@ -43,11 +43,15 @@ class MathFunctionsProgramTest extends BaseProgramTest {
             20 LET R = RND
             30 LET I$ = INKEY$
             40 LET F = FRAMES
-            50 LET W1 = PRINTH
-            60 LET W2 = PRINTW
+            50 LET W1 = TEXTH
+            60 LET W2 = TEXTW
             70 LET W3 = PLOTH
             80 LET W4 = PLOTW
             90 LET W5 = PLOTMODE
+            100 LET W6 = TEXTX
+            110 LET W7 = TEXTY
+            120 LET W8 = PLOTX
+            130 LET W9 = PLOTY
             """;
     EvalState state = runProgram(source);
     assertEquals(Math.PI, state.numVar("P"), 0.0001);
@@ -61,6 +65,10 @@ class MathFunctionsProgramTest extends BaseProgramTest {
     assertTrue(state.numVar("W3") > 0);
     assertTrue(state.numVar("W4") > 0);
     assertEquals(4.0, state.numVar("W5")); // default QuadrantMode = 4
+    assertTrue(state.numVar("W6") >= 0);
+    assertTrue(state.numVar("W7") >= 0);
+    assertTrue(state.numVar("W8") >= 0);
+    assertTrue(state.numVar("W9") >= 0);
   }
 
   @Test

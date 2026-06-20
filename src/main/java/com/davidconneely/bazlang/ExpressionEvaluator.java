@@ -311,12 +311,18 @@ public class ExpressionEvaluator extends BazLangBaseVisitor<Void> {
       numResult = display.plotWidth();
       return null;
     }
-    if (ctx.PRINTH() != null) {
-      numResult = display.printHeight();
+    if (ctx.PLOTX() != null) {
+      numResult = state.graphicsCursorX();
       return null;
     }
-    if (ctx.PRINTW() != null) {
-      numResult = display.printWidth();
+    if (ctx.PLOTY() != null) {
+      numResult = state.graphicsCursorY();
+      return null;
+    }
+    if (ctx.POINT() != null) {
+      int x = (int) Math.round(evalNum(ctx.numExpr(0)));
+      int y = (int) Math.round(evalNum(ctx.numExpr(1)));
+      numResult = display.point(x, y);
       return null;
     }
     if (ctx.RND() != null) {
@@ -334,7 +340,7 @@ public class ExpressionEvaluator extends BazLangBaseVisitor<Void> {
     if (ctx.SQR() != null) {
       double arg = evalNumAtom(ctx.numAtom());
       if (arg < 0.0) {
-        throw codedException(ReportCode.INVALID_ARGUMENT, "SQR requires a non-negative argument");
+        throw codedException(ReportCode.INVALID_ARGUMENT, "SQR requires non-negative argument");
       }
       numResult = Math.sqrt(arg);
       return null;
@@ -343,9 +349,25 @@ public class ExpressionEvaluator extends BazLangBaseVisitor<Void> {
       numResult = Math.tan(evalNumAtom(ctx.numAtom()));
       return null;
     }
+    if (ctx.TEXTH() != null) {
+      numResult = display.printHeight();
+      return null;
+    }
+    if (ctx.TEXTW() != null) {
+      numResult = display.printWidth();
+      return null;
+    }
+    if (ctx.TEXTX() != null) {
+      numResult = display.currentCol();
+      return null;
+    }
+    if (ctx.TEXTY() != null) {
+      numResult = display.currentRow();
+      return null;
+    }
     if (ctx.UCNEXT() != null) {
       BStr s = evalStr(ctx.strExpr());
-      int pos = (int) evalNum(ctx.numExpr()); // 1-based byte position
+      int pos = (int) evalNum(ctx.numExpr(0)); // 1-based byte position
       if (pos < 1 || pos > s.length() + 1) {
         throw codedException(ReportCode.INTEGER_OUT_OF_RANGE, "UCNEXT position out of range");
       }

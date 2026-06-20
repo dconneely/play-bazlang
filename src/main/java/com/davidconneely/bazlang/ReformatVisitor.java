@@ -571,17 +571,32 @@ public class ReformatVisitor extends BazLangBaseVisitor<String> {
     if (ctx.PLOTW() != null) {
       return "PLOTW";
     }
-    if (ctx.PRINTH() != null) {
-      return "PRINTH";
+    if (ctx.PLOTX() != null) {
+      return "PLOTX";
     }
-    if (ctx.PRINTW() != null) {
-      return "PRINTW";
+    if (ctx.PLOTY() != null) {
+      return "PLOTY";
+    }
+    if (ctx.POINT() != null) {
+      return "POINT(" + visit(ctx.numExpr(0)) + ", " + visit(ctx.numExpr(1)) + ")";
     }
     if (ctx.RND() != null) {
       return "RND";
     }
+    if (ctx.TEXTH() != null) {
+      return "TEXTH";
+    }
+    if (ctx.TEXTW() != null) {
+      return "TEXTW";
+    }
+    if (ctx.TEXTX() != null) {
+      return "TEXTX";
+    }
+    if (ctx.TEXTY() != null) {
+      return "TEXTY";
+    }
     if (ctx.UCNEXT() != null) {
-      return "UCNEXT(" + visit(ctx.strExpr()) + ", " + visit(ctx.numExpr()) + ")";
+      return "UCNEXT(" + visit(ctx.strExpr()) + ", " + visit(ctx.numExpr(0)) + ")";
     }
 
     String funcName = ctx.getChild(0).getText().toUpperCase();

@@ -3,10 +3,10 @@
 1020 CLS
 1030 RANDOMIZE
 1040 REM ### Initialise constants ###
-1050 LET term_width = 80 : IF PRINTW < 80 THEN LET term_width = PRINTW
-1060 LET term_height = 25 : IF PRINTH < 25 THEN LET term_height = PRINTH
-1070 LET offset_x = INT ((PRINTW - term_width) / 2)
-1080 LET offset_y = INT ((PRINTH - term_height) / 2)
+1050 LET term_width = 80 : IF TEXTW < 80 THEN LET term_width = TEXTW
+1060 LET term_height = 25 : IF TEXTH < 25 THEN LET term_height = TEXTH
+1070 LET offset_x = INT ((TEXTW - term_width) / 2)
+1080 LET offset_y = INT ((TEXTH - term_height) / 2)
 1090 LET road_width = 20 : LET road_max_left = term_width - road_width - 2
 1100 LET road_inner = road_width - 1 : LET mid_width = INT (road_inner / 2)
 1110 LET block_full$ = UCHR$ (9608) : LET block_lefth$ = UCHR$ (9612) : LET block_righth$ = UCHR$ (9616)

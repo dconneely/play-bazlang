@@ -61,12 +61,12 @@ public class TerminalDisplay implements BazLangDisplay {
   private boolean dirty = false;
 
   // Colour state
-  private int activeInk = 8;
-  private int activePaper = 8;
-  private int activeBright = 8;
-  private int activeFlash = 8;
-  private int activeInverse = 8;
-  private int activeOver = 8;
+  private int activeInk = -1; // Terminal default
+  private int activePaper = -1; // Terminal default
+  private int activeBright = 0;
+  private int activeFlash = 0;
+  private int activeInverse = 0;
+  private int activeOver = 0;
   private static final int[] ZX_TO_RGB = {
     0x000000, 0x0000D7, 0xD70000, 0xD700D7, 0x00D700, 0x00D7D7, 0xD7D700, 0xD7D7D7
   };
@@ -308,7 +308,10 @@ public class TerminalDisplay implements BazLangDisplay {
   @Override
   public void cls() {
     clearBuffer();
-    render();
+    dirty = true;
+    if (!fastMode) {
+      render();
+    }
   }
 
   @Override
@@ -392,8 +395,8 @@ public class TerminalDisplay implements BazLangDisplay {
 
   private int getMappedColour(int colourCode, int opposingCode) {
     if (colourCode == 8) {
-      // Transparent - just use default for now (or could look up existing cell attr)
-      return CellAttributes.COLOUR_DEFAULT;
+      // Transparent: return -1 to signal CellBuffer to preserve existing cell attributes
+      return -1;
     }
     if (colourCode == 9) {
       // Contrast: if opposing colour is dark (0,1,2,3), pick White (7).
@@ -410,6 +413,7 @@ public class TerminalDisplay implements BazLangDisplay {
       return CellAttributes.COLOUR_TYPE_RGB
           | (activeBright == 1 ? ZX_TO_RGB_BRIGHT[colourCode] : ZX_TO_RGB[colourCode]);
     }
+    // Default fallback (including colourCode == -1) maps to terminal's own default colors
     return CellAttributes.COLOUR_DEFAULT;
   }
 
@@ -456,17 +460,20 @@ public class TerminalDisplay implements BazLangDisplay {
 
   @Override
   public void plot(int x, int y) {
-    int ink = activeInverse == 1 ? activePaper : activeInk;
-    int paper = activeInverse == 1 ? activeInk : activePaper;
-    int cellFg = getMappedColour(ink, paper);
-    int cellBg = getMappedColour(paper, ink);
-    cellBuffer.plot(x, y, cellFg, cellBg, getMappedStyle(), activeOver == 1);
+    int cellFg = getMappedColour(activeInk, activePaper);
+    int cellBg = getMappedColour(activePaper, activeInk);
+    cellBuffer.plot(x, y, cellFg, cellBg, getMappedStyle(), activeInverse != 1, activeOver == 1);
     if (cellBuffer.isPixelInBounds(x, y)) {
       cursorRow = cellBuffer.pixelToCellRow(y);
       cursorCol = cellBuffer.pixelToCellCol(x) + 1;
     }
     dirty = true;
     renderIfDue();
+  }
+
+  @Override
+  public int point(int x, int y) {
+    return cellBuffer.point(x, y);
   }
 
   @Override

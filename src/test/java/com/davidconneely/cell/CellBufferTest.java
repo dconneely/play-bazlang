@@ -40,6 +40,20 @@ class CellBufferTest {
   }
 
   @Test
+  void testPoint() {
+    CellBuffer buf = new CellBuffer(24, 32, QuadrantMode.INSTANCE);
+    assertEquals(0, buf.point(10, 10));
+    buf.plot(10, 10, -1, -1, 0, true, false); // normal PLOT
+    assertEquals(1, buf.point(10, 10));
+    buf.plot(10, 10, -1, -1, 0, false, false); // PLOT INVERSE 1
+    assertEquals(0, buf.point(10, 10));
+    buf.plot(15, 15, -1, -1, 0, true, true); // PLOT OVER 1 (was 0, now 1)
+    assertEquals(1, buf.point(15, 15));
+    buf.plot(15, 15, -1, -1, 0, true, true); // PLOT OVER 1 (was 1, now 0)
+    assertEquals(0, buf.point(15, 15));
+  }
+
+  @Test
   void testSetCellAndPlotCoexist() {
     CellBuffer buf = new CellBuffer(24, 32, QuadrantMode.INSTANCE);
     buf.setCell(10, 5, 'H');

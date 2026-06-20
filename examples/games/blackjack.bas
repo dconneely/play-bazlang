@@ -3,8 +3,8 @@
 1020 RANDOMIZE
 1030 LET money = 1000 : LET dealer_money = 10000
 1040 LET ox = 0 : LET oy = 0
-1050 IF PRINTW > 80 THEN LET ox = INT ((PRINTW - 80) / 2)
-1060 IF PRINTH > 25 THEN LET oy = INT ((PRINTH - 25) / 2)
+1050 IF TEXTW > 80 THEN LET ox = INT ((TEXTW - 80) / 2)
+1060 IF TEXTH > 25 THEN LET oy = INT ((TEXTH - 25) / 2)
 1070 DIM deck(52)
 1080 DIM player_hand(10)
 1090 DIM dealer_hand(10)

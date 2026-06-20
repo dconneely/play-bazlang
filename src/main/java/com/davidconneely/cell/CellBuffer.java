@@ -66,8 +66,8 @@ public final class CellBuffer {
   // [63]     unused  (1 bit sign, always 0)
 
   public static long packAttributes(int fgColour, int bgColour, int style) {
-    return (fgColour & ATTR_MASK)
-        | ((bgColour & ATTR_MASK) << 26)
+    return ((long) (fgColour & ATTR_MASK))
+        | (((long) (bgColour & ATTR_MASK)) << 26)
         | (((long) style & STYLE_MASK) << 52);
   }
 
@@ -119,7 +119,10 @@ public final class CellBuffer {
     if (row >= 0 && row < rows && col >= 0 && col < cols) {
       int idx = index(row, col);
       codepoints[idx] = codepoint;
-      attributes[idx] = packAttributes(fgColour, bgColour, style);
+      long oldAttr = attributes[idx];
+      int finalFg = fgColour != -1 ? fgColour : unpackFgColour(oldAttr);
+      int finalBg = bgColour != -1 ? bgColour : unpackBgColour(oldAttr);
+      attributes[idx] = packAttributes(finalFg, finalBg, style);
     }
   }
 
@@ -201,8 +204,26 @@ public final class CellBuffer {
     updatePixel(x, y, true, fgColour, bgColour, style, false);
   }
 
-  public void plot(int x, int y, int fgColour, int bgColour, int style, boolean over) {
-    updatePixel(x, y, true, fgColour, bgColour, style, over);
+  public void plot(int x, int y, int fgColour, int bgColour, int style, boolean set, boolean over) {
+    updatePixel(x, y, set, fgColour, bgColour, style, over);
+  }
+
+  public int point(int x, int y) {
+    if (!isPixelInBounds(x, y)) {
+      return 0;
+    }
+    int ppx = mode.pixelsPerCellX();
+    int ppy = mode.pixelsPerCellY();
+    int absX = Math.abs(x);
+    int absY = Math.abs(y);
+    int col = absX / ppx;
+    int row = (rows - 1) - absY / ppy;
+    int subX = absX % ppx;
+    int subY = absY % ppy;
+    int mask = mode.bitMask(subX, subY);
+    int idx = index(row, col);
+    int state = mode.decode(codepoints[idx]);
+    return (state & mask) != 0 ? 1 : 0;
   }
 
   private void updatePixel(
@@ -228,8 +249,11 @@ public final class CellBuffer {
       newState = set ? (state | mask) : (state & ~mask);
     }
     codepoints[idx] = mode.encode(newState);
-    if (fgColour != -1 && bgColour != -1) {
-      attributes[idx] = packAttributes(fgColour, bgColour, style);
+    if (fgColour != -1 || bgColour != -1) {
+      long oldAttr = attributes[idx];
+      int finalFg = fgColour != -1 ? fgColour : unpackFgColour(oldAttr);
+      int finalBg = bgColour != -1 ? bgColour : unpackBgColour(oldAttr);
+      attributes[idx] = packAttributes(finalFg, finalBg, style);
     }
   }
 }

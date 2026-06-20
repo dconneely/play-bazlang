@@ -165,11 +165,16 @@ Returns `1` for True, `0` for False.
 - **`PLOTH`**: Logical plot height for the current pixel mode (in pixels).
 - **`PLOTMODE`**: The current pixel mode id (e.g. 1, 2, 4, 6, 8).
 - **`PLOTW`**: Logical plot width for the current pixel mode (in pixels).
-- **`PRINTH`**: Screen height (in character cells).
-- **`PRINTW`**: Screen width (in character cells).
+- **`PLOTX`**: Current X coordinate of the plot cursor.
+- **`PLOTY`**: Current Y coordinate of the plot cursor.
+- **`POINT(x, y)`**: Returns `1` if the pixel at `(x, y)` is set, or `0` if it is erased. Only inspects the pixel bitmask; returns `0` if the cell contains non-graphic characters.
 - **`RND`**: Random number between 0 and 1.
 - **`SGN x`**: Signum (-1, 0, 1).
 - **`SQR x`**: Square root.
+- **`TEXTH`**: Screen height (in character cells).
+- **`TEXTW`**: Screen width (in character cells).
+- **`TEXTX`**: Current text cursor column (X coordinate).
+- **`TEXTY`**: Current text cursor row (Y coordinate).
 - **`UCNEXT(s$, i)`**: Returns the 1-based byte position of the codepoint that starts immediately
   after position `i`. Consistent with utf8-c8: each invalid byte counts as one codepoint of width
   1. Use for codepoint-by-codepoint iteration:

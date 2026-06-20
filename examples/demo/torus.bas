@@ -12,11 +12,9 @@
 1100 LET num_edges = num_vertices * 2
 1110 DIM vertices(num_vertices, 3)
 1120 DIM projected(num_vertices, 2)
-1130 DIM old_proj(num_vertices, 2)
 1140 DIM edges(num_edges, 2)
 1150 GO SUB 4000 : REM ### Init data ###
 1160 LET a = 0 : LET b = 0 : LET c = 0
-1170 LET u = 0 : REM ### First frame flag ###
 1180 LET cycles = 0 : LET start_t = FRAMES : LET cps = 0
 2000 REM ### Main loop ###
 2010 LET sin_a = SIN (a) : LET cos_a = COS (a)
@@ -39,15 +37,7 @@
 2180 LET projected(i, 2) = center_y + (y2 / z_proj) * s
 2190 NEXT i
 3000 FAST
-3010 REM ### Erase old lines ###
-3020 IF u = 0 THEN GO TO 3090
-3030 FOR i = 1 TO num_edges
-3040 LET e1 = edges(i, 1) : LET e2 = edges(i, 2)
-3050 LET x1 = old_proj(e1, 1) : LET y1 = old_proj(e1, 2)
-3060 LET x2 = old_proj(e2, 1) : LET y2 = old_proj(e2, 2)
-3070 PLOT OVER 1; x1, y1 : DRAW OVER 1; x2 - x1, y2 - y1
-3080 NEXT i
-3090 REM ### Draw new lines ###
+3010 CLS
 3094 LET col = INT (a)
 3095 LET col = 1 + col - 7 * INT (col / 7)
 3096 INK col
@@ -55,22 +45,17 @@
 3110 LET e1 = edges(i, 1) : LET e2 = edges(i, 2)
 3120 LET x1 = projected(e1, 1) : LET y1 = projected(e1, 2)
 3130 LET x2 = projected(e2, 1) : LET y2 = projected(e2, 2)
-3140 PLOT OVER 1; x1, y1 : DRAW OVER 1; x2 - x1, y2 - y1
+3140 PLOT x1, y1 : DRAW x2 - x1, y2 - y1
 3150 NEXT i
-3160 REM ### Save old points ###
-3170 FOR i = 1 TO num_vertices
-3180 LET old_proj(i, 1) = projected(i, 1) : LET old_proj(i, 2) = projected(i, 2)
-3190 NEXT i
-3200 LET u = 1
-3210 SLOW
-3220 LET a = a + 0.05
-3230 LET b = b + 0.03
-3240 LET c = c + 0.02
-3250 LET cycles = cycles + 1
-3260 LET now = FRAMES
-3270 IF now - start_t < 50 THEN GO TO 3290
-3280 LET cps = INT (cycles * 50 / (now - start_t)) : LET cycles = 0 : LET start_t = now
-3290 PRINT AT 0, 0; INK 8; PAPER 8; "Bazlang 3D Torus - "; num_vertices; " vertices, "; num_edges; " edges, "; cps; " CPS    "
+3210 LET a = a + 0.05
+3220 LET b = b + 0.03
+3230 LET c = c + 0.02
+3240 LET cycles = cycles + 1
+3250 LET now = FRAMES
+3260 IF now - start_t < 50 THEN GO TO 3280
+3270 LET cps = INT (cycles * 50 / (now - start_t)) : LET cycles = 0 : LET start_t = now
+3280 PRINT AT 0, 0; INK 8; PAPER 8; "Bazlang 3D Torus - "; num_vertices; " vertices, "; num_edges; " edges, "; cps; " CPS    "
+3290 SLOW
 3300 GO TO 2000
 4000 REM ### Init torus vertices and edges ###
 4010 PRINT INK 8; PAPER 8; "Generating mesh..."

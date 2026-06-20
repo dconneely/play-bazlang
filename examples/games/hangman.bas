@@ -2,7 +2,7 @@
 1010 REM ### Guess the hidden word before the man is hanged ###
 1020 RANDOMIZE
 1030 PLOTMODE 4
-1040 LET tw = PRINTW : LET th = PRINTH
+1040 LET tw = TEXTW : LET th = TEXTH
 1050 LET ox = 0 : LET oy = 0 : LET eh = th
 1060 IF tw > 80 THEN LET ox = INT ((tw - 80) / 2)
 1070 IF th > 25 THEN LET oy = INT ((th - 25) / 2) : LET eh = 25
@@ -19,7 +19,7 @@
 2070 LET misses = 0
 2080 LET letters$ = ""
 2090 REM ### Main loop ###
-2100 PAPER 0 : INK 4 : CLS
+2100 PAPER -1 : INK 4 : CLS
 2110 PRINT AT oy, ox; INK 4; "Word: "; INK 5; guess_word$
 2120 PRINT AT oy + 1, ox; INK 4; "Misses: "; INK 2; misses; INK 4; "/6"
 2130 PRINT AT oy + 2, ox; INK 4; "Guessed: "; INK 6; letters$
@@ -61,12 +61,12 @@
 3060 RETURN
 4000 REM ### Subroutine: Render hangman ###
 4010 LET cx = INT (PLOTW / 2) : LET cy = INT (PLOTH / 2) : INK 7
-4020 IF misses >= 1 THEN PLOT cx + 18, cy + 10 : DRAW 4, 0 : DRAW 0, -2 : DRAW -4, 0 : DRAW 0, 2
-4030 IF misses >= 2 THEN PLOT cx + 20, cy + 8 : DRAW 0, -10
+4020 IF misses >= 1 THEN PLOT cx + 17, cy + 7 : DRAW 0, 2 : DRAW 1, 1 : DRAW 4, 0 : DRAW 1, -1 : DRAW 0, -2 : DRAW -1, -1 : DRAW -4, 0 : DRAW -1, 1
+4030 IF misses >= 2 THEN PLOT cx + 20, cy + 6 : DRAW 0, -10
 4040 IF misses >= 3 THEN PLOT cx + 20, cy + 4 : DRAW -8, -4
 4050 IF misses >= 4 THEN PLOT cx + 20, cy + 4 : DRAW 8, -4
-4060 IF misses >= 5 THEN PLOT cx + 20, cy - 2 : DRAW -8, -6
-4070 IF misses >= 6 THEN PLOT cx + 20, cy - 2 : DRAW 8, -6
+4060 IF misses >= 5 THEN PLOT cx + 20, cy - 4 : DRAW -8, -6
+4070 IF misses >= 6 THEN PLOT cx + 20, cy - 4 : DRAW 8, -6
 4080 RETURN
 5000 REM ### Play again ###
 5010 PRINT AT oy + eh - 1, ox; INK 4; "Play again (Y/N)? "; INK 5; 
@@ -75,7 +75,7 @@
 5040 PRINT r$
 5050 IF r$ = "Y" OR r$ = "y" THEN GO TO 1080
 5060 PRINT AT oy + eh - 1, ox + 18; INK 6; "Thanks for playing!"
-5070 INK 8 : PAPER 8
+5070 INK -1 : PAPER -1
 6000 REM ### Word data ###
 6010 DATA "ELEPHANT", "MOUNTAIN", "SUNFLOWER", "HOSPITAL", "UMBRELLA", "PENGUIN", "ASTRONAUT", "TELESCOPE", "DIAMOND", "BUTTERFLY"
 6020 DATA "FESTIVAL", "KANGAROO", "TREASURE", "ORCHESTRA", "CHAMPION", "ADVENTURE", "VOLCANO", "OCTOPUS", "SYMPHONY", "PYRAMID"
