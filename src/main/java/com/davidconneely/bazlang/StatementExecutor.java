@@ -98,32 +98,40 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
     int numDims = dimDecl.numExpr().size();
     int[] dims = new int[numDims];
     for (int i = 0; i < numDims; i++) {
-      dims[i] = (int) evalNum(dimDecl.numExpr(i));
+      int d = (int) evalNum(dimDecl.numExpr(i));
+      if (d < 1) {
+        throw codedException(ReportCode.SUBSCRIPT_WRONG, "Subscript wrong");
+      }
+      dims[i] = d;
     }
     if (isStr) {
       state.removeStrVar(name);
       int flen = dims[numDims - 1];
-      int total = 1;
+      long total = 1;
       int[] arrDims = new int[numDims - 1];
       System.arraycopy(dims, 0, arrDims, 0, numDims - 1);
       for (int i = 0; i < numDims - 1; i++) {
         total *= dims[i];
+        if (total > Limits.MAX_ARRAY_ELEMENTS) {
+          throw codedException(ReportCode.OUT_OF_MEMORY, "Array too large");
+        }
       }
-      if (total <= 0 || total > Limits.MAX_ARRAY_ELEMENTS) {
+      long totalBytes = total * flen;
+      if (totalBytes > Limits.MAX_ARRAY_ELEMENTS) {
         throw codedException(ReportCode.OUT_OF_MEMORY, "Array too large");
       }
-      byte[] data = new byte[total * flen];
+      byte[] data = new byte[(int) totalBytes];
       Arrays.fill(data, (byte) 32); // Space padded by default
       state.setStrVar(name, new EvalState.StrVar.Array(arrDims, flen, data));
     } else {
-      int total = 1;
+      long total = 1;
       for (int d : dims) {
         total *= d;
+        if (total > Limits.MAX_ARRAY_ELEMENTS) {
+          throw codedException(ReportCode.OUT_OF_MEMORY, "Array too large");
+        }
       }
-      if (total <= 0 || total > Limits.MAX_ARRAY_ELEMENTS) {
-        throw codedException(ReportCode.OUT_OF_MEMORY, "Array too large");
-      }
-      state.setNumArray(name, new EvalState.NumArray(dims, new double[total]));
+      state.setNumArray(name, new EvalState.NumArray(dims, new double[(int) total]));
     }
     return null;
   }

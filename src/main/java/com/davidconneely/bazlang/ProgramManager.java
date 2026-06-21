@@ -43,20 +43,25 @@ public class ProgramManager extends StatementExecutor {
             en, step, state.currentLineLabel(), state.currentStatementIndex()));
     if ((step >= 0) ? (st > en) : (st < en)) {
       // Skip to matching NEXT
-      Integer nextLabel = state.program().higherKey(state.currentLineLabel());
-      while (nextLabel != null) {
-        ProgramLine line = state.program().get(nextLabel);
-        StatementsContext stmts = line.getStatements(PARSER);
-        int stmtIdx = 1;
-        for (StatementContext stmt : stmts.statement()) {
-          if (stmt instanceof NextStmtContext nextCtx
-              && nextCtx.NUM_IDENTIFIER().getText().equalsIgnoreCase(var)) {
-            state.setPendingJumpLocation(nextLabel, stmtIdx + 1);
-            return null;
+      Integer searchLabel = state.currentLineLabel();
+      int startIdx = state.currentStatementIndex() + 1;
+      while (searchLabel != null) {
+        ProgramLine line = state.program().get(searchLabel);
+        if (line != null) {
+          StatementsContext stmts = line.getStatements(PARSER);
+          int stmtIdx = 1;
+          for (StatementContext stmt : stmts.statement()) {
+            if (stmtIdx >= startIdx
+                && stmt instanceof NextStmtContext nextCtx
+                && nextCtx.NUM_IDENTIFIER().getText().equalsIgnoreCase(var)) {
+              state.setPendingJumpLocation(searchLabel, stmtIdx + 1);
+              return null;
+            }
+            stmtIdx++;
           }
-          stmtIdx++;
         }
-        nextLabel = state.program().higherKey(nextLabel);
+        searchLabel = state.program().higherKey(searchLabel);
+        startIdx = 1; // For subsequent lines, check all statements
       }
       throw new ReportException(
           ReportCode.FOR_WITHOUT_NEXT, state.currentLineLabel(), "FOR without NEXT");

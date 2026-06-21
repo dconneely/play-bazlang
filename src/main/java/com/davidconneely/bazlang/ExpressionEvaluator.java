@@ -155,7 +155,7 @@ public class ExpressionEvaluator extends BazLangBaseVisitor<Void> {
       if (r == 0.0) {
         throw codedException(ReportCode.NUMBER_TOO_BIG, "Division by zero");
       }
-      numResult = l / r;
+      numResult = requireFinite(l / r);
     }
     return null;
   }
@@ -674,9 +674,15 @@ public class ExpressionEvaluator extends BazLangBaseVisitor<Void> {
   // ===== Assignment Helpers =====
 
   public int calculateArrayIndex(int[] dimensions, int[] indices, int offset, int indicesCount) {
+    if (dimensions == null || indices == null) {
+      throw codedException(ReportCode.SUBSCRIPT_WRONG, "Subscript wrong");
+    }
     int n = dimensions.length;
-    if (indicesCount != n) {
+    if (indicesCount != n || n < 1) {
       throw codedException(ReportCode.SUBSCRIPT_WRONG, "Incorrect dimensions");
+    }
+    if (offset < 0 || offset + indicesCount > indices.length) {
+      throw codedException(ReportCode.SUBSCRIPT_WRONG, "Subscript wrong");
     }
     int idx = 0;
     int m = 1;

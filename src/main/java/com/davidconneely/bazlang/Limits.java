@@ -6,7 +6,7 @@ public interface Limits {
   int MAX_LINE_LABEL = 999_999_999;
   int MAX_TARGET_LABEL = MAX_LINE_LABEL + 1;
 
-  int MAX_ARRAY_ELEMENTS = 1_000_000_000;
+  int MAX_ARRAY_ELEMENTS = 100_000_000;
 
   int TAB_WIDTH = 16;
 }

@@ -107,4 +107,11 @@ class ForNextProgramTest extends BaseProgramTest {
     String expected = "11\n21\n31\n42\n53\n";
     runProgram("10 FOR M=1 TO 3\n20 FOR N=1 TO M\n30 PRINT M;N\n40 NEXT M\n50 NEXT N", expected);
   }
+
+  @Test
+  void testForSkipSameLine() {
+    String source = "10 FOR I = 2 TO 1 : PRINT \"SKIPPED\" : NEXT I : PRINT \"AFTER\"";
+    String output = runProgramCapture(source);
+    assertEquals("AFTER\n", output);
+  }
 }

@@ -99,28 +99,41 @@ Returns `1` for True, `0` for False.
   - `'`: Advance print position to start of next line.
   - `AT y, x`: Move cursor.
   - `TAB n`: Move to column `n`.
+  - `INK n` / `PAPER n` / `FLASH n` / `BRIGHT n` / `INVERSE n` / `OVER n`: Temporary color/style
+    modifiers for the print statement.
 - **`LPRINT`**: Print to "printer" (standard error).
 - **`INPUT var`**: Ask user for input.
   For numeric variables, the input is evaluated as an expression.
   If the expression is invalid, the user is prompted with "Syntax error? " and can edit their input.
 - **`CLS`**: Clear screen.
 - **`SCROLL`**: Scroll screen up.
-- **`PLOT x, y`**: Draw a block at coordinates `(x, y)`. Updates the current plot position.
-- **`DRAW x, y`**: Draw a line from the current plot position to relative offset `(x, y)`.
-  Updates the current plot position.
-- **`UNPLOT x, y`**: Erase a block at coordinates `(x, y)`. Updates the current plot position.
-- **`UNDRAW x, y`**: Erase a line from the current plot position to relative offset `(x, y)`.
-  Updates the current plot position.
+- **`PLOT [modifiers;] x, y`**: Draw a block at coordinates `(x, y)`. Updates the current plot
+  position. Accepts color/style modifiers before coordinates (e.g. `PLOT INK 2; x, y`).
+- **`DRAW [modifiers;] x, y`**: Draw a line from the current plot position to relative offset
+  `(x, y)`. Updates the current plot position. Accepts color/style modifiers before coordinates
+  (e.g. `DRAW INK 2; x, y`).
   - Coordinates start at `(0,0)` (bottom-left) and extend dynamically based on terminal size.
   - Uses Unicode block characters; the resolution depends on the current pixel mode (see
     `PLOTMODE`).
-- **`PLOTMODE n`**: Sets the pixel mode for `PLOT` and `UNPLOT`:
+- **`PLOTMODE n`**: Sets the pixel mode for graphics (`PLOT` and `DRAW`):
   - `1` = full cell (1×1, each cell is blank or `█`)
   - `2` = half cell — upper `▀` / lower `▄` (1×2)
   - `4` = quadrant blocks (2×2, default)
   - `6` = sextant blocks (2×3)
   - `8` = braille patterns (2×4)
   - Does not clear the display. Other values give an error.
+
+### Color / Style Attributes
+
+- **`BRIGHT n`**: Set active brightness style (`1` = bright, `0` = normal, `8` = inherit/default).
+- **`FLASH n`**: Set active flashing style (`1` = flashing, `0` = normal, `8` = inherit/default).
+- **`INK n`**: Set active foreground text/pixel ink color (0-7, or `-1` = default terminal
+  foreground, `8` = inherit/default).
+- **`INVERSE n`**: Set active inverse style (`1` = inverse color, `0` = normal, `8` = inherit/default).
+- **`OVER n`**: Set active overlay style for graphics (`1` = XOR/overlay, `0` = overwrite,
+  `8` = inherit/default).
+- **`PAPER n`**: Set active background paper color (0-7, or `-1` = default terminal background,
+  `8` = inherit/default).
 
 ### Program Management
 
