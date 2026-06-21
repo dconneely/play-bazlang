@@ -110,4 +110,15 @@ class DataReadProgramTest extends BaseProgramTest {
                     """));
     assertEquals(ReportCode.NONSENSE_IN_BASIC, ex2.reportCode());
   }
+
+  @Test
+  void testDataReadNestedInIf() {
+    EvalState state =
+        runProgram(
+            """
+            10 IF 1=0 THEN DATA 42
+            20 READ A
+            """);
+    assertEquals(42.0, state.numVar("A"));
+  }
 }

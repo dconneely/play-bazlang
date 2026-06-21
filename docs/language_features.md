@@ -85,6 +85,12 @@ Returns `1` for True, `0` for False.
 - **`GO SUB n`** (alias **`GOSUB n`**) ... `RETURN`: Call a subroutine.
 - **`IF condition THEN statement`**: Run statement if true. No `ELSE`.
 - **`FOR var = start TO end STEP step` ... `NEXT var`**: Loop.
+  - The loop variable retains its last value after loop completion (i.e. `limit + step`).
+  - Stale loops are not deactivated on termination: running a stray `NEXT var` after the loop has
+    terminated continues to increment `var` and execute without raising an error (faithful to real
+    ZX Spectrum hardware behavior).
+  - Note: While the Spectrum only allows single-character loop variables (`A` to `Z`), BazLang
+    supports multi-character loop variables.
 - **`STOP`**: Stop the program.
 - **`CONTINUE`** (alias **`CONT`**): Continue after a `STOP`.
 - **`PAUSE n`**: Wait for `n` frames (each frame is 1/50 second = 20ms).
@@ -113,6 +119,9 @@ Returns `1` for True, `0` for False.
   `(x, y)`. Updates the current plot position. Accepts color/style modifiers before coordinates
   (e.g. `DRAW INK 2; x, y`).
   - Coordinates start at `(0,0)` (bottom-left) and extend dynamically based on terminal size.
+    Negative coordinates are accepted and mirrored onto the positive grid using their absolute
+    values (matching original Sinclair BASIC behavior).
+    Example: `PLOT -10, -10` draws at `(10, 10)` on both BazLang and real hardware.
   - Uses Unicode block characters; the resolution depends on the current pixel mode (see
     `PLOTMODE`).
 - **`PLOTMODE n`**: Sets the pixel mode for graphics (`PLOT` and `DRAW`):
@@ -248,6 +257,26 @@ PRINT grid$(1, 1)   : REM prints " "
 PRINT CODE grid$(1, 1)  : REM prints 32
 ```
 
+### Byte-oriented fixed-length string arrays
+
+Fixed-length string arrays (declared via `DIM a$(rows, cols)`) are byte-oriented. The column
+size `cols` specifies the maximum width in **bytes**, not character count:
+- When assigning multi-byte UTF-8 characters (e.g. block graphics `█` which is 3 bytes in UTF-8),
+  ensure `cols` is sized large enough to hold the character's full byte sequence.
+- If the assigned string exceeds `cols` bytes, it is truncated at the byte boundary. This can
+  result in partial, invalid UTF-8 sequences that display as placeholder synthetic characters
+  (e.g., `?xe2?x96`).
+
+  Example:
+  On a real Spectrum, `a$(1)` in `DIM a$(10, 1)` can hold the graphic `█` because the Spectrum's
+  charset is single-byte. In BazLang (which uses UTF-8), `█` is 3 bytes, so it requires `cols = 3`
+  to avoid truncation:
+  ```
+  10 DIM a$(10, 3)
+  20 LET a$(1) = "█"
+  30 PRINT a$(1)
+  ```
+
 ## 7. Number Formatting
 
 Numbers are displayed in Sinclair ZX style:
@@ -271,6 +300,8 @@ BazLang follows Sinclair ZX BASIC semantics where practical, with these intentio
 | File I/O       | File system                          | Tape                           |
 | RND algorithm  | Java Random                          | Linear feedback shift register |
 | Report codes   | Same codes & messages, extra context | Same codes & messages          |
+| PRINT AT bounds| Clamps to terminal bounds            | Throws "5 Out of screen"       |
+| POINT bounds   | Returns 0                            | Throws "B Integer out of range"|
 
 ## 9. REPL-Only Commands
 
