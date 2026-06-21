@@ -3,7 +3,7 @@
 BazLang is a BASIC dialect based on Sinclair ZX BASIC (supporting a superset of both ZX81 and ZX
 Spectrum). This file lists the available commands, functions, and syntax rules.
 
-## 1. Structure
+## Structure
 
 ### Lines
 
@@ -23,7 +23,7 @@ Spectrum). This file lists the available commands, functions, and syntax rules.
   line is skipped.
 - **Strict Typing**: You cannot mix strings and numbers without converting them.
 
-## 2. Variables
+## Variables
 
 ### Numbers
 
@@ -38,7 +38,9 @@ Spectrum). This file lists the available commands, functions, and syntax rules.
 - **Indexing**: `a$(1)` is the first byte.
 - **Byte Semantics**: Strings are byte arrays internally. `LEN` returns the byte count. String
   literals and input from `INPUT` are stored as UTF-8 bytes. When printed, bytes are decoded
-  normally; lone invalid bytes 0xNN are displayed as the utf8-c8 synthetic `?xNN`.
+  normally; lone invalid bytes 0xNN are displayed as the utf8-c8 synthetic `?xNN`. For behavior of
+  fixed-length string arrays with UTF-8 characters, see
+  [implementation.md](implementation.md#language-quirks--sinclair-eccentricities).
 
 ### Namespaces
 
@@ -46,7 +48,7 @@ Variables with different types don't clash. `a`, `a(1)`, and `a$` are all differ
 However, the names of strings and character arrays would clash. So there cannot be a string, say
 `a$`, and a character array, say `a$()` with the same name.
 
-## 3. Operators
+## Operators
 
 ### Math
 
@@ -76,7 +78,7 @@ Returns `1` for True, `0` for False.
 
 - `+` joins two strings together.
 
-## 4. Commands
+## Commands
 
 ### Flow Control
 
@@ -85,12 +87,10 @@ Returns `1` for True, `0` for False.
 - **`GO SUB n`** (alias **`GOSUB n`**) ... `RETURN`: Call a subroutine.
 - **`IF condition THEN statement`**: Run statement if true. No `ELSE`.
 - **`FOR var = start TO end STEP step` ... `NEXT var`**: Loop.
-  - The loop variable retains its last value after loop completion (i.e. `limit + step`).
-  - Stale loops are not deactivated on termination: running a stray `NEXT var` after the loop has
-    terminated continues to increment `var` and execute without raising an error (faithful to real
-    ZX Spectrum hardware behavior).
   - Note: While the Spectrum only allows single-character loop variables (`A` to `Z`), BazLang
-    supports multi-character loop variables.
+    supports multi-character loop variables. See
+    [implementation.md](implementation.md#language-quirks--sinclair-eccentricities) for loop
+    execution quirks.
 - **`STOP`**: Stop the program.
 - **`CONTINUE`** (alias **`CONT`**): Continue after a `STOP`.
 - **`PAUSE n`**: Wait for `n` frames (each frame is 1/50 second = 20ms).
@@ -119,9 +119,8 @@ Returns `1` for True, `0` for False.
   `(x, y)`. Updates the current plot position. Accepts color/style modifiers before coordinates
   (e.g. `DRAW INK 2; x, y`).
   - Coordinates start at `(0,0)` (bottom-left) and extend dynamically based on terminal size.
-    Negative coordinates are accepted and mirrored onto the positive grid using their absolute
-    values (matching original Sinclair BASIC behavior).
-    Example: `PLOT -10, -10` draws at `(10, 10)` on both BazLang and real hardware.
+    For negative coordinate behaviors, see
+    [implementation.md](implementation.md#language-quirks--sinclair-eccentricities).
   - Uses Unicode block characters; the resolution depends on the current pixel mode (see
     `PLOTMODE`).
 - **`PLOTMODE n`**: Sets the pixel mode for graphics (`PLOT` and `DRAW`):
@@ -168,7 +167,7 @@ Returns `1` for True, `0` for False.
 - **`RESTORE [n]`**: Reset the data pointer to the first `DATA` statement,
   or optionally to line `n`.
 
-## 5. Functions
+## Functions
 
 ### User Functions
 
@@ -223,7 +222,7 @@ Returns `1` for True, `0` for False.
 - **`UINKEY$`**: Check key press, interpreting multibyte UTF-8 sequences and ANSI escape sequences.
 - **`VAL$ s$`**: Evaluate a string as a string expression.
 
-## 6. Slicing
+## Slicing
 
 You can slice strings and arrays. String indices are **byte offsets** (1-based).
 
@@ -257,27 +256,8 @@ PRINT grid$(1, 1)   : REM prints " "
 PRINT CODE grid$(1, 1)  : REM prints 32
 ```
 
-### Byte-oriented fixed-length string arrays
 
-Fixed-length string arrays (declared via `DIM a$(rows, cols)`) are byte-oriented. The column
-size `cols` specifies the maximum width in **bytes**, not character count:
-- When assigning multi-byte UTF-8 characters (e.g. block graphics `█` which is 3 bytes in UTF-8),
-  ensure `cols` is sized large enough to hold the character's full byte sequence.
-- If the assigned string exceeds `cols` bytes, it is truncated at the byte boundary. This can
-  result in partial, invalid UTF-8 sequences that display as placeholder synthetic characters
-  (e.g., `?xe2?x96`).
-
-  Example:
-  On a real Spectrum, `a$(1)` in `DIM a$(10, 1)` can hold the graphic `█` because the Spectrum's
-  charset is single-byte. In BazLang (which uses UTF-8), `█` is 3 bytes, so it requires `cols = 3`
-  to avoid truncation:
-  ```
-  10 DIM a$(10, 3)
-  20 LET a$(1) = "█"
-  30 PRINT a$(1)
-  ```
-
-## 7. Number Formatting
+## Number Formatting
 
 Numbers are displayed in Sinclair ZX style:
 
@@ -288,7 +268,7 @@ Numbers are displayed in Sinclair ZX style:
 
 Examples: `42`, `3.14159`, `1.23E+15`, `-5E-8`
 
-## 8. Divergences from Sinclair ZX BASIC
+## Divergences from Sinclair ZX BASIC
 
 BazLang follows Sinclair ZX BASIC semantics where practical, with these intentional differences:
 
@@ -303,7 +283,7 @@ BazLang follows Sinclair ZX BASIC semantics where practical, with these intentio
 | PRINT AT bounds| Clamps to terminal bounds            | Throws "5 Out of screen"       |
 | POINT bounds   | Returns 0                            | Throws "B Integer out of range"|
 
-## 9. REPL-Only Commands
+## REPL-Only Commands
 
 The following commands are only available in the REPL (interactive mode) and cannot be stored as
 part of a program.

@@ -15,11 +15,13 @@ public class ProgramLine {
   private final int lineNumber;
   private final String sourceText;
   private StatementsContext cachedParseTree;
+  private List<StatementContext> cachedFlatStatements;
 
   public ProgramLine(int lineNumber, String sourceText) {
     this.lineNumber = lineNumber;
     this.sourceText = sourceText;
     this.cachedParseTree = null;
+    this.cachedFlatStatements = null;
   }
 
   public int lineNumber() {
@@ -32,21 +34,25 @@ public class ProgramLine {
 
   /** Returns the parsed StatementsContext for this line, parsing lazily on first access. */
   public List<StatementContext> getFlattenedStatements(AntlrParser parser) {
-    if (cachedParseTree == null) {
-      cachedParseTree = parser.parseStatementsContext(sourceText);
-      new AstAnnotator(lineNumber).visit(cachedParseTree);
+    if (cachedFlatStatements == null) {
+      ensureParsed(parser);
+      List<StatementContext> flat = new ArrayList<>();
+      flatten(cachedParseTree, flat);
+      cachedFlatStatements = flat;
     }
-    List<StatementContext> flat = new ArrayList<>();
-    flatten(cachedParseTree, flat);
-    return flat;
+    return cachedFlatStatements;
   }
 
   public StatementsContext getStatements(AntlrParser parser) {
+    ensureParsed(parser);
+    return cachedParseTree;
+  }
+
+  private void ensureParsed(AntlrParser parser) {
     if (cachedParseTree == null) {
       cachedParseTree = parser.parseStatementsContext(sourceText);
       new AstAnnotator(lineNumber).visit(cachedParseTree);
     }
-    return cachedParseTree;
   }
 
   private void flatten(StatementsContext ctx, List<StatementContext> flat) {

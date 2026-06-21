@@ -42,15 +42,20 @@ public class ProgramManager extends StatementExecutor {
         new EvalState.ForLoopData(
             en, step, state.currentLineLabel(), state.currentStatementIndex()));
     if ((step >= 0) ? (st > en) : (st < en)) {
-      // Skip to matching NEXT
+      // Skip to matching NEXT.
+      // On real ZX Spectrum hardware the scan is a flat, linear pass through all statements in
+      // program order, including those nested inside IF...THEN bodies. So `IF 0 THEN NEXT i` is
+      // still found by the scan even though the condition is always false. We use
+      // getFlattenedStatements() to replicate this behaviour, which is also consistent with the
+      // flat statement indices used by Interpreter.resume().
       Integer searchLabel = state.currentLineLabel();
       int startIdx = state.currentStatementIndex() + 1;
       while (searchLabel != null) {
         ProgramLine line = state.program().get(searchLabel);
         if (line != null) {
-          StatementsContext stmts = line.getStatements(PARSER);
+          var flatStmts = line.getFlattenedStatements(PARSER);
           int stmtIdx = 1;
-          for (StatementContext stmt : stmts.statement()) {
+          for (StatementContext stmt : flatStmts) {
             if (stmtIdx >= startIdx
                 && stmt instanceof NextStmtContext nextCtx
                 && nextCtx.NUM_IDENTIFIER().getText().equalsIgnoreCase(var)) {

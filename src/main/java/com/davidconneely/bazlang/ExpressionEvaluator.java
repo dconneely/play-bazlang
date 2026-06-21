@@ -756,6 +756,9 @@ public class ExpressionEvaluator extends BazLangBaseVisitor<Void> {
       } else {
         evalNum(def.body().numExpr());
       }
+    } catch (StackOverflowError e) {
+      // Recursive DEF FN: matches ZX Spectrum report "4 Out of memory".
+      throw codedException(ReportCode.OUT_OF_MEMORY, "Out of memory (recursive FN)");
     } finally {
       // Restore variables
       for (var entry : oldNums.entrySet()) {

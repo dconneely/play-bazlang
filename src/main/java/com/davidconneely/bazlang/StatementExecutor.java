@@ -433,8 +433,10 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
       remaining -= chunk;
       if (display.pollForBreak()) {
         state.setRunning(false);
+        // On real ZX Spectrum hardware, pressing BREAK during PAUSE gives report code L
+        // (BREAK into program). CONT then advances past the PAUSE to the next statement.
         throw codedException(
-            ReportCode.BREAK_CONT_REPEATS, ReportCode.BREAK_CONT_REPEATS.getMessage());
+            ReportCode.BREAK_INTO_PROGRAM, ReportCode.BREAK_INTO_PROGRAM.getMessage());
       }
     }
     return null;

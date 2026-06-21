@@ -114,4 +114,51 @@ class ForNextProgramTest extends BaseProgramTest {
     String output = runProgramCapture(source);
     assertEquals("AFTER\n", output);
   }
+
+  @Test
+  void testForSkipFindsNextInsideIfBody() {
+    // On real ZX Spectrum hardware, the FOR body-skip scan is a flat, linear pass through all
+    // statements in program order, including those nested inside IF...THEN bodies. Verified on
+    // real hardware: `FOR i=1 TO 0 / IF 0 THEN NEXT i / PRINT "A" / NEXT i / PRINT "B"` prints
+    // "A" then "B", confirming that the NEXT inside `IF 0 THEN` is found by the skip scan even
+    // though the condition is always false.
+    String source =
+        """
+        10 FOR I = 1 TO 0
+        20 IF 0 THEN NEXT I
+        30 PRINT "A"
+        40 NEXT I
+        50 PRINT "B"
+        """;
+    assertEquals("A\nB\n", runProgramCapture(source));
+  }
+
+  @Test
+  void testForSkipFindsNextInsideIfBodyFullTrace() {
+    // Full program verified on real ZX Spectrum hardware with `FOR i=1 TO 0`. Expected output:
+    // 40, 60, 130, 2, 3, 4 — confirming the skip lands after the `IF i=1 THEN NEXT i` on line 30
+    // (not at the standalone `NEXT i` on line 120).
+    String source =
+        """
+        10 FOR I=1 TO 0
+        20 GO SUB 100
+        30 IF I=1 THEN NEXT I
+        40 PRINT 40
+        50 IF I=2 THEN NEXT I
+        60 PRINT 60
+        70 GOTO 120
+        80 PRINT 80
+        90 STOP
+        100 PRINT I
+        110 RETURN
+        120 NEXT I
+        130 PRINT 130
+        140 PRINT I
+        150 NEXT I
+        160 PRINT I
+        170 NEXT I
+        180 PRINT I
+        """;
+    assertEquals("40\n60\n130\n2\n3\n4\n", runProgramCapture(source));
+  }
 }

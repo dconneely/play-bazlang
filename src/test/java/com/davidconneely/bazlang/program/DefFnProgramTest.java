@@ -124,4 +124,21 @@ class DefFnProgramTest extends BaseProgramTest {
     // W = FN DOUBLE(2) -> FN ADD(2) * 2 -> (2 + Y) * 2 -> 7 * 2 = 14
     assertEquals(14.0, state.numVar("W"));
   }
+
+  @Test
+  void testRecursiveDefFnOutOfMemory() {
+    // Recursive DEF FN causes a stack overflow. On real ZX Spectrum hardware this produces
+    // "4 Out of memory". BazLang must catch StackOverflowError and surface it as OUT_OF_MEMORY
+    // rather than letting the JVM crash the interpreter.
+    ReportException e =
+        assertThrows(
+            ReportException.class,
+            () ->
+                runProgramCapture(
+                    """
+                    10 DEF FN F(N) = FN F(N)
+                    20 PRINT FN F(1)
+                    """));
+    assertEquals(ReportCode.OUT_OF_MEMORY, e.reportCode());
+  }
 }
