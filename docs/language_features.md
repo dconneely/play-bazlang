@@ -38,7 +38,7 @@ Spectrum). This file lists the available commands, functions, and syntax rules.
 - **Indexing**: `a$(1)` is the first byte.
 - **Byte Semantics**: Strings are byte arrays internally. `LEN` returns the byte count. String
   literals and input from `INPUT` are stored as UTF-8 bytes. When printed, bytes are decoded
-  normally; lone invalid bytes 0xNN are displayed as the utf8-c8 synthetic `?xNN`. For behavior of
+  normally; lone invalid bytes 0xNN are displayed as the utf8-c8 synthetic `?xNN`. For behaviour of
   fixed-length string arrays with UTF-8 characters, see
   [implementation.md](implementation.md#language-quirks--sinclair-eccentricities).
 
@@ -105,7 +105,7 @@ Returns `1` for True, `0` for False.
   - `'`: Advance print position to start of next line.
   - `AT y, x`: Move cursor.
   - `TAB n`: Move to column `n`.
-  - `INK n` / `PAPER n` / `FLASH n` / `BRIGHT n` / `INVERSE n` / `OVER n`: Temporary color/style
+  - `INK n` / `PAPER n` / `FLASH n` / `BRIGHT n` / `INVERSE n` / `OVER n`: Temporary colour/style
     modifiers for the print statement.
 - **`LPRINT`**: Print to "printer" (standard error).
 - **`INPUT var`**: Ask user for input.
@@ -114,12 +114,12 @@ Returns `1` for True, `0` for False.
 - **`CLS`**: Clear screen.
 - **`SCROLL`**: Scroll screen up.
 - **`PLOT [modifiers;] x, y`**: Draw a block at coordinates `(x, y)`. Updates the current plot
-  position. Accepts color/style modifiers before coordinates (e.g. `PLOT INK 2; x, y`).
+  position. Accepts colour/style modifiers before coordinates (e.g. `PLOT INK 2; x, y`).
 - **`DRAW [modifiers;] x, y`**: Draw a line from the current plot position to relative offset
-  `(x, y)`. Updates the current plot position. Accepts color/style modifiers before coordinates
+  `(x, y)`. Updates the current plot position. Accepts colour/style modifiers before coordinates
   (e.g. `DRAW INK 2; x, y`).
   - Coordinates start at `(0,0)` (bottom-left) and extend dynamically based on terminal size.
-    For negative coordinate behaviors, see
+    For negative coordinate behaviours, see
     [implementation.md](implementation.md#language-quirks--sinclair-eccentricities).
   - Uses Unicode block characters; the resolution depends on the current pixel mode (see
     `PLOTMODE`).
@@ -131,16 +131,16 @@ Returns `1` for True, `0` for False.
   - `8` = braille patterns (2×4)
   - Does not clear the display. Other values give an error.
 
-### Color / Style Attributes
+### Colour / Style Attributes
 
 - **`BRIGHT n`**: Set active brightness style (`1` = bright, `0` = normal, `8` = inherit/default).
 - **`FLASH n`**: Set active flashing style (`1` = flashing, `0` = normal, `8` = inherit/default).
-- **`INK n`**: Set active foreground text/pixel ink color (0-7, or `-1` = default terminal
+- **`INK n`**: Set active foreground text/pixel ink colour (0-7, or `-1` = default terminal
   foreground, `8` = inherit/default).
-- **`INVERSE n`**: Set active inverse style (`1` = inverse color, `0` = normal, `8` = inherit/default).
+- **`INVERSE n`**: Set active inverse style (`1` = inverse colour, `0` = normal, `8` = inherit/default).
 - **`OVER n`**: Set active overlay style for graphics (`1` = XOR/overlay, `0` = overwrite,
   `8` = inherit/default).
-- **`PAPER n`**: Set active background paper color (0-7, or `-1` = default terminal background,
+- **`PAPER n`**: Set active background paper colour (0-7, or `-1` = default terminal background,
   `8` = inherit/default).
 
 ### Program Management

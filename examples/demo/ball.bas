@@ -2,7 +2,7 @@
 1010 PLOTMODE 8
 1020 INK -1 : PAPER -1
 1030 LET w = PLOTW : LET h = PLOTH
-1040 LET center_x = w / 2 : LET center_y = h / 2
+1040 LET centre_x = w / 2 : LET centre_y = h / 2
 1050 LET aspect = 1.25
 1060 LET s = h * 0.45
 1070 DIM vertices(60, 3)
@@ -28,9 +28,8 @@
 1270 LET num_vertices = 0
 1280 GO SUB 6000 : REM ### Initialize vertices, edges and types ###
 1290 LET a = 0.5 : LET b = 0.5 : LET c = 0.2
-1300 LET use_color = 1 : REM ### 0 = B&W wireframe, 1 = Color football ###
+1300 LET use_colour = 1 : REM ### 0 = B&W wireframe, 1 = Colour football ###
 1310 LET cycles = 0 : LET start_t = FRAMES : LET cps = 0
-
 2000 REM ### Main loop ###
 2010 LET sin_a = SIN (a) : LET cos_a = COS (a)
 2020 LET sin_b = SIN (b) : LET cos_b = COS (b)
@@ -44,8 +43,8 @@
 2100 LET x2 = x1 * cos_c - y1 * sin_c
 2110 LET y2 = x1 * sin_c + y1 * cos_c
 2120 LET z_proj = 10 - z2
-2130 LET projected(i, 1) = center_x + (x2 / z_proj) * s * aspect
-2140 LET projected(i, 2) = center_y + (y2 / z_proj) * s
+2130 LET projected(i, 1) = centre_x + (x2 / z_proj) * s * aspect
+2140 LET projected(i, 2) = centre_y + (y2 / z_proj) * s
 2150 LET proj_z(i) = z2
 2160 LET rot_x(i) = x2 : LET rot_y(i) = y2
 2170 NEXT i
@@ -58,16 +57,15 @@
 2240 LET x2 = x1 * cos_c - y1 * sin_c
 2250 LET y2 = x1 * sin_c + y1 * cos_c
 2260 LET z_proj = 10 - z2
-2270 LET projected_hc(i, 1) = center_x + (x2 / z_proj) * s * aspect
-2280 LET projected_hc(i, 2) = center_y + (y2 / z_proj) * s
+2270 LET projected_hc(i, 1) = centre_x + (x2 / z_proj) * s * aspect
+2280 LET projected_hc(i, 2) = centre_y + (y2 / z_proj) * s
 2290 LET hc_z(i) = z2
 2300 LET rot_x_hc(i) = x2 : LET rot_y_hc(i) = y2
 2310 NEXT i
-
 3000 FAST
 3010 CLS
 3020 FOR j = 1 TO 20
-3030 IF use_color = 0 THEN GO TO 3100
+3030 IF use_colour = 0 THEN GO TO 3100
 3040 IF hc_z(j) < 2.45623 THEN GO TO 3100
 3050 LET cx = projected_hc(j, 1) : LET cy = projected_hc(j, 2)
 3060 FOR k = 1 TO 6
@@ -79,8 +77,8 @@
 3075 LET t = (hc_z(j) - 2.45623) / (hc_z(j) - zv)
 3076 LET rx = rot_x_hc(j) + t * (rot_x(v) - rot_x_hc(j))
 3077 LET ry = rot_y_hc(j) + t * (rot_y(v) - rot_y_hc(j))
-3078 LET px = center_x + (rx / 7.54377) * s * aspect
-3079 LET py = center_y + (ry / 7.54377) * s
+3078 LET px = centre_x + (rx / 7.54377) * s * aspect
+3079 LET py = centre_y + (ry / 7.54377) * s
 3080 LET poly_x(k) = px : LET poly_y(k) = py
 3081 NEXT k
 3082 FOR k = 1 TO 6
@@ -101,16 +99,16 @@
 3118 LET rx = rot_x(e2) + t * (rot_x(e1) - rot_x(e2))
 3119 LET ry = rot_y(e2) + t * (rot_y(e1) - rot_y(e2))
 3120 LET x1_d = projected(e2, 1) : LET y1_d = projected(e2, 2)
-3121 LET x2_d = center_x + (rx / 7.54377) * s * aspect
-3122 LET y2_d = center_y + (ry / 7.54377) * s
+3121 LET x2_d = centre_x + (rx / 7.54377) * s * aspect
+3122 LET y2_d = centre_y + (ry / 7.54377) * s
 3123 GO TO 3135
 3124 REM ### Case: z1 >= 2.45623 and z2 < 2.45623 ###
 3125 LET t = (z1 - 2.45623) / (z1 - z2)
 3126 LET rx = rot_x(e1) + t * (rot_x(e2) - rot_x(e1))
 3127 LET ry = rot_y(e1) + t * (rot_y(e2) - rot_y(e1))
 3128 LET x1_d = projected(e1, 1) : LET y1_d = projected(e1, 2)
-3129 LET x2_d = center_x + (rx / 7.54377) * s * aspect
-3130 LET y2_d = center_y + (ry / 7.54377) * s
+3129 LET x2_d = centre_x + (rx / 7.54377) * s * aspect
+3130 LET y2_d = centre_y + (ry / 7.54377) * s
 3131 GO TO 3135
 3132 REM ### Case: both >= 2.45623 ###
 3133 LET x1_d = projected(e1, 1) : LET y1_d = projected(e1, 2)
@@ -128,7 +126,6 @@
 3230 LET b = b + 0.015
 3240 LET c = c + 0.01
 3250 GO TO 2000
-
 3500 REM ### Subroutine: Fill triangle from projected_hc(j) to edge (x1_d, y1_d) - (x2_d, y2_d) ###
 3510 LET cx = projected_hc(j, 1) : LET cy = projected_hc(j, 2)
 3520 INK -1 : REM ### Fill with Default Foreground ###
@@ -139,30 +136,29 @@
 3570 PLOT cx, cy : DRAW tx - cx, ty - cy
 3580 NEXT f
 3590 RETURN
-
 6000 REM ### Initialize geometry ###
 6010 LET phi = 1.618034
 6020 FOR s1 = -1 TO 1 STEP 2
 6030 FOR s2 = -1 TO 1 STEP 2
 6040 FOR s3 = -1 TO 1 STEP 2
 6050 REM ### Pattern 1 ###
-6060 LET tx = 0 : LET ty = s2 : LET tz = 3 * phi * s3 : GO SUB 7100
-6070 LET tx = s1 : LET ty = 3 * phi * s2 : LET tz = 0 : GO SUB 7100
-6080 LET tx = 3 * phi * s1 : LET ty = 0 : LET tz = s3 : GO SUB 7100
+6060 LET tx = 0 : LET ty = s2 : LET tz = 3 * phi * s3 : GO SUB 7080
+6070 LET tx = s1 : LET ty = 3 * phi * s2 : LET tz = 0 : GO SUB 7080
+6080 LET tx = 3 * phi * s1 : LET ty = 0 : LET tz = s3 : GO SUB 7080
 6090 REM ### Pattern 2 ###
 6100 LET val_b = 2 + phi : LET val_c = 2 * phi
-6110 LET tx = s1 * 1 : LET ty = s2 * val_b : LET tz = s3 * val_c : GO SUB 7100
-6120 LET tx = s1 * val_b : LET ty = s2 * val_c : LET tz = s3 * 1 : GO SUB 7100
-6130 LET tx = s1 * val_c : LET ty = s2 * 1 : LET tz = s3 * val_b : GO SUB 7100
+6110 LET tx = s1 * 1 : LET ty = s2 * val_b : LET tz = s3 * val_c : GO SUB 7080
+6120 LET tx = s1 * val_b : LET ty = s2 * val_c : LET tz = s3 * 1 : GO SUB 7080
+6130 LET tx = s1 * val_c : LET ty = s2 * 1 : LET tz = s3 * val_b : GO SUB 7080
 6140 REM ### Pattern 3 ###
 6150 LET val_a = phi : LET val_c = 2 * phi + 1
-6160 LET tx = s1 * val_a : LET ty = s2 * 2 : LET tz = s3 * val_c : GO SUB 7100
-6170 LET tx = s1 * 2 : LET ty = s2 * val_c : LET tz = s3 * val_a : GO SUB 7100
-6180 LET tx = s1 * val_c : LET ty = s2 * val_a : LET tz = s3 * 2 : GO SUB 7100
+6160 LET tx = s1 * val_a : LET ty = s2 * 2 : LET tz = s3 * val_c : GO SUB 7080
+6170 LET tx = s1 * 2 : LET ty = s2 * val_c : LET tz = s3 * val_a : GO SUB 7080
+6180 LET tx = s1 * val_c : LET ty = s2 * val_a : LET tz = s3 * 2 : GO SUB 7080
 6190 NEXT s3
 6200 NEXT s2
 6210 NEXT s1
-6220 REM ### Generate 12 Icosahedron vertices (pentagon centers) ###
+6220 REM ### Generate 12 Icosahedron vertices (pentagon centres) ###
 6230 LET ico_count = 0
 6240 FOR s1 = -1 TO 1 STEP 2
 6250 FOR s2 = -1 TO 1 STEP 2
@@ -199,27 +195,25 @@
 6560 IF min_d2 < 1.0 THEN LET edge_type(num_edges) = 1
 6570 NEXT j
 6580 NEXT i
-6590 GO SUB 6600 : REM ### Generate hexagon centers and map edges ###
+6590 GO SUB 6600 : REM ### Generate hexagon centres and map edges ###
 6595 RETURN
-
-6600 REM ### Generate 20 hexagon centers ###
+6600 REM ### Generate 20 hexagon centres ###
 6610 LET hc_count = 0
 6620 LET phi2 = phi + 1 : LET phi3 = 2 * phi + 1
 6630 FOR s1 = -1 TO 1 STEP 2
 6640 FOR s2 = -1 TO 1 STEP 2
 6650 FOR s3 = -1 TO 1 STEP 2
-6660 LET tx = s1 * phi2 : LET ty = s2 * phi2 : LET tz = s3 * phi2 : GO SUB 7200
+6660 LET tx = s1 * phi2 : LET ty = s2 * phi2 : LET tz = s3 * phi2 : GO SUB 7180
 6670 NEXT s3
 6680 NEXT s2
 6690 NEXT s1
 6700 FOR s1 = -1 TO 1 STEP 2
 6710 FOR s2 = -1 TO 1 STEP 2
-6720 LET tx = 0 : LET ty = s1 * phi3 : LET tz = s2 * phi : GO SUB 7200
-6730 LET tx = s1 * phi3 : LET ty = s2 * phi : LET tz = 0 : GO SUB 7200
-6740 LET tx = s1 * phi : LET ty = 0 : LET tz = s2 * phi3 : GO SUB 7200
+6720 LET tx = 0 : LET ty = s1 * phi3 : LET tz = s2 * phi : GO SUB 7180
+6730 LET tx = s1 * phi3 : LET ty = s2 * phi : LET tz = 0 : GO SUB 7180
+6740 LET tx = s1 * phi : LET ty = 0 : LET tz = s2 * phi3 : GO SUB 7180
 6750 NEXT s2
 6760 NEXT s1
-
 6770 REM ### Find and order hexagon vertices ###
 6780 FOR j = 1 TO 20
 6790 LET hc = 0
@@ -251,25 +245,23 @@
 7050 NEXT k
 7060 NEXT j
 7070 RETURN
-
-7100 REM ### Subroutine: Add vertex if unique ###
-7110 IF num_vertices = 60 THEN RETURN
-7120 FOR k = 1 TO num_vertices
-7130 IF ABS (vertices(k, 1) - tx) < 0.01 AND ABS (vertices(k, 2) - ty) < 0.01 AND ABS (vertices(k, 3) - tz) < 0.01 THEN RETURN
-7140 NEXT k
-7150 LET num_vertices = num_vertices + 1
-7160 LET vertices(num_vertices, 1) = tx
-7170 LET vertices(num_vertices, 2) = ty
-7180 LET vertices(num_vertices, 3) = tz
-7190 RETURN
-
-7200 REM ### Subroutine: Add hexagon center if unique ###
-7210 IF hc_count = 20 THEN RETURN
-7220 FOR k = 1 TO hc_count
-7230 IF ABS (hpx(k) - tx) < 0.01 AND ABS (hpy(k) - ty) < 0.01 AND ABS (hpz(k) - tz) < 0.01 THEN RETURN
-7240 NEXT k
-7250 LET hc_count = hc_count + 1
-7260 LET hpx(hc_count) = tx
-7270 LET hpy(hc_count) = ty
-7280 LET hpz(hc_count) = tz
-7290 RETURN
+7080 REM ### Subroutine: Add vertex if unique ###
+7090 IF num_vertices = 60 THEN RETURN
+7100 FOR k = 1 TO num_vertices
+7110 IF ABS (vertices(k, 1) - tx) < 0.01 AND ABS (vertices(k, 2) - ty) < 0.01 AND ABS (vertices(k, 3) - tz) < 0.01 THEN RETURN
+7120 NEXT k
+7130 LET num_vertices = num_vertices + 1
+7140 LET vertices(num_vertices, 1) = tx
+7150 LET vertices(num_vertices, 2) = ty
+7160 LET vertices(num_vertices, 3) = tz
+7170 RETURN
+7180 REM ### Subroutine: Add hexagon centre if unique ###
+7190 IF hc_count = 20 THEN RETURN
+7200 FOR k = 1 TO hc_count
+7210 IF ABS (hpx(k) - tx) < 0.01 AND ABS (hpy(k) - ty) < 0.01 AND ABS (hpz(k) - tz) < 0.01 THEN RETURN
+7220 NEXT k
+7230 LET hc_count = hc_count + 1
+7240 LET hpx(hc_count) = tx
+7250 LET hpy(hc_count) = ty
+7260 LET hpz(hc_count) = tz
+7270 RETURN

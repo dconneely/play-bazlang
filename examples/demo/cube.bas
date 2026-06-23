@@ -1,19 +1,19 @@
 1000 REM ### 3D rotating Rubik's cube ###
 1010 PLOTMODE 8
 1020 LET w = PLOTW : LET h = PLOTH
-1025 BRIGHT 1
-1030 LET center_x = w / 2 : LET center_y = h / 2
-1040 LET s = h * 0.7
-1050 LET num_vertices = 64
-1060 LET num_edges = 36
-1070 DIM vertices(num_vertices, 3)
-1080 DIM projected(num_vertices, 2)
+1030 BRIGHT 1
+1040 LET centre_x = w / 2 : LET centre_y = h / 2
+1050 LET s = h * 0.7
+1060 LET num_vertices = 64
+1070 LET num_edges = 36
+1080 DIM vertices(num_vertices, 3)
+1090 DIM projected(num_vertices, 2)
 1100 DIM edges(num_edges, 2)
 1110 GO SUB 4000 : REM ### Init data ###
-1115 DIM colors(6)
-1116 LET colors(1)=1 : LET colors(2)=2 : LET colors(3)=7 : LET colors(4)=4 : LET colors(5)=6 : LET colors(6)=3
-1120 LET a = 0 : LET b = 0 : LET c = 0
-1140 LET cycles = 0 : LET start_t = FRAMES : LET cps = 0
+1120 DIM colours(6)
+1130 LET colours(1) = 1 : LET colours(2) = 2 : LET colours(3) = 7 : LET colours(4) = 4 : LET colours(5) = 6 : LET colours(6) = 3
+1140 LET a = 0 : LET b = 0 : LET c = 0
+1150 LET cycles = 0 : LET start_t = FRAMES : LET cps = 0
 2000 REM ### Main loop ###
 2010 LET sin_a = SIN (a) : LET cos_a = COS (a)
 2020 LET sin_b = SIN (b) : LET cos_b = COS (b)
@@ -27,30 +27,30 @@
 2100 LET x2 = x1 * cos_c - y1 * sin_c
 2110 LET y2 = x1 * sin_c + y1 * cos_c
 2120 LET z_proj = z2 + 4
-2130 LET projected(i, 1) = center_x + (x2 / z_proj) * s
-2140 LET projected(i, 2) = center_y + (y2 / z_proj) * s
+2130 LET projected(i, 1) = centre_x + (x2 / z_proj) * s
+2140 LET projected(i, 2) = centre_y + (y2 / z_proj) * s
 2150 NEXT i
 3000 FAST
 3010 CLS
-3110 FOR i = 1 TO num_edges
-3120 LET e1 = edges(i, 1) : LET e2 = edges(i, 2)
-3130 LET x1 = projected(e1, 1) : LET y1 = projected(e1, 2)
-3140 LET x2 = projected(e2, 1) : LET y2 = projected(e2, 2)
-3145 INK colors((i - 6 * INT (i / 6)) + 1)
-3150 PLOT x1, y1
-3160 DRAW x2 - x1, y2 - y1
-3170 NEXT i
-3220 LET a = a + 0.05
-3230 LET b = b + 0.03
-3240 LET c = c + 0.02
-3250 LET cycles = cycles + 1
-3260 LET now = FRAMES
-3275 INK 8
-3280 IF now - start_t < 50 THEN GO TO 3300
-3290 LET cps = INT (cycles * 50 / (now - start_t)) : LET cycles = 0 : LET start_t = now
-3300 PRINT AT 0, 0; "Bazlang 3D Cube - "; num_vertices; " vertices, "; num_edges; " edges, "; cps; " CPS    "
-3310 SLOW
-3320 GO TO 2000
+3020 FOR i = 1 TO num_edges
+3030 LET e1 = edges(i, 1) : LET e2 = edges(i, 2)
+3040 LET x1 = projected(e1, 1) : LET y1 = projected(e1, 2)
+3050 LET x2 = projected(e2, 1) : LET y2 = projected(e2, 2)
+3060 INK colours((i - 6 * INT (i / 6)) + 1)
+3070 PLOT x1, y1
+3080 DRAW x2 - x1, y2 - y1
+3090 NEXT i
+3100 LET a = a + 0.05
+3110 LET b = b + 0.03
+3120 LET c = c + 0.02
+3130 LET cycles = cycles + 1
+3140 LET now = FRAMES
+3150 INK 8
+3160 IF now - start_t < 50 THEN GO TO 3180
+3170 LET cps = INT (cycles * 50 / (now - start_t)) : LET cycles = 0 : LET start_t = now
+3180 PRINT AT 0, 0; "Bazlang 3D Cube - "; num_vertices; " vertices, "; num_edges; " edges, "; cps; " CPS    "
+3190 SLOW
+3200 GO TO 2000
 4000 RESTORE 5000
 4010 FOR i = 1 TO num_vertices
 4020 READ vertices(i, 1), vertices(i, 2), vertices(i, 3)

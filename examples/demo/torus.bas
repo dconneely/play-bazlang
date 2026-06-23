@@ -1,21 +1,21 @@
 1000 REM ### 3D rotating torus (doughnut) ###
 1010 PLOTMODE 8
 1020 LET w = PLOTW
-1025 BRIGHT 1
-1030 LET h = PLOTH
-1040 LET center_x = w / 2
-1050 LET center_y = h / 2
-1060 LET s = h * 0.47
-1070 LET n1 = 12
-1080 LET n2 = 8
-1090 LET num_vertices = n1 * n2
-1100 LET num_edges = num_vertices * 2
-1110 DIM vertices(num_vertices, 3)
-1120 DIM projected(num_vertices, 2)
+1030 BRIGHT 1
+1040 LET h = PLOTH
+1055 LET centre_x = w / 2
+1060 LET centre_y = h / 2
+1070 LET s = h * 0.47
+1080 LET n1 = 12
+1090 LET n2 = 8
+1100 LET num_vertices = n1 * n2
+1110 LET num_edges = num_vertices * 2
+1120 DIM vertices(num_vertices, 3)
+1130 DIM projected(num_vertices, 2)
 1140 DIM edges(num_edges, 2)
 1150 GO SUB 4000 : REM ### Init data ###
 1160 LET a = 0 : LET b = 0 : LET c = 0
-1180 LET cycles = 0 : LET start_t = FRAMES : LET cps = 0
+1170 LET cycles = 0 : LET start_t = FRAMES : LET cps = 0
 2000 REM ### Main loop ###
 2010 LET sin_a = SIN (a) : LET cos_a = COS (a)
 2020 LET sin_b = SIN (b) : LET cos_b = COS (b)
@@ -33,30 +33,30 @@
 2140 LET y2 = x1 * sin_c + y1 * cos_c
 2150 REM ### Project ###
 2160 LET z_proj = z2 + 4
-2170 LET projected(i, 1) = center_x + (x2 / z_proj) * s
-2180 LET projected(i, 2) = center_y + (y2 / z_proj) * s
+2170 LET projected(i, 1) = centre_x + (x2 / z_proj) * s
+2180 LET projected(i, 2) = centre_y + (y2 / z_proj) * s
 2190 NEXT i
 3000 FAST
 3010 CLS
-3094 LET col = INT (a)
-3095 LET col = 1 + col - 7 * INT (col / 7)
-3096 INK col
-3100 FOR i = 1 TO num_edges
-3110 LET e1 = edges(i, 1) : LET e2 = edges(i, 2)
-3120 LET x1 = projected(e1, 1) : LET y1 = projected(e1, 2)
-3130 LET x2 = projected(e2, 1) : LET y2 = projected(e2, 2)
-3140 PLOT x1, y1 : DRAW x2 - x1, y2 - y1
-3150 NEXT i
-3210 LET a = a + 0.05
-3220 LET b = b + 0.03
-3230 LET c = c + 0.02
-3240 LET cycles = cycles + 1
-3250 LET now = FRAMES
-3260 IF now - start_t < 50 THEN GO TO 3280
-3270 LET cps = INT (cycles * 50 / (now - start_t)) : LET cycles = 0 : LET start_t = now
-3280 PRINT AT 0, 0; INK 8; PAPER 8; "Bazlang 3D Torus - "; num_vertices; " vertices, "; num_edges; " edges, "; cps; " CPS    "
-3290 SLOW
-3300 GO TO 2000
+3020 LET col = INT (a)
+3030 LET col = 1 + col - 7 * INT (col / 7)
+3040 INK col
+3050 FOR i = 1 TO num_edges
+3060 LET e1 = edges(i, 1) : LET e2 = edges(i, 2)
+3070 LET x1 = projected(e1, 1) : LET y1 = projected(e1, 2)
+3080 LET x2 = projected(e2, 1) : LET y2 = projected(e2, 2)
+3090 PLOT x1, y1 : DRAW x2 - x1, y2 - y1
+3100 NEXT i
+3110 LET a = a + 0.05
+3120 LET b = b + 0.03
+3130 LET c = c + 0.02
+3140 LET cycles = cycles + 1
+3150 LET now = FRAMES
+3160 IF now - start_t < 50 THEN GO TO 3180
+3170 LET cps = INT (cycles * 50 / (now - start_t)) : LET cycles = 0 : LET start_t = now
+3180 PRINT AT 0, 0; INK 8; PAPER 8; "Bazlang 3D Torus - "; num_vertices; " vertices, "; num_edges; " edges, "; cps; " CPS    "
+3190 SLOW
+3200 GO TO 2000
 4000 REM ### Init torus vertices and edges ###
 4010 PRINT INK 8; PAPER 8; "Generating mesh..."
 4020 LET r1 = 1.5

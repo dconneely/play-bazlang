@@ -82,8 +82,8 @@ interpreter implements two key patterns:
 
 ## Language Quirks & Sinclair Eccentricities
 
-To faithfully replicate Sinclair ZX81 and ZX Spectrum behavior, the interpreter implements several
-unusual behaviors:
+To faithfully replicate Sinclair ZX81 and ZX Spectrum behaviour, the interpreter implements several
+unusual behaviours:
 
 ### Flow Control Quirks
 
@@ -122,7 +122,7 @@ unusual behaviors:
 - **Recursive User Functions (`DEF FN`)**: Because user-defined functions (`DEF FN`) are evaluated
   on the host system stack, deep recursion in custom functions will exceed stack depth limits.
   Rather than crashing the JVM, this is caught and surfaced as report code `4 Out of memory,
-  <line>:<statement>`, matching real ZX Spectrum behavior.
+  <line>:<statement>`, matching real ZX Spectrum behaviour.
 
 ### Data Quirks
 
@@ -135,7 +135,7 @@ unusual behaviors:
 
 - **Negative Graphics Coordinates**: For graphics commands (`PLOT`, `DRAW`), negative coordinates
   are accepted and mirrored onto the positive grid using their absolute values (matching original
-  Sinclair BASIC behavior). For example, `PLOT -10, -10` draws at coordinate `(10, 10)`.
+  Sinclair BASIC behaviour). For example, `PLOT -10, -10` draws at coordinate `(10, 10)`.
 - **Byte-Oriented Fixed-Length String Arrays**: Fixed-length string arrays (declared via
   `DIM a$(rows, cols)`) are byte-oriented. The column size `cols` specifies the maximum width in
   **bytes**, not character count. When assigning multi-byte UTF-8 characters, ensure `cols` is

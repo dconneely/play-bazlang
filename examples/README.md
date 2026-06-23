@@ -20,7 +20,8 @@ Example programs demonstrating BazLang features and classic BASIC games.
 
 | Program               | Description                                             |
 |-----------------------|---------------------------------------------------------|
-| `games/blackjack.bas` | Classic card game - try to get 21 without going bust    |
+| `games/pontoon.bas`   | Classic UK card game - try to get a Pontoon or 5-Card Trick |
+| `games/lander.bas`     | Graphical real-time vector-drawn lunar lander simulation|
 | `games/hammurabi.bas` | Resource management game (1968 classic by Doug Dyment)  |
 | `games/hangman.bas`   | Guess the hidden word before the man is hanged          |
 | `games/racer.bas`     | Avoid the walls as the road twists and turns            |

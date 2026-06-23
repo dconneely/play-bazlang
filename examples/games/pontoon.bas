@@ -1,5 +1,5 @@
-1000 REM ### Blackjack ###
-1010 REM ### Classic card game - try to get 21 without going bust ###
+1000 REM ### Pontoon ###
+1010 REM ### Classic UK card game - try to get a Pontoon or 5-Card Trick ###
 1020 RANDOMIZE
 1030 LET money = 1000 : LET dealer_money = 10000
 1040 LET ox = 0 : LET oy = 0
@@ -11,10 +11,10 @@
 1100 GO SUB 7500
 2000 REM ### Start of round ###
 2010 CLS
-2020 PRINT AT oy, ox; "Player: $"; money; "   Dealer: $"; dealer_money; "        "
+2020 PRINT AT oy, ox; "Player: £"; money; "   Dealer: £"; dealer_money; "        "
 2030 IF money <= 0 THEN PRINT AT oy + 10, ox + 10; "Game over! You went broke." : STOP
 2040 IF dealer_money <= 0 THEN PRINT AT oy + 10, ox + 10; "Game over! You broke the bank!" : STOP
-2050 PRINT AT oy + 1, ox; "Choose bet: (1) $10  (2) $50  (3) $100  (4) All in!  (5) Custom"
+2050 PRINT AT oy + 1, ox; "Choose bet: (1) £10  (2) £50  (3) £100  (4) All in!  (5) Custom"
 2500 LET k$ = INKEY$
 2510 IF k$ = "1" THEN LET bet = 10 : GO TO 3000
 2520 IF k$ = "2" THEN LET bet = 50 : GO TO 3000
@@ -22,13 +22,13 @@
 2540 IF k$ = "4" THEN LET bet = money : GO TO 3000
 2550 IF k$ = "5" THEN GO TO 2570
 2560 GO TO 2500
-2570 PRINT AT oy + 2, ox; "Enter bet amount: $"; 
+2570 PRINT AT oy + 2, ox; "Enter bet amount: £"; 
 2580 INPUT bet
-2590 IF bet <= 0 THEN PRINT AT oy + 3, ox; "Must be > $0!          " : GO TO 2570
+2590 IF bet <= 0 THEN PRINT AT oy + 3, ox; "Must be > £0!          " : GO TO 2570
 2600 IF bet > money THEN PRINT AT oy + 3, ox; "Insufficient funds!   " : GO TO 2570
 3000 IF bet > money THEN GO TO 2500
 3010 CLS
-3020 PRINT AT oy, ox; "Player: $"; money; "   Dealer: $"; dealer_money; "   Bet: $"; bet; "    "
+3020 PRINT AT oy, ox; "Player: £"; money; "   Dealer: £"; dealer_money; "   Bet: £"; bet; "    "
 3030 REM ### Start game ###
 3040 REM ### Deal ###
 3050 LET player_cards = 0
@@ -76,14 +76,15 @@
 5050 LET draw_y = oy + 10
 5060 GO SUB 9000
 5070 GO SUB 8500
-5080 IF s > 21 THEN PRINT AT oy + 15, ox; "Bust! you lose.           " : LET money = money - bet : LET dealer_money = dealer_money + bet : GO TO 7000
-5090 GO TO 4500
+5080 IF player_score > 21 THEN PRINT AT oy + 15, ox; "Bust! You lose.           " : LET money = money - bet : LET dealer_money = dealer_money + bet : GO TO 7000
+5090 IF player_cards = 5 THEN PRINT AT oy + 15, ox; "Five-Card Trick!          " : PAUSE 20 : GO TO 5500
+5100 GO TO 4500
 5500 REM ### Dealer turn ###
 5510 LET draw_x = ox + 6
 5520 LET draw_y = oy + 4
 5530 LET c = dealer_hand(2)
 5540 GO SUB 9000
-6000 REM ### Calc dealer score dealer_score ###
+6000 REM ### Evaluate dealer hand ###
 6010 LET s = 0
 6020 LET ace_count = 0
 6030 FOR i = 1 TO dealer_cards
@@ -94,23 +95,40 @@
 6080 NEXT i
 6090 IF ace_count > 0 AND s <= 11 THEN LET s = s + 10
 6100 LET dealer_score = s
-6110 IF dealer_score >= 17 THEN GO TO 6500
-6120 GO SUB 8000
-6130 LET dealer_cards = dealer_cards + 1
-6140 LET dealer_hand(dealer_cards) = c
-6150 LET draw_x = ox + (dealer_cards - 1) * 6
-6160 LET draw_y = oy + 4
-6170 GO SUB 9000
-6180 PAUSE 20
-6190 GO TO 6000
+6110 LET dealer_type = 2
+6120 IF dealer_score > 21 THEN LET dealer_type = 0 : GO TO 6500
+6130 IF dealer_score = 21 AND dealer_cards = 2 THEN LET dealer_type = 5 : GO TO 6500
+6140 IF dealer_cards = 5 THEN LET dealer_type = 4 : GO TO 6500
+6150 IF dealer_score = 21 THEN LET dealer_type = 3
+6160 IF dealer_score >= 17 THEN GO TO 6500
+6170 GO SUB 8000
+6180 LET dealer_cards = dealer_cards + 1
+6190 LET dealer_hand(dealer_cards) = c
+6200 LET draw_x = ox + (dealer_cards - 1) * 6
+6210 LET draw_y = oy + 4
+6220 GO SUB 9000
+6230 PAUSE 20
+6240 GO TO 6000
 6500 REM ### End round ###
 6510 GO SUB 8500
-6520 LET player_score = s
-6530 PRINT AT oy + 15, ox; "Player: "; player_score; "  dealer: "; dealer_score; "      "
-6540 IF dealer_score > 21 THEN PRINT AT oy + 16, ox; "Dealer bust! you win!" : LET money = money + bet : LET dealer_money = dealer_money - bet : GO TO 7000
-6550 IF player_score > dealer_score THEN PRINT AT oy + 16, ox; "You win!" : LET money = money + bet : LET dealer_money = dealer_money - bet : GO TO 7000
-6560 IF player_score < dealer_score THEN PRINT AT oy + 16, ox; "Dealer wins." : LET money = money - bet : LET dealer_money = dealer_money + bet : GO TO 7000
-6570 PRINT AT oy + 16, ox; "Push." : GO TO 7000
+6520 LET player_wins = 0
+6530 IF player_type > dealer_type THEN LET player_wins = 1
+6540 IF player_type = 2 AND dealer_type = 2 AND player_score > dealer_score THEN LET player_wins = 1
+6550 IF dealer_type = 0 THEN PRINT AT oy + 15, ox; "Player: "; player_score; "  Dealer: Bust ("; dealer_score; ")          "
+6560 IF dealer_type > 0 THEN PRINT AT oy + 15, ox; "Player: "; player_score; "  Dealer: "; dealer_score; "          "
+6570 LET f = 1
+6580 IF player_wins = 1 THEN GO TO 6650
+6590 REM ### Dealer wins ###
+6600 IF dealer_type = 5 OR dealer_type = 4 THEN LET f = 2
+6610 PRINT AT oy + 16, ox; "Dealer wins £"; f * bet; "."
+6620 LET money = money - f * bet
+6630 LET dealer_money = dealer_money + f * bet
+6640 GO TO 7000
+6650 REM ### Player wins ###
+6660 IF player_type = 5 OR player_type = 4 THEN LET f = 2
+6670 PRINT AT oy + 16, ox; "You win £"; f * bet; "!"
+6680 LET money = money + f * bet
+6690 LET dealer_money = dealer_money - f * bet
 7000 PRINT AT oy + 17, ox; "Press any key"
 7010 IF UINKEY$ = "" THEN GO TO 7010
 7020 GO TO 2000
@@ -141,7 +159,13 @@
 8570 LET s = s + v
 8580 NEXT i
 8590 IF ace_count > 0 AND s <= 11 THEN LET s = s + 10
-8600 RETURN
+8600 LET player_score = s
+8610 LET player_type = 2
+8620 IF player_score > 21 THEN LET player_type = 0 : RETURN
+8630 IF player_score = 21 AND player_cards = 2 THEN LET player_type = 5 : RETURN
+8640 IF player_cards = 5 THEN LET player_type = 4 : RETURN
+8650 IF player_score = 21 THEN LET player_type = 3
+8660 RETURN
 9000 REM ### Render card c at draw_x,draw_y ###
 9010 IF c = 0 THEN LET val_str$ = "?" : LET suit_str$ = "?" : LET card_ink = 1 : GO TO 9510
 9020 LET v = (c - 1) - INT ((c - 1) / 13) * 13 + 1

@@ -144,7 +144,7 @@ Instead, to erase lines or pixels, you should redraw them using style modifiers:
 - **`OVER 1`**: Redrawing the same line using `PLOT OVER 1; x, y` or `DRAW OVER 1; dx, dy` will XOR
   the pixels against the screen, perfectly restoring the background state without leaving holes in
   intersecting lines (provided the lines were also drawn using `OVER 1`).
-- **`INVERSE 1`**: You can also manually draw over a pixel using the background color by using
+- **`INVERSE 1`**: You can also manually draw over a pixel using the background colour by using
   `PLOT INVERSE 1; x, y`.
 
 ## Adding New Features

@@ -164,6 +164,11 @@ public class ReformatVisitor extends BazLangBaseVisitor<String> {
   }
 
   @Override
+  public String visitInkStmt(InkStmtContext ctx) {
+    return "INK " + visit(ctx.numExpr());
+  }
+
+  @Override
   public String visitBrightStmt(BrightStmtContext ctx) {
     return "BRIGHT " + visit(ctx.numExpr());
   }
