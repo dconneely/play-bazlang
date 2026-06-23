@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import com.davidconneely.bazlang.ProgramLine;
+import com.davidconneely.bazlang.ReportException;
 import com.davidconneely.bazlang.antlr.AntlrParser;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -32,7 +33,7 @@ class ExamplesParseTest {
                   for (ProgramLine line : program.values()) {
                     line.getFlattenedStatements(PARSER);
                   }
-                } catch (Exception e) {
+                } catch (IOException | ReportException e) {
                   fail("Exception parsing example " + p + ": " + e.getMessage(), e);
                 }
               });

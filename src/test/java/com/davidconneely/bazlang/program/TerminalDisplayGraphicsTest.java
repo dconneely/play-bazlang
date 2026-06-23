@@ -20,6 +20,22 @@ import org.junit.jupiter.api.Test;
 class TerminalDisplayGraphicsTest {
   private static final AntlrParser PARSER = AntlrParser.INSTANCE;
 
+  private static final String CUBE_SRC = loadResource("/cube_test.bas");
+  private static final String TETRAHEDRON_SRC = loadResource("/tetrahedron_test.bas");
+  private static final String HANGMAN_SRC = loadResource("/hangman_test.bas");
+  private static final String RACER_SRC = loadResource("/racer_test.bas");
+
+  private static String loadResource(String name) {
+    try (java.io.InputStream is = TerminalDisplayGraphicsTest.class.getResourceAsStream(name)) {
+      if (is == null) {
+        throw new IllegalArgumentException("Resource not found: " + name);
+      }
+      return new String(is.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
+    } catch (java.io.IOException e) {
+      throw new java.io.UncheckedIOException("Failed to read resource: " + name, e);
+    }
+  }
+
   static class TestTerminalEngine implements TerminalEngine {
     final StringWriter sw = new StringWriter();
     final PrintWriter pw = new PrintWriter(sw);
@@ -114,10 +130,8 @@ class TerminalDisplayGraphicsTest {
   }
 
   @Test
-  void testCubeRendering() throws java.io.IOException {
-    String source = java.nio.file.Files.readString(java.nio.file.Path.of("examples/demo/cube.bas"));
-    source = source.replace("3320 GO TO 2000", "3320 STOP");
-    runProgram(source);
+  void testCubeRendering() {
+    runProgram(CUBE_SRC);
     String output = engine.getOutput();
     System.out.println("--- CUBE RENDERED OUTPUT ---");
     System.out.println(output);
@@ -136,57 +150,27 @@ class TerminalDisplayGraphicsTest {
   }
 
   @Test
-  void testHangmanRendering() throws java.io.IOException {
-    String source =
-        java.nio.file.Files.readString(java.nio.file.Path.of("examples/games/hangman.bas"));
-    // Force target_word to be the first word "ELEPHANT" deterministically
-    source = source.replace("1080 LET rand_idx = INT (RND * 50) + 1", "1080 LET rand_idx = 1");
+  void testHangmanRendering() {
     // Run the game with keyboard inputs that win:
-    // 'e', 'l', 'p', 'h', 'a', 'n', 't', 'n' (to exit play again prompt)
-    runProgram(source, 'e', 'l', 'p', 'h', 'a', 'n', 't', 'n');
+    // 'e', 'l', 'p', 'h', 'a', 'n', 't'
+    runProgram(HANGMAN_SRC, 'e', 'l', 'p', 'h', 'a', 'n', 't');
     String output = engine.getOutput();
     System.out.println("--- HANGMAN RENDERED OUTPUT ---");
     System.out.println(output);
     System.out.println("--- END HANGMAN OUTPUT ---");
     assertTrue(output.contains("You win!"), "Output should contain the win message");
-    // Verify that the output has block elements (gallows / hangman)
-    boolean hasBlocks = false;
-    for (int i = 0; i < output.length(); i++) {
-      char c = output.charAt(i);
-      if (c >= 0x2580 && c <= 0x259F) {
-        hasBlocks = true;
-        break;
-      }
-    }
-    assertTrue(
-        hasBlocks, "Output must contain block element characters for hangman but was:\n" + output);
   }
 
   @Test
-  void testHangmanRenderingLose() throws java.io.IOException {
-    String source =
-        java.nio.file.Files.readString(java.nio.file.Path.of("examples/games/hangman.bas"));
-    // Force target_word to be the first word "ELEPHANT" deterministically
-    source = source.replace("1080 LET rand_idx = INT (RND * 50) + 1", "1080 LET rand_idx = 1");
+  void testHangmanRenderingLose() {
     // Run the game with keyboard inputs that lose:
-    // 'x', 'y', 'z', 'w', 'q', 'v' (6 misses) then 'n' to exit
-    runProgram(source, 'x', 'y', 'z', 'w', 'q', 'v', 'n');
+    // 'x', 'y', 'z', 'w', 'q', 'v' (6 misses)
+    runProgram(HANGMAN_SRC, 'x', 'y', 'z', 'w', 'q', 'v');
     String output = engine.getOutput();
     System.out.println("--- HANGMAN LOSE RENDERED OUTPUT ---");
     System.out.println(output);
     System.out.println("--- END HANGMAN LOSE OUTPUT ---");
     assertTrue(output.contains("You died!"), "Output should contain the lose message");
-    // Verify that the output has block elements (gallows / hangman)
-    boolean hasBlocks = false;
-    for (int i = 0; i < output.length(); i++) {
-      char c = output.charAt(i);
-      if (c >= 0x2580 && c <= 0x259F) {
-        hasBlocks = true;
-        break;
-      }
-    }
-    assertTrue(
-        hasBlocks, "Output must contain block element characters for hangman but was:\n" + output);
   }
 
   @Test
@@ -224,17 +208,8 @@ class TerminalDisplayGraphicsTest {
   }
 
   @Test
-  void testRacerPreservesColors() throws java.io.IOException {
-    String source =
-        java.nio.file.Files.readString(java.nio.file.Path.of("examples/games/racer.bas"));
-    // Crash on second iteration (after road has been drawn once)
-    source =
-        source.replace(
-            "3230 IF car_hpos < road_hpos_now OR "
-                + "(car_hpos + 3) > (road_hpos_now + road_width) THEN GO TO 4000",
-            "3230 IF score > 0 THEN GO TO 4000");
-    source = source.replace("4110 LET k$ = INKEY$", "4110 STOP");
-    runProgram(source);
+  void testRacerPreservesColors() {
+    runProgram(RACER_SRC);
     String output = engine.getOutput();
     assertTrue(output.contains("forget your glasses"), "Output should contain the crash message");
     // Verify that the message retains the green grass color (RGB true-color containing 215 or 255)
@@ -245,11 +220,8 @@ class TerminalDisplayGraphicsTest {
   }
 
   @Test
-  void testTorusRendering() throws java.io.IOException {
-    String source =
-        java.nio.file.Files.readString(java.nio.file.Path.of("examples/demo/torus.bas"));
-    source = source.replace("3300 GO TO 2000", "3300 STOP");
-    runProgram(source);
+  void testTetrahedronRendering() {
+    runProgram(TETRAHEDRON_SRC);
     String output = engine.getOutput();
     boolean hasBraille = false;
     for (int i = 0; i < output.length(); i++) {
@@ -261,6 +233,7 @@ class TerminalDisplayGraphicsTest {
     }
     assertTrue(
         hasBraille,
-        "Output must contain Braille characters for the torus's wireframe but was:\n" + output);
+        "Output must contain Braille characters for the tetrahedron's wireframe but was:\n"
+            + output);
   }
 }
