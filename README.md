@@ -28,21 +28,21 @@ You need Java 25 or later. Build it with Gradle:
 Use the shell script:
 
 ```bash
-./run.sh <optional-source-file.bas>
+app-bazlang/run.sh <optional-source-file.bas>
 ```
 
 Or run the JAR directly:
 
 ```bash
-java --enable-native-access=ALL-UNNAMED -jar bazlang/build/libs/bazlang-1.0.0-SNAPSHOT.jar <optional-source-file.bas>
+java --enable-native-access=ALL-UNNAMED -jar app-bazlang/build/libs/bazlang-1.0.0-SNAPSHOT.jar <optional-source-file.bas>
 ```
 
 ## Examples
 
-You can find example programs in `examples/`. Run one like this:
+You can find example programs in `app-bazlang/src/examples/bas/`. Run one like this:
 
 ```bash
-./run.sh "examples/games/mastermind.bas"
+app-bazlang/run.sh app-bazlang/src/examples/bas/pontoon.bas
 ```
 
 ## License

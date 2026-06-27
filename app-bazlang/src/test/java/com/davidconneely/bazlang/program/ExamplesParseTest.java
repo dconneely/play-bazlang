@@ -18,7 +18,7 @@ class ExamplesParseTest {
 
   @Test
   void testAllExamplesParse() {
-    Path examplesDir = Path.of("examples");
+    Path examplesDir = Path.of("app-bazlang", "src", "examples", "bas");
     try (Stream<Path> paths = Files.walk(examplesDir)) {
       paths
           .filter(Files::isRegularFile)

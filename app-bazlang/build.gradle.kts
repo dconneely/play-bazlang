@@ -11,8 +11,8 @@ application {
 dependencies {
   antlr(libs.antlr.tool)
   implementation(libs.antlr.runtime)
-  implementation(project(":cell"))
-  implementation(project(":repl"))
+  implementation(project(":lib-cell"))
+  implementation(project(":lib-repl"))
   implementation(libs.jline)
 }
 
