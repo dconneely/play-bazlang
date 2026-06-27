@@ -1,133 +1,112 @@
 plugins {
-  java
-  application
-  antlr
-  checkstyle
-  pmd
+  id("checkstyle")
+  id("pmd")
+  id("jacoco")
   alias(libs.plugins.spotless)
   alias(libs.plugins.spotbugs)
-  jacoco
 }
 
-repositories {
-  mavenCentral()
-}
+val checkstyleVersion = libs.versions.checkstyle.get()
+val pmdVersion = libs.versions.pmd.get()
+val spotbugsToolVersion = libs.versions.spotbugs.tool.get()
 
-java {
-  toolchain {
-    languageVersion = JavaLanguageVersion.of(25)
+val junitBomProvider = libs.junit.bom
+val junitJupiterProvider = libs.junit.jupiter
+val junitLauncherProvider = libs.junit.launcher
+
+subprojects {
+  apply(plugin = "java")
+  apply(plugin = "checkstyle")
+  apply(plugin = "pmd")
+  apply(plugin = "jacoco")
+  apply(plugin = "com.diffplug.spotless")
+  apply(plugin = "com.github.spotbugs")
+
+  repositories {
+    mavenCentral()
   }
-}
 
-application {
-  mainClass = "com.davidconneely.bazlang.MainClass"
-  applicationDefaultJvmArgs = listOf("--enable-native-access=ALL-UNNAMED")
-}
+  dependencies {
+    add("testImplementation", platform(junitBomProvider))
+    add("testImplementation", junitJupiterProvider)
+    add("testRuntimeOnly", junitLauncherProvider)
+  }
 
-tasks.named<JavaExec>("run") {
-  standardInput = System.`in`
-}
+  configure<org.gradle.api.plugins.JavaPluginExtension> {
+    toolchain {
+      languageVersion = JavaLanguageVersion.of(25)
+    }
+  }
 
-dependencies {
-  antlr(libs.antlr.tool)
-  implementation(libs.antlr.runtime)
-  implementation(libs.jline)
-  testImplementation(platform(libs.junit.bom))
-  testImplementation(libs.junit.jupiter)
-  testRuntimeOnly(libs.junit.launcher)
-}
+  tasks.withType<org.gradle.api.tasks.testing.Test>().configureEach {
+    useJUnitPlatform()
+    jvmArgs("--enable-native-access=ALL-UNNAMED")
+    workingDir = rootProject.projectDir
+  }
 
-tasks.test {
-  useJUnitPlatform()
-  jvmArgs("--enable-native-access=ALL-UNNAMED")
-}
+  configure<com.diffplug.gradle.spotless.SpotlessExtension> {
+    java {
+      googleJavaFormat()
+      targetExclude("build/generated-src/**")
+    }
+  }
 
-tasks.jar {
-  archiveBaseName = "bazlang"
-  manifest {
-    attributes(
-      "Main-Class" to "com.davidconneely.bazlang.MainClass",
-      "Class-Path" to configurations.runtimeClasspath.get().files.joinToString(" ") { "lib/${it.name}" }
+  // Checkstyle
+  configure<org.gradle.api.plugins.quality.CheckstyleExtension> {
+    toolVersion = checkstyleVersion
+    configFile = rootProject.file("config/checkstyle/checkstyle.xml")
+    isIgnoreFailures = false
+  }
+
+  tasks.withType<org.gradle.api.plugins.quality.Checkstyle>().configureEach {
+    exclude("**/antlr/**")
+  }
+
+  // PMD
+  configure<org.gradle.api.plugins.quality.PmdExtension> {
+    toolVersion = pmdVersion
+    isConsoleOutput = true
+    isIgnoreFailures = false
+    ruleSets = emptyList()
+    ruleSetFiles = rootProject.files("config/pmd/ruleset.xml")
+  }
+
+  tasks.withType<org.gradle.api.plugins.quality.Pmd>().configureEach {
+    exclude("**/antlr/**")
+  }
+
+  // JaCoCo
+  tasks.withType<org.gradle.testing.jacoco.tasks.JacocoReport>().configureEach {
+    dependsOn(tasks.withType<org.gradle.api.tasks.testing.Test>())
+    reports {
+      xml.required.set(true)
+      html.required.set(true)
+      csv.required.set(true)
+    }
+    classDirectories.setFrom(
+      files(classDirectories.files.map {
+        fileTree(it) {
+          exclude("**/antlr/**")
+        }
+      })
     )
   }
-}
 
-tasks.register<Copy>("copyDependencies") {
-  from(configurations.runtimeClasspath)
-  into(layout.buildDirectory.dir("libs/lib"))
-}
-
-tasks.build {
-  dependsOn("copyDependencies")
-}
-
-tasks.generateGrammarSource {
-  maxHeapSize = "64m"
-  packageName = "com.davidconneely.bazlang.antlr"
-  arguments = arguments + listOf("-visitor")
-}
-
-spotless {
-  java {
-    googleJavaFormat()
-    targetExclude("build/generated-src/**")
+  tasks.named("check") {
+    dependsOn(tasks.withType<org.gradle.testing.jacoco.tasks.JacocoReport>())
   }
-}
 
-// Checkstyle - Google Java Style
-checkstyle {
-  toolVersion = libs.versions.checkstyle.get()
-  configFile = file("config/checkstyle/checkstyle.xml")
-  isIgnoreFailures = false
-}
-
-tasks.withType<Checkstyle>().configureEach {
-  exclude("**/antlr/**")
-}
-
-// PMD
-pmd {
-  toolVersion = libs.versions.pmd.get()
-  isConsoleOutput = true
-  isIgnoreFailures = false
-  ruleSets = emptyList()
-  ruleSetFiles = files("config/pmd/ruleset.xml")
-}
-
-tasks.jacocoTestReport {
-  dependsOn(tasks.test)
-  reports {
-    xml.required.set(true)
-    html.required.set(true)
-    csv.required.set(true)
+  // SpotBugs
+  configure<com.github.spotbugs.snom.SpotBugsExtension> {
+    toolVersion = spotbugsToolVersion
+    ignoreFailures = false
   }
-  classDirectories.setFrom(
-    files(classDirectories.files.map {
-      fileTree(it) {
-        exclude("**/antlr/**")
-      }
-    })
-  )
-}
 
-tasks.check {
-  dependsOn(tasks.jacocoTestReport)
-}
-
-tasks.withType<Pmd>().configureEach {
-  exclude("**/antlr/**")
-}
-
-// SpotBugs
-spotbugs {
-  toolVersion = libs.versions.spotbugs.tool.get()
-  ignoreFailures = false
-}
-
-tasks.withType<com.github.spotbugs.snom.SpotBugsTask>().configureEach {
-  excludeFilter.set(file("config/spotbugs/exclude.xml"))
-  reports {
-    create("html") { required.set(true) }
-    create("xml") { required.set(true) }
+  tasks.withType<com.github.spotbugs.snom.SpotBugsTask>().configureEach {
+    excludeFilter.set(rootProject.file("config/spotbugs/exclude.xml"))
+    reports {
+      create("html") { required.set(true) }
+      create("xml") { required.set(true) }
+    }
   }
 }

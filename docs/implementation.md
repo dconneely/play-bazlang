@@ -71,10 +71,10 @@ interpreter implements two key patterns:
 - **Visitor as Calculator**: Rather than returning boxed `Double` wrapper objects from parsing
   visitor methods (which would cause massive boxing and unboxing overhead during arithmetic
   evaluation), the evaluation visitor
-  [ExpressionEvaluator](../src/main/java/com/davidconneely/bazlang/ExpressionEvaluator.java)
+  [ExpressionEvaluator](../bazlang/src/main/java/com/davidconneely/bazlang/ExpressionEvaluator.java)
   returns `Void` and stores primitive double results directly in a class field.
 - **Variable Reference Caching (`ctx.varRef`)**: Variables are normally looked up in the
-  [EvalState](../src/main/java/com/davidconneely/bazlang/EvalState.java)
+  [EvalState](../bazlang/src/main/java/com/davidconneely/bazlang/EvalState.java)
   maps by their name strings. To avoid continuous hash map lookups during execution (especially
   in tight loops), the parser context objects (`ctx`) cache their resolved reference objects
   (such as `NumVarRef`) after the first lookup. Subsequent evaluations retrieve the cached

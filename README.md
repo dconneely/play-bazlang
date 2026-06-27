@@ -34,7 +34,7 @@ Use the shell script:
 Or run the JAR directly:
 
 ```bash
-java -jar build/libs/bazlang-1.0.0-SNAPSHOT.jar <optional-source-file.bas>
+java --enable-native-access=ALL-UNNAMED -jar bazlang/build/libs/bazlang-1.0.0-SNAPSHOT.jar <optional-source-file.bas>
 ```
 
 ## Examples
