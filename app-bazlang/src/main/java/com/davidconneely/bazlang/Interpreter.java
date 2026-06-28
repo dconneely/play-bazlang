@@ -2,11 +2,6 @@ package com.davidconneely.bazlang;
 
 import com.davidconneely.bazlang.antlr.AntlrParser;
 import com.davidconneely.bazlang.antlr.BazLangParser.StatementContext;
-import com.davidconneely.bazlang.io.BazLangDisplay;
-import com.davidconneely.bazlang.io.StreamDisplay;
-import com.davidconneely.bazlang.io.TerminalDisplay;
-import com.davidconneely.repl.jline.JLineTerminalEngine;
-import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
@@ -14,17 +9,6 @@ public class Interpreter {
   private static final AntlrParser PARSER = AntlrParser.INSTANCE;
   private final EvalState state;
   private final ProgramManager executor;
-
-  public Interpreter() {
-    this.state = new EvalState();
-    BazLangDisplay display;
-    try {
-      display = new TerminalDisplay(new JLineTerminalEngine());
-    } catch (IOException e) {
-      display = new StreamDisplay();
-    }
-    this.executor = new ProgramManager(state, display);
-  }
 
   public Interpreter(EvalState state, ProgramManager executor) {
     this.state = state;

@@ -585,6 +585,15 @@ public class ReformatVisitor extends BazLangBaseVisitor<String> {
     if (ctx.POINT() != null) {
       return "POINT(" + visit(ctx.numExpr(0)) + ", " + visit(ctx.numExpr(1)) + ")";
     }
+    if (ctx.COLOUR() != null) {
+      return "COLOUR("
+          + visit(ctx.numExpr(0))
+          + ", "
+          + visit(ctx.numExpr(1))
+          + ", "
+          + visit(ctx.numExpr(2))
+          + ")";
+    }
     if (ctx.RND() != null) {
       return "RND";
     }

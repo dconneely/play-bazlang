@@ -85,11 +85,11 @@ public class EvalState {
   private int lastReportLabel = 0;
   private int lastReportStatementIndex = 1;
 
-  // Default ink/paper color codes:
-  // - -1: Default terminal color
-  // - 0..7: ZX Spectrum color codes
-  // - 8: Transparent/preserve existing cell color
-  // - 9: Contrast color
+  // Default ink/paper colour codes:
+  // - -1: Default terminal colour
+  // - 0..7: ZX Spectrum colour codes
+  // - 8: Transparent/preserve existing cell colour
+  // - 9: Contrast colour
   private int defaultInk = -1;
   private int defaultPaper = -1;
   private int defaultBright = 0;

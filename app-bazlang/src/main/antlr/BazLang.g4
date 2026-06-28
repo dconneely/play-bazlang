@@ -221,6 +221,7 @@ numFunc
     | ASN numAtom
     | ATN numAtom
     | CODE strAtom
+    | COLOUR '(' numExpr ',' numExpr ',' numExpr ')'
     | COS numAtom
     | EXP numAtom
     | FRAMES
@@ -350,6 +351,7 @@ ASN      : 'ASN';
 ATN      : 'ATN';
 CHR_STR  : 'CHR$';
 CODE     : 'CODE';
+COLOUR   : 'COLOUR';
 COS      : 'COS';
 EXP      : 'EXP';
 FRAMES   : 'FRAMES';

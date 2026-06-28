@@ -155,17 +155,15 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
   private void drawLine(int startX, int startY, int endX, int endY) {
     int x1 = startX;
     int y1 = startY;
-    int x2 = endX;
-    int y2 = endY;
-    int diffX = Math.abs(x2 - x1);
-    int diffY = -Math.abs(y2 - y1);
-    int sx = x1 < x2 ? 1 : -1;
-    int sy = y1 < y2 ? 1 : -1;
+    int diffX = Math.abs(endX - x1);
+    int diffY = -Math.abs(endY - y1);
+    int sx = x1 < endX ? 1 : -1;
+    int sy = y1 < endY ? 1 : -1;
     int err = diffX + diffY;
 
     while (true) {
       display.plot(x1, y1);
-      if (x1 == x2 && y1 == y2) {
+      if (x1 == endX && y1 == endY) {
         break;
       }
       int e2 = 2 * err;
@@ -178,8 +176,8 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
         y1 += sy;
       }
     }
-    state.setGraphicsCursorX(x2);
-    state.setGraphicsCursorY(y2);
+    state.setGraphicsCursorX(endX);
+    state.setGraphicsCursorY(endY);
   }
 
   @Override

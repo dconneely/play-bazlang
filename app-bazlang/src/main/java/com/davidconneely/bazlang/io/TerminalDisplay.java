@@ -400,6 +400,12 @@ public class TerminalDisplay implements BazLangDisplay {
       // Transparent: return -1 to signal CellBuffer to preserve existing cell attributes
       return -1;
     }
+    if (colourCode >= 256 && colourCode <= 511) {
+      return CellAttributes.index(colourCode - 256);
+    }
+    if (colourCode >= 16_777_216 && colourCode <= 33_554_431) {
+      return CellAttributes.rgb(colourCode - 16_777_216);
+    }
     int zxColour = colourCode;
     if (colourCode == 9) {
       // Contrast: if opposing colour is dark (0,1,2,3), pick White (7).

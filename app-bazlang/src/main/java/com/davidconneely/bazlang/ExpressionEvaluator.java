@@ -264,7 +264,22 @@ public class ExpressionEvaluator extends BazLangBaseVisitor<Void> {
       if (s.isEmpty()) {
         throw codedException(ReportCode.NONSENSE_IN_BASIC, "CODE of empty string");
       }
-      numResult = (double) s.byteAt(0);
+      numResult = s.byteAt(0);
+      return null;
+    }
+    if (ctx.COLOUR() != null) {
+      double rVal = evalNum(ctx.numExpr(0));
+      double gVal = evalNum(ctx.numExpr(1));
+      double bVal = evalNum(ctx.numExpr(2));
+      int r = (int) Math.round(rVal);
+      int g = (int) Math.round(gVal);
+      int b = (int) Math.round(bVal);
+      if (r < 0 || r > 255 || g < 0 || g > 255 || b < 0 || b > 255) {
+        throw codedException(
+            ReportCode.INVALID_ARGUMENT, "COLOUR components must be between 0 and 255");
+      }
+      int y = ((r & 0xFF) << 16) | ((g & 0xFF) << 8) | (b & 0xFF);
+      numResult = 16_777_216.0 + y;
       return null;
     }
     if (ctx.COS() != null) {
@@ -284,7 +299,7 @@ public class ExpressionEvaluator extends BazLangBaseVisitor<Void> {
       return null;
     }
     if (ctx.LEN() != null) {
-      numResult = (double) evalStrAtom(ctx.strAtom()).length();
+      numResult = evalStrAtom(ctx.strAtom()).length();
       return null;
     }
     if (ctx.LN() != null) {
@@ -371,7 +386,7 @@ public class ExpressionEvaluator extends BazLangBaseVisitor<Void> {
       if (pos < 1 || pos > s.length() + 1) {
         throw codedException(ReportCode.INTEGER_OUT_OF_RANGE, "UCNEXT position out of range");
       }
-      numResult = (double) (s.nextCodepointStart(pos - 1) + 1);
+      numResult = s.nextCodepointStart(pos - 1) + 1;
       return null; // numResult = 1-based
     }
     if (ctx.UCODE() != null) {
@@ -379,7 +394,7 @@ public class ExpressionEvaluator extends BazLangBaseVisitor<Void> {
       if (s.isEmpty()) {
         throw codedException(ReportCode.NONSENSE_IN_BASIC, "UCODE of empty string");
       }
-      numResult = (double) s.firstCodepoint();
+      numResult = s.firstCodepoint();
       return null;
     }
     if (ctx.VAL() != null) {
@@ -524,7 +539,7 @@ public class ExpressionEvaluator extends BazLangBaseVisitor<Void> {
           byteIndex = indexStack[ptr + n];
           indicesCount--;
         } else if (indicesCount != n && n == 0 && indicesCount == 1) {
-          byteIndex = indexStack[ptr + 0];
+          byteIndex = indexStack[ptr];
           indicesCount--;
         }
         int arrayIdx = calculateArrayIndex(arrayDimensions, indexStack, ptr, indicesCount);
@@ -543,7 +558,7 @@ public class ExpressionEvaluator extends BazLangBaseVisitor<Void> {
       if (var instanceof EvalState.StrVar.Scalar(BStr s)) {
         int byteIndex = -1;
         if (indicesCount == 1 && !hasSlice) {
-          byteIndex = indexStack[ptr + 0];
+          byteIndex = indexStack[ptr];
           indicesCount--;
         }
         if (indicesCount > 0) {

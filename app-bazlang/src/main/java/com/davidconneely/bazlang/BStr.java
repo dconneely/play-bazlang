@@ -129,23 +129,6 @@ public final class BStr implements Comparable<BStr> {
   }
 
   /**
-   * Returns a new BStr of the specified length. If this BStr is shorter, it is padded with spaces.
-   * If it is longer, it is truncated.
-   */
-  public BStr paddedOrTruncatedTo(int targetLength) {
-    if (targetLength == length) {
-      return this;
-    }
-    byte[] result = new byte[targetLength];
-    int copyLen = Math.min(targetLength, length);
-    System.arraycopy(bytes, offset, result, 0, copyLen);
-    for (int i = copyLen; i < targetLength; i++) {
-      result[i] = (byte) ' ';
-    }
-    return new BStr(result, 0, result.length);
-  }
-
-  /**
    * Converts this BStr to a Java String using UTF-8 Clean-8 (utf8-c8): valid UTF-8 sequences are
    * decoded to their natural Unicode codepoints; any invalid or lone byte 0xNN is emitted as the
    * 4-codepoint synthetic {@code [U+10FFFD, 'x', upper-hex-nibble, lower-hex-nibble]}.
@@ -315,11 +298,6 @@ public final class BStr implements Comparable<BStr> {
 
   private static boolean isContByte(byte b) {
     return (b & 0xC0) == 0x80;
-  }
-
-  /** Package-private access to the raw byte array (defensive copy). */
-  byte[] bytes() {
-    return Arrays.copyOfRange(bytes, offset, offset + length);
   }
 
   @Override

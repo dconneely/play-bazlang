@@ -107,4 +107,33 @@ class MathFunctionsProgramTest extends BaseProgramTest {
     assertEquals(1.0, state.numVar("C"), 0.0001);
     assertEquals(0.0, state.numVar("T"), 0.0001);
   }
+
+  @Test
+  void testColourFunc() {
+    String source =
+        """
+            10 LET C1 = COLOUR(0, 0, 0)
+            20 LET C2 = COLOUR(255, 255, 255)
+            30 LET C3 = COLOUR(255, 128, 0)
+            """;
+    EvalState state = runProgram(source);
+    assertEquals(16_777_216.0, state.numVar("C1"));
+    assertEquals(33_554_431.0, state.numVar("C2"));
+    assertEquals(16_777_216.0 + 0xFF8000, state.numVar("C3"));
+  }
+
+  @Test
+  void testColourFuncOutOfBounds() {
+    com.davidconneely.bazlang.ReportException e1 =
+        org.junit.jupiter.api.Assertions.assertThrows(
+            com.davidconneely.bazlang.ReportException.class,
+            () -> runProgram("10 LET C = COLOUR(-1, 0, 0)"));
+    assertTrue(e1.getMessage().contains("COLOUR components"));
+
+    com.davidconneely.bazlang.ReportException e2 =
+        org.junit.jupiter.api.Assertions.assertThrows(
+            com.davidconneely.bazlang.ReportException.class,
+            () -> runProgram("10 LET C = COLOUR(0, 256, 0)"));
+    assertTrue(e2.getMessage().contains("COLOUR components"));
+  }
 }
