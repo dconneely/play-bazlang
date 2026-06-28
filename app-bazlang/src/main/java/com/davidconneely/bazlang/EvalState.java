@@ -90,6 +90,8 @@ public class EvalState {
   // - 0..7: ZX Spectrum colour codes
   // - 8: Transparent/preserve existing cell colour
   // - 9: Contrast colour
+  // - 256..511: xterm colour index + 256
+  // - 2^24..2^25-1: 24-bit RGB colour value + 2^24
   private int defaultInk = -1;
   private int defaultPaper = -1;
   private int defaultBright = 0;

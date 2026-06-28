@@ -1,8 +1,8 @@
 # BazLang Interpreter
 
 BazLang is a simple BASIC interpreter written in Java 25. It is loosely based on Sinclair ZX BASIC
-(supporting a superset of both ZX81 and ZX Spectrum) but designed for the modern command line. It
-includes a REPL and runs standard UTF-8 source files.
+(supporting a superset of both ZX81 and ZX Spectrum BASIC) but designed for the modern command line.
+It includes a REPL and works with standard UTF-8 source files.
 
 ## Documentation
 

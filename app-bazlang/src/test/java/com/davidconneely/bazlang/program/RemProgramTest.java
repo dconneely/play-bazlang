@@ -1,7 +1,5 @@
 package com.davidconneely.bazlang.program;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-
 import org.junit.jupiter.api.Test;
 
 /** Tests exercising comment lines and REM statements. */
@@ -10,27 +8,34 @@ class RemProgramTest extends BaseProgramTest {
   @Test
   void testEmptyLinesAndComments() {
     // Documented: blank lines and # comments are ignored.
-    String output =
-        runProgramCapture(
-            """
-                # comment
+    runProgram(
+        """
+        # comment
 
-                10 PRINT "OK"
+        10 PRINT "OK"
 
-                # endLabel
-                """);
-    assertEquals("OK\n", output);
+        # endLabel
+        """,
+        "OK\n");
   }
 
   @Test
   void testRemConsumesRestOfLine() {
-    String output = runProgramCapture("10 REM PRINT 1 : PRINT 2");
-    assertEquals("", output);
+    runProgram(
+        """
+        10 REM PRINT 1 : PRINT 2
+        """,
+        "");
   }
 
   @Test
   void testRemStatement() {
     // REM should be ignored
-    runProgram("10 REM This is a comment\n20 PRINT \"OK\"", "OK\n");
+    runProgram(
+        """
+        10 REM This is a comment
+        20 PRINT "OK"
+        """,
+        "OK\n");
   }
 }

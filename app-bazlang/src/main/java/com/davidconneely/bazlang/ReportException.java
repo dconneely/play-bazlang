@@ -29,11 +29,11 @@ public class ReportException extends RuntimeException {
   }
 
   public String format() {
-    String codeStr = (reportCode != null) ? String.valueOf(reportCode.getCode()) : "-";
-    String stdMsg = (reportCode != null) ? reportCode.getMessage() : "";
-    String customMsg = getMessage();
+    final String codeStr = (reportCode != null) ? String.valueOf(reportCode.getCode()) : "-";
+    final String stdMsg = (reportCode != null) ? reportCode.getMessage() : "";
+    final String customMsg = getMessage();
 
-    StringBuilder sb = new StringBuilder();
+    final var sb = new StringBuilder();
     sb.append(codeStr).append(' ');
     if (!stdMsg.isEmpty()) {
       sb.append(stdMsg);

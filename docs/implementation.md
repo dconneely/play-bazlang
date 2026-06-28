@@ -54,7 +54,7 @@ INPUT), and status updates (`setStatus` for showing report codes).
   sequentially. Commands like `GO TO` or `FOR` change this order by modifying the `EvalState`
   program counter.
 - **Error Handling**: If something goes wrong (e.g. dividing by zero), the interpreter stops
-  execution, throws a `ReportException`, and reports a Sinclair ZX Spectrum-style code in the
+  execution, throws a `ReportException`, and reports a Sinclair ZX BASIC-style code in the
   status bar. The format is `<Code> <Message>, <Line>:<Statement> (Optional details)`,
   for example: `6 Number too big, 100:1 (Arithmetic overflow)`.
 - **`FOR-NEXT`**: The `FOR` statement saves its state (target variable, limit, step, and return
@@ -80,10 +80,9 @@ interpreter implements two key patterns:
   (such as `NumVarRef`) after the first lookup. Subsequent evaluations retrieve the cached
   reference directly.
 
-## Language Quirks & Sinclair Eccentricities
+## Language Quirks & Sinclair ZX BASIC Eccentricities
 
-To faithfully replicate Sinclair ZX81 and ZX Spectrum behaviour, the interpreter implements several
-unusual behaviours:
+To replicate Sinclair ZX BASIC behaviour, the interpreter implements several unusual behaviours:
 
 ### Flow Control Quirks
 
@@ -108,10 +107,6 @@ unusual behaviours:
   ```
   This prints `A` then `B`. The skip scan on line 10 finds the `NEXT i` on line 20 (inside the
   always-false `IF`), causing execution to resume at line 30.
-- **PAUSE Break and CONTINUE**: On real ZX Spectrum hardware, pressing the BREAK key during a
-  `PAUSE` statement generates report code `L` (BREAK into program). When `CONT` (CONTINUE) is
-  subsequently issued, execution resumes at the statement *after* the `PAUSE`, rather than
-  repeating it.
 
 ### Variables & Memory Quirks
 
@@ -135,10 +130,10 @@ unusual behaviours:
 
 - **Negative Graphics Coordinates**: For graphics commands (`PLOT`, `DRAW`), negative coordinates
   are accepted and mirrored onto the positive grid using their absolute values (matching original
-  Sinclair BASIC behaviour). For example, `PLOT -10, -10` draws at coordinate `(10, 10)`.
+  Sinclair ZX BASIC behaviour). For example, `PLOT -10, -10` draws at coordinate `(10, 10)`.
 - **Byte-Oriented Fixed-Length String Arrays**: Fixed-length string arrays (declared via
   `DIM a$(rows, cols)`) are byte-oriented. The column size `cols` specifies the maximum width in
-  **bytes**, not character count. When assigning multi-byte UTF-8 characters, ensure `cols` is
+  **bytes**, not character count. When assigning multibyte UTF-8 characters, ensure `cols` is
   sized large enough to hold the character's full byte sequence. If the assigned string exceeds
   `cols` bytes, it is truncated at the byte boundary, which can result in partial, invalid UTF-8
   sequences.

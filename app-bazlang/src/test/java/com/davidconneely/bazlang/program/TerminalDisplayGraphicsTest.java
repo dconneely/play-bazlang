@@ -1,5 +1,7 @@
 package com.davidconneely.bazlang.program;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.davidconneely.bazlang.EvalState;
@@ -11,8 +13,10 @@ import com.davidconneely.bazlang.ReportException;
 import com.davidconneely.bazlang.antlr.AntlrParser;
 import com.davidconneely.bazlang.io.TerminalDisplay;
 import com.davidconneely.repl.TerminalEngine;
+import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.io.UncheckedIOException;
 import java.util.Map;
 import java.util.function.IntConsumer;
 import org.junit.jupiter.api.Test;
@@ -26,13 +30,13 @@ class TerminalDisplayGraphicsTest {
   private static final String RACER_SRC = loadResource("/racer_test.bas");
 
   private static String loadResource(String name) {
-    try (java.io.InputStream is = TerminalDisplayGraphicsTest.class.getResourceAsStream(name)) {
+    try (var is = TerminalDisplayGraphicsTest.class.getResourceAsStream(name)) {
       if (is == null) {
         throw new IllegalArgumentException("Resource not found: " + name);
       }
-      return new String(is.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
-    } catch (java.io.IOException e) {
-      throw new java.io.UncheckedIOException("Failed to read resource: " + name, e);
+      return new String(is.readAllBytes(), UTF_8);
+    } catch (IOException e) {
+      throw new UncheckedIOException("Failed to read resource: " + name, e);
     }
   }
 
@@ -103,7 +107,6 @@ class TerminalDisplayGraphicsTest {
   }
 
   private TestTerminalEngine engine;
-  private TerminalDisplay display;
 
   private void runProgram(String source) {
     runProgram(source, new int[0]);
@@ -114,7 +117,7 @@ class TerminalDisplayGraphicsTest {
     EvalState state = new EvalState();
     engine = new TestTerminalEngine();
     engine.setKeysToRead(mockKeys);
-    display = new TerminalDisplay(engine);
+    TerminalDisplay display = new TerminalDisplay(engine);
 
     ProgramManager executor = new ProgramManager(state, display);
     Interpreter interpreter = new Interpreter(state, executor);
@@ -175,44 +178,60 @@ class TerminalDisplayGraphicsTest {
 
   @Test
   void testInverseOverRendering() {
-    runProgram("10 CLS\n" + "20 PLOT 0, 0\n" + "30 PLOT OVER 1; 0, 0\n");
+    runProgram(
+        """
+        10 CLS
+        20 PLOT 0, 0
+        30 PLOT OVER 1; 0, 0
+        """);
     String output1 = engine.getOutput();
-    assertTrue(
-        !output1.contains("\u2596"), "Output must NOT contain quadrant block '▖' after OVER 1");
+    assertFalse(output1.contains("▖"), "Output must NOT contain quadrant block '▖' after OVER 1");
 
-    runProgram("10 CLS\n" + "20 PLOT 0, 0\n" + "30 PLOT INVERSE 1; 0, 0\n");
+    runProgram(
+        """
+        10 CLS
+        20 PLOT 0, 0
+        30 PLOT INVERSE 1; 0, 0
+        """);
     String output2 = engine.getOutput();
-    assertTrue(
-        !output2.contains("\u2596"), "Output must NOT contain quadrant block '▖' after INVERSE 1");
+    assertFalse(
+        output2.contains("▖"), "Output must NOT contain quadrant block '▖' after INVERSE 1");
   }
 
   @Test
   void testPlotInverse() {
     runProgram(
-        "10 CLS\n"
-            + "20 PLOT 0, 0\n"
-            + "30 PLOT OVER 1; 0, 0\n"
-            + "40 PLOT 1, 0\n"
-            + "50 PLOT INVERSE 1; 1, 0\n");
+        """
+            10 CLS
+            20 PLOT 0, 0
+            30 PLOT OVER 1; 0, 0
+            40 PLOT 1, 0
+            50 PLOT INVERSE 1; 1, 0
+            """);
     String output = engine.getOutput();
-    assertTrue(output.length() > 0);
+    assertFalse(output.isEmpty());
   }
 
   @Test
   void testPlotRendering() {
-    runProgram("10 CLS\n" + "20 PLOT 0, 0\n");
+    runProgram(
+        """
+        10 CLS
+        20 PLOT 0, 0
+        """);
     String output = engine.getOutput();
     assertTrue(
-        output.contains("\u2596"),
+        output.contains("▖"),
         "Output must contain lower-left quadrant block '▖' but was:\n" + output);
   }
 
   @Test
-  void testRacerPreservesColors() {
+  void testRacerPreservesColours() {
     runProgram(RACER_SRC);
     String output = engine.getOutput();
     assertTrue(output.contains("forget your glasses"), "Output should contain the crash message");
-    // Verify that the message retains the green grass color (RGB true-color containing 215 or 255)
+    // Verify that the message retains the green grass colour (RGB true-colour containing 215 or
+    // 255)
     assertTrue(
         output.contains(";215;") || output.contains(";255;"),
         "Output should contain true-colour ANSI codes representing preserved colours, but was:\n"

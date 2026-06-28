@@ -30,7 +30,7 @@ public class ProgramStorage {
     try {
       String source;
       if (filename.startsWith("resource:")) {
-        String resourcePath = filename.substring(9);
+        final String resourcePath = filename.substring(9);
         try (var is = ProgramStorage.class.getResourceAsStream(resourcePath)) {
           if (is == null) {
             throw new ReportException(
@@ -60,11 +60,11 @@ public class ProgramStorage {
    */
   public void save(String filename) {
     try (var writer = Files.newBufferedWriter(Path.of(filename))) {
-      for (var entry : state.program().entrySet()) {
+      for (final var entry : state.program().entrySet()) {
         if (entry.getKey() == 0) {
           continue; // Skip immediate execution line
         }
-        ProgramLine line = entry.getValue();
+        final var line = entry.getValue();
         writer.write(line.lineNumber() + " " + line.sourceText());
         writer.newLine();
       }

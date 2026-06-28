@@ -5,7 +5,7 @@ import java.io.PrintWriter;
 public class CellBufferRenderer {
   public void renderContentRows(
       PrintWriter out, CellBuffer cellBuffer, int rowsToRender, int colsToRender) {
-    StringBuilder sb = new StringBuilder();
+    final var sb = new StringBuilder();
     for (int r = 0; r < rowsToRender; r++) {
       out.print("\033[");
       out.print(r + 1);
@@ -17,13 +17,13 @@ public class CellBufferRenderer {
       int activeBgColour = CellAttributes.COLOUR_DEFAULT;
       int activeStyles = 0;
       for (int c = 0; c < colsToRender; c++) {
-        long attr = cellBuffer.getAttr(r, c);
+        final long attr = cellBuffer.getAttr(r, c);
         if (attr != activeAttr) {
-          int fg = CellBuffer.unpackFgColour(attr);
-          int bg = CellBuffer.unpackBgColour(attr);
-          int style = CellBuffer.unpackStyle(attr);
+          final int fg = CellBuffer.unpackFgColour(attr);
+          final int bg = CellBuffer.unpackBgColour(attr);
+          final int style = CellBuffer.unpackStyle(attr);
 
-          boolean resetNeeded =
+          final boolean resetNeeded =
               (activeStyles & ~style) != 0
                   || (!CellAttributes.isDefault(activeFgColour) && CellAttributes.isDefault(fg))
                   || (!CellAttributes.isDefault(activeBgColour) && CellAttributes.isDefault(bg));
@@ -49,7 +49,7 @@ public class CellBufferRenderer {
           }
           activeAttr = attr;
         }
-        int cp = cellBuffer.getCell(r, c);
+        final int cp = cellBuffer.getCell(r, c);
         if (cp == 0x2800) {
           out.print(' ');
         } else if (cp < Character.MIN_SUPPLEMENTARY_CODE_POINT) {
@@ -125,7 +125,7 @@ public class CellBufferRenderer {
               .append(';')
               .append(colour & 0xFF);
         } else {
-          int index = CellAttributes.valueOf(colour);
+          final int index = CellAttributes.valueOf(colour);
           if (index < 8) {
             sb.append(prefix - 8 + index);
           } else if (index < 16) {

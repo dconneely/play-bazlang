@@ -11,14 +11,14 @@ class StringSlicingProgramTest extends BaseProgramTest {
 
   @Test
   void testArrayElementSliceAssignment() {
-    String source =
+    runProgram(
         """
-            10 DIM a$(2, 10)
-            15 LET a$(1)="HELLO"
-            20 LET a$(1, 2 TO 4)="A"
-            30 PRINT a$(1)
-            """;
-    runProgram(source, "HA  O     \n");
+        10 DIM a$(2, 10)
+        15 LET a$(1)="HELLO"
+        20 LET a$(1, 2 TO 4)="A"
+        30 PRINT a$(1)
+        """,
+        "HA  O     \n");
   }
 
   @Test
@@ -28,173 +28,223 @@ class StringSlicingProgramTest extends BaseProgramTest {
         ReportException.class,
         () ->
             runProgram(
-                "10 DIM A$(5)\n20 LET A$=\"12345\"\n30 LET A$(3 TO 10)=\"ABCDEFGH\"\n40 PRINT A$"));
+                """
+        10 DIM A$(5)
+        20 LET A$="12345"
+        30 LET A$(3 TO 10)="ABCDEFGH"
+        40 PRINT A$"""));
   }
 
   @Test
   void testCharArraySliceRead() {
     // Read a slice from a character array element
-    String source =
+    runProgram(
         """
-            10 DIM A$(2, 10)
-            20 LET A$(1) = "HELLO WRLD"
-            30 PRINT A$(1, 1 TO 5)
-            """;
-    runProgram(source, "HELLO\n");
+        10 DIM A$(2, 10)
+        20 LET A$(1) = "HELLO WRLD"
+        30 PRINT A$(1, 1 TO 5)
+        """,
+        "HELLO\n");
   }
 
   @Test
   void testCharArraySliceWithOpenEnd() {
     // Slice with open end (TO end of string)
-    String source =
+    runProgram(
         """
-            10 DIM A$(2, 10)
-            20 LET A$(1) = "ABCDEFGHIJ"
-            30 PRINT A$(1, 6 TO )
-            """;
-    runProgram(source, "FGHIJ\n");
+        10 DIM A$(2, 10)
+        20 LET A$(1) = "ABCDEFGHIJ"
+        30 PRINT A$(1, 6 TO )
+        """,
+        "FGHIJ\n");
   }
 
   @Test
   void testCharArraySliceWithOpenStart() {
     // Slice with open start (from beginning) - uses explicit "1 TO 3"
-    String source =
+    runProgram(
         """
-            10 DIM A$(2, 10)
-            20 LET A$(1) = "ABCDEFGHIJ"
-            30 PRINT A$(1, 1 TO 3)
-            """;
-    runProgram(source, "ABC\n");
+        10 DIM A$(2, 10)
+        20 LET A$(1) = "ABCDEFGHIJ"
+        30 PRINT A$(1, 1 TO 3)
+        """,
+        "ABC\n");
   }
 
   @Test
   void testDynamicSliceAssignmentPadding() {
-    String source =
+    runProgram(
         """
-            10 LET b$="HELLO WORLD"
-            20 LET b$(2 TO 4)="A"
-            30 PRINT b$
-            """;
-    runProgram(source, "HA  O WORLD\n");
+        10 LET b$="HELLO WORLD"
+        20 LET b$(2 TO 4)="A"
+        30 PRINT b$
+        """,
+        "HA  O WORLD\n");
   }
 
   @Test
   void testDynamicSliceAssignmentTruncation() {
-    String source =
+    runProgram(
         """
-            10 LET c$="HELLO WORLD"
-            20 LET c$(2 TO 4)="123456789"
-            30 PRINT c$
-            """;
-    runProgram(source, "H123O WORLD\n");
+        10 LET c$="HELLO WORLD"
+        20 LET c$(2 TO 4)="123456789"
+        30 PRINT c$
+        """,
+        "H123O WORLD\n");
   }
 
   @Test
   void testSingleCharacterStringSlice() {
     // Single character accessed as slice
-    runProgram("10 LET A$=\"X\"\n20 PRINT A$(1 TO 1)", "X\n");
+    runProgram(
+        """
+        10 LET A$="X"
+        20 PRINT A$(1 TO 1)""",
+        "X\n");
   }
 
   @Test
   void testSliceWithBothNull() {
-    String source =
+    runProgram(
         """
-            10 LET a$="123456789"
-            20 PRINT a$( TO )
-            """;
-    runProgram(source, "123456789\n");
+        10 LET a$="123456789"
+        20 PRINT a$( TO )
+        """,
+        "123456789\n");
   }
 
   @Test
   void testSliceWithNullEnd() {
-    String source =
+    runProgram(
         """
-            10 LET a$="123456789"
-            20 PRINT a$(5 TO )
-            """;
-    runProgram(source, "56789\n");
+        10 LET a$="123456789"
+        20 PRINT a$(5 TO )
+        """,
+        "56789\n");
   }
 
   @Test
   void testSliceWithNullStart() {
-    String source =
+    runProgram(
         """
-            10 LET a$="123456789"
-            20 PRINT a$( TO 5)
-            """;
-    runProgram(source, "12345\n");
+        10 LET a$="123456789"
+        20 PRINT a$( TO 5)
+        """,
+        "12345\n");
   }
 
   @Test
   void testSlicingConstraints() {
     // Correct: slice on last index of character array
-    assertDoesNotThrow(() -> runProgram("10 DIM A$(5, 10)\n20 PRINT A$(1, 2 TO 5)"));
+    assertDoesNotThrow(
+        () ->
+            runProgram(
+                """
+        10 DIM A$(5, 10)
+        20 PRINT A$(1, 2 TO 5)
+        """));
 
     // Correct: slice as sole index of string variable
-    assertDoesNotThrow(() -> runProgram("10 LET A$=\"HELLO\"\n20 PRINT A$(2 TO 4)"));
+    assertDoesNotThrow(
+        () ->
+            runProgram(
+                """
+        10 LET A$="HELLO"
+        20 PRINT A$(2 TO 4)
+        """));
 
     // Incorrect: slice NOT on last index of character array
     assertThrows(
-        ReportException.class, () -> runProgram("10 DIM A$(5, 10)\n20 PRINT A$(1 TO 2, 5)"));
+        ReportException.class,
+        () ->
+            runProgram(
+                """
+        10 DIM A$(5, 10)
+        20 PRINT A$(1 TO 2, 5)
+        """));
 
     // Incorrect: slice NOT as sole index of string variable
     // (This is incorrect because variable string only takes 1 index or 1 slice)
     assertThrows(
-        ReportException.class, () -> runProgram("10 LET A$=\"HELLO\"\n20 PRINT A$(1, 2 TO 4)"));
+        ReportException.class,
+        () ->
+            runProgram(
+                """
+        10 LET A$="HELLO"
+        20 PRINT A$(1, 2 TO 4)
+        """));
   }
 
   @Test
   void testStrVarSlicing() {
-    runProgram("10 LET A$=\"BAZLANG\"\n20 PRINT A$(4 TO 6)", "LAN\n");
+    runProgram(
+        """
+        10 LET A$="BAZLANG"
+        20 PRINT A$(4 TO 6)
+        """,
+        "LAN\n");
   }
 
   @Test
   void testStringSliceAssignmentWithConcatenation() {
     // Assign concatenated string to slice
-    String source =
+    runProgram(
         """
-            10 LET A$ = "XXXXXXXXXXXX"
-            20 LET A$(3 TO 9) = "HI" + " " + "THERE"
-            30 PRINT A$
-            """;
-    runProgram(source, "XXHI THERXXX\n");
+        10 LET A$ = "XXXXXXXXXXXX"
+        20 LET A$(3 TO 9) = "HI" + " " + "THERE"
+        30 PRINT A$
+        """,
+        "XXHI THERXXX\n");
   }
 
   @Test
   void testStringSliceOutOfBounds() {
     // Slice end beyond string length - throws error
-    assertThrows(ReportException.class, () -> runProgram("10 LET A$=\"HI\"\n20 PRINT A$(1 TO 10)"));
+    assertThrows(
+        ReportException.class,
+        () ->
+            runProgram(
+                """
+        10 LET A$="HI"
+        20 PRINT A$(1 TO 10)
+        """));
   }
 
   @Test
   void testStringSliceReversedIndices() {
     // Start > End should return empty or error
     assertThrows(
-        ReportException.class, () -> runProgram("10 LET A$=\"HELLO\"\n20 PRINT A$(4 TO 2)"));
+        ReportException.class,
+        () ->
+            runProgram(
+                """
+        10 LET A$="HELLO"
+        20 PRINT A$(4 TO 2)
+        """));
   }
 
   @Test
-  void testZxSpectrumScrollingMessage() {
-    String source =
+  void testScrollingMessage() {
+    runProgram(
         """
-            10 LET A$="HELLO WORLD "
-            20 LET A$=A$(2 TO ) + A$(1)
-            30 PRINT A$
-            40 LET A$=A$(2 TO ) + A$(1)
-            50 PRINT A$
-            """;
-    runProgram(source, "ELLO WORLD H\nLLO WORLD HE\n");
+        10 LET A$="HELLO WORLD "
+        20 LET A$=A$(2 TO ) + A$(1)
+        30 PRINT A$
+        40 LET A$=A$(2 TO ) + A$(1)
+        50 PRINT A$
+        """,
+        "ELLO WORLD H\nLLO WORLD HE\n");
   }
 
   @Test
   void testFlyweightStringArrayModification() {
-    String source =
+    runProgram(
         """
-            10 DIM A$(1, 5)
-            20 LET A$(1) = "ABCDE"
-            30 LET A$(1, 2 TO 4) = "XYZ"
-            40 PRINT A$(1)
-            """;
-    runProgram(source, "AXYZE\n");
+        10 DIM A$(1, 5)
+        20 LET A$(1) = "ABCDE"
+        30 LET A$(1, 2 TO 4) = "XYZ"
+        40 PRINT A$(1)
+        """,
+        "AXYZE\n");
   }
 }

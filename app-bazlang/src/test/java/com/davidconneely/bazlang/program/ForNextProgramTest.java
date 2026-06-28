@@ -19,84 +19,96 @@ class ForNextProgramTest extends BaseProgramTest {
   @Test
   void testForInMultiStatementLine() {
     // Should print "BEFORE", "1", "2", "3", "AFTER".
-    String output =
-        runProgramCapture(
-            "10 PRINT \"BEFORE\" : FOR I=1 TO 3 : PRINT I : NEXT I : PRINT \"AFTER\" : STOP");
-    assertEquals("BEFORE\n1\n2\n3\nAFTER\n", output);
+    runProgram(
+        """
+            10 PRINT "BEFORE" : FOR I=1 TO 3 : PRINT I : NEXT I : PRINT "AFTER" : STOP
+            """,
+        "BEFORE\n1\n2\n3\nAFTER\n");
   }
 
   @Test
   void testForInsideIfThen() {
-    String output =
-        runProgramCapture(
-            "10 IF 1=1 THEN PRINT \"BEFORE\" "
-                + ": FOR I=1 TO 3 : PRINT I : NEXT I : PRINT \"AFTER\" : STOP");
-    assertEquals("BEFORE\n1\n2\n3\nAFTER\n", output);
+    runProgram(
+        """
+            10 IF 1=1 THEN PRINT "BEFORE" : FOR I=1 TO 3 : PRINT I : NEXT I : PRINT "AFTER" : STOP
+            """,
+        "BEFORE\n1\n2\n3\nAFTER\n");
   }
 
   @Test
   void testForLoop() {
-    String expected = "1\n2\n3\n";
-    runProgram("10 FOR i = 1 TO 3\n20 PRINT i\n30 NEXT i", expected);
+    runProgram(
+        """
+        10 FOR i = 1 TO 3
+        20 PRINT i
+        30 NEXT i
+        """,
+        "1\n2\n3\n");
   }
 
   @Test
   void testForLoopGOSUB() {
-    String source = "10 FOR M=1 TO 2\n20 GOSUB 30\n30 PRINT \"M=\";M\n40 NEXT M\n50 RETURN";
-    ReportException e = assertThrows(ReportException.class, () -> runProgram(source));
-    assertEquals(ReportCode.RETURN_WITHOUT_GOSUB, e.reportCode());
+    final String source =
+        """
+        10 FOR M=1 TO 2
+        20 GOSUB 30
+        30 PRINT "M=";M
+        40 NEXT M
+        50 RETURN
+        """;
+    final var ex = assertThrows(ReportException.class, () -> runProgram(source));
+    assertEquals(ReportCode.RETURN_WITHOUT_GOSUB, ex.reportCode());
 
-    MockDisplay display = new MockDisplay();
+    final var display = new MockDisplay();
     try {
-      var program = PARSER.parseProgramLines(source);
-      EvalState state = new EvalState();
-      ProgramManager executor = new ProgramManager(state, display);
-      Interpreter interpreter = new Interpreter(state, executor);
+      final var program = PARSER.parseProgramLines(source);
+      final var state = new EvalState();
+      final var executor = new ProgramManager(state, display);
+      final var interpreter = new Interpreter(state, executor);
       interpreter.execute(program);
     } catch (ReportException re) {
       // Ignore expected
     }
-    String expected = "M=1\nM=2\nM=3\nM=4\n";
-    assertEquals(expected, display.getOutput());
+    assertEquals("M=1\nM=2\nM=3\nM=4\n", display.getOutput());
   }
 
   @Test
   void testForSkipVariableRetention() {
     // Documented: Loop variable is initialised but NOT incremented if skipped.
-    EvalState state =
+    final var state =
         runProgram(
             """
-                10 LET I = 0
-                20 FOR I = 10 TO 1
-                30 NEXT I
-                """);
+        10 LET I = 0
+        20 FOR I = 10 TO 1
+        30 NEXT I
+        """);
     assertEquals(10.0, state.numVar("I"));
   }
 
   @Test
   void testForWithoutNextError() {
     // Check that ReportCode.FOR_WITHOUT_NEXT is thrown when matching NEXT is not found
-    try {
-      runProgramCapture(
-          """
-              10 FOR I = 10 TO 1
-              20 PRINT I
-              """);
-      org.junit.jupiter.api.Assertions.fail("Expected ReportException");
-    } catch (ReportException e) {
-      assertEquals(ReportCode.FOR_WITHOUT_NEXT, e.reportCode());
-    }
+    final var ex =
+        assertThrows(
+            ReportException.class,
+            () ->
+                runProgram(
+                    """
+        10 FOR I = 10 TO 1
+        20 PRINT I
+        """));
+    assertEquals(ReportCode.FOR_WITHOUT_NEXT, ex.reportCode());
   }
 
   @Test
   void testImmediateModeForLoop() {
     // REPL statements are executed via immediate mode (label 0).
-    EvalState state = new EvalState();
-    MockDisplay display = new MockDisplay(List.of());
-    ProgramManager executor = new ProgramManager(state, display);
-    Interpreter interpreter = new Interpreter(state, executor);
-    ProgramEditor editor = new ProgramEditor(state, display, PARSER, executor::evalNum);
-    BazLangReplHandler repl = new BazLangReplHandler(PARSER, state, executor, editor, interpreter);
+    final var state = new EvalState();
+    final var display = new MockDisplay(List.of());
+    final var executor = new ProgramManager(state, display);
+    final var interpreter = new Interpreter(state, executor);
+    final var editor = new ProgramEditor(state, display, PARSER, executor::evalNum);
+    final var repl = new BazLangReplHandler(PARSER, state, executor, editor, interpreter);
 
     repl.handleReplInput("FOR I=1 TO 3 : PRINT I : NEXT I", null);
     assertEquals("1\n2\n3\n", display.getOutput());
@@ -104,41 +116,50 @@ class ForNextProgramTest extends BaseProgramTest {
 
   @Test
   void testOverlappingForLoops() {
-    String expected = "11\n21\n31\n42\n53\n";
-    runProgram("10 FOR M=1 TO 3\n20 FOR N=1 TO M\n30 PRINT M;N\n40 NEXT M\n50 NEXT N", expected);
+    runProgram(
+        """
+        10 FOR M=1 TO 3
+        20 FOR N=1 TO M
+        30 PRINT M;N
+        40 NEXT M
+        50 NEXT N
+        """,
+        "11\n21\n31\n42\n53\n");
   }
 
   @Test
   void testForSkipSameLine() {
-    String source = "10 FOR I = 2 TO 1 : PRINT \"SKIPPED\" : NEXT I : PRINT \"AFTER\"";
-    String output = runProgramCapture(source);
-    assertEquals("AFTER\n", output);
+    runProgram(
+        """
+        10 FOR I = 2 TO 1 : PRINT "SKIPPED" : NEXT I : PRINT "AFTER"
+        """,
+        "AFTER\n");
   }
 
   @Test
   void testForSkipFindsNextInsideIfBody() {
-    // On real ZX Spectrum hardware, the FOR body-skip scan is a flat, linear pass through all
-    // statements in program order, including those nested inside IF...THEN bodies. Verified on
-    // real hardware: `FOR i=1 TO 0 / IF 0 THEN NEXT i / PRINT "A" / NEXT i / PRINT "B"` prints
-    // "A" then "B", confirming that the NEXT inside `IF 0 THEN` is found by the skip scan even
-    // though the condition is always false.
-    String source =
+    // On a Sinclair ZX Spectrum, the FOR body-skip scan is a flat, linear pass through all
+    // statements in program order, including those nested inside IF...THEN bodies. Verified on a
+    // Sinclair ZX Spectrum: `FOR i=1 TO 0 / IF 0 THEN NEXT i / PRINT "A" / NEXT i / PRINT "B"`
+    // prints "A" then "B", confirming that the NEXT inside `IF 0 THEN` is found by the skip scan
+    // even though the condition is always false.
+    runProgram(
         """
         10 FOR I = 1 TO 0
         20 IF 0 THEN NEXT I
         30 PRINT "A"
         40 NEXT I
         50 PRINT "B"
-        """;
-    assertEquals("A\nB\n", runProgramCapture(source));
+        """,
+        "A\nB\n");
   }
 
   @Test
   void testForSkipFindsNextInsideIfBodyFullTrace() {
-    // Full program verified on real ZX Spectrum hardware with `FOR i=1 TO 0`. Expected output:
-    // 40, 60, 130, 2, 3, 4 — confirming the skip lands after the `IF i=1 THEN NEXT i` on line 30
-    // (not at the standalone `NEXT i` on line 120).
-    String source =
+    // Full program verified on a Sinclair ZX Spectrum, by `FOR i=1 TO 0`. Expected output: 40, 60,
+    // 130, 2, 3, 4 — confirming the skip lands after the `IF i=1 THEN NEXT i` on line 30 (not at
+    // the standalone `NEXT i` on line 120).
+    runProgram(
         """
         10 FOR I=1 TO 0
         20 GO SUB 100
@@ -158,7 +179,7 @@ class ForNextProgramTest extends BaseProgramTest {
         160 PRINT I
         170 NEXT I
         180 PRINT I
-        """;
-    assertEquals("40\n60\n130\n2\n3\n4\n", runProgramCapture(source));
+        """,
+        "40\n60\n130\n2\n3\n4\n");
   }
 }

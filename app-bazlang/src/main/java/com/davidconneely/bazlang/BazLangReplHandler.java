@@ -28,7 +28,7 @@ public final class BazLangReplHandler implements ReplHandler {
   @Override
   public boolean handleReplInput(String line, Shell ui) {
     try {
-      AntlrParser.ParsedLine parsed = parser.parseReplLine(line);
+      final var parsed = parser.parseReplLine(line);
       boolean result = true;
       if (parsed instanceof AntlrParser.ParsedLine.Numbered(int lineNumber, String statementText)) {
         // Reset current execution position on program modification
@@ -77,7 +77,7 @@ public final class BazLangReplHandler implements ReplHandler {
 
   private boolean handleNumberedLine(
       int lineNumber, String statementText, String originalLine, Shell ui) {
-    String trimmed = originalLine.trim();
+    final String trimmed = originalLine.trim();
     if (trimmed.matches("^\\d+\\s*$")) {
       state.program().remove(lineNumber);
       ui.systemPrintln(lineNumber + " deleted");
@@ -92,11 +92,11 @@ public final class BazLangReplHandler implements ReplHandler {
     if (ctx instanceof BazLangParser.DeleteCmdContext delete) {
       programEditor.executeDelete(delete.lineRange());
     } else if (ctx instanceof BazLangParser.EditCmdContext edit) {
-      int lineNum = (int) executor.evalNum(edit.numExpr());
+      final int lineNum = (int) executor.evalNum(edit.numExpr());
       if (lineNum < Limits.MIN_LINE_LABEL || lineNum > Limits.MAX_LINE_LABEL) {
         throw new ReportException(ReportCode.INTEGER_OUT_OF_RANGE, 0, "Line number out of range");
       }
-      ProgramLine programLine = state.program().get(lineNum);
+      final var programLine = state.program().get(lineNum);
       if (programLine != null) {
         ui.prefillInput(lineNum + " " + programLine.sourceText());
       } else {

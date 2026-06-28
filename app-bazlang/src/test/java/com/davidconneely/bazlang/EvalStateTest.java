@@ -35,7 +35,7 @@ class EvalStateTest {
   @Test
   void testForLoops() {
     assertFalse(state.hasForLoop("I"));
-    EvalState.ForLoopData data = new EvalState.ForLoopData(10.0, 1.0, 100, 2);
+    final var data = new EvalState.ForLoopData(10.0, 1.0, 100, 2);
     state.setForLoop("I", data);
     assertTrue(state.hasForLoop("I"));
     assertEquals(data, state.forLoop("I"));
@@ -44,7 +44,7 @@ class EvalStateTest {
   @Test
   void testFunctionDefinitions() {
     assertFalse(state.hasFn("FNA"));
-    EvalState.FnDefinition def = new EvalState.FnDefinition("FNA", List.of("X"), null);
+    final var def = new EvalState.FnDefinition("FNA", List.of("X"), null);
     state.setFn("FNA", def);
     assertTrue(state.hasFn("FNA"));
     assertEquals(def, state.fn("FNA"));
@@ -68,7 +68,7 @@ class EvalStateTest {
   @Test
   void testNumArrays() {
     assertFalse(state.hasNumArray("A"));
-    EvalState.NumArray arr = new EvalState.NumArray(new int[] {5}, new double[5]);
+    final var arr = new EvalState.NumArray(new int[] {5}, new double[5]);
     state.setNumArray("A", arr);
     assertTrue(state.hasNumArray("A"));
     assertEquals(arr, state.numArray("A"));
@@ -87,7 +87,7 @@ class EvalStateTest {
 
   @Test
   void testProgramLines() {
-    ProgramLine line = new ProgramLine(10, "PRINT \"HELLO\"");
+    final var line = new ProgramLine(10, "PRINT \"HELLO\"");
     state.setProgram(Map.of(10, line));
     assertEquals(1, state.program().size());
     assertEquals(line, state.program().get(10));
@@ -96,8 +96,8 @@ class EvalStateTest {
   @Test
   void testReturnStack() {
     assertTrue(state.isReturnStackEmpty());
-    EvalState.JumpLocation loc1 = new EvalState.JumpLocation(10, 1);
-    EvalState.JumpLocation loc2 = new EvalState.JumpLocation(20, 2);
+    final var loc1 = new EvalState.JumpLocation(10, 1);
+    final var loc2 = new EvalState.JumpLocation(20, 2);
 
     state.pushReturn(loc1);
     assertFalse(state.isReturnStackEmpty());
@@ -118,16 +118,16 @@ class EvalStateTest {
   @Test
   void testSeedRandom() {
     state.seedRandom(42L);
-    double r1 = state.nextRandom();
+    final double r1 = state.nextRandom();
     state.seedRandom(42L);
-    double r2 = state.nextRandom();
+    final double r2 = state.nextRandom();
     assertEquals(r1, r2);
   }
 
   @Test
   void testStrVars() {
     assertFalse(state.hasStrVar("S$"));
-    EvalState.StrVar scalar = new EvalState.StrVar.Scalar(BStr.fromJavaString("TEST"));
+    final var scalar = new EvalState.StrVar.Scalar(BStr.fromJavaString("TEST"));
     state.setStrVar("S$", scalar);
     assertTrue(state.hasStrVar("S$"));
     assertEquals(scalar, state.strVar("S$"));

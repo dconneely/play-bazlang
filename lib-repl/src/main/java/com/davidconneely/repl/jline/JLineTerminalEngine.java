@@ -25,7 +25,7 @@ public class JLineTerminalEngine implements TerminalEngine {
   public JLineTerminalEngine() throws IOException {
     this.terminal = TerminalBuilder.builder().system(true).nativeSignals(true).build();
     this.savedAttributes = terminal.enterRawMode();
-    Attributes attr = terminal.getAttributes();
+    final var attr = terminal.getAttributes();
     attr.setLocalFlag(Attributes.LocalFlag.ISIG, true);
     terminal.setAttributes(attr);
     terminal.puts(Capability.enter_ca_mode);

@@ -3,7 +3,6 @@ package com.davidconneely.bazlang;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import com.davidconneely.bazlang.antlr.AntlrParser;
-import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 class ReformatVisitorTest {
@@ -11,8 +10,8 @@ class ReformatVisitorTest {
   private static final ReformatVisitor FORMATTER = new ReformatVisitor();
 
   private void assertFormatsTo(String source, String expected) {
-    Map<Integer, ProgramLine> program = PARSER.parseProgramLines("10 " + source);
-    String actual = program.get(10).getStatements(PARSER).accept(FORMATTER);
+    final var program = PARSER.parseProgramLines("10 " + source);
+    final String actual = program.get(10).getStatements(PARSER).accept(FORMATTER);
     assertEquals(expected, actual);
   }
 

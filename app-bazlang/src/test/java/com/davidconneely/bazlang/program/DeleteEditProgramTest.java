@@ -43,7 +43,7 @@ class DeleteEditProgramTest extends BaseProgramTest {
   }
 
   private void executeReplCommand(String command) {
-    var parsed = parser.parseReplLine(command);
+    final var parsed = parser.parseReplLine(command);
     if (parsed instanceof AntlrParser.ParsedLine.ReplCommand(var ctx)) {
       handleReplCommand(ctx, executor, editor, display, state);
     } else {
@@ -60,11 +60,11 @@ class DeleteEditProgramTest extends BaseProgramTest {
     if (ctx instanceof BazLangParser.DeleteCmdContext delete) {
       editor.executeDelete(delete.lineRange());
     } else if (ctx instanceof BazLangParser.EditCmdContext edit) {
-      int lineNum = (int) executor.evalNum(edit.numExpr());
+      final int lineNum = (int) executor.evalNum(edit.numExpr());
       if (lineNum < Limits.MIN_LINE_LABEL || lineNum > Limits.MAX_LINE_LABEL) {
         throw new ReportException(ReportCode.INTEGER_OUT_OF_RANGE, 0, "Line number out of range");
       }
-      ProgramLine programLine = state.program().get(lineNum);
+      final var programLine = state.program().get(lineNum);
       if (programLine != null) {
         ui.prefillInput(lineNum + " " + programLine.sourceText());
       } else {
@@ -115,7 +115,7 @@ class DeleteEditProgramTest extends BaseProgramTest {
 
   @Test
   void testDeleteWithoutNumber() {
-    var ex1 = assertThrows(ReportException.class, () -> executeReplCommand("DELETE"));
+    final var ex1 = assertThrows(ReportException.class, () -> executeReplCommand("DELETE"));
     assertTrue(ex1.getMessage().contains("requires at least one line number"));
 
     // DELETE TO should delete everything (matching LIST TO behaviour)
@@ -137,7 +137,7 @@ class DeleteEditProgramTest extends BaseProgramTest {
 
   @Test
   void testEditOutOfRangeThrowsError() {
-    var ex = assertThrows(ReportException.class, () -> executeReplCommand("EDIT 0"));
+    final var ex = assertThrows(ReportException.class, () -> executeReplCommand("EDIT 0"));
     assertTrue(ex.getMessage().contains("out of range"));
   }
 }

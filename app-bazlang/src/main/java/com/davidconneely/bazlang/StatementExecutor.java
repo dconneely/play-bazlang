@@ -8,14 +8,13 @@ import com.davidconneely.bazlang.io.BazLangDisplay;
 import com.davidconneely.cell.BrailleMode;
 import com.davidconneely.cell.CellMode;
 import com.davidconneely.cell.HalfCellMode;
-import com.davidconneely.cell.PixelMode;
 import com.davidconneely.cell.QuadrantMode;
 import com.davidconneely.cell.SextantMode;
 import com.davidconneely.repl.BreakException;
 import com.davidconneely.repl.Display;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
+import java.util.HashSet;
 
 /** Executes BazLang from the ANTLR ParseTree. */
 public class StatementExecutor extends BazLangBaseVisitor<Void> {
@@ -60,7 +59,7 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
 
   @Override
   public Void visitDefFnStmt(DefFnStmtContext ctx) {
-    String name = ctx.name.getText().toUpperCase();
+    final String name = ctx.name.getText().toUpperCase();
     if (name.endsWith("$")) {
       if (ctx.expression().strExpr() == null) {
         throw codedException(
@@ -72,11 +71,11 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
             ReportCode.NONSENSE_IN_BASIC, "Type mismatch: expected numeric expression");
       }
     }
-    List<String> params = new ArrayList<>();
+    final var params = new ArrayList<String>();
     if (ctx.params != null) {
-      java.util.Set<String> paramSet = new java.util.HashSet<>();
-      for (var p : ctx.params) {
-        String pName = p.getText().toUpperCase();
+      final var paramSet = new HashSet<String>();
+      for (final var p : ctx.params) {
+        final String pName = p.getText().toUpperCase();
         if (!paramSet.add(pName)) {
           throw codedException(ReportCode.NONSENSE_IN_BASIC, "Duplicate parameter name: " + pName);
         }
@@ -89,16 +88,16 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
 
   @Override
   public Void visitDimStmt(DimStmtContext ctx) {
-    var dimDecl = ctx.dimDecl();
-    String name =
+    final var dimDecl = ctx.dimDecl();
+    final String name =
         dimDecl.NUM_IDENTIFIER() != null
             ? dimDecl.NUM_IDENTIFIER().getText().toUpperCase()
             : dimDecl.STR_IDENTIFIER().getText().toUpperCase();
-    boolean isStr = name.endsWith("$");
-    int numDims = dimDecl.numExpr().size();
-    int[] dims = new int[numDims];
+    final boolean isStr = name.endsWith("$");
+    final int numDims = dimDecl.numExpr().size();
+    final int[] dims = new int[numDims];
     for (int i = 0; i < numDims; i++) {
-      int d = (int) evalNum(dimDecl.numExpr(i));
+      final int d = (int) evalNum(dimDecl.numExpr(i));
       if (d < 1) {
         throw codedException(ReportCode.SUBSCRIPT_WRONG, "Subscript wrong");
       }
@@ -106,9 +105,9 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
     }
     if (isStr) {
       state.removeStrVar(name);
-      int flen = dims[numDims - 1];
+      final int flen = dims[numDims - 1];
       long total = 1;
-      int[] arrDims = new int[numDims - 1];
+      final int[] arrDims = new int[numDims - 1];
       System.arraycopy(dims, 0, arrDims, 0, numDims - 1);
       for (int i = 0; i < numDims - 1; i++) {
         total *= dims[i];
@@ -116,11 +115,11 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
           throw codedException(ReportCode.OUT_OF_MEMORY, "Array too large");
         }
       }
-      long totalBytes = total * flen;
+      final long totalBytes = total * flen;
       if (totalBytes > Limits.MAX_ARRAY_ELEMENTS) {
         throw codedException(ReportCode.OUT_OF_MEMORY, "Array too large");
       }
-      byte[] data = new byte[(int) totalBytes];
+      final byte[] data = new byte[(int) totalBytes];
       Arrays.fill(data, (byte) 32); // Space padded by default
       state.setStrVar(name, new EvalState.StrVar.Array(arrDims, flen, data));
     } else {
@@ -141,8 +140,8 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
     withRestoredStyles(
         () -> {
           applyStyleList(ctx.styleList());
-          int dx = (int) Math.round(evalNum(ctx.numExpr(0)));
-          int dy = (int) Math.round(evalNum(ctx.numExpr(1)));
+          final int dx = (int) Math.round(evalNum(ctx.numExpr(0)));
+          final int dy = (int) Math.round(evalNum(ctx.numExpr(1)));
           drawLine(
               state.graphicsCursorX(),
               state.graphicsCursorY(),
@@ -166,7 +165,7 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
       if (x1 == endX && y1 == endY) {
         break;
       }
-      int e2 = 2 * err;
+      final int e2 = 2 * err;
       if (e2 >= diffY) {
         err += diffY;
         x1 += sx;
@@ -190,7 +189,7 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
   public Void visitIfStmt(IfStmtContext ctx) {
     if (evalNum(ctx.numExpr()) == 0.0) {
       if (state.currentLineLabel() > 0) {
-        Integer nextLabel = state.program().higherKey(state.currentLineLabel());
+        final Integer nextLabel = state.program().higherKey(state.currentLineLabel());
         if (nextLabel != null) {
           state.setPendingJumpLocation(nextLabel, 1);
         } else {
@@ -206,17 +205,16 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
 
   @Override
   public Void visitInputStmt(InputStmtContext ctx) {
-    var target = ctx.assignmentTarget();
-    boolean isNumeric = target.NUM_IDENTIFIER() != null;
-    Display.InputMode mode =
-        isNumeric ? Display.InputMode.INPUT_NUMERIC : Display.InputMode.INPUT_STRING;
+    final var target = ctx.assignmentTarget();
+    final boolean isNumeric = target.NUM_IDENTIFIER() != null;
+    final var mode = isNumeric ? Display.InputMode.INPUT_NUMERIC : Display.InputMode.INPUT_STRING;
     String line = readInputLine(mode);
 
     if (isNumeric) {
       // INPUT evaluates the input as a numeric expression; retry on syntax errors
       while (true) {
         try {
-          double val = exprEvaluator.evaluateNumericExpression(line.trim());
+          final double val = exprEvaluator.evaluateNumericExpression(line.trim());
           assignNumTarget(target, val);
           break;
         } catch (ReportException e) {
@@ -235,7 +233,7 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
 
   private String readInputLine(Display.InputMode mode) {
     try {
-      String line = display.readln(mode);
+      final String line = display.readln(mode);
       if (line != null && line.trim().equalsIgnoreCase("STOP")) {
         state.setRunning(false);
         throw codedException(ReportCode.STOP_IN_INPUT, ReportCode.STOP_IN_INPUT.getMessage());
@@ -249,7 +247,7 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
 
   private String readInputLine(String prompt) {
     try {
-      String line = display.readln(prompt);
+      final String line = display.readln(prompt);
       if (line != null && line.trim().equalsIgnoreCase("STOP")) {
         state.setRunning(false);
         throw codedException(ReportCode.STOP_IN_INPUT, ReportCode.STOP_IN_INPUT.getMessage());
@@ -264,10 +262,10 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
   private void restoreTo(int target) {
     Integer searchLine = state.program().ceilingKey(target);
     while (searchLine != null) {
-      ProgramLine line = state.program().get(searchLine);
-      List<StatementContext> stmts = line.getFlattenedStatements(AntlrParser.INSTANCE);
+      final var line = state.program().get(searchLine);
+      final var stmts = line.getFlattenedStatements(AntlrParser.INSTANCE);
       int stmtIdx = 1;
-      for (StatementContext stmt : stmts) {
+      for (final var stmt : stmts) {
         if (stmt instanceof DataStmtContext) {
           state.setDataLineLabel(searchLine);
           state.setDataStatementIndex(stmtIdx);
@@ -283,13 +281,13 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
 
   @Override
   public Void visitLetStmt(LetStmtContext ctx) {
-    var target = ctx.assignmentTarget();
-    var expr = ctx.expression();
+    final var target = ctx.assignmentTarget();
+    final var expr = ctx.expression();
     if (target.NUM_IDENTIFIER() != null) {
-      double val = evalNum(expr.numExpr());
+      final double val = evalNum(expr.numExpr());
       assignNumTarget(target, val);
     } else {
-      BStr val = evalStr(expr.strExpr());
+      final var val = evalStr(expr.strExpr());
       assignStrTarget(target, val);
     }
     return null;
@@ -297,9 +295,9 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
 
   @Override
   public Void visitListStmt(ListStmtContext ctx) {
-    int[] range = parseListLineRange(ctx.lineRange());
-    for (var entry : state.program().subMapEntries(range[0], true, range[1], true)) {
-      ProgramLine line = entry.getValue();
+    final int[] range = parseListLineRange(ctx.lineRange());
+    for (final var entry : state.program().subMapEntries(range[0], true, range[1], true)) {
+      final var line = entry.getValue();
       if (line.lineNumber() >= Limits.MIN_LINE_LABEL) {
         display.println(line.lineNumber() + " " + line.sourceText());
       }
@@ -309,9 +307,9 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
 
   @Override
   public Void visitLListStmt(LListStmtContext ctx) {
-    int[] range = parseListLineRange(ctx.lineRange());
-    for (var entry : state.program().subMapEntries(range[0], true, range[1], true)) {
-      ProgramLine line = entry.getValue();
+    final int[] range = parseListLineRange(ctx.lineRange());
+    for (final var entry : state.program().subMapEntries(range[0], true, range[1], true)) {
+      final var line = entry.getValue();
       if (line.lineNumber() >= Limits.MIN_LINE_LABEL) {
         display.lprintln(line.lineNumber() + " " + line.sourceText());
       }
@@ -324,7 +322,7 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
     int start = Limits.MIN_TARGET_LABEL;
     int end = Limits.MAX_TARGET_LABEL;
     if (range != null) {
-      var nums = range.numExpr();
+      final var nums = range.numExpr();
       if (range.TO() != null) {
         if (nums.size() == 2) {
           start = (int) evalNum(nums.get(0));
@@ -356,18 +354,18 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
   public Void visitLPrintStmt(LPrintStmtContext ctx) {
     int tp = 0;
     boolean suppressNewline = false;
-    var printList = ctx.printList();
+    final var printList = ctx.printList();
     if (printList != null) {
       for (int i = 0; i < printList.getChildCount(); i++) {
-        var child = printList.getChild(i);
+        final var child = printList.getChild(i);
         if (child instanceof PrintItemContext item) {
           tp = executeLPrintItem(item, tp);
           suppressNewline = false;
         } else if (child instanceof PrintSepContext sep) {
-          String sepText = sep.getText();
+          final String sepText = sep.getText();
           if (sepText.equals(",")) {
             // Comma moves to next tab stop
-            int nextTab = ((tp / Limits.TAB_WIDTH) + 1) * Limits.TAB_WIDTH;
+            final int nextTab = ((tp / Limits.TAB_WIDTH) + 1) * Limits.TAB_WIDTH;
             if (nextTab > tp) {
               display.lprint(" ".repeat(nextTab - tp));
               tp = nextTab;
@@ -416,8 +414,8 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
 
   @Override
   public Void visitPauseStmt(PauseStmtContext ctx) {
-    double frames = evalNum(ctx.numExpr());
-    long totalMs = Math.max(0L, Math.round(frames * 20.0));
+    final double frames = evalNum(ctx.numExpr());
+    final long totalMs = Math.max(0L, Math.round(frames * 20.0));
     display.forceFlush();
     long remaining = totalMs;
     while (remaining > 0) {
@@ -431,8 +429,8 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
       remaining -= chunk;
       if (display.pollForBreak()) {
         state.setRunning(false);
-        // On real ZX Spectrum hardware, pressing BREAK during PAUSE gives report code L
-        // (BREAK into program). CONT then advances past the PAUSE to the next statement.
+        // On a Sinclair ZX Spectrum, pressing BREAK during PAUSE gives report code L (BREAK into
+        // program). CONT then advances past the PAUSE to the next statement.
         throw codedException(
             ReportCode.BREAK_INTO_PROGRAM, ReportCode.BREAK_INTO_PROGRAM.getMessage());
       }
@@ -445,13 +443,13 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
     withRestoredStyles(
         () -> {
           applyStyleList(ctx.styleList());
-          var exprs = ctx.numExpr();
+          final var exprs = ctx.numExpr();
           try {
             if (exprs == null || exprs.isEmpty()) {
               display.plot(state.graphicsCursorX(), state.graphicsCursorY());
             } else if (exprs.size() == 2) {
-              int x = (int) evalNum(ctx.numExpr(0));
-              int y = (int) evalNum(ctx.numExpr(1));
+              final int x = (int) evalNum(ctx.numExpr(0));
+              final int y = (int) evalNum(ctx.numExpr(1));
               display.plot(x, y);
               state.setGraphicsCursorX(x);
               state.setGraphicsCursorY(y);
@@ -465,8 +463,8 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
 
   @Override
   public Void visitPlotmodeStmt(PlotmodeStmtContext ctx) {
-    int mode = (int) evalNum(ctx.numExpr());
-    PixelMode pixelMode =
+    final int mode = (int) evalNum(ctx.numExpr());
+    final var pixelMode =
         switch (mode) {
           case 1 -> CellMode.INSTANCE;
           case 2 -> HalfCellMode.INSTANCE;
@@ -487,18 +485,18 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
         () -> {
           int tabPos = display.currentCol();
           boolean suppressNewline = false;
-          var printList = ctx.printList();
+          final var printList = ctx.printList();
           if (printList != null) {
             for (int i = 0; i < printList.getChildCount(); i++) {
-              var child = printList.getChild(i);
+              final var child = printList.getChild(i);
               if (child instanceof PrintItemContext item) {
                 tabPos = executePrintItem(item, tabPos);
                 suppressNewline = false;
               } else if (child instanceof PrintSepContext sep) {
-                String sepText = sep.getText();
+                final String sepText = sep.getText();
                 if (sepText.equals(",")) {
                   // Comma moves to next tab stop
-                  int nextTab = ((tabPos / Limits.TAB_WIDTH) + 1) * Limits.TAB_WIDTH;
+                  final int nextTab = ((tabPos / Limits.TAB_WIDTH) + 1) * Limits.TAB_WIDTH;
                   if (nextTab > tabPos) {
                     display.print(" ".repeat(nextTab - tabPos));
                     tabPos = display.currentCol();
@@ -522,12 +520,12 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
 
   private int executePrintItem(PrintItemContext item, int tabPos) {
     if (item instanceof PrintExprItemContext expr) {
-      String s = evalPrintExpr(expr.expression());
+      final String s = evalPrintExpr(expr.expression());
       display.print(s);
       return display.currentCol();
     } else if (item instanceof PrintAtItemContext at) {
-      int row = (int) evalNum(at.numExpr(0));
-      int col = (int) evalNum(at.numExpr(1));
+      final int row = (int) evalNum(at.numExpr(0));
+      final int col = (int) evalNum(at.numExpr(1));
       if (row < 0 || col < 0) {
         throw codedException(ReportCode.OUT_OF_SCREEN, "Screen out of bounds");
       }
@@ -553,7 +551,7 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
     if (ctx == null) {
       return;
     }
-    for (StyleItemContext style : ctx.styleItem()) {
+    for (final var style : ctx.styleItem()) {
       applyStyleItem(style);
     }
   }
@@ -575,12 +573,12 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
   }
 
   private void withRestoredStyles(Runnable action) {
-    int prevInk = state.defaultInk();
-    int prevPaper = state.defaultPaper();
-    int prevBright = state.defaultBright();
-    int prevFlash = state.defaultFlash();
-    int prevInverse = state.defaultInverse();
-    int prevOver = state.defaultOver();
+    final int prevInk = state.defaultInk();
+    final int prevPaper = state.defaultPaper();
+    final int prevBright = state.defaultBright();
+    final int prevFlash = state.defaultFlash();
+    final int prevInverse = state.defaultInverse();
+    final int prevOver = state.defaultOver();
     display.setInk(prevInk);
     display.setPaper(prevPaper);
     display.setBright(prevBright);
@@ -621,26 +619,26 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
 
   @Override
   public Void visitReadStmt(ReadStmtContext ctx) {
-    for (var target : ctx.assignmentTarget()) {
+    for (final var target : ctx.assignmentTarget()) {
       if (state.dataLineLabel() == -1) {
         restoreTo(0);
       }
-      int lineLabel = state.dataLineLabel();
+      final int lineLabel = state.dataLineLabel();
       if (lineLabel == Integer.MAX_VALUE) {
         throw codedException(ReportCode.OUT_OF_DATA, "Out of DATA");
       }
-      ProgramLine line = state.program().get(lineLabel);
+      final var line = state.program().get(lineLabel);
       if (line == null) {
         throw codedException(ReportCode.STATEMENT_LOST, "Statement lost");
       }
-      List<StatementContext> stmts = line.getFlattenedStatements(AntlrParser.INSTANCE);
-      int stmtIdx = state.dataStatementIndex();
-      StatementContext stmt = stmts.get(stmtIdx - 1);
+      final var stmts = line.getFlattenedStatements(AntlrParser.INSTANCE);
+      final int stmtIdx = state.dataStatementIndex();
+      final var stmt = stmts.get(stmtIdx - 1);
       if (!(stmt instanceof DataStmtContext dataCtx)) {
         throw codedException(ReportCode.STATEMENT_LOST, "Statement lost");
       }
-      int exprIdx = state.dataExpressionIndex();
-      ExpressionContext exprCtx = dataCtx.expression(exprIdx);
+      final int exprIdx = state.dataExpressionIndex();
+      final var exprCtx = dataCtx.expression(exprIdx);
 
       // Advance pointer before evaluating and assigning
       if (exprIdx + 1 < dataCtx.expression().size()) {
@@ -657,7 +655,7 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
           }
         }
         if (!found) {
-          Integer nextLine = state.program().higherKey(lineLabel);
+          final Integer nextLine = state.program().higherKey(lineLabel);
           if (nextLine != null) {
             restoreTo(nextLine);
           } else {
@@ -671,13 +669,13 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
         if (exprCtx.numExpr() == null) {
           throw codedException(ReportCode.NONSENSE_IN_BASIC, "Type mismatch: expected number");
         }
-        double val = evalNum(exprCtx.numExpr());
+        final double val = evalNum(exprCtx.numExpr());
         assignNumTarget(target, val);
       } else {
         if (exprCtx.strExpr() == null) {
           throw codedException(ReportCode.NONSENSE_IN_BASIC, "Type mismatch: expected string");
         }
-        BStr val = evalStr(exprCtx.strExpr());
+        final var val = evalStr(exprCtx.strExpr());
         assignStrTarget(target, val);
       }
     }
@@ -693,7 +691,7 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
   public Void visitRestoreStmt(RestoreStmtContext ctx) {
     int target = 0;
     if (ctx.numExpr() != null) {
-      double val = evalNum(ctx.numExpr());
+      final double val = evalNum(ctx.numExpr());
       target = (int) Math.round(val);
       if (target < 0 || target > Limits.MAX_TARGET_LABEL) {
         throw codedException(ReportCode.INTEGER_OUT_OF_RANGE, "Line label out of range");
@@ -744,11 +742,11 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
   // ===== Assignment Helpers =====
 
   private void assignNumTarget(AssignmentTargetContext target, double val) {
-    String name = target.NUM_IDENTIFIER().getText().toUpperCase();
-    var numExprs = target.numExpr();
+    final String name = target.NUM_IDENTIFIER().getText().toUpperCase();
+    final var numExprs = target.numExpr();
     if (numExprs.isEmpty()) {
       // Scalar
-      EvalState.NumVarRef ref = (EvalState.NumVarRef) target.varRef;
+      var ref = (EvalState.NumVarRef) target.varRef;
       if (ref == null) {
         ref = state.getOrAddNumVar(name);
         target.varRef = ref;
@@ -757,7 +755,7 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
       ref.initialized = true;
     } else {
       // Array element
-      EvalState.NumArrayRef ref = (EvalState.NumArrayRef) target.varRef;
+      var ref = (EvalState.NumArrayRef) target.varRef;
       if (ref == null) {
         ref = state.getOrAddNumArray(name);
         target.varRef = ref;
@@ -765,32 +763,32 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
       if (ref.array == null) {
         throw codedException(ReportCode.VARIABLE_NOT_FOUND, "Undefined array: " + name);
       }
-      EvalState.NumArray na = ref.array;
-      int count = numExprs.size();
-      int[] indices = new int[count];
+      final var na = ref.array;
+      final int count = numExprs.size();
+      final int[] indices = new int[count];
       for (int i = 0; i < count; i++) {
         indices[i] = (int) evalNum(numExprs.get(i));
       }
-      int idx = exprEvaluator.calculateArrayIndex(na.dimensions(), indices, 0, count);
+      final int idx = exprEvaluator.calculateArrayIndex(na.dimensions(), indices, 0, count);
       na.data()[idx] = val;
     }
   }
 
   private void assignStrTarget(AssignmentTargetContext target, BStr val) {
-    String name = target.STR_IDENTIFIER().getText().toUpperCase();
-    EvalState.StrVarRef ref = (EvalState.StrVarRef) target.varRef;
+    final String name = target.STR_IDENTIFIER().getText().toUpperCase();
+    var ref = (EvalState.StrVarRef) target.varRef;
     if (ref == null) {
       ref = state.getOrAddStrVar(name);
       target.varRef = ref;
     }
-    var subscript = target.strSubscript();
+    final var subscript = target.strSubscript();
     if (subscript == null) {
       assignStrSubscriptNull(ref, val);
       return;
     }
 
-    int indicesCount = subscript.indices != null ? subscript.indices.size() : 0;
-    int[] indices = new int[indicesCount];
+    final int indicesCount = subscript.indices != null ? subscript.indices.size() : 0;
+    final int[] indices = new int[indicesCount];
     if (indicesCount > 0) {
       for (int i = 0; i < indicesCount; i++) {
         indices[i] = (int) evalNum(subscript.indices.get(i));
@@ -798,7 +796,7 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
     }
     int sliceStart = -1;
     int sliceEnd = -1;
-    boolean hasSlice = subscript.slice != null;
+    final boolean hasSlice = subscript.slice != null;
     if (hasSlice) {
       if (subscript.slice.start != null) {
         sliceStart = (int) evalNum(subscript.slice.start);
@@ -808,10 +806,10 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
       }
     }
 
-    EvalState.StrVar var = ref.value;
-    if (var instanceof EvalState.StrVar.Array ca) {
+    final var strVar = ref.value;
+    if (strVar instanceof EvalState.StrVar.Array ca) {
       assignStrArrayTarget(ca, val, indices, indicesCount, sliceStart, sliceEnd);
-    } else if (var instanceof EvalState.StrVar.Scalar scalar) {
+    } else if (strVar instanceof EvalState.StrVar.Scalar scalar) {
       assignStrScalarTarget(
           ref, scalar, val, hasSlice, indices, indicesCount, sliceStart, sliceEnd);
     } else {
@@ -820,13 +818,13 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
   }
 
   private void assignStrSubscriptNull(EvalState.StrVarRef ref, BStr val) {
-    EvalState.StrVar var = ref.value;
-    if (var
+    final var strVar = ref.value;
+    if (strVar
         instanceof EvalState.StrVar.Array(int[] arrayDimensions, int stringLength, byte[] data)) {
       if (arrayDimensions.length != 0) {
         throw codedException(ReportCode.SUBSCRIPT_WRONG, "Subscript wrong");
       }
-      int copyLen = Math.min(stringLength, val.length());
+      final int copyLen = Math.min(stringLength, val.length());
       for (int i = 0; i < copyLen; i++) {
         data[i] = (byte) val.byteAt(i);
       }
@@ -845,29 +843,26 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
       int indicesCount,
       int sliceStart,
       int sliceEnd) {
-    int n = ca.arrayDimensions().length;
+    final int n = ca.arrayDimensions().length;
     int byteIndex = -1;
     int count = indicesCount;
     if (count == n + 1) {
       byteIndex = indices[n];
       count--;
-    } else if (count != n && n == 0 && count == 1) {
-      byteIndex = indices[0];
-      count--;
     }
-    int arrayIdx = exprEvaluator.calculateArrayIndex(ca.arrayDimensions(), indices, 0, count);
+    final int arrayIdx = exprEvaluator.calculateArrayIndex(ca.arrayDimensions(), indices, 0, count);
 
-    int st = (byteIndex != -1 ? byteIndex : 1) + (sliceStart != -1 ? sliceStart - 1 : 0);
-    int en =
+    final int st = (byteIndex != -1 ? byteIndex : 1) + (sliceStart != -1 ? sliceStart - 1 : 0);
+    final int en =
         (byteIndex != -1 ? byteIndex : 1)
             + (sliceEnd != -1 ? sliceEnd - 1 : (byteIndex != -1 ? 0 : ca.stringLength() - 1));
     if (st < 1 || en > ca.stringLength() || st > en + 1) {
       throw codedException(ReportCode.SUBSCRIPT_WRONG, "Slice out of bounds");
     }
 
-    int sliceLen = en - st + 1;
-    int copyLen = Math.min(sliceLen, val.length());
-    int offset = arrayIdx * ca.stringLength() + (st - 1);
+    final int sliceLen = en - st + 1;
+    final int copyLen = Math.min(sliceLen, val.length());
+    final int offset = arrayIdx * ca.stringLength() + (st - 1);
     for (int i = 0; i < copyLen; i++) {
       ca.data()[offset + i] = (byte) val.byteAt(i);
     }
@@ -885,7 +880,7 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
       int indicesCount,
       int sliceStart,
       int sliceEnd) {
-    BStr str = scalar.value();
+    final var str = scalar.value();
     int byteIndex = -1;
     int count = indicesCount;
     if (count == 1 && !hasSlice) {
@@ -897,8 +892,8 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
           ReportCode.SUBSCRIPT_WRONG, "Scalar string only takes one index or slice");
     }
 
-    int st = (byteIndex != -1 ? byteIndex : 1) + (sliceStart != -1 ? sliceStart - 1 : 0);
-    int en =
+    final int st = (byteIndex != -1 ? byteIndex : 1) + (sliceStart != -1 ? sliceStart - 1 : 0);
+    final int en =
         (byteIndex != -1 ? byteIndex : 1)
             + (sliceEnd != -1 ? sliceEnd - 1 : (byteIndex != -1 ? 0 : str.length() - 1));
     if (st < 1 || en > str.length() || st > en + 1) {
@@ -910,7 +905,7 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
 
   @Override
   public Void visitInkStmt(InkStmtContext ctx) {
-    int colour = (int) evalNum(ctx.numExpr());
+    final int colour = (int) evalNum(ctx.numExpr());
     state.setDefaultInk(colour);
     display.setInk(colour);
     return null;
@@ -918,7 +913,7 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
 
   @Override
   public Void visitPaperStmt(PaperStmtContext ctx) {
-    int colour = (int) evalNum(ctx.numExpr());
+    final int colour = (int) evalNum(ctx.numExpr());
     state.setDefaultPaper(colour);
     display.setPaper(colour);
     return null;
@@ -926,7 +921,7 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
 
   @Override
   public Void visitBrightStmt(BrightStmtContext ctx) {
-    int bright = (int) evalNum(ctx.numExpr());
+    final int bright = (int) evalNum(ctx.numExpr());
     state.setDefaultBright(bright);
     display.setBright(bright);
     return null;
@@ -934,7 +929,7 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
 
   @Override
   public Void visitFlashStmt(FlashStmtContext ctx) {
-    int flash = (int) evalNum(ctx.numExpr());
+    final int flash = (int) evalNum(ctx.numExpr());
     state.setDefaultFlash(flash);
     display.setFlash(flash);
     return null;
@@ -942,7 +937,7 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
 
   @Override
   public Void visitInverseStmt(InverseStmtContext ctx) {
-    int inverse = (int) evalNum(ctx.numExpr());
+    final int inverse = (int) evalNum(ctx.numExpr());
     state.setDefaultInverse(inverse);
     display.setInverse(inverse);
     return null;
@@ -950,7 +945,7 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
 
   @Override
   public Void visitOverStmt(OverStmtContext ctx) {
-    int over = (int) evalNum(ctx.numExpr());
+    final int over = (int) evalNum(ctx.numExpr());
     state.setDefaultOver(over);
     display.setOver(over);
     return null;

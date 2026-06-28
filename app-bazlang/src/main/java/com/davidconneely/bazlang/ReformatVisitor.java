@@ -52,7 +52,7 @@ public class ReformatVisitor extends BazLangBaseVisitor<String> {
 
   @Override
   public String visitForStmt(ForStmtContext ctx) {
-    StringBuilder sb =
+    final var sb =
         new StringBuilder("FOR ")
             .append(ctx.NUM_IDENTIFIER().getText().toLowerCase())
             .append(" = ")
@@ -94,7 +94,7 @@ public class ReformatVisitor extends BazLangBaseVisitor<String> {
   public String visitListStmt(ListStmtContext ctx) {
     String res = "LIST";
     if (ctx.lineRange() != null) {
-      String range = visit(ctx.lineRange());
+      final String range = visit(ctx.lineRange());
       if (!"0".equals(range)) {
         res += " " + range;
       }
@@ -106,7 +106,7 @@ public class ReformatVisitor extends BazLangBaseVisitor<String> {
   public String visitLListStmt(LListStmtContext ctx) {
     String res = "LLIST";
     if (ctx.lineRange() != null) {
-      String range = visit(ctx.lineRange());
+      final String range = visit(ctx.lineRange());
       if (!"0".equals(range)) {
         res += " " + range;
       }
@@ -116,7 +116,7 @@ public class ReformatVisitor extends BazLangBaseVisitor<String> {
 
   @Override
   public String visitLineRange(LineRangeContext ctx) {
-    var nums = ctx.numExpr();
+    final var nums = ctx.numExpr();
     if (ctx.TO() != null) {
       if (nums.size() == 2) {
         return visit(nums.get(0)) + " TO " + visit(nums.get(1));
@@ -229,7 +229,7 @@ public class ReformatVisitor extends BazLangBaseVisitor<String> {
   public String visitPrintList(PrintListContext ctx) {
     StringBuilder sb = new StringBuilder();
     for (int i = 0; i < ctx.getChildCount(); i++) {
-      var child = ctx.getChild(i);
+      final var child = ctx.getChild(i);
       if (child instanceof PrintSepContext) {
         sb.append(child.getText()).append(' ');
       } else if (child instanceof TerminalNode) {
@@ -243,9 +243,9 @@ public class ReformatVisitor extends BazLangBaseVisitor<String> {
 
   @Override
   public String visitStyleList(StyleListContext ctx) {
-    StringBuilder sb = new StringBuilder();
+    final var sb = new StringBuilder();
     for (int i = 0; i < ctx.getChildCount(); i++) {
-      var child = ctx.getChild(i);
+      final var child = ctx.getChild(i);
       if (child instanceof PrintSepContext) {
         sb.append(child.getText()).append(' ');
       } else if (child instanceof TerminalNode) {
@@ -318,7 +318,7 @@ public class ReformatVisitor extends BazLangBaseVisitor<String> {
 
   @Override
   public String visitRemStmt(RemStmtContext ctx) {
-    String text = ctx.REM().getText();
+    final String text = ctx.REM().getText();
     return "REM" + text.substring(3);
   }
 
@@ -354,7 +354,7 @@ public class ReformatVisitor extends BazLangBaseVisitor<String> {
   private String formatCommandWithStyles(String command, StyleListContext styleList) {
     String res = command;
     if (styleList != null && styleList.getChildCount() > 0) {
-      String styles = visit(styleList);
+      final String styles = visit(styleList);
       if (!styles.isEmpty()) {
         res += " " + styles.trim();
       }
@@ -369,7 +369,7 @@ public class ReformatVisitor extends BazLangBaseVisitor<String> {
 
   @Override
   public String visitDefFnStmt(DefFnStmtContext ctx) {
-    String params =
+    final String params =
         ctx.params != null
             ? ctx.params.stream()
                 .map(org.antlr.v4.runtime.Token::getText)
@@ -540,7 +540,7 @@ public class ReformatVisitor extends BazLangBaseVisitor<String> {
 
   @Override
   public String visitStrSubscript(StrSubscriptContext ctx) {
-    StringBuilder sb = new StringBuilder();
+    final var sb = new StringBuilder();
     if (ctx.indices != null && !ctx.indices.isEmpty()) {
       sb.append(ctx.indices.stream().map(this::visit).collect(Collectors.joining(", ")));
       if (ctx.slice != null) {
@@ -561,6 +561,15 @@ public class ReformatVisitor extends BazLangBaseVisitor<String> {
 
   @Override
   public String visitNumFunc(NumFuncContext ctx) {
+    if (ctx.COLOUR() != null) {
+      return "COLOUR("
+          + visit(ctx.numExpr(0))
+          + ", "
+          + visit(ctx.numExpr(1))
+          + ", "
+          + visit(ctx.numExpr(2))
+          + ")";
+    }
     if (ctx.FRAMES() != null) {
       return "FRAMES";
     }
@@ -585,15 +594,6 @@ public class ReformatVisitor extends BazLangBaseVisitor<String> {
     if (ctx.POINT() != null) {
       return "POINT(" + visit(ctx.numExpr(0)) + ", " + visit(ctx.numExpr(1)) + ")";
     }
-    if (ctx.COLOUR() != null) {
-      return "COLOUR("
-          + visit(ctx.numExpr(0))
-          + ", "
-          + visit(ctx.numExpr(1))
-          + ", "
-          + visit(ctx.numExpr(2))
-          + ")";
-    }
     if (ctx.RND() != null) {
       return "RND";
     }
@@ -613,8 +613,8 @@ public class ReformatVisitor extends BazLangBaseVisitor<String> {
       return "UCNEXT(" + visit(ctx.strExpr()) + ", " + visit(ctx.numExpr(0)) + ")";
     }
 
-    String funcName = ctx.getChild(0).getText().toUpperCase();
-    String arg = visit(ctx.getChild(1));
+    final String funcName = ctx.getChild(0).getText().toUpperCase();
+    final String arg = visit(ctx.getChild(1));
     return funcName + " " + arg;
   }
 
@@ -626,8 +626,8 @@ public class ReformatVisitor extends BazLangBaseVisitor<String> {
     if (ctx.UINKEY_STR() != null) {
       return "UINKEY$";
     }
-    String funcName = ctx.getChild(0).getText().toUpperCase();
-    String arg = visit(ctx.getChild(1));
+    final String funcName = ctx.getChild(0).getText().toUpperCase();
+    final String arg = visit(ctx.getChild(1));
     return funcName + " " + arg;
   }
 

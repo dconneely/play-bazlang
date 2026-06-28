@@ -14,14 +14,13 @@ import org.junit.jupiter.api.Test;
 /** Tests for LIST and LLIST statements. */
 class ListProgramTest extends BaseProgramTest {
 
-  private EvalState state;
   private MockDisplay display;
   private ProgramManager executor;
   private AntlrParser parser;
 
   @BeforeEach
   void setUp() {
-    state = new EvalState();
+    final var state = new EvalState();
     display = new MockDisplay();
     executor = new ProgramManager(state, display);
     parser = AntlrParser.INSTANCE;
@@ -33,7 +32,7 @@ class ListProgramTest extends BaseProgramTest {
   }
 
   private void execute(String statement) {
-    var parsed = parser.parseReplLine(statement);
+    final var parsed = parser.parseReplLine(statement);
     if (parsed instanceof AntlrParser.ParsedLine.Immediate(var stmt)) {
       executor.visit(stmt);
     }
@@ -43,7 +42,7 @@ class ListProgramTest extends BaseProgramTest {
   void testListAll() {
     // LIST - lists all lines
     execute("LIST");
-    String output = display.getOutput();
+    final String output = display.getOutput();
     assertTrue(output.contains("10 PRINT"));
     assertTrue(output.contains("20 GOTO"));
     assertTrue(output.contains("30 PRINT"));
@@ -54,7 +53,7 @@ class ListProgramTest extends BaseProgramTest {
   void testListFromN() {
     // LIST n - lists from n to end
     execute("LIST 30");
-    String output = display.getOutput();
+    final String output = display.getOutput();
     assertFalse(output.contains("10 PRINT"));
     assertFalse(output.contains("20 GOTO"));
     assertTrue(output.contains("30 PRINT"));
@@ -65,7 +64,7 @@ class ListProgramTest extends BaseProgramTest {
   void testListFromNTo() {
     // LIST n TO - lists from n to end
     execute("LIST 30 TO");
-    String output = display.getOutput();
+    final String output = display.getOutput();
     assertFalse(output.contains("10 PRINT"));
     assertFalse(output.contains("20 GOTO"));
     assertTrue(output.contains("30 PRINT"));
@@ -76,7 +75,7 @@ class ListProgramTest extends BaseProgramTest {
   void testListNToM() {
     // LIST n TO m - lists from n to m
     execute("LIST 20 TO 30");
-    String output = display.getOutput();
+    final String output = display.getOutput();
     assertFalse(output.contains("10 PRINT"));
     assertTrue(output.contains("20 GOTO"));
     assertTrue(output.contains("30 PRINT"));
@@ -87,7 +86,7 @@ class ListProgramTest extends BaseProgramTest {
   void testListToM() {
     // LIST TO m - lists from MIN to m
     execute("LIST TO 20");
-    String output = display.getOutput();
+    final String output = display.getOutput();
     assertTrue(output.contains("10 PRINT"));
     assertTrue(output.contains("20 GOTO"));
     assertFalse(output.contains("30 PRINT"));
@@ -98,7 +97,7 @@ class ListProgramTest extends BaseProgramTest {
   void testListToOnly() {
     // LIST TO - lists all lines (same as LIST)
     execute("LIST TO");
-    String output = display.getOutput();
+    final String output = display.getOutput();
     assertTrue(output.contains("10 PRINT"));
     assertTrue(output.contains("40 STOP"));
   }

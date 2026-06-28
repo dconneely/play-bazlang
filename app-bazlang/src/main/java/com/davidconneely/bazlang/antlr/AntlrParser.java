@@ -1,12 +1,20 @@
 package com.davidconneely.bazlang.antlr;
 
-import com.davidconneely.bazlang.*;
+import com.davidconneely.bazlang.AstAnnotator;
+import com.davidconneely.bazlang.Limits;
+import com.davidconneely.bazlang.ProgramLine;
+import com.davidconneely.bazlang.ReportCode;
+import com.davidconneely.bazlang.ReportException;
 import com.davidconneely.bazlang.antlr.BazLangParser.StatementsContext;
 import java.util.NavigableMap;
 import java.util.TreeMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import org.antlr.v4.runtime.*;
+import org.antlr.v4.runtime.BaseErrorListener;
+import org.antlr.v4.runtime.CharStreams;
+import org.antlr.v4.runtime.CommonTokenStream;
+import org.antlr.v4.runtime.RecognitionException;
+import org.antlr.v4.runtime.Recognizer;
 
 /** Parser facade that uses ANTLR to parse BazLang source code. */
 public class AntlrParser {
@@ -33,19 +41,7 @@ public class AntlrParser {
 
       Matcher matcher = LINE_PATTERN.matcher(trimmed);
       if (matcher.matches()) {
-        int lineNumber = Integer.parseInt(matcher.group(1));
-        if (lineNumber < Limits.MIN_LINE_LABEL || lineNumber > Limits.MAX_LINE_LABEL) {
-          throw new ReportException(
-              ReportCode.INTEGER_OUT_OF_RANGE,
-              lineNumber,
-              "Line number out of range: " + lineNumber);
-        }
-        if (lineNumber <= lastLineNumber) {
-          throw new ReportException(
-              ReportCode.NONSENSE_IN_BASIC,
-              lineNumber,
-              "Line numbers must be monotonically increasing");
-        }
+        int lineNumber = getLineNumber(matcher, lastLineNumber);
         lastLineNumber = lineNumber;
         String statementText = matcher.group(2);
         result.put(lineNumber, new ProgramLine(lineNumber, statementText));
@@ -58,6 +54,21 @@ public class AntlrParser {
     return result;
   }
 
+  private static int getLineNumber(Matcher matcher, int lastLineNumber) {
+    int lineNumber = Integer.parseInt(matcher.group(1));
+    if (lineNumber < Limits.MIN_LINE_LABEL || lineNumber > Limits.MAX_LINE_LABEL) {
+      throw new ReportException(
+          ReportCode.INTEGER_OUT_OF_RANGE, lineNumber, "Line number out of range: " + lineNumber);
+    }
+    if (lineNumber <= lastLineNumber) {
+      throw new ReportException(
+          ReportCode.NONSENSE_IN_BASIC,
+          lineNumber,
+          "Line numbers must be monotonically increasing");
+    }
+    return lineNumber;
+  }
+
   /**
    * Parse a single REPL line (either numbered for program entry or immediate for execution).
    *
@@ -66,13 +77,13 @@ public class AntlrParser {
    * @throws ReportException if parsing fails
    */
   public ParsedLine parseReplLine(String line) {
-    BazLangParser parser = createParser(line);
-    BazLangParser.ReplLineContext tree = parser.replLine();
+    final var parser = createParser(line);
+    final var tree = parser.replLine();
 
     if (tree instanceof BazLangParser.NumberedLineContext numbered) {
       int lineNumber = Integer.parseInt(numbered.NUM_LITERAL().getText());
       if (lineNumber == 0) {
-        // Line 0 in REPL executes immediately (like on ZX81)
+        // Line 0 in REPL executes immediately (like Sinclair ZX BASIC - ZX81 only)
         String statementText = getStatementText(line, lineNumber);
         StatementsContext stmts = parseStatementsContext(statementText);
         new AstAnnotator(0).visit(stmts);
@@ -103,7 +114,7 @@ public class AntlrParser {
    * @throws ReportException if parsing fails
    */
   public StatementsContext parseStatementsContext(String source) {
-    BazLangParser parser = createParser(source);
+    final var parser = createParser(source);
     return parser.statementsInput().statements();
   }
 
@@ -116,7 +127,7 @@ public class AntlrParser {
    * @throws ReportException if parsing fails
    */
   public BazLangParser.NumExprContext parseNumExpr(String source) {
-    BazLangParser parser = createParser(source);
+    final var parser = createParser(source);
     return parser.numExprInput().numExpr();
   }
 
@@ -128,7 +139,7 @@ public class AntlrParser {
    * @throws ReportException if parsing fails
    */
   public BazLangParser.StrExprContext parseStrExpr(String source) {
-    BazLangParser parser = createParser(source);
+    final var parser = createParser(source);
     return parser.strExprInput().strExpr();
   }
 
@@ -143,13 +154,13 @@ public class AntlrParser {
   }
 
   private BazLangParser createParser(String source) {
-    CharStream input = CharStreams.fromString(source);
-    BazLangLexer lexer = new BazLangLexer(input);
+    final var input = CharStreams.fromString(source);
+    final var lexer = new BazLangLexer(input);
     lexer.removeErrorListeners();
     lexer.addErrorListener(new BazLangErrorListener());
 
-    CommonTokenStream tokens = new CommonTokenStream(lexer);
-    BazLangParser parser = new BazLangParser(tokens);
+    final var tokens = new CommonTokenStream(lexer);
+    final var parser = new BazLangParser(tokens);
     parser.removeErrorListeners();
     parser.addErrorListener(new BazLangErrorListener());
 

@@ -3,6 +3,7 @@ package com.davidconneely.bazlang.program;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import com.davidconneely.bazlang.BazLangReplHandler;
 import com.davidconneely.bazlang.EvalState;
@@ -13,8 +14,8 @@ import com.davidconneely.bazlang.ProgramManager;
 import com.davidconneely.bazlang.ReportCode;
 import com.davidconneely.bazlang.ReportException;
 import com.davidconneely.bazlang.io.MockDisplay;
+import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 class GosubReturnProgramTest extends BaseProgramTest {
@@ -22,52 +23,55 @@ class GosubReturnProgramTest extends BaseProgramTest {
   @Test
   void testGosub() {
     runProgram(
-        "10 GOSUB 100\n20 PRINT \"WORLD\"\n30 STOP\n100 PRINT \"HELLO \"\n110 RETURN",
+        """
+        10 GOSUB 100
+        20 PRINT "WORLD"
+        30 STOP
+        100 PRINT "HELLO "
+        110 RETURN
+        """,
         "HELLO \nWORLD\n");
   }
 
   @Test
   void testGosubInMultiStatementLine() {
     // Should print "BEFORE", "SUBROUTINE", "AFTER".
-    String output =
-        runProgramCapture(
-            """
-                10 PRINT "BEFORE" : GOSUB 100 : PRINT "AFTER" : STOP
-                100 PRINT "SUBROUTINE" : RETURN : PRINT "NOT"
-                """);
-    assertEquals("BEFORE\nSUBROUTINE\nAFTER\n", output);
+    runProgram(
+        """
+        10 PRINT "BEFORE" : GOSUB 100 : PRINT "AFTER" : STOP
+        100 PRINT "SUBROUTINE" : RETURN : PRINT "NOT"
+        """,
+        "BEFORE\nSUBROUTINE\nAFTER\n");
   }
 
   @Test
   void testGosubInsideIfThen() {
-    String output =
-        runProgramCapture(
-            """
-                10 IF 1=1 THEN PRINT "BEFORE" : GOSUB 100 : PRINT "AFTER" : STOP
-                100 PRINT "SUBROUTINE" : RETURN
-                """);
-    assertEquals("BEFORE\nSUBROUTINE\nAFTER\n", output);
+    runProgram(
+        """
+        10 IF 1=1 THEN PRINT "BEFORE" : GOSUB 100 : PRINT "AFTER" : STOP
+        100 PRINT "SUBROUTINE" : RETURN
+        """,
+        "BEFORE\nSUBROUTINE\nAFTER\n");
 
-    String skippedOutput =
-        runProgramCapture(
-            """
-                10 IF 0=1 THEN PRINT "BEFORE" : GOSUB 100 : PRINT "AFTER" : STOP
-                20 STOP
-                100 PRINT "NOT_RUN" : RETURN
-                """);
-    assertEquals("", skippedOutput);
+    runProgram(
+        """
+        10 IF 0=1 THEN PRINT "BEFORE" : GOSUB 100 : PRINT "AFTER" : STOP
+        20 STOP
+        100 PRINT "NOT_RUN" : RETURN
+        """,
+        "");
   }
 
   @Test
   void testImmediateModeGosub() {
     // Tests that an immediate GOSUB to a subroutine containing a RETURN gracefully returns to the
     // REPL
-    EvalState state = new EvalState();
-    MockDisplay display = new MockDisplay(List.of());
-    ProgramManager executor = new ProgramManager(state, display);
-    Interpreter interpreter = new Interpreter(state, executor);
-    ProgramEditor editor = new ProgramEditor(state, display, PARSER, executor::evalNum);
-    BazLangReplHandler repl = new BazLangReplHandler(PARSER, state, executor, editor, interpreter);
+    final var state = new EvalState();
+    final var display = new MockDisplay(List.of());
+    final var executor = new ProgramManager(state, display);
+    final var interpreter = new Interpreter(state, executor);
+    final var editor = new ProgramEditor(state, display, PARSER, executor::evalNum);
+    final var repl = new BazLangReplHandler(PARSER, state, executor, editor, interpreter);
 
     repl.handleReplInput("10 PRINT \"SUB\" : RETURN", display);
     repl.handleReplInput("GOSUB 10", display);
@@ -80,22 +84,22 @@ class GosubReturnProgramTest extends BaseProgramTest {
 
   @Test
   void testReturnWithoutGosub() {
-    ReportException e = assertThrows(ReportException.class, () -> runProgram("10 RETURN"));
-    assertEquals(ReportCode.RETURN_WITHOUT_GOSUB, e.reportCode());
+    final var ex = assertThrows(ReportException.class, () -> runProgram("10 RETURN"));
+    assertEquals(ReportCode.RETURN_WITHOUT_GOSUB, ex.reportCode());
   }
 
   @Test
   void testStatementLostReturn() {
-    Map<Integer, ProgramLine> program = new java.util.HashMap<>();
+    final var program = new HashMap<Integer, ProgramLine>();
     program.put(10, new ProgramLine(10, "GO SUB 30"));
     program.put(20, new ProgramLine(20, "STOP"));
     program.put(30, new ProgramLine(30, "STOP"));
     program.put(40, new ProgramLine(40, "RETURN"));
 
-    EvalState state = new EvalState();
-    MockDisplay display = new MockDisplay(List.of());
-    ProgramManager executor = new ProgramManager(state, display);
-    Interpreter interpreter = new Interpreter(state, executor);
+    final var state = new EvalState();
+    final var display = new MockDisplay(List.of());
+    final var executor = new ProgramManager(state, display);
+    final var interpreter = new Interpreter(state, executor);
 
     // Run GOSUB 30 -> stops at line 30 STOP
     try {
@@ -116,7 +120,7 @@ class GosubReturnProgramTest extends BaseProgramTest {
     try {
       executor.visitContStmt(null);
       interpreter.resume();
-      org.junit.jupiter.api.Assertions.fail("Expected STATEMENT_LOST");
+      fail("Expected STATEMENT_LOST");
     } catch (ReportException e) {
       assertEquals(ReportCode.STATEMENT_LOST, e.reportCode());
     }

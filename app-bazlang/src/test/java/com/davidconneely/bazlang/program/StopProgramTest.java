@@ -11,8 +11,8 @@ import com.davidconneely.bazlang.ProgramManager;
 import com.davidconneely.bazlang.ReportCode;
 import com.davidconneely.bazlang.ReportException;
 import com.davidconneely.bazlang.io.MockDisplay;
+import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 /** Tests exercising interpreter STOP statement execution and runtime behaviour. */
@@ -20,15 +20,15 @@ class StopProgramTest extends BaseProgramTest {
 
   @Test
   void testStopInInputAndCont() {
-    Map<Integer, ProgramLine> program = new java.util.HashMap<>();
+    final var program = new HashMap<Integer, ProgramLine>();
     program.put(10, new ProgramLine(10, "INPUT A"));
     program.put(20, new ProgramLine(20, "PRINT A"));
 
-    EvalState state = new EvalState();
+    final var state = new EvalState();
     // Provide "STOP" first, then "42" when we continue
-    MockDisplay display = new MockDisplay(List.of("STOP", "42"));
-    ProgramManager executor = new ProgramManager(state, display);
-    Interpreter interpreter = new Interpreter(state, executor);
+    final var display = new MockDisplay(List.of("STOP", "42"));
+    final var executor = new ProgramManager(state, display);
+    final var interpreter = new Interpreter(state, executor);
 
     try {
       interpreter.execute(program);
@@ -49,13 +49,13 @@ class StopProgramTest extends BaseProgramTest {
   @Test
   void testStopStatementBehaviour() {
     // STOP should terminate execution cleanly.
-    String output =
+    final String output =
         runProgramCapture(
             """
-                10 PRINT "START"
-                20 STOP
-                30 PRINT "END"
-                """);
+        10 PRINT "START"
+        20 STOP
+        30 PRINT "END"
+        """);
     assertTrue(output.contains("START"));
     assertFalse(output.contains("END"));
   }

@@ -14,8 +14,7 @@ public class MainClass {
   private static final AntlrParser PARSER = AntlrParser.INSTANCE;
 
   public static void main(String[] args) {
-    BazLangDisplay display = createDisplay();
-    try (display) {
+    try (var display = createDisplay()) {
       if (args.length == 0) {
         runRepl(display);
       } else if (args.length == 1) {
@@ -41,11 +40,11 @@ public class MainClass {
 
   private static void runFile(String sourceFile, BazLangDisplay display) {
     try {
-      String source = Files.readString(Path.of(sourceFile));
-      var program = PARSER.parseProgramLines(source);
-      EvalState state = new EvalState();
-      ProgramManager executor = new ProgramManager(state, display);
-      Interpreter interpreter = new Interpreter(state, executor);
+      final String source = Files.readString(Path.of(sourceFile));
+      final var program = PARSER.parseProgramLines(source);
+      final var state = new EvalState();
+      final var executor = new ProgramManager(state, display);
+      final var interpreter = new Interpreter(state, executor);
       interpreter.execute(program);
       display.waitForKey();
     } catch (IOException e) {
@@ -62,13 +61,12 @@ public class MainClass {
   }
 
   private static void runRepl(BazLangDisplay display) {
-    EvalState state = new EvalState();
-    ProgramManager executor = new ProgramManager(state, display);
-    Interpreter interpreter = new Interpreter(state, executor);
-    ProgramEditor editor = new ProgramEditor(state, display, PARSER, executor::evalNum);
+    final var state = new EvalState();
+    final var executor = new ProgramManager(state, display);
+    final var interpreter = new Interpreter(state, executor);
+    final var editor = new ProgramEditor(state, display, PARSER, executor::evalNum);
     display.systemPrintln("BazLang REPL. Type 'STOP' or Ctrl+D at the prompt to exit.");
-    BazLangReplHandler handler =
-        new BazLangReplHandler(PARSER, state, executor, editor, interpreter);
+    final var handler = new BazLangReplHandler(PARSER, state, executor, editor, interpreter);
     new Repl().run(display, handler);
   }
 }

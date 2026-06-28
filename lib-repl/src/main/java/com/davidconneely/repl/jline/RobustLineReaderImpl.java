@@ -1,9 +1,15 @@
 package com.davidconneely.repl.jline;
 
 import java.io.IOException;
+import java.util.function.IntConsumer;
 import org.jline.keymap.KeyMap;
+import org.jline.reader.MaskingCallback;
 import org.jline.reader.impl.LineReaderImpl;
+import org.jline.terminal.MouseEvent;
 import org.jline.terminal.Terminal;
+import org.jline.utils.AttributedString;
+import org.jline.utils.AttributedStringBuilder;
+import org.jline.utils.Display;
 
 /**
  * A {@link LineReaderImpl} subclass that retries on transient read-binding nulls caused by JLine's
@@ -50,7 +56,7 @@ public class RobustLineReaderImpl extends LineReaderImpl {
       regionMark = buf.cursor();
       regionActive = RegionType.CHAR;
     }
-    boolean ret = buf.move(-1) == -1;
+    final boolean ret = buf.move(-1) == -1;
     copySelectionToClipboard();
     return ret;
   }
@@ -60,15 +66,15 @@ public class RobustLineReaderImpl extends LineReaderImpl {
       regionMark = buf.cursor();
       regionActive = RegionType.CHAR;
     }
-    boolean ret = buf.move(1) == 1;
+    final boolean ret = buf.move(1) == 1;
     copySelectionToClipboard();
     return ret;
   }
 
   private boolean deleteSelectionIfNeeded() {
     if (regionActive != RegionType.NONE && regionMark != buf.cursor()) {
-      int start = Math.min(regionMark, buf.cursor());
-      int end = Math.max(regionMark, buf.cursor());
+      final int start = Math.min(regionMark, buf.cursor());
+      final int end = Math.max(regionMark, buf.cursor());
 
       buf.cursor(end);
       buf.backspace(end - start);
@@ -83,7 +89,7 @@ public class RobustLineReaderImpl extends LineReaderImpl {
   @Override
   public boolean beginPaste() {
     deleteSelectionIfNeeded();
-    boolean ret = super.beginPaste();
+    final boolean ret = super.beginPaste();
     regionActive = RegionType.NONE;
     return ret;
   }
@@ -91,7 +97,7 @@ public class RobustLineReaderImpl extends LineReaderImpl {
   @Override
   public boolean yank() {
     deleteSelectionIfNeeded();
-    boolean ret = super.yank();
+    final boolean ret = super.yank();
     regionActive = RegionType.NONE;
     return ret;
   }
@@ -114,16 +120,16 @@ public class RobustLineReaderImpl extends LineReaderImpl {
 
   private void copySelectionToClipboard() {
     if (regionActive != RegionType.NONE && regionMark != buf.cursor()) {
-      int start = Math.min(regionMark, buf.cursor());
-      int end = Math.max(regionMark, buf.cursor());
-      String selected = buf.substring(start, end);
+      final int start = Math.min(regionMark, buf.cursor());
+      final int end = Math.max(regionMark, buf.cursor());
+      final String selected = buf.substring(start, end);
       clipboard.copy(selected);
     }
   }
 
-  private java.util.function.IntConsumer inputHeightListener;
+  private IntConsumer inputHeightListener;
 
-  public void setInputHeightListener(java.util.function.IntConsumer listener) {
+  public void setInputHeightListener(IntConsumer listener) {
     this.inputHeightListener = listener;
   }
 
@@ -132,21 +138,19 @@ public class RobustLineReaderImpl extends LineReaderImpl {
     resettableDisplay.resetCursorPos();
   }
 
-  public org.jline.utils.Display getDisplay() {
+  public Display getDisplay() {
     return display;
   }
 
   @Override
   public boolean redisplay() {
-    int termWidth = terminal.getColumns();
+    final int termWidth = terminal.getColumns();
     if (termWidth > 0 && inputHeightListener != null) {
-      org.jline.utils.AttributedStringBuilder sbAll =
-          new org.jline.utils.AttributedStringBuilder().tabs(getTabWidth());
+      final var sbAll = new AttributedStringBuilder().tabs(getTabWidth());
       sbAll.append(prompt);
-      sbAll.append(new org.jline.utils.AttributedString(buf.toString()));
-      java.util.List<org.jline.utils.AttributedString> allLines =
-          sbAll.columnSplitLength(termWidth, false, display.delayLineWrap());
-      int inputHeight = Math.max(1, allLines.size());
+      sbAll.append(new AttributedString(buf.toString()));
+      final var allLines = sbAll.columnSplitLength(termWidth, false, display.delayLineWrap());
+      final int inputHeight = Math.max(1, allLines.size());
       inputHeightListener.accept(inputHeight);
     }
     return super.redisplay();
@@ -154,10 +158,7 @@ public class RobustLineReaderImpl extends LineReaderImpl {
 
   @Override
   public String readLine(
-      String prompt,
-      String rightPrompt,
-      org.jline.reader.MaskingCallback maskingCallback,
-      String buffer) {
+      String prompt, String rightPrompt, MaskingCallback maskingCallback, String buffer) {
     this.mouseTrackingFixed = false;
     return super.readLine(prompt, rightPrompt, maskingCallback, buffer);
   }
@@ -179,16 +180,14 @@ public class RobustLineReaderImpl extends LineReaderImpl {
 
   @Override
   public boolean mouse() {
-    org.jline.terminal.MouseEvent event = readMouseEvent();
+    final var event = readMouseEvent();
 
-    org.jline.utils.AttributedStringBuilder sbAll =
-        new org.jline.utils.AttributedStringBuilder().tabs(getTabWidth());
+    final var sbAll = new AttributedStringBuilder().tabs(getTabWidth());
     sbAll.append(prompt);
-    sbAll.append(new org.jline.utils.AttributedString(buf.toString()));
-    java.util.List<org.jline.utils.AttributedString> allLines =
-        sbAll.columnSplitLength(size.getColumns(), false, display.delayLineWrap());
+    sbAll.append(new AttributedString(buf.toString()));
+    final var allLines = sbAll.columnSplitLength(size.getColumns(), false, display.delayLineWrap());
 
-    int clickedLine = event.getY() - (terminal.getRows() - allLines.size());
+    final int clickedLine = event.getY() - (terminal.getRows() - allLines.size());
 
     int newPos;
     if (clickedLine < 0) {
@@ -203,7 +202,7 @@ public class RobustLineReaderImpl extends LineReaderImpl {
 
       charOffset += event.getX();
 
-      int promptCharLen = prompt.length();
+      final int promptCharLen = prompt.length();
       newPos = charOffset - promptCharLen;
 
       if (newPos < 0) {
@@ -214,14 +213,14 @@ public class RobustLineReaderImpl extends LineReaderImpl {
       }
     }
 
-    if (event.getType() == org.jline.terminal.MouseEvent.Type.Pressed) {
+    if (event.getType() == MouseEvent.Type.Pressed) {
       buf.cursor(newPos);
       regionMark = newPos;
       regionActive = RegionType.CHAR;
-    } else if (event.getType() == org.jline.terminal.MouseEvent.Type.Dragged) {
+    } else if (event.getType() == MouseEvent.Type.Dragged) {
       buf.cursor(newPos);
       copySelectionToClipboard();
-    } else if (event.getType() == org.jline.terminal.MouseEvent.Type.Released) {
+    } else if (event.getType() == MouseEvent.Type.Released) {
       buf.cursor(newPos);
       copySelectionToClipboard();
       // Keep region active so user can see it, it will clear when they type.

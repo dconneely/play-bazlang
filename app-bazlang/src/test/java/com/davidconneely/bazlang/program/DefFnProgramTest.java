@@ -12,106 +12,103 @@ class DefFnProgramTest extends BaseProgramTest {
 
   @Test
   void testDefFnBasic() {
-    String output1 =
-        runProgramCapture(
-            """
-                10 DEF FN AVERAGE(X, Y) = (X + Y) / 2
-                20 PRINT FN AVERAGE(10, 20)
-                """);
-    assertEquals("15\n", output1);
+    runProgram(
+        """
+        10 DEF FN AVERAGE(X, Y) = (X + Y) / 2
+        20 PRINT FN AVERAGE(10, 20)
+        """,
+        "15\n");
 
-    String output2 =
-        runProgramCapture(
-            """
-                10 DEF FN CONCAT$(A$, B$) = A$ + B$
-                20 PRINT FN CONCAT$("HELLO ", "WORLD")
-                """);
-    assertEquals("HELLO WORLD\n", output2);
+    runProgram(
+        """
+        10 DEF FN CONCAT$(A$, B$) = A$ + B$
+        20 PRINT FN CONCAT$("HELLO ", "WORLD")
+        """,
+        "HELLO WORLD\n");
 
-    String output3 =
-        runProgramCapture(
-            """
-                10 DEF FN CONSTANT() = 42
-                20 PRINT FN CONSTANT()
-                """);
-    assertEquals("42\n", output3);
+    runProgram(
+        """
+        10 DEF FN CONSTANT() = 42
+        20 PRINT FN CONSTANT()
+        """,
+        "42\n");
   }
 
   @Test
   void testDefFnErrors() {
     // 1. Definition-time type mismatch (numeric name with string expression)
-    ReportException exDefType =
+    final var exDefType =
         assertThrows(
             ReportException.class,
             () ->
                 runProgram(
                     """
-                    10 DEF FN A() = "HELLO"
-                    """));
+        10 DEF FN A() = "HELLO"
+        """));
     assertEquals(ReportCode.NONSENSE_IN_BASIC, exDefType.reportCode());
 
     // 2. Definition-time duplicate parameter names
-    ReportException exDefDup =
+    final var exDefDup =
         assertThrows(
             ReportException.class,
             () ->
                 runProgram(
                     """
-                    10 DEF FN A(X, X) = X
-                    """));
+        10 DEF FN A(X, X) = X
+        """));
     assertEquals(ReportCode.NONSENSE_IN_BASIC, exDefDup.reportCode());
 
     // 3. Call-time undefined function
-    ReportException exCallUndefined =
+    final var exCallUndefined =
         assertThrows(
             ReportException.class,
             () ->
                 runProgram(
                     """
-                    10 PRINT FN A()
-                    """));
+        10 PRINT FN A()
+        """));
     assertEquals(ReportCode.FN_WITHOUT_DEF, exCallUndefined.reportCode());
 
     // 4. Call-time incorrect parameter count
-    ReportException exCount =
+    final var exCount =
         assertThrows(
             ReportException.class,
             () ->
                 runProgram(
                     """
-                    10 DEF FN A(X) = X
-                    20 PRINT FN A(1, 2)
-                    """));
+        10 DEF FN A(X) = X
+        20 PRINT FN A(1, 2)
+        """));
     assertEquals(ReportCode.PARAMETER_ERROR, exCount.reportCode());
 
     // 5. Call-time type mismatch in parameter (passing string for number)
-    ReportException exType =
+    final var exType =
         assertThrows(
             ReportException.class,
             () ->
                 runProgram(
                     """
-                    10 DEF FN A(X) = X
-                    20 PRINT FN A("HELLO")
-                    """));
+        10 DEF FN A(X) = X
+        20 PRINT FN A("HELLO")
+        """));
     assertEquals(ReportCode.PARAMETER_ERROR, exType.reportCode());
   }
 
   @Test
   void testDefFnShadowing() {
-    EvalState state =
+    final var state =
         runProgram(
             """
-                10 DEF FN ADD(X) = X + Y
-                15 DEF FN REPEAT$(A$) = A$ + A$
-                20 DEF FN DOUBLE(X) = FN ADD(X) * 2
-                25 LET X = 10
-                30 LET Y = 5
-                35 LET A$ = "GLOBAL"
-                40 LET Z = FN ADD(1)
-                45 LET B$ = FN REPEAT$("LOCAL")
-                50 LET W = FN DOUBLE(2)
-                """);
+        10 DEF FN ADD(X) = X + Y
+        15 DEF FN REPEAT$(A$) = A$ + A$
+        20 DEF FN DOUBLE(X) = FN ADD(X) * 2
+        25 LET X = 10
+        30 LET Y = 5
+        35 LET A$ = "GLOBAL"
+        40 LET Z = FN ADD(1)
+        45 LET B$ = FN REPEAT$("LOCAL")
+        50 LET W = FN DOUBLE(2)
+        """);
     // Z = 1 + Y = 1 + 5 = 6
     assertEquals(6.0, state.numVar("Z"));
     // Shadowed parameter X must restore to original value 10 after call
@@ -127,18 +124,18 @@ class DefFnProgramTest extends BaseProgramTest {
 
   @Test
   void testRecursiveDefFnOutOfMemory() {
-    // Recursive DEF FN causes a stack overflow. On real ZX Spectrum hardware this produces
-    // "4 Out of memory". BazLang must catch StackOverflowError and surface it as OUT_OF_MEMORY
-    // rather than letting the JVM crash the interpreter.
-    ReportException e =
+    // Recursive DEF FN causes a stack overflow. On a Sinclair ZX Spectrum, this produces "4 Out of
+    // memory". BazLang must catch StackOverflowError and surface it as OUT_OF_MEMORY rather than
+    // letting the JVM crash the interpreter.
+    final var e =
         assertThrows(
             ReportException.class,
             () ->
                 runProgramCapture(
                     """
-                    10 DEF FN F(N) = FN F(N)
-                    20 PRINT FN F(1)
-                    """));
+        10 DEF FN F(N) = FN F(N)
+        20 PRINT FN F(1)
+        """));
     assertEquals(ReportCode.OUT_OF_MEMORY, e.reportCode());
   }
 }

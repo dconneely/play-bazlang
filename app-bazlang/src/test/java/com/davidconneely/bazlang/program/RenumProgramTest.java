@@ -17,13 +17,14 @@ import org.junit.jupiter.api.Test;
 
 class RenumProgramTest extends BaseProgramTest {
 
-  private ProgramEditor makeEditor(EvalState state, MockDisplay display) {
-    ProgramManager executor = new ProgramManager(state, display);
+  private ProgramEditor makeEditor(EvalState state) {
+    final var display = new MockDisplay();
+    final var executor = new ProgramManager(state, display);
     return new ProgramEditor(state, display, PARSER, executor::evalNum);
   }
 
   private void executeRenumCommand(String command, ProgramEditor editor) {
-    var parsed = PARSER.parseReplLine(command);
+    final var parsed = PARSER.parseReplLine(command);
     if (parsed instanceof AntlrParser.ParsedLine.ReplCommand(var ctx)) {
       if (ctx instanceof BazLangParser.RenumCmdContext renum) {
         editor.executeRenum(renum.renumArgs());
@@ -37,10 +38,9 @@ class RenumProgramTest extends BaseProgramTest {
 
   @Test
   void testRenumBasic() {
-    EvalState state = new EvalState();
-    MockDisplay display = new MockDisplay();
-    ProgramManager executor = new ProgramManager(state, display);
-    ProgramEditor editor = new ProgramEditor(state, display, PARSER, executor::evalNum);
+    final var state = new EvalState();
+    final var editor = makeEditor(state);
+
     state.program().put(10, new ProgramLine(10, "PRINT \"HELLO\""));
     state.program().put(20, new ProgramLine(20, "GOTO 40"));
     state.program().put(30, new ProgramLine(30, "PRINT \"WORLD\""));
@@ -55,15 +55,14 @@ class RenumProgramTest extends BaseProgramTest {
 
   @Test
   void testRenumInsideIfStatement() {
-    EvalState state = new EvalState();
-    MockDisplay display = new MockDisplay();
-    ProgramEditor editor = makeEditor(state, display);
+    final var state = new EvalState();
+    final var editor = makeEditor(state);
 
     state.program().put(10, new ProgramLine(10, "IF X = 1 THEN GOTO 20"));
     state.program().put(20, new ProgramLine(20, "PRINT \"Target\""));
 
-    AntlrParser.ParsedLine parsed = PARSER.parseReplLine("RENUM 100");
-    BazLangParser.ReplCommandContext ctx = ((AntlrParser.ParsedLine.ReplCommand) parsed).context();
+    final var parsed = PARSER.parseReplLine("RENUM 100");
+    final var ctx = ((AntlrParser.ParsedLine.ReplCommand) parsed).context();
     editor.executeRenum(((BazLangParser.RenumCmdContext) ctx).renumArgs());
 
     // Should preserve IF...THEN and only change 20 to 110.
@@ -72,15 +71,14 @@ class RenumProgramTest extends BaseProgramTest {
 
   @Test
   void testRenumLiteralInsideString() {
-    EvalState state = new EvalState();
-    MockDisplay display = new MockDisplay();
-    ProgramEditor editor = makeEditor(state, display);
+    final var state = new EvalState();
+    final var editor = makeEditor(state);
 
     state.program().put(10, new ProgramLine(10, "PRINT \"GOTO 20\""));
     state.program().put(20, new ProgramLine(20, "PRINT \"Target\""));
 
-    AntlrParser.ParsedLine parsed = PARSER.parseReplLine("RENUM 100");
-    BazLangParser.ReplCommandContext ctx = ((AntlrParser.ParsedLine.ReplCommand) parsed).context();
+    final var parsed = PARSER.parseReplLine("RENUM 100");
+    final var ctx = ((AntlrParser.ParsedLine.ReplCommand) parsed).context();
     editor.executeRenum(((BazLangParser.RenumCmdContext) ctx).renumArgs());
 
     // Should NOT change the string literal.
@@ -89,15 +87,14 @@ class RenumProgramTest extends BaseProgramTest {
 
   @Test
   void testRenumLiteralTargets() {
-    EvalState state = new EvalState();
-    MockDisplay display = new MockDisplay();
-    ProgramEditor editor = makeEditor(state, display);
+    final var state = new EvalState();
+    final var editor = makeEditor(state);
 
     state.program().put(10, new ProgramLine(10, "GOTO 20"));
     state.program().put(20, new ProgramLine(20, "PRINT \"Target\""));
 
-    AntlrParser.ParsedLine parsed = PARSER.parseReplLine("RENUM 100");
-    BazLangParser.ReplCommandContext ctx = ((AntlrParser.ParsedLine.ReplCommand) parsed).context();
+    final var parsed = PARSER.parseReplLine("RENUM 100");
+    final var ctx = ((AntlrParser.ParsedLine.ReplCommand) parsed).context();
     editor.executeRenum(((BazLangParser.RenumCmdContext) ctx).renumArgs());
 
     assertEquals("GOTO 110", state.program().get(100).sourceText());
@@ -106,10 +103,9 @@ class RenumProgramTest extends BaseProgramTest {
 
   @Test
   void testRenumNonExistentGotoTarget() {
-    EvalState state = new EvalState();
-    MockDisplay display = new MockDisplay();
-    ProgramManager executor = new ProgramManager(state, display);
-    ProgramEditor editor = new ProgramEditor(state, display, PARSER, executor::evalNum);
+    final var state = new EvalState();
+    final var editor = makeEditor(state);
+
     state.program().put(1000, new ProgramLine(1000, "PRINT \"HELLO\""));
     state.program().put(1200, new ProgramLine(1200, "PRINT \"THERE\""));
     state.program().put(1300, new ProgramLine(1300, "GOTO 1100"));
@@ -122,22 +118,21 @@ class RenumProgramTest extends BaseProgramTest {
     assertTrue(state.program().containsKey(30));
 
     // GOTO 1100 should become GOTO 20 (ceiling of 1100 is 1200, which becomes 20)
-    ProgramLine line30 = state.program().get(30);
+    final var line30 = state.program().get(30);
     assertNotNull(line30);
     assertEquals("GOTO 20", line30.sourceText());
   }
 
   @Test
   void testRenumNonExistentTargetInRange() {
-    EvalState state = new EvalState();
-    MockDisplay display = new MockDisplay();
-    ProgramEditor editor = makeEditor(state, display);
+    final var state = new EvalState();
+    final var editor = makeEditor(state);
 
     state.program().put(10, new ProgramLine(10, "GOTO 15"));
     state.program().put(20, new ProgramLine(20, "PRINT \"Target\""));
 
-    AntlrParser.ParsedLine parsed = PARSER.parseReplLine("RENUM 100");
-    BazLangParser.ReplCommandContext ctx = ((AntlrParser.ParsedLine.ReplCommand) parsed).context();
+    final var parsed = PARSER.parseReplLine("RENUM 100");
+    final var ctx = ((AntlrParser.ParsedLine.ReplCommand) parsed).context();
     editor.executeRenum(((BazLangParser.RenumCmdContext) ctx).renumArgs());
 
     // 10 -> 100, 20 -> 110
@@ -149,9 +144,8 @@ class RenumProgramTest extends BaseProgramTest {
 
   @Test
   void testRenumNonLiteralTargets() {
-    EvalState state = new EvalState();
-    MockDisplay display = new MockDisplay();
-    ProgramEditor editor = makeEditor(state, display);
+    final var state = new EvalState();
+    final var editor = makeEditor(state);
 
     state.program().put(10, new ProgramLine(10, "LET X = 20"));
     state.program().put(20, new ProgramLine(20, "GOTO X"));
@@ -164,10 +158,9 @@ class RenumProgramTest extends BaseProgramTest {
 
   @Test
   void testRenumStepOnly() {
-    EvalState state = new EvalState();
-    MockDisplay display = new MockDisplay();
-    ProgramManager executor = new ProgramManager(state, display);
-    ProgramEditor editor = new ProgramEditor(state, display, PARSER, executor::evalNum);
+    final var state = new EvalState();
+    final var editor = makeEditor(state);
+
     state.program().put(10, new ProgramLine(10, "PRINT \"HELLO\""));
     state.program().put(20, new ProgramLine(20, "GOTO 40"));
     state.program().put(30, new ProgramLine(30, "PRINT \"WORLD\""));
@@ -183,10 +176,9 @@ class RenumProgramTest extends BaseProgramTest {
 
   @Test
   void testRenumUpdatesGotoTargets() {
-    EvalState state = new EvalState();
-    MockDisplay display = new MockDisplay();
-    ProgramManager executor = new ProgramManager(state, display);
-    ProgramEditor editor = new ProgramEditor(state, display, PARSER, executor::evalNum);
+    final var state = new EvalState();
+    final var editor = makeEditor(state);
+
     state.program().put(10, new ProgramLine(10, "PRINT \"HELLO\""));
     state.program().put(20, new ProgramLine(20, "GOTO 40"));
     state.program().put(30, new ProgramLine(30, "PRINT \"WORLD\""));
@@ -194,17 +186,16 @@ class RenumProgramTest extends BaseProgramTest {
 
     executeRenumCommand("RENUM 100 STEP 10", editor);
     // Original line 20 had "GOTO 40", should now be "GOTO 130"
-    ProgramLine line = state.program().get(110);
+    final var line = state.program().get(110);
     assertNotNull(line);
     assertEquals("GOTO 130", line.sourceText());
   }
 
   @Test
   void testRenumWithStart() {
-    EvalState state = new EvalState();
-    MockDisplay display = new MockDisplay();
-    ProgramManager executor = new ProgramManager(state, display);
-    ProgramEditor editor = new ProgramEditor(state, display, PARSER, executor::evalNum);
+    final var state = new EvalState();
+    final var editor = makeEditor(state);
+
     state.program().put(10, new ProgramLine(10, "PRINT \"HELLO\""));
     state.program().put(20, new ProgramLine(20, "GOTO 40"));
     state.program().put(30, new ProgramLine(30, "PRINT \"WORLD\""));
@@ -220,10 +211,9 @@ class RenumProgramTest extends BaseProgramTest {
 
   @Test
   void testRenumWithStep() {
-    EvalState state = new EvalState();
-    MockDisplay display = new MockDisplay();
-    ProgramManager executor = new ProgramManager(state, display);
-    ProgramEditor editor = new ProgramEditor(state, display, PARSER, executor::evalNum);
+    final var state = new EvalState();
+    final var editor = makeEditor(state);
+
     state.program().put(10, new ProgramLine(10, "PRINT \"HELLO\""));
     state.program().put(20, new ProgramLine(20, "GOTO 40"));
     state.program().put(30, new ProgramLine(30, "PRINT \"WORLD\""));

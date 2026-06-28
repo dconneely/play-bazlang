@@ -180,7 +180,7 @@ class StringSubscriptProgramTest extends BaseProgramTest {
   }
 
   @Test
-  void testZx81MonthsArray() {
+  void testSinclairZxBasicMonthsArray() {
     String source =
         """
             10 DIM M$(12, 3)
@@ -196,57 +196,57 @@ class StringSubscriptProgramTest extends BaseProgramTest {
   }
 
   @Test
-  void testZx81VariableStringBuilding() {
-    String source =
+  void testVariableStringBuilding() {
+    runProgram(
         """
-            10 LET A$=""
-            20 LET A$=A$+"Z"
-            30 LET A$=A$+"X"
-            40 LET A$=A$+"8"
-            50 LET A$=A$+"1"
-            60 PRINT A$
-            """;
-    runProgram(source, "ZX81\n");
+        10 LET A$=""
+        20 LET A$=A$+"Z"
+        30 LET A$=A$+"X"
+        40 LET A$=A$+"8"
+        50 LET A$=A$+"1"
+        60 PRINT A$
+        """,
+        "ZX81\n");
   }
 
   @Test
   void testZxSpectrumAdventureMap3DArray() {
-    String source =
+    runProgram(
         """
-            10 DIM M$(2, 2, 5)
-            20 LET M$(1, 1)="TREES"
-            30 LET M$(1, 2)="WATER"
-            40 LET M$(2, 1)="PATH "
-            50 LET M$(2, 2)="CAVE "
-            60 PRINT M$(1, 2)
-            70 PRINT M$(2, 1, 1 TO 4)
-            """;
-    runProgram(source, "WATER\nPATH\n");
+        10 DIM M$(2, 2, 5)
+        20 LET M$(1, 1)="TREES"
+        30 LET M$(1, 2)="WATER"
+        40 LET M$(2, 1)="PATH "
+        50 LET M$(2, 2)="CAVE "
+        60 PRINT M$(1, 2)
+        70 PRINT M$(2, 1, 1 TO 4)
+        """,
+        "WATER\nPATH\n");
   }
 
   @Test
   void testFlyweightStringAssignmentIsolation() {
-    String source =
+    runProgram(
         """
-            10 DIM A$(2, 5)
-            20 LET A$(1) = "HELLO"
-            30 LET A$(2) = "WORLD"
-            40 LET T$ = A$(1)
-            50 LET A$(1) = A$(2)
-            60 PRINT T$;" ";A$(1)
-            """;
-    runProgram(source, "HELLO WORLD\n");
+        10 DIM A$(2, 5)
+        20 LET A$(1) = "HELLO"
+        30 LET A$(2) = "WORLD"
+        40 LET T$ = A$(1)
+        50 LET A$(1) = A$(2)
+        60 PRINT T$;" ";A$(1)
+        """,
+        "HELLO WORLD\n");
   }
 
   @Test
   void testFlyweightStringMathZeroCopy() {
-    String source =
+    runProgram(
         """
-            10 DIM A$(2, 5)
-            20 LET A$(1) = "APPLE"
-            30 LET A$(2) = "ZOO"
-            40 IF A$(1) < A$(2) THEN PRINT "OK"
-            """;
-    runProgram(source, "OK\n");
+        10 DIM A$(2, 5)
+        20 LET A$(1) = "APPLE"
+        30 LET A$(2) = "ZOO"
+        40 IF A$(1) < A$(2) THEN PRINT "OK"
+        """,
+        "OK\n");
   }
 }

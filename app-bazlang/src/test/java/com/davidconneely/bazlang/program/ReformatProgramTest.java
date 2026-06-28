@@ -13,16 +13,16 @@ import org.junit.jupiter.api.Test;
 
 class ReformatProgramTest extends BaseProgramTest {
 
-  private ProgramEditor makeEditor(EvalState state, MockDisplay display) {
-    ProgramManager executor = new ProgramManager(state, display);
+  private ProgramEditor makeEditor(EvalState state) {
+    final var display = new MockDisplay();
+    final var executor = new ProgramManager(state, display);
     return new ProgramEditor(state, display, PARSER, executor::evalNum);
   }
 
   @Test
   void testReformatAll() {
-    EvalState state = new EvalState();
-    MockDisplay display = new MockDisplay();
-    ProgramEditor editor = makeEditor(state, display);
+    final var state = new EvalState();
+    final var editor = makeEditor(state);
 
     state.program().put(10, new ProgramLine(10, "let a = 1 + 2 * 3"));
     state.program().put(20, new ProgramLine(20, "print \"hello\", a"));
@@ -35,9 +35,8 @@ class ReformatProgramTest extends BaseProgramTest {
 
   @Test
   void testReformatComplex() {
-    EvalState state = new EvalState();
-    MockDisplay display = new MockDisplay();
-    ProgramEditor editor = makeEditor(state, display);
+    final var state = new EvalState();
+    final var editor = makeEditor(state);
 
     state.program().put(10, new ProgramLine(10, "if a=1 then goto 100"));
     state.program().put(20, new ProgramLine(20, "for i=1 to 10 step 2"));
@@ -53,9 +52,8 @@ class ReformatProgramTest extends BaseProgramTest {
 
   @Test
   void testReformatFunctions() {
-    EvalState state = new EvalState();
-    MockDisplay display = new MockDisplay();
-    ProgramEditor editor = makeEditor(state, display);
+    final var state = new EvalState();
+    final var editor = makeEditor(state);
 
     state.program().put(10, new ProgramLine(10, "let x = sin(0) + cos(pi)"));
 
@@ -66,14 +64,13 @@ class ReformatProgramTest extends BaseProgramTest {
 
   @Test
   void testReformatNakedTo() {
-    EvalState state = new EvalState();
-    MockDisplay display = new MockDisplay();
-    ProgramEditor editor = makeEditor(state, display);
+    final var state = new EvalState();
+    final var editor = makeEditor(state);
 
     state.program().put(10, new ProgramLine(10, "let a = 1"));
     state.program().put(20, new ProgramLine(20, "let b = 2"));
 
-    AntlrParser.ParsedLine parsed = PARSER.parseReplLine("REFORMAT TO");
+    final var parsed = PARSER.parseReplLine("REFORMAT TO");
     editor.executeReformat(
         ((BazLangParser.ReformatCmdContext) ((AntlrParser.ParsedLine.ReplCommand) parsed).context())
             .lineRange());
@@ -84,9 +81,8 @@ class ReformatProgramTest extends BaseProgramTest {
 
   @Test
   void testReformatOmitDefaults() {
-    EvalState state = new EvalState();
-    MockDisplay display = new MockDisplay();
-    ProgramEditor editor = makeEditor(state, display);
+    final var state = new EvalState();
+    final var editor = makeEditor(state);
 
     state.program().put(10, new ProgramLine(10, "FOR I = 1 TO 10 STEP 1"));
     state.program().put(20, new ProgramLine(20, "RAND 0"));
@@ -103,15 +99,14 @@ class ReformatProgramTest extends BaseProgramTest {
 
   @Test
   void testReformatRange() {
-    EvalState state = new EvalState();
-    MockDisplay display = new MockDisplay();
-    ProgramEditor editor = makeEditor(state, display);
+    final var state = new EvalState();
+    final var editor = makeEditor(state);
 
     state.program().put(10, new ProgramLine(10, "let a = 1"));
     state.program().put(20, new ProgramLine(20, "let b = 2"));
     state.program().put(30, new ProgramLine(30, "let c = 3"));
 
-    AntlrParser.ParsedLine parsed = PARSER.parseReplLine("REFORMAT 15 TO 25");
+    final var parsed = PARSER.parseReplLine("REFORMAT 15 TO 25");
     editor.executeReformat(
         ((BazLangParser.ReformatCmdContext) ((AntlrParser.ParsedLine.ReplCommand) parsed).context())
             .lineRange());

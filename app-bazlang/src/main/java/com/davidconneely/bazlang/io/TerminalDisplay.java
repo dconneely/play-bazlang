@@ -60,6 +60,14 @@ public class TerminalDisplay implements BazLangDisplay {
   // Pending render: print() marks dirty; flush()/println()/cls() drive render()
   private boolean dirty = false;
 
+  // Rate-limiting: frame-boundary renders (println, inkey, plot) cap at ~50fps (~20ms).
+  // flush()-driven renders use a longer threshold so that game drawing loops (which call flush()
+  // after every PRINT with a semicolon) do not trigger partial mid-frame renders.
+  private static final long FRAME_RENDER_INTERVAL_MS = 20L;
+  private static final long FLUSH_RENDER_INTERVAL_MS = 100L;
+  private long lastRenderTimeMs = 0L;
+  private boolean fastMode = false;
+
   // Colour state
   private int activeInk = -1; // Terminal default
   private int activePaper = -1; // Terminal default
@@ -74,23 +82,16 @@ public class TerminalDisplay implements BazLangDisplay {
     0x000000, 0x0000FF, 0xFF0000, 0xFF00FF, 0x00FF00, 0x00FFFF, 0xFFFF00, 0xFFFFFF
   };
 
-  // Rate-limiting: frame-boundary renders (println, inkey, plot) cap at ~50fps (~20ms).
-  // flush()-driven renders use a longer threshold so that game drawing loops (which call flush()
-  // after every PRINT with a semicolon) do not trigger partial mid-frame renders.
-  private static final long FRAME_RENDER_INTERVAL_MS = 20L;
-  private static final long FLUSH_RENDER_INTERVAL_MS = 100L;
-  private long lastRenderTimeMs = 0L;
-
   // Cursor tracking (logical position in display area)
   private int cursorRow = 0;
   private int cursorCol = 0;
 
-  // Break flag for Ctrl+C (set by INT signal handler on JLine's signal thread, read by main thread)
-  private final AtomicBoolean breakFlag = new AtomicBoolean(false);
-
   // Resize flag: set by WINCH signal handler on JLine's signal thread; handled by main thread in
   // render()
   private final AtomicBoolean resizePending = new AtomicBoolean(false);
+
+  // Break flag for Ctrl+C (set by INT signal handler on JLine's signal thread, read by main thread)
+  private final AtomicBoolean breakFlag = new AtomicBoolean(false);
 
   // Track whether close() has been called (for idempotent clean-up between main thread and shutdown
   // hook)
@@ -120,10 +121,10 @@ public class TerminalDisplay implements BazLangDisplay {
   }
 
   private void initBuffer() {
-    int rawCols = engine.getColumns();
-    int cols = rawCols > 0 ? rawCols : 80;
-    int rawRows = engine.getRows();
-    int rows = Math.max(1, (rawRows > 0 ? rawRows : 24) - currentReservedRows());
+    final int rawCols = engine.getColumns();
+    final int cols = rawCols > 0 ? rawCols : 80;
+    final int rawRows = engine.getRows();
+    final int rows = Math.max(1, (rawRows > 0 ? rawRows : 24) - currentReservedRows());
     cellBuffer = new CellBuffer(rows, cols, QuadrantMode.INSTANCE);
   }
 
@@ -134,10 +135,10 @@ public class TerminalDisplay implements BazLangDisplay {
   }
 
   private void resizeBufferIfNeeded() {
-    int rawCols = engine.getColumns();
-    int newCols = rawCols > 0 ? rawCols : 80;
-    int rawRows = engine.getRows();
-    int newRows = Math.max(1, (rawRows > 0 ? rawRows : 24) - currentReservedRows());
+    final int rawCols = engine.getColumns();
+    final int newCols = rawCols > 0 ? rawCols : 80;
+    final int rawRows = engine.getRows();
+    final int newRows = Math.max(1, (rawRows > 0 ? rawRows : 24) - currentReservedRows());
     if (newRows != cellBuffer.rows() || newCols != cellBuffer.cols()) {
       cellBuffer.resize(newRows, newCols);
       cursorRow = Math.min(cursorRow, cellBuffer.rows() - 1);
@@ -152,13 +153,13 @@ public class TerminalDisplay implements BazLangDisplay {
     dirty = false;
     resizePending.set(false);
     resizeBufferIfNeeded();
-    int termWidth = engine.getColumns();
-    int termHeight = engine.getRows();
-    int rowsToRender = Math.min(cellBuffer.rows(), termHeight);
-    int colsToRender = Math.min(cellBuffer.cols(), termWidth);
+    final int termWidth = engine.getColumns();
+    final int termHeight = engine.getRows();
+    final int rowsToRender = Math.min(cellBuffer.rows(), termHeight);
+    final int colsToRender = Math.min(cellBuffer.cols(), termWidth);
 
     // Ensure cursor is hidden during render
-    PrintWriter out = engine.writer();
+    final var out = engine.writer();
     out.print("\033[?25l");
     renderer.renderContentRows(out, cellBuffer, rowsToRender, colsToRender);
     renderInputRows(out, rowsToRender, termWidth);
@@ -187,19 +188,7 @@ public class TerminalDisplay implements BazLangDisplay {
       out.print("\033[K");
 
       // 4. Status/report row (left-aligned status text, right-aligned "BazLang REPL")
-      String rightText = "BazLang REPL";
-      int rightLen = rightText.length();
-      int spacesNeeded = termWidth - statusText.length() - rightLen;
-      String lineText;
-      if (spacesNeeded > 0) {
-        lineText = statusText + " ".repeat(spacesNeeded) + rightText;
-      } else {
-        int availableForStatus = termWidth - rightLen - 1;
-        lineText =
-            availableForStatus > 0
-                ? statusText.substring(0, availableForStatus) + " " + rightText
-                : statusText;
-      }
+      final String lineText = getStatusLine(termWidth);
       out.printf("\033[%d;1H", rowsToRender + 3 + currentInputHeight);
       out.print("\033[37m" + lineText + "\033[m");
       out.print("\033[K");
@@ -209,7 +198,22 @@ public class TerminalDisplay implements BazLangDisplay {
     }
   }
 
-  private boolean fastMode = false;
+  private String getStatusLine(int termWidth) {
+    final String rightText = "BazLang REPL";
+    final int rightLen = rightText.length();
+    final int spacesNeeded = termWidth - statusText.length() - rightLen;
+    String lineText;
+    if (spacesNeeded > 0) {
+      lineText = statusText + " ".repeat(spacesNeeded) + rightText;
+    } else {
+      final int availableForStatus = termWidth - rightLen - 1;
+      lineText =
+          availableForStatus > 0
+              ? statusText.substring(0, availableForStatus) + " " + rightText
+              : statusText;
+    }
+    return lineText;
+  }
 
   private void renderIfDue(boolean bypassFastMode) {
     if (fastMode && !bypassFastMode) {
@@ -348,11 +352,11 @@ public class TerminalDisplay implements BazLangDisplay {
                   }
                 }
                 if (cursorRow < cellBuffer.rows()) {
-                  int ink = activeInverse == 1 ? activePaper : activeInk;
-                  int paper = activeInverse == 1 ? activeInk : activePaper;
+                  final int ink = activeInverse == 1 ? activePaper : activeInk;
+                  final int paper = activeInverse == 1 ? activeInk : activePaper;
                   int cellFg = getMappedColour(ink, paper);
                   int cellBg = getMappedColour(paper, ink);
-                  int cellStyle = getMappedStyle();
+                  final int cellStyle = getMappedStyle();
                   if (printingSystemPrompt) {
                     cellFg = CellAttributes.COLOUR_TYPE_INDEX | 4; // ANSI Blue
                     cellBg = CellAttributes.COLOUR_DEFAULT; // Default terminal background
@@ -416,7 +420,7 @@ public class TerminalDisplay implements BazLangDisplay {
       int rgb = activeBright == 1 ? ZX_TO_RGB_BRIGHT[zxColour] : ZX_TO_RGB[zxColour];
       return CellAttributes.rgb(rgb);
     }
-    // Default fallback (including colourCode == -1) maps to terminal's own default colors
+    // Default fallback (including colourCode == -1) maps to terminal's own default colours
     return CellAttributes.COLOUR_DEFAULT;
   }
 
@@ -463,8 +467,8 @@ public class TerminalDisplay implements BazLangDisplay {
 
   @Override
   public void plot(int x, int y) {
-    int cellFg = getMappedColour(activeInk, activePaper);
-    int cellBg = getMappedColour(activePaper, activeInk);
+    final int cellFg = getMappedColour(activeInk, activePaper);
+    final int cellBg = getMappedColour(activePaper, activeInk);
     cellBuffer.plot(x, y, cellFg, cellBg, getMappedStyle(), activeInverse != 1, activeOver == 1);
     if (cellBuffer.isPixelInBounds(x, y)) {
       cursorRow = cellBuffer.pixelToCellRow(y);
@@ -525,9 +529,9 @@ public class TerminalDisplay implements BazLangDisplay {
     if (!inputVisible) {
       inputVisible = true;
       currentInputHeight = 1;
-      int newRows = Math.max(1, engine.getRows() - currentReservedRows());
+      final int newRows = Math.max(1, engine.getRows() - currentReservedRows());
       if (cursorRow >= newRows) {
-        int scrollAmount = cursorRow - newRows + 1;
+        final int scrollAmount = cursorRow - newRows + 1;
         for (int i = 0; i < scrollAmount; i++) {
           scrollBuffer();
         }
@@ -539,7 +543,7 @@ public class TerminalDisplay implements BazLangDisplay {
       statusText = prompt.trim();
     }
 
-    String promptStr =
+    final String promptStr =
         switch (currentInputMode) {
           case REPL -> "\033[34m❯ \033[m";
           case INPUT_NUMERIC -> "\033[1m# \033[m";
@@ -652,7 +656,7 @@ public class TerminalDisplay implements BazLangDisplay {
       currentInputHeight = 1;
       int newRows = Math.max(1, engine.getRows() - currentReservedRows());
       if (cursorRow >= newRows) {
-        int scrollAmount = cursorRow - newRows + 1;
+        final int scrollAmount = cursorRow - newRows + 1;
         for (int i = 0; i < scrollAmount; i++) {
           scrollBuffer();
         }
@@ -663,7 +667,7 @@ public class TerminalDisplay implements BazLangDisplay {
     forceFlush();
     // Write "Press any key" into the status row in grey (directly below the display area, at row
     // rows + 3 + currentInputHeight)
-    PrintWriter out = engine.writer();
+    final var out = engine.writer();
     out.printf("\033[%d;1H", cellBuffer.rows() + 3 + currentInputHeight);
     out.print("\033[37mPress any key to exit.\033[m");
     out.print("\033[K");

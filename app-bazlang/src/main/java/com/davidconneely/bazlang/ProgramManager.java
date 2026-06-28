@@ -17,7 +17,7 @@ public class ProgramManager extends StatementExecutor {
 
   @Override
   public Void visitContStmt(ContStmtContext ctx) {
-    int m = state.lastReportLabel();
+    final int m = state.lastReportLabel();
     if (m <= 0) {
       return null;
     }
@@ -32,18 +32,18 @@ public class ProgramManager extends StatementExecutor {
 
   @Override
   public Void visitForStmt(ForStmtContext ctx) {
-    String var = ctx.NUM_IDENTIFIER().getText().toUpperCase();
-    double st = exprEvaluator.evalNum(ctx.numExpr(0));
-    double en = exprEvaluator.evalNum(ctx.numExpr(1));
-    double step = ctx.numExpr().size() > 2 ? exprEvaluator.evalNum(ctx.numExpr(2)) : 1.0;
-    state.setNumVar(var, st);
+    final String forVar = ctx.NUM_IDENTIFIER().getText().toUpperCase();
+    final double st = exprEvaluator.evalNum(ctx.numExpr(0));
+    final double en = exprEvaluator.evalNum(ctx.numExpr(1));
+    final double step = ctx.numExpr().size() > 2 ? exprEvaluator.evalNum(ctx.numExpr(2)) : 1.0;
+    state.setNumVar(forVar, st);
     state.setForLoop(
-        var,
+        forVar,
         new EvalState.ForLoopData(
             en, step, state.currentLineLabel(), state.currentStatementIndex()));
     if ((step >= 0) ? (st > en) : (st < en)) {
       // Skip to matching NEXT.
-      // On real ZX Spectrum hardware the scan is a flat, linear pass through all statements in
+      // On a Sinclair ZX Spectrum, the scan is a flat, linear pass through all statements in
       // program order, including those nested inside IF...THEN bodies. So `IF 0 THEN NEXT i` is
       // still found by the scan even though the condition is always false. We use
       // getFlattenedStatements() to replicate this behaviour, which is also consistent with the
@@ -51,14 +51,14 @@ public class ProgramManager extends StatementExecutor {
       Integer searchLabel = state.currentLineLabel();
       int startIdx = state.currentStatementIndex() + 1;
       while (searchLabel != null) {
-        ProgramLine line = state.program().get(searchLabel);
+        final var line = state.program().get(searchLabel);
         if (line != null) {
-          var flatStmts = line.getFlattenedStatements(PARSER);
+          final var flatStmts = line.getFlattenedStatements(PARSER);
           int stmtIdx = 1;
-          for (StatementContext stmt : flatStmts) {
+          for (final var stmt : flatStmts) {
             if (stmtIdx >= startIdx
                 && stmt instanceof NextStmtContext nextCtx
-                && nextCtx.NUM_IDENTIFIER().getText().equalsIgnoreCase(var)) {
+                && nextCtx.NUM_IDENTIFIER().getText().equalsIgnoreCase(forVar)) {
               state.setPendingJumpLocation(searchLabel, stmtIdx + 1);
               return null;
             }
@@ -78,14 +78,14 @@ public class ProgramManager extends StatementExecutor {
   public Void visitGosubStmt(GosubStmtContext ctx) {
     state.pushReturn(
         new EvalState.JumpLocation(state.currentLineLabel(), state.currentStatementIndex() + 1));
-    int target = (int) Math.round(exprEvaluator.evalNum(ctx.numExpr()));
+    final int target = (int) Math.round(exprEvaluator.evalNum(ctx.numExpr()));
     gotoLabel(target);
     return null;
   }
 
   @Override
   public Void visitGotoStmt(GotoStmtContext ctx) {
-    int target = (int) Math.round(exprEvaluator.evalNum(ctx.numExpr()));
+    final int target = (int) Math.round(exprEvaluator.evalNum(ctx.numExpr()));
     gotoLabel(target);
     return null;
   }
@@ -98,8 +98,8 @@ public class ProgramManager extends StatementExecutor {
           "GO TO line label out of range");
     }
     // Prevent jumping to line 0 (the immediate statement buffer)
-    int searchTarget = Math.max(target, Limits.MIN_LINE_LABEL);
-    Integer label = state.program().ceilingKey(searchTarget);
+    final int searchTarget = Math.max(target, Limits.MIN_LINE_LABEL);
+    final Integer label = state.program().ceilingKey(searchTarget);
     if (label != null) {
       state.setPendingJumpLocation(label, 1);
     } else {
@@ -109,18 +109,18 @@ public class ProgramManager extends StatementExecutor {
 
   @Override
   public Void visitNextStmt(NextStmtContext ctx) {
-    String var = ctx.NUM_IDENTIFIER().getText().toUpperCase();
-    if (!state.hasForLoop(var)) {
+    final String forVar = ctx.NUM_IDENTIFIER().getText().toUpperCase();
+    if (!state.hasForLoop(forVar)) {
       throw new ReportException(
           ReportCode.NEXT_WITHOUT_FOR, state.currentLineLabel(), "NEXT without FOR");
     }
-    EvalState.ForLoopData d = state.forLoop(var);
-    if (!state.hasNumVar(var)) {
+    final var d = state.forLoop(forVar);
+    if (!state.hasNumVar(forVar)) {
       throw new ReportException(
           ReportCode.VARIABLE_NOT_FOUND, state.currentLineLabel(), "Undefined loop variable");
     }
-    double nv = state.numVar(var) + d.step();
-    state.setNumVar(var, nv);
+    final double nv = state.numVar(forVar) + d.step();
+    state.setNumVar(forVar, nv);
     if (d.step() >= 0 ? nv <= d.limit() : nv >= d.limit()) {
       state.setPendingJumpLocation(d.loopPcLabel(), d.loopPcStatementIndex() + 1);
     }
@@ -133,14 +133,14 @@ public class ProgramManager extends StatementExecutor {
       throw new ReportException(
           ReportCode.RETURN_WITHOUT_GOSUB, state.currentLineLabel(), "RETURN without GOSUB");
     }
-    EvalState.JumpLocation gosubLoc = state.popReturn();
+    final var gosubLoc = state.popReturn();
     state.setPendingJumpLocation(gosubLoc.lineLabel(), gosubLoc.statementIndex());
     return null;
   }
 
   @Override
   public Void visitRunStmt(RunStmtContext ctx) {
-    int target =
+    final int target =
         ctx.numExpr() != null
             ? (int) Math.round(exprEvaluator.evalNum(ctx.numExpr()))
             : Limits.MIN_TARGET_LABEL;

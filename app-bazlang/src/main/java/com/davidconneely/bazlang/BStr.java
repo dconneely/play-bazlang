@@ -44,7 +44,7 @@ public final class BStr implements Comparable<BStr> {
     if (s == null || s.isEmpty()) {
       return EMPTY;
     }
-    byte[] b = s.getBytes(StandardCharsets.UTF_8);
+    final byte[] b = s.getBytes(StandardCharsets.UTF_8);
     return new BStr(b, 0, b.length);
   }
 
@@ -105,7 +105,7 @@ public final class BStr implements Comparable<BStr> {
     if (other.isEmpty()) {
       return this;
     }
-    byte[] result = new byte[length + other.length];
+    final byte[] result = new byte[length + other.length];
     System.arraycopy(bytes, offset, result, 0, length);
     System.arraycopy(other.bytes, other.offset, result, length, other.length);
     return new BStr(result, 0, result.length);
@@ -119,8 +119,8 @@ public final class BStr implements Comparable<BStr> {
     if (from < 1 || to > length || from > to + 1) {
       throw new IllegalArgumentException("Slice out of bounds");
     }
-    int sliceLen = to - from + 1;
-    byte[] result = new byte[length];
+    final int sliceLen = to - from + 1;
+    final byte[] result = new byte[length];
     System.arraycopy(bytes, offset, result, 0, length);
     for (int i = 0; i < sliceLen; i++) {
       result[from - 1 + i] = (i < replacement.length()) ? (byte) replacement.byteAt(i) : (byte) ' ';
@@ -137,15 +137,15 @@ public final class BStr implements Comparable<BStr> {
     if (length == 0) {
       return "";
     }
-    StringBuilder sb = new StringBuilder(length);
+    final StringBuilder sb = new StringBuilder(length);
     int i = 0;
     while (i < length) {
-      int b = bytes[offset + i] & 0xFF;
+      final int b = bytes[offset + i] & 0xFF;
       if (b < 0x80) {
         sb.append((char) b);
         i++;
       } else if (b >= 0xC2 && b <= 0xDF && i + 1 < length && isContByte(bytes[offset + i + 1])) {
-        int cp = ((b & 0x1F) << 6) | (bytes[offset + i + 1] & 0x3F);
+        final int cp = ((b & 0x1F) << 6) | (bytes[offset + i + 1] & 0x3F);
         sb.appendCodePoint(cp);
         i += 2;
       } else if (b >= 0xE0
@@ -171,7 +171,7 @@ public final class BStr implements Comparable<BStr> {
           && isContByte(bytes[offset + i + 1])
           && isContByte(bytes[offset + i + 2])
           && isContByte(bytes[offset + i + 3])) {
-        int cp =
+        final int cp =
             ((b & 0x07) << 18)
                 | ((bytes[offset + i + 1] & 0x3F) << 12)
                 | ((bytes[offset + i + 2] & 0x3F) << 6)
@@ -211,7 +211,7 @@ public final class BStr implements Comparable<BStr> {
     if (length == 0) {
       return -1;
     }
-    int b = bytes[offset] & 0xFF;
+    final int b = bytes[offset] & 0xFF;
     if (b < 0x80) {
       return b;
     }
@@ -223,7 +223,8 @@ public final class BStr implements Comparable<BStr> {
         && length >= 3
         && isContByte(bytes[offset + 1])
         && isContByte(bytes[offset + 2])) {
-      int cp = ((b & 0x0F) << 12) | ((bytes[offset + 1] & 0x3F) << 6) | (bytes[offset + 2] & 0x3F);
+      final int cp =
+          ((b & 0x0F) << 12) | ((bytes[offset + 1] & 0x3F) << 6) | (bytes[offset + 2] & 0x3F);
       if (cp >= 0x800 && (cp < 0xD800 || cp > 0xDFFF)) {
         return cp;
       }
@@ -235,7 +236,7 @@ public final class BStr implements Comparable<BStr> {
         && isContByte(bytes[offset + 1])
         && isContByte(bytes[offset + 2])
         && isContByte(bytes[offset + 3])) {
-      int cp =
+      final int cp =
           ((b & 0x07) << 18)
               | ((bytes[offset + 1] & 0x3F) << 12)
               | ((bytes[offset + 2] & 0x3F) << 6)
@@ -259,7 +260,7 @@ public final class BStr implements Comparable<BStr> {
     if (byteIndex0 >= length) {
       return length;
     }
-    int b = bytes[offset + byteIndex0] & 0xFF;
+    final int b = bytes[offset + byteIndex0] & 0xFF;
     if (b < 0x80) {
       return byteIndex0 + 1;
     }
@@ -274,7 +275,7 @@ public final class BStr implements Comparable<BStr> {
         && byteIndex0 + 2 < length
         && isContByte(bytes[offset + byteIndex0 + 1])
         && isContByte(bytes[offset + byteIndex0 + 2])) {
-      int cp =
+      final int cp =
           ((b & 0x0F) << 12)
               | ((bytes[offset + byteIndex0 + 1] & 0x3F) << 6)
               | (bytes[offset + byteIndex0 + 2] & 0x3F);
@@ -286,7 +287,7 @@ public final class BStr implements Comparable<BStr> {
         && isContByte(bytes[offset + byteIndex0 + 1])
         && isContByte(bytes[offset + byteIndex0 + 2])
         && isContByte(bytes[offset + byteIndex0 + 3])) {
-      int cp =
+      final int cp =
           ((b & 0x07) << 18)
               | ((bytes[offset + byteIndex0 + 1] & 0x3F) << 12)
               | ((bytes[offset + byteIndex0 + 2] & 0x3F) << 6)
@@ -324,7 +325,7 @@ public final class BStr implements Comparable<BStr> {
 
   @Override
   public int compareTo(BStr other) {
-    int len = Math.min(length, other.length);
+    final int len = Math.min(length, other.length);
     for (int i = 0; i < len; i++) {
       int diff = (bytes[offset + i] & 0xFF) - (other.bytes[other.offset + i] & 0xFF);
       if (diff != 0) {

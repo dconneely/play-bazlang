@@ -3,14 +3,11 @@ package com.davidconneely.bazlang.program;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.fail;
 
-import com.davidconneely.bazlang.ProgramLine;
 import com.davidconneely.bazlang.ReportException;
 import com.davidconneely.bazlang.antlr.AntlrParser;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Map;
-import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 
 class ExampleParseTest {
@@ -18,19 +15,19 @@ class ExampleParseTest {
 
   @Test
   void testAllExamplesParse() {
-    Path exampleDir = Path.of("app-bazlang", "src", "example", "bas");
-    try (Stream<Path> paths = Files.walk(exampleDir)) {
+    final var exampleDir = Path.of("app-bazlang", "src", "example", "bas");
+    try (var paths = Files.walk(exampleDir)) {
       paths
           .filter(Files::isRegularFile)
           .filter(p -> p.toString().endsWith(".bas"))
           .forEach(
               p -> {
                 try {
-                  String content = Files.readString(p);
-                  Map<Integer, ProgramLine> program = PARSER.parseProgramLines(content);
+                  final String content = Files.readString(p);
+                  final var program = PARSER.parseProgramLines(content);
                   assertNotNull(program, "Failed to parse example: " + p);
                   // Trigger lazy parsing of each line to ensure ANTLR successfully parses them
-                  for (ProgramLine line : program.values()) {
+                  for (final var line : program.values()) {
                     line.getFlattenedStatements(PARSER);
                   }
                 } catch (IOException | ReportException e) {

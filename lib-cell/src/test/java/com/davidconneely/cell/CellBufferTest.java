@@ -8,7 +8,7 @@ class CellBufferTest {
 
   @Test
   void testCoordinates() {
-    CellBuffer buf = new CellBuffer(24, 32, QuadrantMode.INSTANCE);
+    final var buf = new CellBuffer(24, 32, QuadrantMode.INSTANCE);
     buf.plot(0, 0);
     assertEquals('\u2596', buf.getCell(23, 0)); // ▖ lower-left
     buf.plot(63, 47);
@@ -17,7 +17,7 @@ class CellBufferTest {
 
   @Test
   void testQuadrantLogic() {
-    CellBuffer buf = new CellBuffer(24, 32, QuadrantMode.INSTANCE);
+    final var buf = new CellBuffer(24, 32, QuadrantMode.INSTANCE);
     assertEquals(' ', buf.getCell(23, 0));
     buf.plot(0, 1);
     assertEquals('\u2598', buf.getCell(23, 0)); // ▘ upper-left
@@ -31,7 +31,7 @@ class CellBufferTest {
 
   @Test
   void testBoundsIgnored() {
-    CellBuffer buf = new CellBuffer(24, 32, QuadrantMode.INSTANCE);
+    final var buf = new CellBuffer(24, 32, QuadrantMode.INSTANCE);
     buf.plot(-64, 0);
     buf.plot(64, 0);
     buf.plot(0, -48);
@@ -41,7 +41,7 @@ class CellBufferTest {
 
   @Test
   void testPoint() {
-    CellBuffer buf = new CellBuffer(24, 32, QuadrantMode.INSTANCE);
+    final var buf = new CellBuffer(24, 32, QuadrantMode.INSTANCE);
     assertEquals(0, buf.point(10, 10));
     buf.plot(10, 10, -1, -1, 0, true, false); // normal PLOT
     assertEquals(1, buf.point(10, 10));
@@ -55,7 +55,7 @@ class CellBufferTest {
 
   @Test
   void testSetCellAndPlotCoexist() {
-    CellBuffer buf = new CellBuffer(24, 32, QuadrantMode.INSTANCE);
+    final var buf = new CellBuffer(24, 32, QuadrantMode.INSTANCE);
     buf.setCell(10, 5, 'H');
     buf.setCell(10, 6, 'e');
     buf.setCell(10, 7, 'l');
@@ -67,7 +67,7 @@ class CellBufferTest {
 
   @Test
   void testResizePreservesContent() {
-    CellBuffer buf = new CellBuffer(24, 32, QuadrantMode.INSTANCE);
+    final var buf = new CellBuffer(24, 32, QuadrantMode.INSTANCE);
     buf.setCell(5, 10, 'T');
     buf.plot(0, 0); // cell (23, 0) = ▖
     assertEquals('T', buf.getCell(5, 10));
@@ -82,7 +82,7 @@ class CellBufferTest {
 
   @Test
   void testDynamicPlotBounds() {
-    CellBuffer buf = new CellBuffer(10, 20, QuadrantMode.INSTANCE);
+    final var buf = new CellBuffer(10, 20, QuadrantMode.INSTANCE);
     assertEquals(40, buf.pixelWidth()); // 20 * 2
     assertEquals(20, buf.pixelHeight()); // 10 * 2
     buf.plot(39, 19); // max valid coords: top-right
@@ -94,7 +94,7 @@ class CellBufferTest {
 
   @Test
   void testScrollUp() {
-    CellBuffer buf = new CellBuffer(3, 4, QuadrantMode.INSTANCE);
+    final var buf = new CellBuffer(3, 4, QuadrantMode.INSTANCE);
     buf.setCell(0, 0, 'A');
     buf.setCell(1, 0, 'B');
     buf.setCell(2, 0, 'C');

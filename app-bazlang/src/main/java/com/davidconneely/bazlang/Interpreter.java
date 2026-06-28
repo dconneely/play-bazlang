@@ -1,8 +1,6 @@
 package com.davidconneely.bazlang;
 
 import com.davidconneely.bazlang.antlr.AntlrParser;
-import com.davidconneely.bazlang.antlr.BazLangParser.StatementContext;
-import java.util.List;
 import java.util.Map;
 
 public class Interpreter {
@@ -24,7 +22,7 @@ public class Interpreter {
   }
 
   public void executeImmediate(String rawLine) {
-    ProgramLine immediateLine = new ProgramLine(0, rawLine);
+    final var immediateLine = new ProgramLine(0, rawLine);
     state.program().put(0, immediateLine);
     try {
       state.setPendingJumpLocation(0, 1);
@@ -68,13 +66,13 @@ public class Interpreter {
             ReportCode.BREAK_INTO_PROGRAM.getMessage());
       }
 
-      ProgramLine line = state.program().get(nextLabel);
+      final var line = state.program().get(nextLabel);
       if (line == null) {
         state.setRunning(false);
         throw new ReportException(
             ReportCode.STATEMENT_LOST, state.currentLineLabel(), "Statement lost");
       }
-      List<StatementContext> stmts = line.getFlattenedStatements(PARSER);
+      final var stmts = line.getFlattenedStatements(PARSER);
       if (startIndex < 1 || startIndex > stmts.size() + 1) {
         state.setRunning(false);
         throw new ReportException(
@@ -83,7 +81,7 @@ public class Interpreter {
 
       state.setCurrentLineLabel(nextLabel);
       int index = 1;
-      for (StatementContext stmt : stmts) {
+      for (var stmt : stmts) {
         if (index >= startIndex) {
           state.setCurrentStatementIndex(index);
           executor.visit(stmt);

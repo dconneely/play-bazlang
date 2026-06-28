@@ -3,14 +3,11 @@ package com.davidconneely.bazlang;
 import com.davidconneely.bazlang.antlr.AntlrParser;
 import com.davidconneely.bazlang.antlr.BazLangLexer;
 import com.davidconneely.bazlang.antlr.BazLangParser;
-import com.davidconneely.bazlang.antlr.BazLangParser.StatementsContext;
 import com.davidconneely.bazlang.io.BazLangDisplay;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.function.ToDoubleFunction;
-import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.Token;
@@ -38,7 +35,7 @@ public class ProgramEditor {
 
   /** Execute DELETE command with parsed line range. */
   public void executeDelete(BazLangParser.LineRangeContext range) {
-    int[] bounds = parseDeleteReformatLineRange(range);
+    final int[] bounds = parseDeleteReformatLineRange(range);
     state.program().clearRange(bounds[0], true, bounds[1], true);
   }
 
@@ -47,42 +44,41 @@ public class ProgramEditor {
     int start = Limits.MIN_TARGET_LABEL;
     int end = Limits.MAX_TARGET_LABEL;
     if (range != null) {
-      int[] bounds = parseDeleteReformatLineRange(range);
+      final int[] bounds = parseDeleteReformatLineRange(range);
       start = bounds[0];
       end = bounds[1];
     }
 
-    List<Map.Entry<Integer, ProgramLine>> toReformat = new ArrayList<>();
-    for (Map.Entry<Integer, ProgramLine> entry :
-        state.program().subMapEntries(start, true, end, true)) {
+    final var toReformat = new ArrayList<Map.Entry<Integer, ProgramLine>>();
+    for (final var entry : state.program().subMapEntries(start, true, end, true)) {
       toReformat.add(entry);
     }
     if (toReformat.isEmpty()) {
       return;
     }
 
-    ReformatVisitor formatter = new ReformatVisitor();
-    for (Map.Entry<Integer, ProgramLine> entry : toReformat) {
-      int lineNum = entry.getKey();
-      ProgramLine line = entry.getValue();
-      StatementsContext stmt = line.getStatements(parser);
-      String formattedSource = formatter.visit(stmt);
+    final var formatter = new ReformatVisitor();
+    for (final var entry : toReformat) {
+      final int lineNum = entry.getKey();
+      final var line = entry.getValue();
+      final var stmt = line.getStatements(parser);
+      final String formattedSource = formatter.visit(stmt);
       state.program().put(lineNum, new ProgramLine(lineNum, formattedSource));
     }
   }
 
   /** Execute RENUM command with parsed arguments. */
   public void executeRenum(BazLangParser.RenumArgsContext args) {
-    Program program = state.program();
+    final var program = state.program();
     if (program.isEmpty()) {
       return;
     }
 
-    int[] parsedArgs = parseRenumArgs(program, args);
-    int newStart = parsedArgs[0];
-    int newStep = parsedArgs[1];
-    int oldStart = parsedArgs[2];
-    int oldEnd = parsedArgs[3];
+    final int[] parsedArgs = parseRenumArgs(program, args);
+    final int newStart = parsedArgs[0];
+    final int newStep = parsedArgs[1];
+    final int oldStart = parsedArgs[2];
+    final int oldEnd = parsedArgs[3];
 
     if (newStart < Limits.MIN_LINE_LABEL) {
       throw new ReportException(
@@ -92,25 +88,25 @@ public class ProgramEditor {
       throw new ReportException(ReportCode.INTEGER_OUT_OF_RANGE, 0, "Step must be >= 1");
     }
 
-    List<Map.Entry<Integer, ProgramLine>> toRenumber = new ArrayList<>();
-    for (var entry : program.subMapEntries(oldStart, true, oldEnd, true)) {
+    final var toRenumber = new ArrayList<Map.Entry<Integer, ProgramLine>>();
+    for (final var entry : program.subMapEntries(oldStart, true, oldEnd, true)) {
       toRenumber.add(entry);
     }
     if (toRenumber.isEmpty()) {
       return;
     }
 
-    int count = toRenumber.size();
-    long newEndLong = (long) newStart + (long) (count - 1) * newStep;
+    final int count = toRenumber.size();
+    final long newEndLong = (long) newStart + (long) (count - 1) * newStep;
     if (newEndLong > Limits.MAX_LINE_LABEL) {
       throw new ReportException(
           ReportCode.INTEGER_OUT_OF_RANGE,
           0,
           "Renumbering would exceed max line number " + Limits.MAX_LINE_LABEL);
     }
-    int newEnd = (int) newEndLong;
+    final int newEnd = (int) newEndLong;
 
-    Integer lineBefore = program.lowerKey(oldStart);
+    final Integer lineBefore = program.lowerKey(oldStart);
     if (lineBefore != null && newStart <= lineBefore) {
       throw new ReportException(
           ReportCode.INTEGER_OUT_OF_RANGE,
@@ -121,7 +117,7 @@ public class ProgramEditor {
               + lineBefore
               + " to preserve line order");
     }
-    Integer lineAfter = program.higherKey(oldEnd);
+    final Integer lineAfter = program.higherKey(oldEnd);
     if (lineAfter != null && newEnd >= lineAfter) {
       throw new ReportException(
           ReportCode.INTEGER_OUT_OF_RANGE,
@@ -129,37 +125,37 @@ public class ProgramEditor {
           "New end " + newEnd + " must be less than line " + lineAfter + " to preserve line order");
     }
 
-    Map<Integer, Integer> mapping = new HashMap<>();
+    final var mapping = new HashMap<Integer, Integer>();
     int newNum = newStart;
-    for (var entry : toRenumber) {
+    for (final var entry : toRenumber) {
       mapping.put(entry.getKey(), newNum);
       newNum += newStep;
     }
 
     updateLineReferences(program, mapping, oldStart, oldEnd);
 
-    Map<Integer, ProgramLine> extracted = new HashMap<>();
-    for (var entry : toRenumber) {
+    final var extracted = new HashMap<Integer, ProgramLine>();
+    for (final var entry : toRenumber) {
       extracted.put(entry.getKey(), entry.getValue());
     }
     program.clearRange(oldStart, true, oldEnd, true);
-    for (Map.Entry<Integer, ProgramLine> entry : extracted.entrySet()) {
-      int oldLineNum = entry.getKey();
-      int newLineNum = mapping.get(oldLineNum);
-      ProgramLine oldLine = entry.getValue();
+    for (final var entry : extracted.entrySet()) {
+      final int oldLineNum = entry.getKey();
+      final int newLineNum = mapping.get(oldLineNum);
+      final var oldLine = entry.getValue();
       program.put(newLineNum, new ProgramLine(newLineNum, oldLine.sourceText()));
     }
   }
 
   private void updateLineReferences(
       Program program, Map<Integer, Integer> mapping, int oldStart, int oldEnd) {
-    Map<Integer, String> updates = new HashMap<>();
+    final var updates = new HashMap<Integer, String>();
 
-    for (Map.Entry<Integer, ProgramLine> entry : program.entrySet()) {
-      int lineNum = entry.getKey();
-      ProgramLine line = entry.getValue();
-      String source = line.sourceText();
-      String upperSource = source.toUpperCase();
+    for (final var entry : program.entrySet()) {
+      final int lineNum = entry.getKey();
+      final var line = entry.getValue();
+      final String source = line.sourceText();
+      final String upperSource = source.toUpperCase();
 
       if (!upperSource.contains("GOTO")
           && !upperSource.contains("GOSUB")
@@ -170,14 +166,15 @@ public class ProgramEditor {
         continue;
       }
 
-      String updatedSource = updateLineTargets(lineNum, source, program, mapping, oldStart, oldEnd);
+      final String updatedSource =
+          updateLineTargets(lineNum, source, program, mapping, oldStart, oldEnd);
       if (updatedSource != null) {
         updates.put(lineNum, updatedSource);
       }
     }
 
-    for (Map.Entry<Integer, String> update : updates.entrySet()) {
-      int lineNum = update.getKey();
+    for (final var update : updates.entrySet()) {
+      final int lineNum = update.getKey();
       program.put(lineNum, new ProgramLine(lineNum, update.getValue()));
     }
   }
@@ -189,19 +186,19 @@ public class ProgramEditor {
       Map<Integer, Integer> mapping,
       int oldStart,
       int oldEnd) {
-    CharStream input = CharStreams.fromString(source);
-    BazLangLexer lexer = new BazLangLexer(input);
-    CommonTokenStream tokens = new CommonTokenStream(lexer);
+    final var input = CharStreams.fromString(source);
+    final var lexer = new BazLangLexer(input);
+    final var tokens = new CommonTokenStream(lexer);
     tokens.fill();
-    List<Token> tokenList = tokens.getTokens();
+    final var tokenList = tokens.getTokens();
 
-    StringBuilder newSource = new StringBuilder();
+    final var newSource = new StringBuilder();
     int lastCopiedPos = 0;
     boolean modified = false;
 
     int i = 0;
     while (i < tokenList.size()) {
-      Token t = tokenList.get(i);
+      final var t = tokenList.get(i);
       Token targetToken = null;
       int skip = 1;
 
@@ -210,15 +207,15 @@ public class ProgramEditor {
               || t.getType() == BazLangLexer.RESTORE
               || t.getType() == BazLangLexer.RUN)
           && i + 1 < tokenList.size()) {
-        Token next = tokenList.get(i + 1);
+        final var next = tokenList.get(i + 1);
         if (next.getType() == BazLangLexer.NUM_LITERAL) {
           targetToken = next;
           skip = 2;
         }
       } else if (t.getType() == BazLangLexer.GO && i + 2 < tokenList.size()) {
-        Token next1 = tokenList.get(i + 1);
+        final var next1 = tokenList.get(i + 1);
         if (next1.getType() == BazLangLexer.TO || next1.getType() == BazLangLexer.SUB) {
-          Token next2 = tokenList.get(i + 2);
+          final var next2 = tokenList.get(i + 2);
           if (next2.getType() == BazLangLexer.NUM_LITERAL) {
             targetToken = next2;
             skip = 3;
@@ -227,17 +224,17 @@ public class ProgramEditor {
       }
 
       if (targetToken != null) {
-        double val = Double.parseDouble(targetToken.getText());
-        int target = (int) Math.round(val);
+        final double val = Double.parseDouble(targetToken.getText());
+        final int target = (int) Math.round(val);
 
         Integer newTarget = null;
         if (mapping.containsKey(target)) {
           newTarget = mapping.get(target);
         } else if (target >= oldStart && target <= oldEnd) {
-          Integer ceilingKey = program.ceilingKey(target);
+          final Integer ceilingKey = program.ceilingKey(target);
           if (ceilingKey != null && mapping.containsKey(ceilingKey)) {
             newTarget = mapping.get(ceilingKey);
-            Integer newLineNum = mapping.getOrDefault(lineNum, lineNum);
+            final Integer newLineNum = mapping.getOrDefault(lineNum, lineNum);
             display.println(
                 "Warning: Line "
                     + lineNum
@@ -280,7 +277,7 @@ public class ProgramEditor {
     int oldEnd = program.lastKey();
 
     if (args != null) {
-      var nums = args.numExpr();
+      final var nums = args.numExpr();
       int numIndex = 0;
 
       if (!nums.isEmpty() && args.STEP() == null
@@ -295,13 +292,13 @@ public class ProgramEditor {
       }
 
       if (args.TO() != null) {
-        String argsText = args.getText().toUpperCase();
-        int commaPos = argsText.indexOf(',');
-        int toPos = argsText.indexOf("TO");
+        final String argsText = args.getText().toUpperCase();
+        final int commaPos = argsText.indexOf(',');
+        final int toPos = argsText.indexOf("TO");
 
         if (commaPos >= 0 && numIndex < nums.size()) {
-          String numText = nums.get(numIndex).getText();
-          int numPos = argsText.indexOf(numText, commaPos);
+          final String numText = nums.get(numIndex).getText();
+          final int numPos = argsText.indexOf(numText, commaPos);
           if (numPos < toPos) {
             oldStart = (int) numEval.applyAsDouble(nums.get(numIndex++));
           }
@@ -320,7 +317,7 @@ public class ProgramEditor {
       throw new ReportException(
           ReportCode.NONSENSE_IN_BASIC, 0, "Command requires at least one line number");
     }
-    var nums = range.numExpr();
+    final var nums = range.numExpr();
     if (nums.isEmpty() && range.TO() == null) {
       throw new ReportException(
           ReportCode.NONSENSE_IN_BASIC, 0, "Command requires at least one line number or TO");

@@ -1,5 +1,6 @@
 package com.davidconneely.bazlang.program;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -16,12 +17,12 @@ class InputProgramTest extends BaseProgramTest {
   void testInputSyntaxErrorRetry() {
     // Test that syntax errors in numeric INPUT re-prompt with error message
     // First input "(1" is a syntax error (unbalanced parens), second input "42" is valid
-    String output =
+    final String output =
         runProgramCapture(
             """
-                10 INPUT X
-                20 PRINT X
-                """,
+        10 INPUT X
+        20 PRINT X
+        """,
             List.of("(1", "42"));
 
     assertTrue(output.contains("Syntax error in expression"));
@@ -31,24 +32,19 @@ class InputProgramTest extends BaseProgramTest {
   @Test
   void testInputToArray() {
     // Test INPUT into an array element.
-    EvalState state =
+    final var state =
         runProgram(
             """
-                10 DIM A(10)
-                20 INPUT A(5)
-                30 DIM B$(5, 10)
-                40 INPUT B$(2)
-                """,
+        10 DIM A(10)
+        20 INPUT A(5)
+        30 DIM B$(5, 10)
+        40 INPUT B$(2)
+        """,
             List.of("42", "HELLO"));
 
     assertEquals(42.0, state.numArray("A").data()[4]); // 1-based index 5 is data[4]
-    var bArr = (EvalState.StrVar.Array) state.strVar("B$");
-    String b2 =
-        new String(
-            bArr.data(),
-            bArr.stringLength(),
-            bArr.stringLength(),
-            java.nio.charset.StandardCharsets.UTF_8);
+    final var bArr = (EvalState.StrVar.Array) state.strVar("B$");
+    final String b2 = new String(bArr.data(), bArr.stringLength(), bArr.stringLength(), UTF_8);
     assertTrue(b2.startsWith("HELLO"));
   }
 
@@ -60,8 +56,8 @@ class InputProgramTest extends BaseProgramTest {
         () ->
             runProgram(
                 """
-                    10 INPUT X
-                    """,
+        10 INPUT X
+        """,
                 List.of("NOTDEF")));
   }
 }

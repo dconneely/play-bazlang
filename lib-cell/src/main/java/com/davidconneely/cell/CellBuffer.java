@@ -117,11 +117,11 @@ public final class CellBuffer {
 
   public void setCell(int row, int col, int codepoint, int fgColour, int bgColour, int style) {
     if (row >= 0 && row < rows && col >= 0 && col < cols) {
-      int idx = index(row, col);
+      final int idx = index(row, col);
       codepoints[idx] = codepoint;
-      long oldAttr = attributes[idx];
-      int finalFg = fgColour != -1 ? fgColour : unpackFgColour(oldAttr);
-      int finalBg = bgColour != -1 ? bgColour : unpackBgColour(oldAttr);
+      final long oldAttr = attributes[idx];
+      final int finalFg = fgColour != -1 ? fgColour : unpackFgColour(oldAttr);
+      final int finalBg = bgColour != -1 ? bgColour : unpackBgColour(oldAttr);
       attributes[idx] = packAttributes(finalFg, finalBg, style);
     }
   }
@@ -130,8 +130,8 @@ public final class CellBuffer {
 
   private void clearRange(
       int[] targetCodepoints, long[] targetAttributes, int fromCell, int cellCount) {
-    int endCell = fromCell + cellCount;
-    long defaultAttr =
+    final int endCell = fromCell + cellCount;
+    final long defaultAttr =
         packAttributes(CellAttributes.COLOUR_DEFAULT, CellAttributes.COLOUR_DEFAULT, 0);
     for (int i = fromCell; i < endCell; i++) {
       targetCodepoints[i] = ' ';
@@ -145,7 +145,7 @@ public final class CellBuffer {
 
   public void scrollUp() {
     // Shift rows [1..rows-1] down by one row, then clear the last row.
-    int rowStride = cols;
+    final int rowStride = cols;
     System.arraycopy(codepoints, rowStride, codepoints, 0, (rows - 1) * rowStride);
     System.arraycopy(attributes, rowStride, attributes, 0, (rows - 1) * rowStride);
     // Clear the last row.
@@ -160,15 +160,15 @@ public final class CellBuffer {
     if (newRows == rows && newCols == cols) {
       return;
     }
-    int newBufSize = newRows * newCols;
-    int[] newCodepoints = new int[newBufSize];
-    long[] newAttributes = new long[newBufSize];
+    final int newBufSize = newRows * newCols;
+    final int[] newCodepoints = new int[newBufSize];
+    final long[] newAttributes = new long[newBufSize];
     // Initialise new buffer to default cell values.
     clearRange(newCodepoints, newAttributes, 0, newBufSize);
 
     // Copy existing content row by row, truncating or padding as needed.
-    int copyRows = Math.min(rows, newRows);
-    int copyCols = Math.min(cols, newCols);
+    final int copyRows = Math.min(rows, newRows);
+    final int copyCols = Math.min(cols, newCols);
     for (int r = 0; r < copyRows; r++) {
       System.arraycopy(codepoints, r * cols, newCodepoints, r * newCols, copyCols);
       System.arraycopy(attributes, r * cols, newAttributes, r * newCols, copyCols);
@@ -212,17 +212,17 @@ public final class CellBuffer {
     if (!isPixelInBounds(x, y)) {
       return 0;
     }
-    int ppx = mode.pixelsPerCellX();
-    int ppy = mode.pixelsPerCellY();
-    int absX = Math.abs(x);
-    int absY = Math.abs(y);
-    int col = absX / ppx;
-    int row = (rows - 1) - absY / ppy;
-    int subX = absX % ppx;
-    int subY = absY % ppy;
-    int mask = mode.bitMask(subX, subY);
-    int idx = index(row, col);
-    int state = mode.decode(codepoints[idx]);
+    final int ppx = mode.pixelsPerCellX();
+    final int ppy = mode.pixelsPerCellY();
+    final int absX = Math.abs(x);
+    final int absY = Math.abs(y);
+    final int col = absX / ppx;
+    final int row = (rows - 1) - absY / ppy;
+    final int subX = absX % ppx;
+    final int subY = absY % ppy;
+    final int mask = mode.bitMask(subX, subY);
+    final int idx = index(row, col);
+    final int state = mode.decode(codepoints[idx]);
     return (state & mask) != 0 ? 1 : 0;
   }
 
@@ -231,17 +231,17 @@ public final class CellBuffer {
     if (!isPixelInBounds(x, y)) {
       return;
     }
-    int ppx = mode.pixelsPerCellX();
-    int ppy = mode.pixelsPerCellY();
-    int absX = Math.abs(x);
-    int absY = Math.abs(y);
-    int col = absX / ppx;
-    int row = (rows - 1) - absY / ppy;
-    int subX = absX % ppx;
-    int subY = absY % ppy;
-    int mask = mode.bitMask(subX, subY);
-    int idx = index(row, col);
-    int state = mode.decode(codepoints[idx]);
+    final int ppx = mode.pixelsPerCellX();
+    final int ppy = mode.pixelsPerCellY();
+    final int absX = Math.abs(x);
+    final int absY = Math.abs(y);
+    final int col = absX / ppx;
+    final int row = (rows - 1) - absY / ppy;
+    final int subX = absX % ppx;
+    final int subY = absY % ppy;
+    final int mask = mode.bitMask(subX, subY);
+    final int idx = index(row, col);
+    final int state = mode.decode(codepoints[idx]);
     int newState;
     if (over) {
       newState = state ^ mask;
@@ -250,9 +250,9 @@ public final class CellBuffer {
     }
     codepoints[idx] = mode.encode(newState);
     if (fgColour != -1 || bgColour != -1) {
-      long oldAttr = attributes[idx];
-      int finalFg = fgColour != -1 ? fgColour : unpackFgColour(oldAttr);
-      int finalBg = bgColour != -1 ? bgColour : unpackBgColour(oldAttr);
+      final long oldAttr = attributes[idx];
+      final int finalFg = fgColour != -1 ? fgColour : unpackFgColour(oldAttr);
+      final int finalBg = bgColour != -1 ? bgColour : unpackBgColour(oldAttr);
       attributes[idx] = packAttributes(finalFg, finalBg, style);
     }
   }

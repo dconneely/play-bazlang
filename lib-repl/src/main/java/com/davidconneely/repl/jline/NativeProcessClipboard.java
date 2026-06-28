@@ -10,7 +10,7 @@ class NativeProcessClipboard implements Clipboard {
   @Override
   public void copy(String text) {
     try {
-      String os = System.getProperty("os.name").toLowerCase(Locale.ENGLISH);
+      final String os = System.getProperty("os.name").toLowerCase(Locale.ENGLISH);
       ProcessBuilder pb;
       if (os.contains("mac")) {
         pb = new ProcessBuilder("pbcopy");
@@ -19,7 +19,7 @@ class NativeProcessClipboard implements Clipboard {
       } else {
         pb = new ProcessBuilder("xclip", "-selection", "clipboard");
       }
-      Process process = pb.start();
+      final var process = pb.start();
       process.getOutputStream().write(text.getBytes(StandardCharsets.UTF_8));
       process.getOutputStream().close();
     } catch (IOException e) {

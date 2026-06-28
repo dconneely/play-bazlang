@@ -161,7 +161,7 @@ expression
     ;
 
 // Numeric expressions
-// ZX81 BASIC precedence (higher number = binds tighter):
+// Sinclair ZX BASIC precedence (higher number = binds tighter):
 //   12: subscripting/slicing, 11: functions, 10: **, 9: unary minus,
 //   8: */,  6: +-, 5: comparisons, 4: NOT, 3: AND, 2: OR
 // ANTLR: earlier alternatives = higher precedence (bind tighter)

@@ -8,7 +8,7 @@ class PixelModeTest {
 
   @Test
   void testBrailleMode() {
-    PixelMode mode = BrailleMode.INSTANCE;
+    final var mode = BrailleMode.INSTANCE;
     assertEquals(2, mode.pixelsPerCellX());
     assertEquals(4, mode.pixelsPerCellY());
 
@@ -26,7 +26,7 @@ class PixelModeTest {
 
   @Test
   void testCellMode() {
-    PixelMode mode = CellMode.INSTANCE;
+    final var mode = CellMode.INSTANCE;
     assertEquals(1, mode.pixelsPerCellX());
     assertEquals(1, mode.pixelsPerCellY());
 
@@ -42,7 +42,7 @@ class PixelModeTest {
 
   @Test
   void testHalfCellMode() {
-    PixelMode mode = HalfCellMode.INSTANCE;
+    final var mode = HalfCellMode.INSTANCE;
     assertEquals(1, mode.pixelsPerCellX());
     assertEquals(2, mode.pixelsPerCellY());
 
@@ -63,7 +63,7 @@ class PixelModeTest {
 
   @Test
   void testQuadrantMode() {
-    PixelMode mode = QuadrantMode.INSTANCE;
+    final var mode = QuadrantMode.INSTANCE;
     assertEquals(2, mode.pixelsPerCellX());
     assertEquals(2, mode.pixelsPerCellY());
 
@@ -84,7 +84,7 @@ class PixelModeTest {
 
   @Test
   void testSextantMode() {
-    PixelMode mode = SextantMode.INSTANCE;
+    final var mode = SextantMode.INSTANCE;
     assertEquals(2, mode.pixelsPerCellX());
     assertEquals(3, mode.pixelsPerCellY());
 

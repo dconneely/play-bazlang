@@ -1,7 +1,7 @@
 # BazLang Reference
 
 BazLang is a BASIC dialect based on Sinclair ZX BASIC (supporting a superset of both ZX81 and ZX
-Spectrum). This file lists the available commands, functions, and syntax rules.
+Spectrum BASIC). This file lists the available commands, functions, and syntax rules.
 
 ## Structure
 
@@ -40,7 +40,7 @@ Spectrum). This file lists the available commands, functions, and syntax rules.
   literals and input from `INPUT` are stored as UTF-8 bytes. When printed, bytes are decoded
   normally; lone invalid bytes 0xNN are displayed as the utf8-c8 synthetic `?xNN`. For behaviour of
   fixed-length string arrays with UTF-8 characters, see
-  [implementation.md](implementation.md#language-quirks--sinclair-eccentricities).
+  [implementation.md](implementation.md#language-quirks--sinclair-zx-basic-eccentricities).
 
 ### Namespaces
 
@@ -71,8 +71,8 @@ Returns `1` for True, `0` for False.
 
 - `NOT` - Returns `1` if operand is `0`, else `0`
 - `AND` - `a AND b` returns `a` if `b≠0`, else `0` for numeric `a`; `a$ AND b` returns `a$` if
-  `b≠0`, else `""` for string `a$` (Sinclair ZX style)
-- `OR` - `a OR b` returns `1` if `b≠0`, else `a` (Sinclair ZX style, numeric operands only)
+  `b≠0`, else `""` for string `a$` (Sinclair ZX BASIC style)
+- `OR` - `a OR b` returns `1` if `b≠0`, else `a` (Sinclair ZX BASIC style, numeric operands only)
 
 ### Strings
 
@@ -86,10 +86,10 @@ Returns `1` for True, `0` for False.
   If line `n` doesn't exist, jumps to the next numerically higher line.
 - **`GO SUB n`** (alias **`GOSUB n`**) ... `RETURN`: Call a subroutine.
 - **`IF condition THEN statement`**: Run statement if true. No `ELSE`.
-- **`FOR var = start TO end STEP step` ... `NEXT var`**: Loop.
+- **`FOR varname = start TO end STEP step` ... `NEXT varname`**: Loop.
   - Note: While the Spectrum only allows single-character loop variables (`A` to `Z`), BazLang
     supports multi-character loop variables. See
-    [implementation.md](implementation.md#language-quirks--sinclair-eccentricities) for loop
+    [implementation.md](implementation.md#language-quirks--sinclair-zx-basic-eccentricities) for loop
     execution quirks.
 - **`STOP`**: Stop the program.
 - **`CONTINUE`** (alias **`CONT`**): Continue after a `STOP`.
@@ -108,7 +108,7 @@ Returns `1` for True, `0` for False.
   - `INK n` / `PAPER n` / `FLASH n` / `BRIGHT n` / `INVERSE n` / `OVER n`: Temporary colour/style
     modifiers for the print statement.
 - **`LPRINT`**: Print to "printer" (standard error).
-- **`INPUT var`**: Ask user for input.
+- **`INPUT varname`**: Ask user for input.
   For numeric variables, the input is evaluated as an expression.
   If the expression is invalid, the user is prompted with "Syntax error? " and can edit their input.
 - **`CLS`**: Clear screen.
@@ -120,7 +120,7 @@ Returns `1` for True, `0` for False.
   (e.g. `DRAW INK 2; x, y`).
   - Coordinates start at `(0,0)` (bottom-left) and extend dynamically based on terminal size.
     For negative coordinate behaviours, see
-    [implementation.md](implementation.md#language-quirks--sinclair-eccentricities).
+    [implementation.md](implementation.md#language-quirks--sinclair-zx-basic-eccentricities).
   - Uses Unicode block characters; the resolution depends on the current pixel mode (see
     `PLOTMODE`).
 - **`PLOTMODE n`**: Sets the pixel mode for graphics (`PLOT` and `DRAW`):
@@ -160,10 +160,10 @@ Returns `1` for True, `0` for False.
 
 ### Data
 
-- **`LET var = value`**: Set a variable.
-- **`DIM var(size)`**: Create an array.
-- **`DATA v1, v2, ...`**: Define a list of constant values to be read by `READ`.
-- **`READ var1, var2, ...`**: Read values from `DATA` statements into variables.
+- **`LET varname = value`**: Set a variable.
+- **`DIM varname(size)`**: Create an array.
+- **`DATA value1, value2, ...`**: Define a list of constant values to be read by `READ`.
+- **`READ varname1, varname2, ...`**: Read values from `DATA` statements into variables.
 - **`RESTORE [n]`**: Reset the data pointer to the first `DATA` statement,
   or optionally to line `n`.
 
@@ -259,7 +259,7 @@ PRINT CODE grid$(1, 1)  : REM prints 32
 
 ## Number Formatting
 
-Numbers are displayed in Sinclair ZX style:
+Numbers are displayed in Sinclair ZX BASIC style:
 
 - Up to 8 significant digits
 - Scientific notation (E notation) for very small or very large values

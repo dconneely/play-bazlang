@@ -1,9 +1,7 @@
 package com.davidconneely.bazlang;
 
 import com.davidconneely.bazlang.antlr.AntlrParser;
-import com.davidconneely.bazlang.antlr.BazLangParser.IfStmtContext;
-import com.davidconneely.bazlang.antlr.BazLangParser.StatementContext;
-import com.davidconneely.bazlang.antlr.BazLangParser.StatementsContext;
+import com.davidconneely.bazlang.antlr.BazLangParser.*;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -36,7 +34,7 @@ public class ProgramLine {
   public List<StatementContext> getFlattenedStatements(AntlrParser parser) {
     if (cachedFlatStatements == null) {
       ensureParsed(parser);
-      List<StatementContext> flat = new ArrayList<>();
+      final var flat = new ArrayList<StatementContext>();
       flatten(cachedParseTree, flat);
       cachedFlatStatements = flat;
     }
@@ -59,7 +57,7 @@ public class ProgramLine {
     if (ctx == null) {
       return;
     }
-    for (StatementContext stmt : ctx.statement()) {
+    for (final var stmt : ctx.statement()) {
       flat.add(stmt);
       if (stmt instanceof IfStmtContext ifStmt) {
         flatten(ifStmt.statements(), flat);

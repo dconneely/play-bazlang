@@ -5,7 +5,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.davidconneely.bazlang.antlr.AntlrParser;
 import java.nio.file.Path;
-import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -14,14 +13,14 @@ class ProgramStorageTest {
 
   @Test
   void testSaveAndLoad(@TempDir Path tempDir) {
-    EvalState state = new EvalState();
-    ProgramStorage storage = new ProgramStorage(state, PARSER);
+    final var state = new EvalState();
+    final var storage = new ProgramStorage(state, PARSER);
 
-    String source = "10 PRINT \"HELLO\"\n20 GOTO 10";
-    Map<Integer, ProgramLine> originalProgram = PARSER.parseProgramLines(source);
+    final String source = "10 PRINT \"HELLO\"\n20 GOTO 10";
+    final var originalProgram = PARSER.parseProgramLines(source);
     state.setProgram(originalProgram);
 
-    Path saveFile = tempDir.resolve("test.bas");
+    final var saveFile = tempDir.resolve("test.bas");
     storage.save(saveFile.toString());
 
     // Clear state and load
@@ -35,24 +34,23 @@ class ProgramStorageTest {
 
   @Test
   void testLoadResource() {
-    EvalState state = new EvalState();
-    ProgramStorage storage = new ProgramStorage(state, PARSER);
+    final var state = new EvalState();
+    final var storage = new ProgramStorage(state, PARSER);
 
     // This file doesn't actually exist in tests, but let's test a non-existent resource
-    ReportException e =
-        assertThrows(ReportException.class, () -> storage.load("resource:/missing.bas"));
-    assertEquals(ReportCode.INVALID_FILE_NAME, e.reportCode());
+    final var ex = assertThrows(ReportException.class, () -> storage.load("resource:/missing.bas"));
+    assertEquals(ReportCode.INVALID_FILE_NAME, ex.reportCode());
   }
 
   @Test
   void testSaveInvalidPath() {
-    EvalState state = new EvalState();
-    ProgramStorage storage = new ProgramStorage(state, PARSER);
+    final var state = new EvalState();
+    final var storage = new ProgramStorage(state, PARSER);
 
     // Save to an invalid path that cannot be written
-    ReportException e =
+    final var ex =
         assertThrows(
             ReportException.class, () -> storage.save("invalid_dir/that/doesnt/exist/test.bas"));
-    assertEquals(ReportCode.INVALID_FILE_NAME, e.reportCode());
+    assertEquals(ReportCode.INVALID_FILE_NAME, ex.reportCode());
   }
 }

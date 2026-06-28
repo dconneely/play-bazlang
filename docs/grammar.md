@@ -141,11 +141,15 @@ As defined in the `replLine` root parsing rule:
 Unlike ZX81 BASIC, which had a dedicated `UNPLOT` statement, BazLang adheres to the original ZX
 Spectrum philosophy for erasing graphics. There are no explicit `UNPLOT` or `UNDRAW` statements.
 Instead, to erase lines or pixels, you should redraw them using style modifiers:
+
 - **`OVER 1`**: Redrawing the same line using `PLOT OVER 1; x, y` or `DRAW OVER 1; dx, dy` will XOR
   the pixels against the screen, perfectly restoring the background state without leaving holes in
   intersecting lines (provided the lines were also drawn using `OVER 1`).
 - **`INVERSE 1`**: You can also manually draw over a pixel using the background colour by using
   `PLOT INVERSE 1; x, y`.
+
+When plotting, `INVERSE` means clear pixels rather than set them, and `OVER` means invert the
+current pixel state (which is slightly confusing, but consistent with the Sinclair ZX Spectrum).
 
 ## Adding New Features
 
