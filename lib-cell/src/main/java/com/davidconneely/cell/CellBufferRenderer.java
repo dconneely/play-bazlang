@@ -5,6 +5,7 @@ import java.io.PrintWriter;
 public class CellBufferRenderer {
   public void renderContentRows(
       PrintWriter out, CellBuffer cellBuffer, int rowsToRender, int colsToRender) {
+    StringBuilder sb = new StringBuilder();
     for (int r = 0; r < rowsToRender; r++) {
       out.print("\033[");
       out.print(r + 1);
@@ -21,23 +22,31 @@ public class CellBufferRenderer {
           int fg = CellBuffer.unpackFgColour(attr);
           int bg = CellBuffer.unpackBgColour(attr);
           int style = CellBuffer.unpackStyle(attr);
+
           boolean resetNeeded =
               (activeStyles & ~style) != 0
-                  || ((activeFgColour & CellAttributes.COLOUR_TYPE_MASK)
-                          != CellAttributes.COLOUR_DEFAULT
-                      && (fg & CellAttributes.COLOUR_TYPE_MASK) == CellAttributes.COLOUR_DEFAULT)
-                  || ((activeBgColour & CellAttributes.COLOUR_TYPE_MASK)
-                          != CellAttributes.COLOUR_DEFAULT
-                      && (bg & CellAttributes.COLOUR_TYPE_MASK) == CellAttributes.COLOUR_DEFAULT);
+                  || (!CellAttributes.isDefault(activeFgColour) && CellAttributes.isDefault(fg))
+                  || (!CellAttributes.isDefault(activeBgColour) && CellAttributes.isDefault(bg));
+
+          sb.setLength(0);
           if (resetNeeded) {
-            out.print("\033[m");
+            sb.append('0');
             activeStyles = 0;
             activeFgColour = CellAttributes.COLOUR_DEFAULT;
             activeBgColour = CellAttributes.COLOUR_DEFAULT;
           }
-          activeStyles = emitStyles(out, style, activeStyles);
-          activeFgColour = emitColour(out, fg, activeFgColour, 38, 30, 90, "\033[39m");
-          activeBgColour = emitColour(out, bg, activeBgColour, 48, 40, 100, "\033[49m");
+
+          emitStyles(sb, style, activeStyles);
+          activeStyles = style;
+
+          activeFgColour = emitColour(sb, fg, activeFgColour, 38, 39);
+          activeBgColour = emitColour(sb, bg, activeBgColour, 48, 49);
+
+          if (!sb.isEmpty()) {
+            out.print("\033[");
+            out.print(sb);
+            out.print('m');
+          }
           activeAttr = attr;
         }
         int cp = cellBuffer.getCell(r, c);
@@ -50,86 +59,89 @@ public class CellBufferRenderer {
         }
       }
       if (activeStyles != 0
-          || activeFgColour != CellAttributes.COLOUR_DEFAULT
-          || activeBgColour != CellAttributes.COLOUR_DEFAULT) {
+          || !CellAttributes.isDefault(activeFgColour)
+          || !CellAttributes.isDefault(activeBgColour)) {
         out.print("\033[m");
       }
       out.print("\033[K");
     }
   }
 
-  private int emitStyles(PrintWriter out, int style, int activeStyles) {
+  private static void appendSep(StringBuilder sb) {
+    if (!sb.isEmpty()) {
+      sb.append(';');
+    }
+  }
+
+  private static void emitStyles(StringBuilder sb, int style, int activeStyles) {
     if ((style & CellAttributes.STYLE_BOLD) != 0
         && (activeStyles & CellAttributes.STYLE_BOLD) == 0) {
-      out.print("\033[1m");
+      appendSep(sb);
+      sb.append('1');
     }
     if ((style & CellAttributes.STYLE_FAINT) != 0
         && (activeStyles & CellAttributes.STYLE_FAINT) == 0) {
-      out.print("\033[2m");
+      appendSep(sb);
+      sb.append('2');
     }
     if ((style & CellAttributes.STYLE_ITALIC) != 0
         && (activeStyles & CellAttributes.STYLE_ITALIC) == 0) {
-      out.print("\033[3m");
+      appendSep(sb);
+      sb.append('3');
     }
     if ((style & CellAttributes.STYLE_UNDERLINE) != 0
         && (activeStyles & CellAttributes.STYLE_UNDERLINE) == 0) {
-      out.print("\033[4m");
+      appendSep(sb);
+      sb.append('4');
     }
     if ((style & CellAttributes.STYLE_BLINK) != 0
         && (activeStyles & CellAttributes.STYLE_BLINK) == 0) {
-      out.print("\033[5m");
+      appendSep(sb);
+      sb.append('5');
     }
     if ((style & CellAttributes.STYLE_INVERSE) != 0
         && (activeStyles & CellAttributes.STYLE_INVERSE) == 0) {
-      out.print("\033[7m");
+      appendSep(sb);
+      sb.append('7');
     }
-    return style;
+    if ((style & CellAttributes.STYLE_STRIKETHROUGH) != 0
+        && (activeStyles & CellAttributes.STYLE_STRIKETHROUGH) == 0) {
+      appendSep(sb);
+      sb.append('9');
+    }
   }
 
-  private int emitColour(
-      PrintWriter out,
-      int colour,
-      int activeColour,
-      int trueColourSgr,
-      int ansi8Base,
-      int ansi8HiBase,
-      String resetSeq) {
-    int colourType = colour & CellAttributes.COLOUR_TYPE_MASK;
-    if (colourType == CellAttributes.COLOUR_TYPE_RGB
-        || colourType == CellAttributes.COLOUR_TYPE_INDEX) {
+  private static int emitColour(
+      StringBuilder sb, int colour, int activeColour, int prefix, int defaultCode) {
+    if (!CellAttributes.isDefault(colour)) {
       if (activeColour == CellAttributes.COLOUR_DEFAULT || colour != activeColour) {
-        if (colourType == CellAttributes.COLOUR_TYPE_RGB) {
-          out.print("\033[");
-          out.print(trueColourSgr);
-          out.print(";2;");
-          out.print((colour >> 16) & 0xFF);
-          out.print(";");
-          out.print((colour >> 8) & 0xFF);
-          out.print(";");
-          out.print(colour & 0xFF);
-          out.print("m");
+        appendSep(sb);
+        if (CellAttributes.isRgb(colour)) {
+          sb.append(prefix)
+              .append(";2;")
+              .append((colour >> 16) & 0xFF)
+              .append(';')
+              .append((colour >> 8) & 0xFF)
+              .append(';')
+              .append(colour & 0xFF);
         } else {
-          int index = colour & 0xFFFFFF;
+          int index = CellAttributes.valueOf(colour);
           if (index < 8) {
-            out.print("\033[");
-            out.print(ansi8Base + index);
-            out.print("m");
+            sb.append(prefix - 8 + index);
           } else if (index < 16) {
-            out.print("\033[");
-            out.print(ansi8HiBase + (index - 8));
-            out.print("m");
+            sb.append(prefix + 52 + (index - 8));
           } else {
-            out.print("\033[");
-            out.print(trueColourSgr);
-            out.print(";5;");
-            out.print(index);
-            out.print("m");
+            sb.append(prefix).append(";5;").append(index);
           }
         }
+        return colour;
       }
-    } else if ((activeColour & CellAttributes.COLOUR_TYPE_MASK) != CellAttributes.COLOUR_DEFAULT) {
-      out.print(resetSeq);
+      return activeColour;
+    } else if (!CellAttributes.isDefault(activeColour)) {
+      appendSep(sb);
+      sb.append(defaultCode);
+      return CellAttributes.COLOUR_DEFAULT;
     }
-    return colour;
+    return activeColour;
   }
 }

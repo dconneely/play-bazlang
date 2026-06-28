@@ -118,35 +118,34 @@
 5060 IF ABS (vx) > max_vx THEN LET landing_ok = 0
 5070 IF ABS (t_deg) > max_ang THEN LET landing_ok = 0
 5080 IF fuel <= 0 THEN LET landing_ok = 0
-5090 LET tbl_col = INT ((TEXTW - 49) / 2) : IF tbl_col < 0 THEN LET tbl_col = 0
-5100 PRINT AT 1, tbl_col + 11; INK -1; "--- TOUCHDOWN TELEMETRY ---"
-5110 PRINT AT 3, tbl_col; INK -1; "Parameter      | Value      | Limit      | Status"
-5120 PRINT AT 4, tbl_col; INK -1; "---------------+------------+------------+-------"
-5130 LET stat$ = "SAFE" : LET c_ink = 4 : IF ABS (vy) > max_vy THEN LET stat$ = "CRASH" : LET c_ink = 2
-5140 PRINT AT 5, tbl_col; INK -1; "Vert Speed"; AT 5, tbl_col + 15; "| "; INT (ABS (vy) * 100) / 100; AT 5, tbl_col + 28; "| <= "; INT (max_vy * 100) / 100; AT 5, tbl_col + 41; "| "; INK c_ink; stat$
-5150 LET stat$ = "SAFE" : LET c_ink = 4 : IF ABS (vx) > max_vx THEN LET stat$ = "CRASH" : LET c_ink = 2
-5160 PRINT AT 6, tbl_col; INK -1; "Slide Speed"; AT 6, tbl_col + 15; "| "; INT (ABS (vx) * 100) / 100; AT 6, tbl_col + 28; "| <= "; INT (max_vx * 100) / 100; AT 6, tbl_col + 41; "| "; INK c_ink; stat$
-5170 LET stat$ = "SAFE" : LET c_ink = 4 : IF ABS (t_deg) > max_ang THEN LET stat$ = "CRASH" : LET c_ink = 2
-5180 PRINT AT 7, tbl_col; INK -1; "Tilt Angle"; AT 7, tbl_col + 15; "| "; ABS (t_deg); " deg"; AT 7, tbl_col + 28; "| <= "; INT (max_ang * 10) / 10; " deg"; AT 7, tbl_col + 41; "| "; INK c_ink; stat$
-5190 LET stat$ = "SAFE" : LET c_ink = 4 : LET zone$ = "Pad" : IF seg <> 4 THEN LET stat$ = "CRASH" : LET c_ink = 2 : LET zone$ = "Off-pad"
-5200 PRINT AT 8, tbl_col; INK -1; "Landing Zone"; AT 8, tbl_col + 15; "| "; zone$; AT 8, tbl_col + 28; "| Pad (Seg 4)"; AT 8, tbl_col + 41; "| "; INK c_ink; stat$
-5210 LET stat$ = "SAFE" : LET c_ink = 4 : IF fuel <= 0 THEN LET stat$ = "CRASH" : LET c_ink = 2
-5220 PRINT AT 9, tbl_col; INK -1; "Remaining Fuel"; AT 9, tbl_col + 15; "| "; fuel; " units"; AT 9, tbl_col + 28; "| > 0 units"; AT 9, tbl_col + 41; "| "; INK c_ink; stat$
-5230 LET thr$ = "Idle" : IF thrusting = 1 THEN LET thr$ = "Active"
-5240 PRINT AT 10, tbl_col; INK -1; "Engine Thrust"; AT 10, tbl_col + 15; "| "; thr$; AT 10, tbl_col + 28; "| (N/A)"; AT 10, tbl_col + 41; "| (N/A)"
-5250 PRINT AT 11, tbl_col; INK -1; "Altitude"; AT 11, tbl_col + 15; "| 0.0 m"; AT 11, tbl_col + 28; "| 0.0 m"; AT 11, tbl_col + 41; "| "; INK 4; "SAFE"
-5260 PRINT AT 12, tbl_col; INK -1; "-------------------------------------------------"
-5270 IF landing_ok = 0 THEN GO TO 5340
-5280 PRINT AT 14, tbl_col + 5; INK 4; "SUCCESSFUL LANDING! BONUS SCORE +100"
-5290 LET score = score + 100 : LET level = level + 1
-5300 LET np$ = "VICTORY"
-5310 IF level <= 8 THEN RESTORE 8000 + level * 10
-5320 IF level <= 8 THEN READ np$
+5090 LET tbl_col = INT ((TEXTW - 60) / 2) : IF tbl_col < 0 THEN LET tbl_col = 0
+5100 PRINT AT 1, tbl_col + 17; INK -1; "--- TOUCHDOWN TELEMETRY ---"
+5110 PRINT AT 3, tbl_col; INK -1; "Parameter             | Value        | Limit        | Status"
+5120 PRINT AT 4, tbl_col; INK -1; "----------------------+--------------+--------------+-------"
+5130 PRINT AT 5, tbl_col; INK -1; "Altitude"; AT 5, tbl_col + 22; "| 0.0 m"; AT 5, tbl_col + 37; "| 0.0 m"; AT 5, tbl_col + 52; "| "; INK 4; "SAFE"
+5140 LET stat$ = "SAFE" : LET c_ink = 4 : IF ABS (vy) > max_vy THEN LET stat$ = "CRASH" : LET c_ink = 2
+5150 PRINT AT 6, tbl_col; INK -1; "Vertical Descent Speed"; AT 6, tbl_col + 22; "| "; INT (vy * 100) / 100; " ms⁻¹"; AT 6, tbl_col + 37; "| <= "; INT (max_vy * 100) / 100; " ms⁻¹"; AT 6, tbl_col + 52; "| "; INK c_ink; stat$
+5160 LET stat$ = "SAFE" : LET c_ink = 4 : IF ABS (vx) > max_vx THEN LET stat$ = "CRASH" : LET c_ink = 2
+5170 PRINT AT 7, tbl_col; INK -1; "Horizontal Slide Speed"; AT 7, tbl_col + 22; "| "; INT (vx * 100) / 100; " ms⁻¹"; AT 7, tbl_col + 37; "| <= "; INT (max_vx * 100) / 100; " ms⁻¹"; AT 7, tbl_col + 52; "| "; INK c_ink; stat$
+5180 LET stat$ = "SAFE" : LET c_ink = 4 : IF ABS (t_deg) > max_ang THEN LET stat$ = "CRASH" : LET c_ink = 2
+5190 PRINT AT 8, tbl_col; INK -1; "Attitude / Tilt Angle"; AT 8, tbl_col + 22; "| "; ABS (t_deg); " °"; AT 8, tbl_col + 37; "| <= "; INT (max_ang * 10) / 10; " °"; AT 8, tbl_col + 52; "| "; INK c_ink; stat$
+5200 LET thr$ = "Idle" : IF thrusting = 1 THEN LET thr$ = "Active"
+5210 PRINT AT 9, tbl_col; INK -1; "Engine Thrust"; AT 9, tbl_col + 22; "| "; thr$; AT 9, tbl_col + 37; "| (N/A)"; AT 9, tbl_col + 52; "| (N/A)"
+5220 LET stat$ = "SAFE" : LET c_ink = 4 : IF fuel <= 0 THEN LET stat$ = "CRASH" : LET c_ink = 2
+5230 PRINT AT 10, tbl_col; INK -1; "Remaining Fuel"; AT 10, tbl_col + 22; "| "; fuel; " u"; AT 10, tbl_col + 37; "| > 0 u"; AT 10, tbl_col + 52; "| "; INK c_ink; stat$
+5240 PRINT AT 11, tbl_col; INK -1; "Local Gravity"; AT 11, tbl_col + 22; "| "; rg$; AT 11, tbl_col + 37; "| (N/A)"; AT 11, tbl_col + 52; "| (N/A)"
+5250 LET stat$ = "SAFE" : LET c_ink = 4 : LET zone$ = "Pad" : IF seg <> 4 THEN LET stat$ = "CRASH" : LET c_ink = 2 : LET zone$ = "Off-pad"
+5260 PRINT AT 12, tbl_col; INK -1; "Landing Zone"; AT 12, tbl_col + 22; "| "; zone$; AT 12, tbl_col + 37; "| Pad (Seg 4)"; AT 12, tbl_col + 52; "| "; INK c_ink; stat$
+5270 PRINT AT 13, tbl_col; INK -1; "------------------------------------------------------------"
+5280 IF landing_ok = 0 THEN GO TO 5340
+5290 PRINT AT 15, tbl_col + 10; INK 4; "SUCCESSFUL LANDING! BONUS SCORE +100"
+5300 LET score = score + 100 : LET level = level + 1
+5310 LET np$ = "VICTORY" : IF level <= 8 THEN RESTORE 8000 + level * 10 : READ np$
 5330 GO TO 5360
-5340 PRINT AT 14, tbl_col + 5; INK 2; "CRASHED! MODULE EXPLODED! SCORE RESET!"
+5340 PRINT AT 15, tbl_col + 10; INK 2; "CRASHED! MODULE EXPLODED! SCORE RESET!"
 5350 LET score = (level - 1) * 100
 5360 LET p_len = 33 + LEN (p$) : IF landing_ok = 1 THEN LET p_len = 32 + LEN (np$)
-5370 LET p_col = tbl_col + INT ((49 - p_len) / 2) : IF p_col < 0 THEN LET p_col = 0
+5370 LET p_col = tbl_col + INT ((60 - p_len) / 2) : IF p_col < 0 THEN LET p_col = 0
 5380 IF landing_ok = 1 THEN PRINT AT 17, p_col; INK 7; "Proceed to the next moon "; INK 6; BRIGHT 1; np$; BRIGHT 0; INK 7; " (Y/N)?"
 5390 IF landing_ok = 0 THEN PRINT AT 17, p_col; INK 7; "Attempt the "; INK 6; BRIGHT 1; p$; BRIGHT 0; INK 7; " landing again (Y/N)?"
 5400 LET k$ = UINKEY$
@@ -178,13 +177,13 @@
 6650 STOP
 7000 REM ### Moon Terrain DATA: 8 terrain points (x%, y%) per moon ###
 7010 DATA 0, 5, 20, 25, 35, 15, 50, 10, 70, 10, 80, 20, 90, 15, 100, 5
-7020 DATA 0, 5, 10, 15, 20, 10, 40, 10, 55, 25, 70, 15, 85, 20, 100, 5
-7030 DATA 0, 15, 15, 5, 30, 20, 40, 10, 60, 10, 75, 25, 88, 10, 100, 15
-7040 DATA 0, 5, 15, 20, 30, 15, 35, 10, 55, 10, 70, 25, 85, 15, 100, 5
-7050 DATA 0, 5, 15, 25, 30, 15, 40, 10, 60, 10, 75, 30, 88, 15, 100, 5
-7060 DATA 0, 5, 20, 15, 35, 25, 45, 10, 65, 10, 78, 20, 88, 15, 100, 5
-7070 DATA 0, 10, 15, 25, 35, 15, 55, 10, 75, 10, 85, 20, 92, 15, 100, 5
-7080 DATA 0, 5, 10, 15, 18, 25, 25, 20, 45, 20, 65, 10, 85, 15, 100, 5
+7020 DATA 0, 5, 10, 15, 20, 18, 40, 10, 58, 10, 70, 15, 85, 20, 100, 5
+7030 DATA 0, 15, 15, 5, 30, 20, 42, 10, 58, 10, 75, 25, 88, 10, 100, 15
+7040 DATA 0, 5, 15, 20, 30, 15, 38, 10, 52, 10, 70, 25, 85, 15, 100, 5
+7050 DATA 0, 5, 15, 25, 30, 15, 44, 10, 56, 10, 75, 30, 88, 15, 100, 5
+7060 DATA 0, 5, 20, 15, 35, 25, 48, 10, 58, 10, 78, 20, 88, 15, 100, 5
+7070 DATA 0, 10, 15, 25, 35, 15, 56, 10, 64, 10, 85, 20, 92, 15, 100, 5
+7080 DATA 0, 5, 10, 15, 18, 25, 32, 20, 38, 20, 65, 10, 85, 15, 100, 5
 8000 REM ### Moon DATA: name, desc1, desc2, s_ink, p_ink, s_bright, rg$ ###
 8010 DATA "PHOBOS", "Largest moon of Mars", "Dark carbonaceous regolith", 2, 7, 1, "0.006 ms⁻²"
 8020 DATA "ENCELADUS", "Moon of Saturn", "White geyser-active water ice crust", 7, 6, 1, "0.11 ms⁻²"

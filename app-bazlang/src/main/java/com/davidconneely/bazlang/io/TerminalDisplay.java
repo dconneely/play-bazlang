@@ -388,6 +388,8 @@ public class TerminalDisplay implements BazLangDisplay {
     int style = 0;
     if (activeFlash == 1) {
       style |= CellAttributes.STYLE_BLINK;
+    }
+    if (activeBright == 1) {
       style |= CellAttributes.STYLE_BOLD;
     }
     return style;
@@ -398,20 +400,15 @@ public class TerminalDisplay implements BazLangDisplay {
       // Transparent: return -1 to signal CellBuffer to preserve existing cell attributes
       return -1;
     }
+    int zxColour = colourCode;
     if (colourCode == 9) {
       // Contrast: if opposing colour is dark (0,1,2,3), pick White (7).
       // If light (4,5,6,7), pick Black (0).
-      if (opposingCode >= 0 && opposingCode <= 3) {
-        return CellAttributes.COLOUR_TYPE_RGB
-            | (activeBright == 1 ? ZX_TO_RGB_BRIGHT[7] : ZX_TO_RGB[7]);
-      } else {
-        return CellAttributes.COLOUR_TYPE_RGB
-            | (activeBright == 1 ? ZX_TO_RGB_BRIGHT[0] : ZX_TO_RGB[0]);
-      }
+      zxColour = (opposingCode >= 0 && opposingCode <= 3) ? 7 : 0;
     }
-    if (colourCode >= 0 && colourCode <= 7) {
-      return CellAttributes.COLOUR_TYPE_RGB
-          | (activeBright == 1 ? ZX_TO_RGB_BRIGHT[colourCode] : ZX_TO_RGB[colourCode]);
+    if (zxColour >= 0 && zxColour <= 7) {
+      int rgb = activeBright == 1 ? ZX_TO_RGB_BRIGHT[zxColour] : ZX_TO_RGB[zxColour];
+      return CellAttributes.rgb(rgb);
     }
     // Default fallback (including colourCode == -1) maps to terminal's own default colors
     return CellAttributes.COLOUR_DEFAULT;
