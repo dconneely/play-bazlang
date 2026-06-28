@@ -13,13 +13,13 @@ import java.util.Map;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 
-class ExamplesParseTest {
+class ExampleParseTest {
   private static final AntlrParser PARSER = AntlrParser.INSTANCE;
 
   @Test
   void testAllExamplesParse() {
-    Path examplesDir = Path.of("app-bazlang", "src", "examples", "bas");
-    try (Stream<Path> paths = Files.walk(examplesDir)) {
+    Path exampleDir = Path.of("app-bazlang", "src", "example", "bas");
+    try (Stream<Path> paths = Files.walk(exampleDir)) {
       paths
           .filter(Files::isRegularFile)
           .filter(p -> p.toString().endsWith(".bas"))
@@ -38,7 +38,7 @@ class ExamplesParseTest {
                 }
               });
     } catch (IOException e) {
-      fail("Failed to read examples directory: " + e.getMessage(), e);
+      fail("Failed to read example directory: " + e.getMessage(), e);
     }
   }
 }

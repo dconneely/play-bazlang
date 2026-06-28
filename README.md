@@ -39,10 +39,10 @@ java --enable-native-access=ALL-UNNAMED -jar app-bazlang/build/libs/bazlang-1.0.
 
 ## Examples
 
-You can find example programs in `app-bazlang/src/examples/bas/`. Run one like this:
+You can find example programs in `app-bazlang/src/example/bas/`. Run one like this:
 
 ```bash
-app-bazlang/run.sh app-bazlang/src/examples/bas/pontoon.bas
+app-bazlang/run.sh app-bazlang/src/example/bas/pontoon.bas
 ```
 
 ## License
