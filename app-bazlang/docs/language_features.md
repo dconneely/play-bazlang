@@ -216,10 +216,16 @@ Returns `1` for True, `0` for False.
 
 - **`CHR$ x`**: Single-byte string with raw byte value `x` (0-255). Error for x > 255.
 - **`INKEY$`**: Check key press.
+- **`SCREEN$(row, col)`**: Character at screen coordinate `(row, col)` as a single-byte string.
+  Returns `""` if the character codepoint is outside `0..127`. Reports 'Integer out of range' if
+  coordinates are out of bounds.
 - **`STR$ x`**: Convert number to string.
 - **`UCHR$ x`**: String containing the UTF-8 encoding of Unicode codepoint `x`.
   Use for codepoints above U+007F, e.g. `UCHR$(9608)` for the full-block character █.
 - **`UINKEY$`**: Check key press, interpreting multibyte UTF-8 sequences and ANSI escape sequences.
+- **`USCREEN$(row, col)`**: Character at screen coordinate `(row, col)` as a UTF-8 string.
+  Returns Unicode Braille/quadrant characters if the location has been plotted to. Reports
+  'Integer out of range' if coordinates are out of bounds.
 - **`VAL$ s$`**: Evaluate a string as a string expression.
 
 ## Slicing

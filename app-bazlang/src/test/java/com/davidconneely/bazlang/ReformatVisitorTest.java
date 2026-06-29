@@ -57,5 +57,7 @@ class ReformatVisitorTest {
     assertFormatsTo("save \"game\"", "SAVE \"game\"");
     assertFormatsTo("scroll", "SCROLL");
     assertFormatsTo("stop", "STOP");
+    assertFormatsTo("print screen$(1, 2)", "PRINT SCREEN$(1, 2)");
+    assertFormatsTo("print uscreen$(3, 4)", "PRINT USCREEN$(3, 4)");
   }
 }

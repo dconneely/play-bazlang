@@ -13,6 +13,7 @@ public class MockDisplay implements BazLangDisplay {
   private int currentRow = 0;
   private int currentCol = 0;
   private String status = null;
+  private final int[][] grid = new int[24][80];
 
   public MockDisplay() {
     this(Collections.emptyList());
@@ -20,6 +21,13 @@ public class MockDisplay implements BazLangDisplay {
 
   public MockDisplay(List<String> inputs) {
     this.inputs = inputs;
+    initGrid();
+  }
+
+  private void initGrid() {
+    for (int r = 0; r < 24; r++) {
+      java.util.Arrays.fill(grid[r], 32);
+    }
   }
 
   public String getOutput() {
@@ -28,6 +36,7 @@ public class MockDisplay implements BazLangDisplay {
 
   public void clearOutput() {
     output.setLength(0);
+    initGrid();
   }
 
   @Override
@@ -85,17 +94,15 @@ public class MockDisplay implements BazLangDisplay {
 
   @Override
   public void cls() {
-    // Ideally simulate screen clear, but for now just reset cursor
     currentRow = 0;
     currentCol = 0;
+    initGrid();
   }
 
   @Override
   public void locate(int row, int col) {
     currentRow = row;
     currentCol = col;
-    // Note: This doesn't simulate moving the "cursor" in the output buffer for tests
-    // that check simple string output, but it updates state for AT/TAB logic.
   }
 
   @Override
@@ -109,6 +116,14 @@ public class MockDisplay implements BazLangDisplay {
   }
 
   @Override
+  public int getScreenCodepoint(int row, int col) {
+    if (row < 0 || row >= 24 || col < 0 || col >= 80) {
+      return 32;
+    }
+    return grid[row][col];
+  }
+
+  @Override
   public void scroll() {
     println();
   }
@@ -116,14 +131,25 @@ public class MockDisplay implements BazLangDisplay {
   @Override
   public void print(String text) {
     output.append(text);
-    currentCol += text.length();
+    if (text != null) {
+      int idx = 0;
+      while (idx < text.length()) {
+        int cp = text.codePointAt(idx);
+        int r = currentRow;
+        int c = currentCol;
+        if (r >= 0 && r < 24 && c >= 0 && c < 80) {
+          grid[r][c] = cp;
+        }
+        currentCol++;
+        idx += Character.charCount(cp);
+      }
+    }
   }
 
   @Override
   public void println(String text) {
-    output.append(text).append('\n');
-    currentRow++;
-    currentCol = 0;
+    print(text);
+    println();
   }
 
   @Override

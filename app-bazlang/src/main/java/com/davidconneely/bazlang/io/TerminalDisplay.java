@@ -484,6 +484,14 @@ public class TerminalDisplay implements BazLangDisplay {
   }
 
   @Override
+  public int getScreenCodepoint(int row, int col) {
+    if (row < 0 || row >= cellBuffer.rows() || col < 0 || col >= cellBuffer.cols()) {
+      return 32;
+    }
+    return cellBuffer.getCell(row, col);
+  }
+
+  @Override
   public void lprint(String text) {
     System.err.print(text);
   }

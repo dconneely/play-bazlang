@@ -264,9 +264,11 @@ locals [ double cachedNum, Object varRef ]
 strFunc
     : CHR_STR numAtom
     | INKEY_STR
+    | SCREEN_STR '(' numExpr ',' numExpr ')'
     | STR_STR numAtom
     | UCHR_STR numAtom
     | UINKEY_STR
+    | USCREEN_STR '(' numExpr ',' numExpr ')'
     | VAL_STR strAtom
     ;
 
@@ -365,6 +367,7 @@ PLOTW    : 'PLOTW';
 PLOTX    : 'PLOTX';
 PLOTY    : 'PLOTY';
 RND      : 'RND';
+SCREEN_STR: 'SCREEN$';
 SGN      : 'SGN';
 SIN      : 'SIN';
 SQR      : 'SQR';
@@ -378,6 +381,7 @@ UCHR_STR : 'UCHR$';
 UCNEXT   : 'UCNEXT';
 UCODE    : 'UCODE';
 UINKEY_STR: 'UINKEY$';
+USCREEN_STR: 'USCREEN$';
 VAL      : 'VAL';
 VAL_STR  : 'VAL$';
 

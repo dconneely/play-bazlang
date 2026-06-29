@@ -623,8 +623,14 @@ public class ReformatVisitor extends BazLangBaseVisitor<String> {
     if (ctx.INKEY_STR() != null) {
       return "INKEY$";
     }
+    if (ctx.SCREEN_STR() != null) {
+      return "SCREEN$(" + visit(ctx.numExpr(0)) + ", " + visit(ctx.numExpr(1)) + ")";
+    }
     if (ctx.UINKEY_STR() != null) {
       return "UINKEY$";
+    }
+    if (ctx.USCREEN_STR() != null) {
+      return "USCREEN$(" + visit(ctx.numExpr(0)) + ", " + visit(ctx.numExpr(1)) + ")";
     }
     final String funcName = ctx.getChild(0).getText().toUpperCase();
     final String arg = visit(ctx.getChild(1));

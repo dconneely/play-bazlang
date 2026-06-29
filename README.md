@@ -6,12 +6,12 @@ It includes a REPL and works with standard UTF-8 source files.
 
 ## Documentation
 
-For more details, check the `docs/` folder:
+For more details, check the `app-bazlang/docs/` folder:
 
-- [Language Features](docs/language_features.md) - Details on variables, types, commands, and REPL
-  editor commands.
-- [Grammar](docs/grammar.md) - The ANTLR grammar that defines the language syntax.
-- [Implementation](docs/implementation.md) - How the code is structured and architected.
+- [Language Features](app-bazlang/docs/language_features.md) - Details on variables, types,
+  commands, and REPL editor commands.
+- [Grammar](app-bazlang/docs/grammar.md) - The ANTLR grammar that defines the language syntax.
+- [Implementation](app-bazlang/docs/implementation.md) - How the code is structured and architected.
 
 ## Quick Start
 

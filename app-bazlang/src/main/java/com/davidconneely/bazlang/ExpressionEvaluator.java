@@ -630,6 +630,28 @@ public class ExpressionEvaluator extends BazLangBaseVisitor<Void> {
       strResult = BStr.fromJavaString(display.inkey());
       return null;
     }
+    if (ctx.SCREEN_STR() != null || ctx.USCREEN_STR() != null) {
+      final int row = (int) Math.round(evalNum(ctx.numExpr(0)));
+      final int col = (int) Math.round(evalNum(ctx.numExpr(1)));
+      if (row < 0 || row >= display.printHeight() || col < 0 || col >= display.printWidth()) {
+        throw codedException(ReportCode.INTEGER_OUT_OF_RANGE, "Screen coordinates out of bounds");
+      }
+      final int cp = display.getScreenCodepoint(row, col);
+      if (ctx.SCREEN_STR() != null) {
+        if (cp >= 0 && cp <= 127) {
+          strResult = BStr.fromByte(cp);
+        } else {
+          strResult = BStr.EMPTY;
+        }
+      } else {
+        if (cp < 0 || !Character.isValidCodePoint(cp)) {
+          strResult = BStr.EMPTY;
+        } else {
+          strResult = BStr.fromJavaString(new String(Character.toChars(cp)));
+        }
+      }
+      return null;
+    }
     if (ctx.STR_STR() != null) {
       strResult = BStr.fromJavaString(formatNum(evalNumAtom(ctx.numAtom())));
       return null;

@@ -26,4 +26,9 @@ public interface BazLangDisplay extends Display, Shell {
   default void waitForKey() {
     // no-op by default
   }
+
+  /** Returns the codepoint at (row, col) on the screen. */
+  default int getScreenCodepoint(int row, int col) {
+    return 32;
+  }
 }

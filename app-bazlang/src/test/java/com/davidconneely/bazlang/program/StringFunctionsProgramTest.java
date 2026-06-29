@@ -158,4 +158,38 @@ class StringFunctionsProgramTest extends BaseProgramTest {
     assertEquals(255.0, state.numVar("B2")); // CODE retrieves raw byte 255
     assertEquals(128.0, state.numVar("CP")); // UCODE returns raw byte value if invalid
   }
+
+  @Test
+  void testScreenFunctions() {
+    final var state =
+        runProgram(
+            """
+        10 PRINT AT 5, 10; "A"
+        20 PRINT AT 6, 12; UCHR$(9608)
+        30 LET S1$ = SCREEN$(5, 10)
+        40 LET S2$ = SCREEN$(6, 12)
+        50 LET U1$ = USCREEN$(5, 10)
+        60 LET U2$ = USCREEN$(6, 12)
+        """);
+    assertEquals("A", ((EvalState.StrVar.Scalar) state.strVar("S1$")).value().toJavaString());
+    // 9608 is not in 0..127, so SCREEN$ returns empty string
+    assertEquals("", ((EvalState.StrVar.Scalar) state.strVar("S2$")).value().toJavaString());
+    assertEquals("A", ((EvalState.StrVar.Scalar) state.strVar("U1$")).value().toJavaString());
+    assertEquals("█", ((EvalState.StrVar.Scalar) state.strVar("U2$")).value().toJavaString());
+  }
+
+  @Test
+  void testScreenFunctionsOutOfBounds() {
+    var e1 = assertThrows(ReportException.class, () -> runProgram("10 LET S$ = SCREEN$(-1, 0)"));
+    assertEquals(com.davidconneely.bazlang.ReportCode.INTEGER_OUT_OF_RANGE, e1.reportCode());
+
+    var e2 = assertThrows(ReportException.class, () -> runProgram("10 LET S$ = SCREEN$(24, 0)"));
+    assertEquals(com.davidconneely.bazlang.ReportCode.INTEGER_OUT_OF_RANGE, e2.reportCode());
+
+    var e3 = assertThrows(ReportException.class, () -> runProgram("10 LET S$ = SCREEN$(0, -1)"));
+    assertEquals(com.davidconneely.bazlang.ReportCode.INTEGER_OUT_OF_RANGE, e3.reportCode());
+
+    var e4 = assertThrows(ReportException.class, () -> runProgram("10 LET S$ = SCREEN$(0, 80)"));
+    assertEquals(com.davidconneely.bazlang.ReportCode.INTEGER_OUT_OF_RANGE, e4.reportCode());
+  }
 }
