@@ -177,7 +177,11 @@ Returns `1` for True, `0` for False.
 ### Math Functions
 
 - **`ABS x`**: Absolute value.
+- **`ATTR(row, col)`**: Sinclair Spectrum attribute byte at `(row, col)` computed as
+  `(flash * 128) + (bright * 64) + (paper * 8) + ink`. Reports 'Integer out of range' if
+  coordinates are out of bounds.
 - **`CODE s$`**: Raw byte value (0-255) of first byte in string.
+- **`COLOUR(r, g, b)`**: Packs 24-bit RGB values to a BazLang colour number (`16777216 + RGB`).
 - **`FRAMES`**: Number of ticks (1 tick = 20 milliseconds) since epoch.
   It increases by `50.0` every second. Fractional ticks are allowed.
 - **`INT x`**: Round down to integer.
@@ -209,6 +213,10 @@ Returns `1` for True, `0` for False.
   ```
 - **`UCODE s$`**: Unicode codepoint value of first character (UTF-8 decoded).
 - **`VAL s$`**: Evaluate string as numeric expression (not just parse a literal).
+- **`XATTR(row, col, select)`**: Extended attribute cell value at `(row, col)`. The `select` code
+  determines the return value: `0`=ink color, `1`=paper color, `2`=flash, `3`=bright, `4`=inverse,
+  `5`=italic, `6`=underline, `7`=strikethrough, `8`=faint. Reports 'Integer out of range' if
+  parameters are out of range.
 - **Logs**: `EXP`, `LN`.
 - **Trig**: `SIN`, `COS`, `TAN`, `ASN`, `ACS`, `ATN`.
 

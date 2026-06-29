@@ -31,4 +31,17 @@ public interface BazLangDisplay extends Display, Shell {
   default int getScreenCodepoint(int row, int col) {
     return 32;
   }
+
+  /** Returns the ZX Spectrum attribute byte at (row, col) on the screen. */
+  default int getScreenAttributes(int row, int col) {
+    return 56;
+  }
+
+  /** Returns the extended attribute value at (row, col) for the given selector. */
+  default int getXAttributes(int row, int col, int select) {
+    if (select == 0 || select == 1) {
+      return -1; // Default color
+    }
+    return 0; // Style inactive by default
+  }
 }

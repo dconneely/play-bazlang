@@ -59,5 +59,7 @@ class ReformatVisitorTest {
     assertFormatsTo("stop", "STOP");
     assertFormatsTo("print screen$(1, 2)", "PRINT SCREEN$(1, 2)");
     assertFormatsTo("print uscreen$(3, 4)", "PRINT USCREEN$(3, 4)");
+    assertFormatsTo("print attr(1, 2)", "PRINT ATTR(1, 2)");
+    assertFormatsTo("print xattr(3, 4, 5)", "PRINT XATTR(3, 4, 5)");
   }
 }

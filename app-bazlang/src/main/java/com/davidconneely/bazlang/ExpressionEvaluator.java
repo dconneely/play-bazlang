@@ -257,6 +257,15 @@ public class ExpressionEvaluator extends BazLangBaseVisitor<Void> {
       numResult = Math.asin(arg);
       return null;
     }
+    if (ctx.ATTR() != null) {
+      final int row = (int) Math.round(evalNum(ctx.numExpr(0)));
+      final int col = (int) Math.round(evalNum(ctx.numExpr(1)));
+      if (row < 0 || row >= display.printHeight() || col < 0 || col >= display.printWidth()) {
+        throw codedException(ReportCode.INTEGER_OUT_OF_RANGE, "Screen coordinates out of bounds");
+      }
+      numResult = display.getScreenAttributes(row, col);
+      return null;
+    }
     if (ctx.ATN() != null) {
       numResult = Math.atan(evalNumAtom(ctx.numAtom()));
       return null;
@@ -400,6 +409,19 @@ public class ExpressionEvaluator extends BazLangBaseVisitor<Void> {
     if (ctx.VAL() != null) {
       final String exprStr = evalStrAtom(ctx.strAtom()).toJavaString().trim();
       numResult = evaluateNumericExpression(exprStr);
+      return null;
+    }
+    if (ctx.XATTR() != null) {
+      final int row = (int) Math.round(evalNum(ctx.numExpr(0)));
+      final int col = (int) Math.round(evalNum(ctx.numExpr(1)));
+      final int select = (int) Math.round(evalNum(ctx.numExpr(2)));
+      if (row < 0 || row >= display.printHeight() || col < 0 || col >= display.printWidth()) {
+        throw codedException(ReportCode.INTEGER_OUT_OF_RANGE, "Screen coordinates out of bounds");
+      }
+      if (select < 0 || select > 8) {
+        throw codedException(ReportCode.INTEGER_OUT_OF_RANGE, "XATTR selector out of range [0, 8]");
+      }
+      numResult = display.getXAttributes(row, col, select);
       return null;
     }
     throw codedException(ReportCode.NONSENSE_IN_BASIC, "Unknown function");

@@ -492,6 +492,103 @@ public class TerminalDisplay implements BazLangDisplay {
   }
 
   @Override
+  public int getScreenAttributes(int row, int col) {
+    if (row < 0 || row >= cellBuffer.rows() || col < 0 || col >= cellBuffer.cols()) {
+      return 56;
+    }
+    int fg = cellBuffer.getFgColour(row, col);
+    int bg = cellBuffer.getBgColour(row, col);
+    int style = cellBuffer.getStyle(row, col);
+
+    int flash = (style & CellAttributes.STYLE_BLINK) != 0 ? 1 : 0;
+    int bright = (style & CellAttributes.STYLE_BOLD) != 0 ? 1 : 0;
+    int ink = resolveZxColour(fg, true);
+    int paper = resolveZxColour(bg, false);
+
+    return (flash * 128) + (bright * 64) + (paper * 8) + ink;
+  }
+
+  private int resolveZxColour(int cellColour, boolean isInk) {
+    if (CellAttributes.isRgb(cellColour)) {
+      int rgb = CellAttributes.valueOf(cellColour);
+      int r = (rgb >> 16) & 0xFF;
+      int g = (rgb >> 8) & 0xFF;
+      int b = rgb & 0xFF;
+      int bitR = r > 155 ? 1 : 0;
+      int bitG = g > 155 ? 1 : 0;
+      int bitB = b > 155 ? 1 : 0;
+      return (bitG << 2) | (bitR << 1) | bitB;
+    }
+    if (CellAttributes.isIndex(cellColour)) {
+      int idx = CellAttributes.valueOf(cellColour);
+      if (idx >= 0 && idx <= 15) {
+        final int[] mapping = {0, 2, 4, 6, 1, 3, 5, 7};
+        return mapping[idx & 7];
+      }
+      if (idx >= 16 && idx <= 231) {
+        int code = idx - 16;
+        int rVal = code / 36;
+        int gVal = (code % 36) / 6;
+        int bVal = code % 6;
+        int bitR = rVal >= 3 ? 1 : 0;
+        int bitG = gVal >= 3 ? 1 : 0;
+        int bitB = bVal >= 3 ? 1 : 0;
+        return (bitG << 2) | (bitR << 1) | bitB;
+      }
+      if (idx >= 232 && idx <= 255) {
+        return idx < 244 ? 0 : 7;
+      }
+    }
+    return isInk ? 7 : 0;
+  }
+
+  @Override
+  public int getXAttributes(int row, int col, int select) {
+    if (row < 0 || row >= cellBuffer.rows() || col < 0 || col >= cellBuffer.cols()) {
+      if (select == 0 || select == 1) {
+        return -1;
+      }
+      return 0;
+    }
+    switch (select) {
+      case 0:
+        int fg = cellBuffer.getFgColour(row, col);
+        if (CellAttributes.isDefault(fg)) {
+          return -1;
+        }
+        if (CellAttributes.isIndex(fg)) {
+          return 256 + CellAttributes.valueOf(fg);
+        }
+        return 16_777_216 + CellAttributes.valueOf(fg);
+      case 1:
+        int bg = cellBuffer.getBgColour(row, col);
+        if (CellAttributes.isDefault(bg)) {
+          return -1;
+        }
+        if (CellAttributes.isIndex(bg)) {
+          return 256 + CellAttributes.valueOf(bg);
+        }
+        return 16_777_216 + CellAttributes.valueOf(bg);
+      case 2:
+        return (cellBuffer.getStyle(row, col) & CellAttributes.STYLE_BLINK) != 0 ? 1 : 0;
+      case 3:
+        return (cellBuffer.getStyle(row, col) & CellAttributes.STYLE_BOLD) != 0 ? 1 : 0;
+      case 4:
+        return (cellBuffer.getStyle(row, col) & CellAttributes.STYLE_INVERSE) != 0 ? 1 : 0;
+      case 5:
+        return (cellBuffer.getStyle(row, col) & CellAttributes.STYLE_ITALIC) != 0 ? 1 : 0;
+      case 6:
+        return (cellBuffer.getStyle(row, col) & CellAttributes.STYLE_UNDERLINE) != 0 ? 1 : 0;
+      case 7:
+        return (cellBuffer.getStyle(row, col) & CellAttributes.STYLE_STRIKETHROUGH) != 0 ? 1 : 0;
+      case 8:
+        return (cellBuffer.getStyle(row, col) & CellAttributes.STYLE_FAINT) != 0 ? 1 : 0;
+      default:
+        return 0;
+    }
+  }
+
+  @Override
   public void lprint(String text) {
     System.err.print(text);
   }

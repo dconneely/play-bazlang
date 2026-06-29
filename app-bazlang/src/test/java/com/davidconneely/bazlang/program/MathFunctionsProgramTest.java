@@ -134,4 +134,54 @@ class MathFunctionsProgramTest extends BaseProgramTest {
         assertThrows(ReportException.class, () -> runProgram("10 LET C = COLOUR(0, 256, 0)"));
     assertTrue(ex2.getMessage().contains("COLOUR components"));
   }
+
+  @Test
+  void testAttrFunctions() {
+    final var state =
+        runProgram(
+            """
+        10 PAPER 1: INK 7: PRINT "A"
+        20 PAPER 2: INK 6: FLASH 1: BRIGHT 1: PRINT "B"
+        30 LET A1 = ATTR(0, 0)
+        40 LET A2 = ATTR(1, 0)
+        50 LET X1 = XATTR(0, 0, 0)
+        60 LET X2 = XATTR(0, 0, 1)
+        70 LET X3 = XATTR(1, 0, 0)
+        80 LET X4 = XATTR(1, 0, 1)
+        90 LET X5 = XATTR(1, 0, 2)
+        100 LET X6 = XATTR(1, 0, 3)
+        """);
+    // Line 10: PAPER 1, INK 7.
+    // Spectrum ATTR: (0*128) + (0*64) + (1*8) + 7 = 15.
+    assertEquals(15.0, state.numVar("A1"));
+
+    // Line 20: PAPER 2, INK 6. Flash=1, Bright=1.
+    // Spectrum ATTR: (1*128) + (1*64) + (2*8) + 6 = 128 + 64 + 16 + 6 = 214.
+    assertEquals(214.0, state.numVar("A2"));
+
+    // XATTR colors: return BazLang format.
+    assertEquals(16_777_216.0 + 0xD7D7D7, state.numVar("X1"));
+    assertEquals(16_777_216.0 + 0x0000D7, state.numVar("X2"));
+    assertEquals(16_777_216.0 + 0xFFFF00, state.numVar("X3"));
+    assertEquals(16_777_216.0 + 0xFF0000, state.numVar("X4"));
+
+    // Line 20 flash (select 2) and bright (select 3)
+    assertEquals(1.0, state.numVar("X5"));
+    assertEquals(1.0, state.numVar("X6"));
+  }
+
+  @Test
+  void testAttrFunctionsOutOfBounds() {
+    var e1 = assertThrows(ReportException.class, () -> runProgram("10 LET A = ATTR(-1, 0)"));
+    assertEquals(com.davidconneely.bazlang.ReportCode.INTEGER_OUT_OF_RANGE, e1.reportCode());
+
+    var e2 = assertThrows(ReportException.class, () -> runProgram("10 LET A = ATTR(0, 80)"));
+    assertEquals(com.davidconneely.bazlang.ReportCode.INTEGER_OUT_OF_RANGE, e2.reportCode());
+
+    var e3 = assertThrows(ReportException.class, () -> runProgram("10 LET X = XATTR(0, 0, -1)"));
+    assertEquals(com.davidconneely.bazlang.ReportCode.INTEGER_OUT_OF_RANGE, e3.reportCode());
+
+    var e4 = assertThrows(ReportException.class, () -> runProgram("10 LET X = XATTR(0, 0, 9)"));
+    assertEquals(com.davidconneely.bazlang.ReportCode.INTEGER_OUT_OF_RANGE, e4.reportCode());
+  }
 }

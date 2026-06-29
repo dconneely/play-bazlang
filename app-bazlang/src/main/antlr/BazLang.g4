@@ -219,6 +219,7 @@ numFunc
     : ABS numAtom
     | ACS numAtom
     | ASN numAtom
+    | ATTR '(' numExpr ',' numExpr ')'
     | ATN numAtom
     | CODE strAtom
     | COLOUR '(' numExpr ',' numExpr ',' numExpr ')'
@@ -247,6 +248,7 @@ numFunc
     | UCNEXT '(' strExpr ',' numExpr ')'
     | UCODE strAtom
     | VAL strAtom
+    | XATTR '(' numExpr ',' numExpr ',' numExpr ')'
     ;
 
 // Atomic numeric expression (for function arguments without parens)
@@ -351,6 +353,7 @@ ABS      : 'ABS';
 ACS      : 'ACS';
 ASN      : 'ASN';
 ATN      : 'ATN';
+ATTR     : 'ATTR';
 CHR_STR  : 'CHR$';
 CODE     : 'CODE';
 COLOUR   : 'COLOUR';
@@ -384,6 +387,7 @@ UINKEY_STR: 'UINKEY$';
 USCREEN_STR: 'USCREEN$';
 VAL      : 'VAL';
 VAL_STR  : 'VAL$';
+XATTR    : 'XATTR';
 
 // Identifiers - matched case-insensitively, normalized to uppercase
 STR_IDENTIFIER
