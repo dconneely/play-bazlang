@@ -12,13 +12,13 @@ import com.davidconneely.bazlang.ProgramLine;
 import com.davidconneely.bazlang.ProgramManager;
 import com.davidconneely.bazlang.antlr.AntlrParser;
 import com.davidconneely.bazlang.antlr.BazLangParser;
-import com.davidconneely.bazlang.io.MockScreen;
+import com.davidconneely.bazlang.io.StreamScreen;
 import org.junit.jupiter.api.Test;
 
 class RenumProgramTest extends BaseProgramTest {
 
   private ProgramEditor makeEditor(EvalState state) {
-    final var screen = new MockScreen();
+    final var screen = StreamScreen.nullScreen();
     final var executor = new ProgramManager(state, screen);
     return new ProgramEditor(state, screen, PARSER, executor::evalNum);
   }

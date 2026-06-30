@@ -90,10 +90,10 @@ class ReplProgramTest extends BaseProgramTest {
     final var executor = new ProgramManager(state, screen);
     final var interpreter = new Interpreter(state, executor);
     final var editor = new ProgramEditor(state, screen, PARSER, executor::evalNum);
-    final var repl = new BazLangReplHandler(PARSER, state, executor, editor, interpreter);
+    final var repl = new BazLangReplHandler(screen, PARSER, state, executor, editor, interpreter);
 
-    repl.handleReplInput("10 PRINT \"HELLO\"", screen);
-    repl.handleReplInput("LIST", screen);
+    repl.handleReplInput("10 PRINT \"HELLO\"");
+    repl.handleReplInput("LIST");
 
     // The output should just be the line 10 being echoed, then the list showing just line 10.
     assertEquals("❯ 10 PRINT \"HELLO\"\n❯ LIST\n10 PRINT \"HELLO\"\n", screen.getOutput());
@@ -107,10 +107,10 @@ class ReplProgramTest extends BaseProgramTest {
     final var executor = new ProgramManager(state, screen);
     final var interpreter = new Interpreter(state, executor);
     final var editor = new ProgramEditor(state, screen, PARSER, executor::evalNum);
-    final var repl = new BazLangReplHandler(PARSER, state, executor, editor, interpreter);
+    final var repl = new BazLangReplHandler(screen, PARSER, state, executor, editor, interpreter);
 
-    repl.handleReplInput("10 PRINT \"HELLO\"", screen);
-    repl.handleReplInput("RUN", screen);
+    repl.handleReplInput("10 PRINT \"HELLO\"");
+    repl.handleReplInput("RUN");
 
     assertEquals("❯ 10 PRINT \"HELLO\"\n❯ RUN\nHELLO\n", screen.getOutput());
     assertFalse(state.isRunning()); // Should stop gracefully
@@ -124,9 +124,9 @@ class ReplProgramTest extends BaseProgramTest {
     final var executor = new ProgramManager(state, screen);
     final var interpreter = new Interpreter(state, executor);
     final var editor = new ProgramEditor(state, screen, PARSER, executor::evalNum);
-    final var repl = new BazLangReplHandler(PARSER, state, executor, editor, interpreter);
+    final var repl = new BazLangReplHandler(screen, PARSER, state, executor, editor, interpreter);
 
-    final boolean continueRepl = repl.handleReplInput("STOP", screen);
+    final boolean continueRepl = repl.handleReplInput("STOP");
 
     assertFalse(continueRepl, "Immediate STOP should return false to exit the REPL");
     assertEquals("9 STOP statement, 0:1", screen.getStatus());
@@ -140,11 +140,11 @@ class ReplProgramTest extends BaseProgramTest {
     final var executor = new ProgramManager(state, screen);
     final var interpreter = new Interpreter(state, executor);
     final var editor = new ProgramEditor(state, screen, PARSER, executor::evalNum);
-    final var repl = new BazLangReplHandler(PARSER, state, executor, editor, interpreter);
+    final var repl = new BazLangReplHandler(screen, PARSER, state, executor, editor, interpreter);
 
-    repl.handleReplInput("10 PRINT \"A\"", screen);
-    repl.handleReplInput("20 STOP", screen);
-    final boolean continueRepl = repl.handleReplInput("RUN", screen);
+    repl.handleReplInput("10 PRINT \"A\"");
+    repl.handleReplInput("20 STOP");
+    final boolean continueRepl = repl.handleReplInput("RUN");
 
     assertTrue(continueRepl, "Stored STOP should return true to continue the REPL");
     assertEquals("9 STOP statement, 20:1", screen.getStatus());
@@ -157,9 +157,9 @@ class ReplProgramTest extends BaseProgramTest {
     final var executor = new ProgramManager(state, screen);
     final var interpreter = new Interpreter(state, executor);
     final var editor = new ProgramEditor(state, screen, PARSER, executor::evalNum);
-    final var repl = new BazLangReplHandler(PARSER, state, executor, editor, interpreter);
+    final var repl = new BazLangReplHandler(screen, PARSER, state, executor, editor, interpreter);
 
-    repl.handleReplInput("PRINT \"hello\" : PRINT \"there\"", screen);
+    repl.handleReplInput("PRINT \"hello\" : PRINT \"there\"");
 
     assertEquals("❯ PRINT \"hello\" : PRINT \"there\"\nhello\nthere\n", screen.getOutput());
   }

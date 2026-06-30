@@ -14,11 +14,13 @@ import java.util.List;
 class BaseProgramTest {
   protected static final AntlrParser PARSER = AntlrParser.INSTANCE;
 
-  protected EvalState runProgram(String source) {
-    return runProgram(source, List.of());
+  protected record RunResult(EvalState state, MockScreen screen) {
+    String output() {
+      return screen.getOutput();
+    }
   }
 
-  protected EvalState runProgram(String source, List<String> inputs) {
+  protected RunResult run(String source, List<String> inputs, boolean ignoreExceptions) {
     final var program = PARSER.parseProgramLines(source);
     final var state = new EvalState();
     final var screen = new MockScreen(inputs);
@@ -27,11 +29,19 @@ class BaseProgramTest {
     try {
       interpreter.execute(program);
     } catch (ReportException e) {
-      if (e.reportCode() != ReportCode.STOP_STATEMENT) {
+      if (!ignoreExceptions && e.reportCode() != ReportCode.STOP_STATEMENT) {
         throw e;
       }
     }
-    return state;
+    return new RunResult(state, screen);
+  }
+
+  protected EvalState runProgram(String source) {
+    return run(source, List.of(), false).state();
+  }
+
+  protected EvalState runProgram(String source, List<String> inputs) {
+    return run(source, inputs, false).state();
   }
 
   protected void runProgram(String source, String expectedOutput) {
@@ -39,42 +49,26 @@ class BaseProgramTest {
   }
 
   protected String runProgramCapture(String source) {
-    return runProgramCapture(source, List.of());
-  }
-
-  protected MockScreen runWithScreen(String source) {
-    return runWithScreen(source, List.of());
-  }
-
-  protected MockScreen runWithScreen(String source, List<String> inputs) {
-    final var program = PARSER.parseProgramLines(source);
-    final var state = new EvalState();
-    final var screen = new MockScreen(inputs);
-    final var executor = new ProgramManager(state, screen);
-    final var interpreter = new Interpreter(state, executor);
-    try {
-      interpreter.execute(program);
-    } catch (ReportException e) {
-      if (e.reportCode() != ReportCode.STOP_STATEMENT) {
-        throw e;
-      }
-    }
-    return screen;
+    return run(source, List.of(), false).output();
   }
 
   protected String runProgramCapture(String source, List<String> inputs) {
-    final var program = PARSER.parseProgramLines(source);
-    final var state = new EvalState();
-    final var screen = new MockScreen(inputs);
-    final var executor = new ProgramManager(state, screen);
-    final var interpreter = new Interpreter(state, executor);
-    try {
-      interpreter.execute(program);
-    } catch (ReportException e) {
-      if (e.reportCode() != ReportCode.STOP_STATEMENT) {
-        throw e;
-      }
-    }
-    return screen.getOutput();
+    return run(source, inputs, false).output();
+  }
+
+  protected String runProgramCaptureIgnoringExceptions(String source) {
+    return run(source, List.of(), true).output();
+  }
+
+  protected String runProgramCaptureIgnoringExceptions(String source, List<String> inputs) {
+    return run(source, inputs, true).output();
+  }
+
+  protected MockScreen runWithScreen(String source) {
+    return run(source, List.of(), false).screen();
+  }
+
+  protected MockScreen runWithScreen(String source, List<String> inputs) {
+    return run(source, inputs, false).screen();
   }
 }

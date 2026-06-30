@@ -15,7 +15,7 @@ public final class Repl {
       if (line.isBlank()) {
         continue;
       }
-      if (!handler.handleReplInput(line, ui)) {
+      if (!handler.handleReplInput(line)) {
         break;
       }
     }

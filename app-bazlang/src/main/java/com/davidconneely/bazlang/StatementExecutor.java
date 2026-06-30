@@ -11,7 +11,6 @@ import com.davidconneely.cell.HalfCellMode;
 import com.davidconneely.cell.QuadrantMode;
 import com.davidconneely.cell.SextantMode;
 import com.davidconneely.repl.BreakException;
-import com.davidconneely.repl.Canvas;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -207,7 +206,8 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
   public Void visitInputStmt(InputStmtContext ctx) {
     final var target = ctx.assignmentTarget();
     final boolean isNumeric = target.NUM_IDENTIFIER() != null;
-    final var mode = isNumeric ? Canvas.InputMode.INPUT_NUMERIC : Canvas.InputMode.INPUT_STRING;
+    final var mode =
+        isNumeric ? BazLangScreen.InputMode.INPUT_NUMERIC : BazLangScreen.InputMode.INPUT_STRING;
     String line = readInputLine(mode);
 
     if (isNumeric) {
@@ -231,7 +231,7 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
     return null;
   }
 
-  private String readInputLine(Canvas.InputMode mode) {
+  private String readInputLine(BazLangScreen.InputMode mode) {
     try {
       final String line = screen.readln(mode);
       if (line != null && line.trim().equalsIgnoreCase("STOP")) {

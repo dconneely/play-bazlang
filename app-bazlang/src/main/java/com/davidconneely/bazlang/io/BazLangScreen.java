@@ -1,10 +1,100 @@
 package com.davidconneely.bazlang.io;
 
 import com.davidconneely.cell.PixelMode;
-import com.davidconneely.repl.Canvas;
 import com.davidconneely.repl.Shell;
 
-public interface BazLangScreen extends Canvas, Shell {
+public interface BazLangScreen extends Shell {
+  enum InputMode {
+    INPUT_NUMERIC,
+    INPUT_STRING
+  }
+
+  int currentRow();
+
+  int currentCol();
+
+  void cls();
+
+  void locate(int row, int col);
+
+  int printWidth();
+
+  int printHeight();
+
+  void scroll();
+
+  void print(String text);
+
+  void println(String text);
+
+  void println();
+
+  void lprint(String text);
+
+  void lprintln(String text);
+
+  void lprintln();
+
+  void flush();
+
+  String readln(InputMode mode);
+
+  String readln(String prompt);
+
+  default void prefillInput(String text) {}
+
+  default void setStatus(String status) {}
+
+  default void systemPrintln(String text) {}
+
+  default boolean pollForBreak() {
+    return false;
+  }
+
+  default String inkey() {
+    return "";
+  }
+
+  /** Reads a multibyte sequence (UTF-8 character or terminal escape sequence) without blocking. */
+  default String uinkey() {
+    return "";
+  }
+
+  @Override
+  void close();
+
+  default void setFastMode(boolean fast) {}
+
+  default void setInk(int colour) {}
+
+  default void setPaper(int colour) {}
+
+  default void setBright(int bright) {}
+
+  default void setFlash(int flash) {}
+
+  default void setInverse(int inverse) {}
+
+  default void setOver(int over) {}
+
+  default void plot(int x, int y) {}
+
+  default int point(int x, int y) {
+    return 0;
+  }
+
+  default int plotWidth() {
+    return 256; // ZX Spectrum default width
+  }
+
+  default int plotHeight() {
+    return 176; // ZX Spectrum default height
+  }
+
+  default int plotMode() {
+    return 4; // QuadrantMode by default
+  }
+
   /** Change the pixel mode for future PLOT/UNPLOT operations. Does not clear screen content. */
   default void setPlotMode(PixelMode mode) {
     // no-op by default (e.g., for stream screen)

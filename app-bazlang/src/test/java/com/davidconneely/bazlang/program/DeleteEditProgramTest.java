@@ -15,8 +15,8 @@ import com.davidconneely.bazlang.ReportCode;
 import com.davidconneely.bazlang.ReportException;
 import com.davidconneely.bazlang.antlr.AntlrParser;
 import com.davidconneely.bazlang.antlr.BazLangParser;
+import com.davidconneely.bazlang.io.BazLangScreen;
 import com.davidconneely.bazlang.io.MockScreen;
-import com.davidconneely.repl.Shell;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -55,7 +55,7 @@ class DeleteEditProgramTest extends BaseProgramTest {
       BazLangParser.ReplCommandContext ctx,
       ProgramManager executor,
       ProgramEditor editor,
-      Shell ui,
+      BazLangScreen ui,
       EvalState state) {
     if (ctx instanceof BazLangParser.DeleteCmdContext delete) {
       editor.executeDelete(delete.lineRange());

@@ -1,6 +1,5 @@
 package com.davidconneely.bazlang.io;
 
-import com.davidconneely.repl.Canvas;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -27,6 +26,12 @@ public class StreamScreen implements BazLangScreen {
     this(System.in, System.out, System.err);
   }
 
+  public static StreamScreen nullScreen() {
+    final var nullOut =
+        new PrintStream(java.io.OutputStream.nullOutputStream(), true, StandardCharsets.UTF_8);
+    return new StreamScreen(InputStream.nullInputStream(), nullOut, nullOut);
+  }
+
   @Override
   public int currentRow() {
     return 0;
@@ -48,21 +53,6 @@ public class StreamScreen implements BazLangScreen {
   }
 
   @Override
-  public int plotWidth() {
-    return 80;
-  }
-
-  @Override
-  public int plotHeight() {
-    return 24;
-  }
-
-  @Override
-  public int plotMode() {
-    return 4; // QuadrantMode
-  }
-
-  @Override
   public void cls() {
     currentCol = 0;
     // Cannot clear screen on standard stream
@@ -73,34 +63,6 @@ public class StreamScreen implements BazLangScreen {
     currentCol = col;
     // Cannot position cursor on standard stream
   }
-
-  @Override
-  public void plot(int x, int y) {
-    // No-op for stream screen
-  }
-
-  @Override
-  public int point(int x, int y) {
-    return 0; // Not supported
-  }
-
-  @Override
-  public void setInk(int colour) {}
-
-  @Override
-  public void setPaper(int colour) {}
-
-  @Override
-  public void setBright(int bright) {}
-
-  @Override
-  public void setFlash(int flash) {}
-
-  @Override
-  public void setInverse(int inverse) {}
-
-  @Override
-  public void setOver(int over) {}
 
   @Override
   public void scroll() {
@@ -167,18 +129,13 @@ public class StreamScreen implements BazLangScreen {
   }
 
   @Override
-  public String readln(Canvas.InputMode mode) {
+  public String readln(InputMode mode) {
     return readln("");
   }
 
   @Override
   public String readReplLine() {
     return readln((String) null);
-  }
-
-  @Override
-  public void prefillInput(String text) {
-    // No-op: pre-filling is a REPL-specific hint; has no meaning in stream/batch mode
   }
 
   @Override
@@ -194,11 +151,6 @@ public class StreamScreen implements BazLangScreen {
       println();
     }
     println(text);
-  }
-
-  @Override
-  public boolean pollForBreak() {
-    return false;
   }
 
   @Override
@@ -220,11 +172,6 @@ public class StreamScreen implements BazLangScreen {
   public String uinkey() {
     // Simple fallback for streams without ANSI handling
     return inkey();
-  }
-
-  @Override
-  public void setFastMode(boolean fast) {
-    // No-op for stream screen
   }
 
   @Override

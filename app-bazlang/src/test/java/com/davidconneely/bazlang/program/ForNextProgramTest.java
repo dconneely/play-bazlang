@@ -59,17 +59,7 @@ class ForNextProgramTest extends BaseProgramTest {
     final var ex = assertThrows(ReportException.class, () -> runProgram(source));
     assertEquals(ReportCode.RETURN_WITHOUT_GOSUB, ex.reportCode());
 
-    final var screen = new MockScreen();
-    try {
-      final var program = PARSER.parseProgramLines(source);
-      final var state = new EvalState();
-      final var executor = new ProgramManager(state, screen);
-      final var interpreter = new Interpreter(state, executor);
-      interpreter.execute(program);
-    } catch (ReportException re) {
-      // Ignore expected
-    }
-    assertEquals("M=1\nM=2\nM=3\nM=4\n", screen.getOutput());
+    assertEquals("M=1\nM=2\nM=3\nM=4\n", runProgramCaptureIgnoringExceptions(source));
   }
 
   @Test
@@ -108,10 +98,10 @@ class ForNextProgramTest extends BaseProgramTest {
     final var executor = new ProgramManager(state, screen);
     final var interpreter = new Interpreter(state, executor);
     final var editor = new ProgramEditor(state, screen, PARSER, executor::evalNum);
-    final var repl = new BazLangReplHandler(PARSER, state, executor, editor, interpreter);
+    final var repl = new BazLangReplHandler(screen, PARSER, state, executor, editor, interpreter);
 
-    repl.handleReplInput("FOR I=1 TO 3 : PRINT I : NEXT I", null);
-    assertEquals("1\n2\n3\n", screen.getOutput());
+    repl.handleReplInput("FOR I=1 TO 3 : PRINT I : NEXT I");
+    assertEquals("❯ FOR I=1 TO 3 : PRINT I : NEXT I\n1\n2\n3\n", screen.getOutput());
   }
 
   @Test

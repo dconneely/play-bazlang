@@ -71,10 +71,10 @@ class GosubReturnProgramTest extends BaseProgramTest {
     final var executor = new ProgramManager(state, screen);
     final var interpreter = new Interpreter(state, executor);
     final var editor = new ProgramEditor(state, screen, PARSER, executor::evalNum);
-    final var repl = new BazLangReplHandler(PARSER, state, executor, editor, interpreter);
+    final var repl = new BazLangReplHandler(screen, PARSER, state, executor, editor, interpreter);
 
-    repl.handleReplInput("10 PRINT \"SUB\" : RETURN", screen);
-    repl.handleReplInput("GOSUB 10", screen);
+    repl.handleReplInput("10 PRINT \"SUB\" : RETURN");
+    repl.handleReplInput("GOSUB 10");
 
     // The output should be the subroutine's line being echoed, then the subroutine executing,
     // and then returning to the REPL cleanly without throwing "RETURN without GOSUB".

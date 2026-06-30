@@ -66,7 +66,8 @@ public class MainClass {
     final var interpreter = new Interpreter(state, executor);
     final var editor = new ProgramEditor(state, screen, PARSER, executor::evalNum);
     screen.systemPrintln("BazLang REPL. Type 'STOP' or Ctrl+D at the prompt to exit.");
-    final var handler = new BazLangReplHandler(PARSER, state, executor, editor, interpreter);
+    final var handler =
+        new BazLangReplHandler(screen, PARSER, state, executor, editor, interpreter);
     new Repl().run(screen, handler);
   }
 }

@@ -3,7 +3,6 @@ package com.davidconneely.bazlang.io;
 import com.davidconneely.cell.CellBuffer;
 import com.davidconneely.cell.PixelMode;
 import com.davidconneely.cell.QuadrantMode;
-import com.davidconneely.repl.Canvas;
 import java.util.Collections;
 import java.util.List;
 
@@ -126,7 +125,7 @@ public class MockScreen extends AbstractCellBufferedScreen {
   }
 
   @Override
-  public String readln(Canvas.InputMode mode) {
+  public String readln(InputMode mode) {
     return readln("");
   }
 

@@ -6,7 +6,6 @@ import com.davidconneely.cell.CellAttributes;
 import com.davidconneely.cell.CellBuffer;
 import com.davidconneely.cell.CellBufferRenderer;
 import com.davidconneely.cell.QuadrantMode;
-import com.davidconneely.repl.Canvas;
 import com.davidconneely.repl.TerminalEngine;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -308,7 +307,7 @@ public class TerminalScreen extends AbstractCellBufferedScreen {
   }
 
   @Override
-  public String readln(Canvas.InputMode mode) {
+  public String readln(InputMode mode) {
     currentInputMode =
         switch (mode) {
           case INPUT_NUMERIC -> InputContext.INPUT_NUMERIC;

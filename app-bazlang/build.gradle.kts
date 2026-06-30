@@ -13,7 +13,6 @@ dependencies {
   implementation(libs.antlr.runtime)
   implementation(project(":lib-cell"))
   implementation(project(":lib-repl"))
-  implementation(libs.jline)
 }
 
 tasks.jar {
