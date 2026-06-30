@@ -1,5 +1,6 @@
 package com.davidconneely.bazlang.io;
 
+import com.davidconneely.repl.Canvas;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -7,7 +8,7 @@ import java.io.InputStreamReader;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 
-public class StreamDisplay implements BazLangDisplay {
+public class StreamScreen implements BazLangScreen {
   private final InputStream in;
   private final PrintStream out;
   private final PrintStream err;
@@ -16,13 +17,13 @@ public class StreamDisplay implements BazLangDisplay {
   // Simple cursor tracking for currentRow/currentCol
   private int currentCol = 0;
 
-  public StreamDisplay(InputStream in, PrintStream out, PrintStream err) {
+  public StreamScreen(InputStream in, PrintStream out, PrintStream err) {
     this.in = in;
     this.out = out;
     this.err = err;
   }
 
-  public StreamDisplay() {
+  public StreamScreen() {
     this(System.in, System.out, System.err);
   }
 
@@ -75,7 +76,7 @@ public class StreamDisplay implements BazLangDisplay {
 
   @Override
   public void plot(int x, int y) {
-    // No-op for stream display
+    // No-op for stream screen
   }
 
   @Override
@@ -162,11 +163,11 @@ public class StreamDisplay implements BazLangDisplay {
 
   @Override
   public void flush() {
-    // No-op: stream display writes through immediately
+    // No-op: stream screen writes through immediately
   }
 
   @Override
-  public String readln(com.davidconneely.repl.Display.InputMode mode) {
+  public String readln(Canvas.InputMode mode) {
     return readln("");
   }
 
@@ -223,7 +224,7 @@ public class StreamDisplay implements BazLangDisplay {
 
   @Override
   public void setFastMode(boolean fast) {
-    // No-op for stream display
+    // No-op for stream screen
   }
 
   @Override

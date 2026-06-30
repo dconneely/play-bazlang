@@ -45,7 +45,7 @@ class ExampleProgramTest extends BaseProgramTest {
         150 RETURN
         200 PRINT "CIRCLE DRAWN"
         """,
-        "████████████████████████CIRCLE DRAWN\n");
+        "CIRCLE DRAWN\n");
   }
 
   @Test

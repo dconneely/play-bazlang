@@ -2,7 +2,7 @@ package com.davidconneely.bazlang.program;
 
 import org.junit.jupiter.api.Test;
 
-/** Tests exercising display SCROLL statement. */
+/** Tests exercising screen SCROLL statement. */
 class ScrollProgramTest extends BaseProgramTest {
 
   @Test

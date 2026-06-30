@@ -34,6 +34,7 @@ public class RobustLineReaderImpl extends LineReaderImpl {
   private boolean mouseTrackingFixed = false;
   private final ResettableDisplay resettableDisplay;
 
+  @SuppressWarnings("PMD.ConstructorCallsOverridableMethod")
   public RobustLineReaderImpl(Terminal terminal, String appName) throws IOException {
     super(terminal, appName);
 

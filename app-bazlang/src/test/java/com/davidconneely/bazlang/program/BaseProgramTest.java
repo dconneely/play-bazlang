@@ -8,7 +8,7 @@ import com.davidconneely.bazlang.ProgramManager;
 import com.davidconneely.bazlang.ReportCode;
 import com.davidconneely.bazlang.ReportException;
 import com.davidconneely.bazlang.antlr.AntlrParser;
-import com.davidconneely.bazlang.io.MockDisplay;
+import com.davidconneely.bazlang.io.MockScreen;
 import java.util.List;
 
 class BaseProgramTest {
@@ -21,8 +21,8 @@ class BaseProgramTest {
   protected EvalState runProgram(String source, List<String> inputs) {
     final var program = PARSER.parseProgramLines(source);
     final var state = new EvalState();
-    final var display = new MockDisplay(inputs);
-    final var executor = new ProgramManager(state, display);
+    final var screen = new MockScreen(inputs);
+    final var executor = new ProgramManager(state, screen);
     final var interpreter = new Interpreter(state, executor);
     try {
       interpreter.execute(program);
@@ -42,11 +42,15 @@ class BaseProgramTest {
     return runProgramCapture(source, List.of());
   }
 
-  protected String runProgramCapture(String source, List<String> inputs) {
+  protected MockScreen runWithScreen(String source) {
+    return runWithScreen(source, List.of());
+  }
+
+  protected MockScreen runWithScreen(String source, List<String> inputs) {
     final var program = PARSER.parseProgramLines(source);
     final var state = new EvalState();
-    final var display = new MockDisplay(inputs);
-    final var executor = new ProgramManager(state, display);
+    final var screen = new MockScreen(inputs);
+    final var executor = new ProgramManager(state, screen);
     final var interpreter = new Interpreter(state, executor);
     try {
       interpreter.execute(program);
@@ -55,6 +59,22 @@ class BaseProgramTest {
         throw e;
       }
     }
-    return display.getOutput();
+    return screen;
+  }
+
+  protected String runProgramCapture(String source, List<String> inputs) {
+    final var program = PARSER.parseProgramLines(source);
+    final var state = new EvalState();
+    final var screen = new MockScreen(inputs);
+    final var executor = new ProgramManager(state, screen);
+    final var interpreter = new Interpreter(state, executor);
+    try {
+      interpreter.execute(program);
+    } catch (ReportException e) {
+      if (e.reportCode() != ReportCode.STOP_STATEMENT) {
+        throw e;
+      }
+    }
+    return screen.getOutput();
   }
 }

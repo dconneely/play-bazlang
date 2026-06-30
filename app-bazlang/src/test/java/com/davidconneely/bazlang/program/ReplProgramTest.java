@@ -12,7 +12,7 @@ import com.davidconneely.bazlang.ProgramLine;
 import com.davidconneely.bazlang.ProgramManager;
 import com.davidconneely.bazlang.ReportCode;
 import com.davidconneely.bazlang.ReportException;
-import com.davidconneely.bazlang.io.MockDisplay;
+import com.davidconneely.bazlang.io.MockScreen;
 import java.util.HashMap;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -28,8 +28,8 @@ class ReplProgramTest extends BaseProgramTest {
     program.put(30, new ProgramLine(30, "PRINT \"C\""));
 
     final var state = new EvalState();
-    final var display =
-        new MockDisplay(List.of()) {
+    final var screen =
+        new MockScreen(List.of()) {
           @Override
           public void print(String text) {
             super.print(text);
@@ -38,7 +38,7 @@ class ReplProgramTest extends BaseProgramTest {
             }
           }
         };
-    final var executor = new ProgramManager(state, display);
+    final var executor = new ProgramManager(state, screen);
     final var interpreter = new Interpreter(state, executor);
 
     try {
@@ -54,7 +54,7 @@ class ReplProgramTest extends BaseProgramTest {
     executor.visitContStmt(null);
     interpreter.resume();
 
-    assertEquals("A\nB\nC\n", display.getOutput());
+    assertEquals("A\nB\nC\n", screen.getOutput());
   }
 
   @Test
@@ -62,8 +62,8 @@ class ReplProgramTest extends BaseProgramTest {
     // Should print "BEFORE", then if the user enters CONT, should print "AFTER".
     final var program = PARSER.parseProgramLines("10 PRINT \"BEFORE\" : STOP : PRINT \"AFTER\"");
     final var state = new EvalState();
-    final var display = new MockDisplay(List.of());
-    final var executor = new ProgramManager(state, display);
+    final var screen = new MockScreen(List.of());
+    final var executor = new ProgramManager(state, screen);
     final var interpreter = new Interpreter(state, executor);
 
     try {
@@ -79,40 +79,40 @@ class ReplProgramTest extends BaseProgramTest {
     executor.visitContStmt(null);
     interpreter.resume();
 
-    assertEquals("BEFORE\nAFTER\n", display.getOutput());
+    assertEquals("BEFORE\nAFTER\n", screen.getOutput());
   }
 
   @Test
   void testImmediateModeList() {
     // Tests that LIST executed from REPL doesn't echo itself as line 0
     final var state = new EvalState();
-    final var display = new MockDisplay(List.of());
-    final var executor = new ProgramManager(state, display);
+    final var screen = new MockScreen(List.of());
+    final var executor = new ProgramManager(state, screen);
     final var interpreter = new Interpreter(state, executor);
-    final var editor = new ProgramEditor(state, display, PARSER, executor::evalNum);
+    final var editor = new ProgramEditor(state, screen, PARSER, executor::evalNum);
     final var repl = new BazLangReplHandler(PARSER, state, executor, editor, interpreter);
 
-    repl.handleReplInput("10 PRINT \"HELLO\"", display);
-    repl.handleReplInput("LIST", display);
+    repl.handleReplInput("10 PRINT \"HELLO\"", screen);
+    repl.handleReplInput("LIST", screen);
 
     // The output should just be the line 10 being echoed, then the list showing just line 10.
-    assertEquals("❯ 10 PRINT \"HELLO\"\n❯ LIST\n10 PRINT \"HELLO\"\n", display.getOutput());
+    assertEquals("❯ 10 PRINT \"HELLO\"\n❯ LIST\n10 PRINT \"HELLO\"\n", screen.getOutput());
   }
 
   @Test
   void testImmediateModeRun() {
     // Tests that RUN executed from REPL properly runs a stored program without infinite loop
     final var state = new EvalState();
-    final var display = new MockDisplay(List.of());
-    final var executor = new ProgramManager(state, display);
+    final var screen = new MockScreen(List.of());
+    final var executor = new ProgramManager(state, screen);
     final var interpreter = new Interpreter(state, executor);
-    final var editor = new ProgramEditor(state, display, PARSER, executor::evalNum);
+    final var editor = new ProgramEditor(state, screen, PARSER, executor::evalNum);
     final var repl = new BazLangReplHandler(PARSER, state, executor, editor, interpreter);
 
-    repl.handleReplInput("10 PRINT \"HELLO\"", display);
-    repl.handleReplInput("RUN", display);
+    repl.handleReplInput("10 PRINT \"HELLO\"", screen);
+    repl.handleReplInput("RUN", screen);
 
-    assertEquals("❯ 10 PRINT \"HELLO\"\n❯ RUN\nHELLO\n", display.getOutput());
+    assertEquals("❯ 10 PRINT \"HELLO\"\n❯ RUN\nHELLO\n", screen.getOutput());
     assertFalse(state.isRunning()); // Should stop gracefully
   }
 
@@ -120,47 +120,47 @@ class ReplProgramTest extends BaseProgramTest {
   void testImmediateModeStopExitsRepl() {
     // Tests that STOP executed from REPL as an immediate statement returns false to exit the REPL
     final var state = new EvalState();
-    final var display = new MockDisplay(List.of());
-    final var executor = new ProgramManager(state, display);
+    final var screen = new MockScreen(List.of());
+    final var executor = new ProgramManager(state, screen);
     final var interpreter = new Interpreter(state, executor);
-    final var editor = new ProgramEditor(state, display, PARSER, executor::evalNum);
+    final var editor = new ProgramEditor(state, screen, PARSER, executor::evalNum);
     final var repl = new BazLangReplHandler(PARSER, state, executor, editor, interpreter);
 
-    final boolean continueRepl = repl.handleReplInput("STOP", display);
+    final boolean continueRepl = repl.handleReplInput("STOP", screen);
 
     assertFalse(continueRepl, "Immediate STOP should return false to exit the REPL");
-    assertEquals("9 STOP statement, 0:1", display.getStatus());
+    assertEquals("9 STOP statement, 0:1", screen.getStatus());
   }
 
   @Test
   void testStoredStopContinuesRepl() {
     // Tests that STOP executed inside a program returns true to continue the REPL
     final var state = new EvalState();
-    final var display = new MockDisplay(List.of());
-    final var executor = new ProgramManager(state, display);
+    final var screen = new MockScreen(List.of());
+    final var executor = new ProgramManager(state, screen);
     final var interpreter = new Interpreter(state, executor);
-    final var editor = new ProgramEditor(state, display, PARSER, executor::evalNum);
+    final var editor = new ProgramEditor(state, screen, PARSER, executor::evalNum);
     final var repl = new BazLangReplHandler(PARSER, state, executor, editor, interpreter);
 
-    repl.handleReplInput("10 PRINT \"A\"", display);
-    repl.handleReplInput("20 STOP", display);
-    final boolean continueRepl = repl.handleReplInput("RUN", display);
+    repl.handleReplInput("10 PRINT \"A\"", screen);
+    repl.handleReplInput("20 STOP", screen);
+    final boolean continueRepl = repl.handleReplInput("RUN", screen);
 
     assertTrue(continueRepl, "Stored STOP should return true to continue the REPL");
-    assertEquals("9 STOP statement, 20:1", display.getStatus());
+    assertEquals("9 STOP statement, 20:1", screen.getStatus());
   }
 
   @Test
   void testImmediateModeMultiStatement() {
     final var state = new EvalState();
-    final var display = new MockDisplay(List.of());
-    final var executor = new ProgramManager(state, display);
+    final var screen = new MockScreen(List.of());
+    final var executor = new ProgramManager(state, screen);
     final var interpreter = new Interpreter(state, executor);
-    final var editor = new ProgramEditor(state, display, PARSER, executor::evalNum);
+    final var editor = new ProgramEditor(state, screen, PARSER, executor::evalNum);
     final var repl = new BazLangReplHandler(PARSER, state, executor, editor, interpreter);
 
-    repl.handleReplInput("PRINT \"hello\" : PRINT \"there\"", display);
+    repl.handleReplInput("PRINT \"hello\" : PRINT \"there\"", screen);
 
-    assertEquals("❯ PRINT \"hello\" : PRINT \"there\"\nhello\nthere\n", display.getOutput());
+    assertEquals("❯ PRINT \"hello\" : PRINT \"there\"\nhello\nthere\n", screen.getOutput());
   }
 }

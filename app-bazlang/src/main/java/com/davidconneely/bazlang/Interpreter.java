@@ -57,7 +57,7 @@ public class Interpreter {
         break;
       }
 
-      if (executor.display().pollForBreak()) {
+      if (executor.screen().pollForBreak()) {
         state.setRunning(false);
         throw new ReportException(
             ReportCode.BREAK_INTO_PROGRAM,

@@ -15,7 +15,7 @@ import com.davidconneely.bazlang.ReportCode;
 import com.davidconneely.bazlang.ReportException;
 import com.davidconneely.bazlang.antlr.AntlrParser;
 import com.davidconneely.bazlang.antlr.BazLangParser;
-import com.davidconneely.bazlang.io.MockDisplay;
+import com.davidconneely.bazlang.io.MockScreen;
 import com.davidconneely.repl.Shell;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -24,7 +24,7 @@ import org.junit.jupiter.api.Test;
 class DeleteEditProgramTest extends BaseProgramTest {
 
   private EvalState state;
-  private MockDisplay display;
+  private MockScreen screen;
   private ProgramManager executor;
   private ProgramEditor editor;
   private AntlrParser parser;
@@ -32,10 +32,10 @@ class DeleteEditProgramTest extends BaseProgramTest {
   @BeforeEach
   void setUp() {
     state = new EvalState();
-    display = new MockDisplay();
-    executor = new ProgramManager(state, display);
+    screen = new MockScreen();
+    executor = new ProgramManager(state, screen);
     parser = AntlrParser.INSTANCE;
-    editor = new ProgramEditor(state, display, parser, executor::evalNum);
+    editor = new ProgramEditor(state, screen, parser, executor::evalNum);
     state.program().put(10, new ProgramLine(10, "PRINT \"HELLO\""));
     state.program().put(20, new ProgramLine(20, "GOTO 40"));
     state.program().put(30, new ProgramLine(30, "PRINT \"WORLD\""));
@@ -45,7 +45,7 @@ class DeleteEditProgramTest extends BaseProgramTest {
   private void executeReplCommand(String command) {
     final var parsed = parser.parseReplLine(command);
     if (parsed instanceof AntlrParser.ParsedLine.ReplCommand(var ctx)) {
-      handleReplCommand(ctx, executor, editor, display, state);
+      handleReplCommand(ctx, executor, editor, screen, state);
     } else {
       fail("Expected ReplCommand but got: " + parsed.getClass().getSimpleName());
     }
@@ -126,13 +126,13 @@ class DeleteEditProgramTest extends BaseProgramTest {
   @Test
   void testEditExistingLine() {
     executeReplCommand("EDIT 10");
-    assertEquals("10 PRINT \"HELLO\"", display.getPrefillText());
+    assertEquals("10 PRINT \"HELLO\"", screen.getPrefillText());
   }
 
   @Test
   void testEditNonExistentLine() {
     executeReplCommand("EDIT 100");
-    assertEquals("100 ", display.getPrefillText());
+    assertEquals("100 ", screen.getPrefillText());
   }
 
   @Test

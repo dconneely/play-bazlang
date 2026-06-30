@@ -11,7 +11,7 @@ import com.davidconneely.bazlang.ProgramManager;
 import com.davidconneely.bazlang.ReportCode;
 import com.davidconneely.bazlang.ReportException;
 import com.davidconneely.bazlang.antlr.AntlrParser;
-import com.davidconneely.bazlang.io.TerminalDisplay;
+import com.davidconneely.bazlang.io.TerminalScreen;
 import com.davidconneely.repl.TerminalEngine;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -21,7 +21,7 @@ import java.util.Map;
 import java.util.function.IntConsumer;
 import org.junit.jupiter.api.Test;
 
-class TerminalDisplayGraphicsTest {
+class TerminalScreenGraphicsTest {
   private static final AntlrParser PARSER = AntlrParser.INSTANCE;
 
   private static final String CUBE_SRC = loadResource("/cube_test.bas");
@@ -30,7 +30,7 @@ class TerminalDisplayGraphicsTest {
   private static final String RACER_SRC = loadResource("/racer_test.bas");
 
   private static String loadResource(String name) {
-    try (var is = TerminalDisplayGraphicsTest.class.getResourceAsStream(name)) {
+    try (var is = TerminalScreenGraphicsTest.class.getResourceAsStream(name)) {
       if (is == null) {
         throw new IllegalArgumentException("Resource not found: " + name);
       }
@@ -117,9 +117,9 @@ class TerminalDisplayGraphicsTest {
     EvalState state = new EvalState();
     engine = new TestTerminalEngine();
     engine.setKeysToRead(mockKeys);
-    TerminalDisplay display = new TerminalDisplay(engine);
+    TerminalScreen screen = new TerminalScreen(engine);
 
-    ProgramManager executor = new ProgramManager(state, display);
+    ProgramManager executor = new ProgramManager(state, screen);
     Interpreter interpreter = new Interpreter(state, executor);
     try {
       interpreter.execute(program);
@@ -128,7 +128,7 @@ class TerminalDisplayGraphicsTest {
         throw e;
       }
     } finally {
-      display.forceFlush();
+      screen.forceFlush();
     }
   }
 
@@ -154,8 +154,6 @@ class TerminalDisplayGraphicsTest {
 
   @Test
   void testHangmanRendering() {
-    // Run the game with keyboard inputs that win:
-    // 'e', 'l', 'p', 'h', 'a', 'n', 't'
     runProgram(HANGMAN_SRC, 'e', 'l', 'p', 'h', 'a', 'n', 't');
     String output = engine.getOutput();
     System.out.println("--- HANGMAN RENDERED OUTPUT ---");
@@ -166,8 +164,6 @@ class TerminalDisplayGraphicsTest {
 
   @Test
   void testHangmanRenderingLose() {
-    // Run the game with keyboard inputs that lose:
-    // 'x', 'y', 'z', 'w', 'q', 'v' (6 misses)
     runProgram(HANGMAN_SRC, 'x', 'y', 'z', 'w', 'q', 'v');
     String output = engine.getOutput();
     System.out.println("--- HANGMAN LOSE RENDERED OUTPUT ---");
@@ -230,8 +226,6 @@ class TerminalDisplayGraphicsTest {
     runProgram(RACER_SRC);
     String output = engine.getOutput();
     assertTrue(output.contains("forget your glasses"), "Output should contain the crash message");
-    // Verify that the message retains the green grass colour (RGB true-colour containing 215 or
-    // 255)
     assertTrue(
         output.contains(";215;") || output.contains(";255;"),
         "Output should contain true-colour ANSI codes representing preserved colours, but was:\n"

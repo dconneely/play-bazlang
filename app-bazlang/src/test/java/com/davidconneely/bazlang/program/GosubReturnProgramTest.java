@@ -13,7 +13,7 @@ import com.davidconneely.bazlang.ProgramLine;
 import com.davidconneely.bazlang.ProgramManager;
 import com.davidconneely.bazlang.ReportCode;
 import com.davidconneely.bazlang.ReportException;
-import com.davidconneely.bazlang.io.MockDisplay;
+import com.davidconneely.bazlang.io.MockScreen;
 import java.util.HashMap;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -67,18 +67,18 @@ class GosubReturnProgramTest extends BaseProgramTest {
     // Tests that an immediate GOSUB to a subroutine containing a RETURN gracefully returns to the
     // REPL
     final var state = new EvalState();
-    final var display = new MockDisplay(List.of());
-    final var executor = new ProgramManager(state, display);
+    final var screen = new MockScreen(List.of());
+    final var executor = new ProgramManager(state, screen);
     final var interpreter = new Interpreter(state, executor);
-    final var editor = new ProgramEditor(state, display, PARSER, executor::evalNum);
+    final var editor = new ProgramEditor(state, screen, PARSER, executor::evalNum);
     final var repl = new BazLangReplHandler(PARSER, state, executor, editor, interpreter);
 
-    repl.handleReplInput("10 PRINT \"SUB\" : RETURN", display);
-    repl.handleReplInput("GOSUB 10", display);
+    repl.handleReplInput("10 PRINT \"SUB\" : RETURN", screen);
+    repl.handleReplInput("GOSUB 10", screen);
 
     // The output should be the subroutine's line being echoed, then the subroutine executing,
     // and then returning to the REPL cleanly without throwing "RETURN without GOSUB".
-    assertEquals("❯ 10 PRINT \"SUB\" : RETURN\n❯ GOSUB 10\nSUB\n", display.getOutput());
+    assertEquals("❯ 10 PRINT \"SUB\" : RETURN\n❯ GOSUB 10\nSUB\n", screen.getOutput());
     assertFalse(state.isRunning());
   }
 
@@ -97,8 +97,8 @@ class GosubReturnProgramTest extends BaseProgramTest {
     program.put(40, new ProgramLine(40, "RETURN"));
 
     final var state = new EvalState();
-    final var display = new MockDisplay(List.of());
-    final var executor = new ProgramManager(state, display);
+    final var screen = new MockScreen(List.of());
+    final var executor = new ProgramManager(state, screen);
     final var interpreter = new Interpreter(state, executor);
 
     // Run GOSUB 30 -> stops at line 30 STOP

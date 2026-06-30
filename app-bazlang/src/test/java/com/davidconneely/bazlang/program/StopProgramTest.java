@@ -10,7 +10,7 @@ import com.davidconneely.bazlang.ProgramLine;
 import com.davidconneely.bazlang.ProgramManager;
 import com.davidconneely.bazlang.ReportCode;
 import com.davidconneely.bazlang.ReportException;
-import com.davidconneely.bazlang.io.MockDisplay;
+import com.davidconneely.bazlang.io.MockScreen;
 import java.util.HashMap;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -26,8 +26,8 @@ class StopProgramTest extends BaseProgramTest {
 
     final var state = new EvalState();
     // Provide "STOP" first, then "42" when we continue
-    final var display = new MockDisplay(List.of("STOP", "42"));
-    final var executor = new ProgramManager(state, display);
+    final var screen = new MockScreen(List.of("STOP", "42"));
+    final var executor = new ProgramManager(state, screen);
     final var interpreter = new Interpreter(state, executor);
 
     try {
@@ -43,7 +43,7 @@ class StopProgramTest extends BaseProgramTest {
     executor.visitContStmt(null);
     interpreter.resume();
 
-    assertEquals("STOP\n42\n42\n", display.getOutput());
+    assertEquals("STOP\n42\n42\n", screen.getOutput());
   }
 
   @Test

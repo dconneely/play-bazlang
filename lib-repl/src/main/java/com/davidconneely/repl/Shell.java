@@ -10,7 +10,7 @@ public interface Shell extends AutoCloseable {
   /** Show a status or error message (persists until next input). */
   void setStatus(String status);
 
-  /** Print a system message to the display (e.g., REPL feedback, line echoes). */
+  /** Print a system message to the screen (e.g., REPL feedback, line echoes). */
   void systemPrintln(String text);
 
   @Override

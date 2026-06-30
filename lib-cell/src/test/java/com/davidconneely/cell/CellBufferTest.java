@@ -103,7 +103,4 @@ class CellBufferTest {
     assertEquals('C', buf.getCell(1, 0));
     assertEquals(' ', buf.getCell(2, 0));
   }
-
-  // Note: testResizeSmallerClampsCursor is not included here because cursor
-  // clamping on resize is a TerminalDisplay concern, not a PixelBuffer concern.
 }

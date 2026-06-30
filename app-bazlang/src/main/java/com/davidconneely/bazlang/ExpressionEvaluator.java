@@ -3,7 +3,7 @@ package com.davidconneely.bazlang;
 import com.davidconneely.bazlang.antlr.AntlrParser;
 import com.davidconneely.bazlang.antlr.BazLangBaseVisitor;
 import com.davidconneely.bazlang.antlr.BazLangParser.*;
-import com.davidconneely.bazlang.io.BazLangDisplay;
+import com.davidconneely.bazlang.io.BazLangScreen;
 import java.math.BigInteger;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
@@ -12,7 +12,7 @@ import java.util.List;
 
 public class ExpressionEvaluator extends BazLangBaseVisitor<Void> {
   private final EvalState state;
-  private final BazLangDisplay display;
+  private final BazLangScreen screen;
   private final AntlrParser parser;
 
   private final int[] indexStack = new int[256];
@@ -22,14 +22,14 @@ public class ExpressionEvaluator extends BazLangBaseVisitor<Void> {
   private double numResult;
   private BStr strResult;
 
-  public ExpressionEvaluator(EvalState state, BazLangDisplay display, AntlrParser parser) {
+  public ExpressionEvaluator(EvalState state, BazLangScreen screen, AntlrParser parser) {
     this.state = state;
-    this.display = display;
+    this.screen = screen;
     this.parser = parser;
   }
 
-  public BazLangDisplay display() {
-    return display;
+  public BazLangScreen screen() {
+    return screen;
   }
 
   public double evalNum(NumExprContext ctx) {
@@ -260,10 +260,10 @@ public class ExpressionEvaluator extends BazLangBaseVisitor<Void> {
     if (ctx.ATTR() != null) {
       final int row = (int) Math.round(evalNum(ctx.numExpr(0)));
       final int col = (int) Math.round(evalNum(ctx.numExpr(1)));
-      if (row < 0 || row >= display.printHeight() || col < 0 || col >= display.printWidth()) {
+      if (row < 0 || row >= screen.printHeight() || col < 0 || col >= screen.printWidth()) {
         throw codedException(ReportCode.INTEGER_OUT_OF_RANGE, "Screen coordinates out of bounds");
       }
-      numResult = display.getScreenAttributes(row, col);
+      numResult = screen.getScreenAttributes(row, col);
       return null;
     }
     if (ctx.ATN() != null) {
@@ -324,15 +324,15 @@ public class ExpressionEvaluator extends BazLangBaseVisitor<Void> {
       return null;
     }
     if (ctx.PLOTH() != null) {
-      numResult = display.plotHeight();
+      numResult = screen.plotHeight();
       return null;
     }
     if (ctx.PLOTMODE() != null) {
-      numResult = display.plotMode();
+      numResult = screen.plotMode();
       return null;
     }
     if (ctx.PLOTW() != null) {
-      numResult = display.plotWidth();
+      numResult = screen.plotWidth();
       return null;
     }
     if (ctx.PLOTX() != null) {
@@ -346,7 +346,7 @@ public class ExpressionEvaluator extends BazLangBaseVisitor<Void> {
     if (ctx.POINT() != null) {
       final int x = (int) Math.round(evalNum(ctx.numExpr(0)));
       final int y = (int) Math.round(evalNum(ctx.numExpr(1)));
-      numResult = display.point(x, y);
+      numResult = screen.point(x, y);
       return null;
     }
     if (ctx.RND() != null) {
@@ -374,19 +374,19 @@ public class ExpressionEvaluator extends BazLangBaseVisitor<Void> {
       return null;
     }
     if (ctx.TEXTH() != null) {
-      numResult = display.printHeight();
+      numResult = screen.printHeight();
       return null;
     }
     if (ctx.TEXTW() != null) {
-      numResult = display.printWidth();
+      numResult = screen.printWidth();
       return null;
     }
     if (ctx.TEXTX() != null) {
-      numResult = display.currentCol();
+      numResult = screen.currentCol();
       return null;
     }
     if (ctx.TEXTY() != null) {
-      numResult = display.currentRow();
+      numResult = screen.currentRow();
       return null;
     }
     if (ctx.UCNEXT() != null) {
@@ -415,13 +415,13 @@ public class ExpressionEvaluator extends BazLangBaseVisitor<Void> {
       final int row = (int) Math.round(evalNum(ctx.numExpr(0)));
       final int col = (int) Math.round(evalNum(ctx.numExpr(1)));
       final int select = (int) Math.round(evalNum(ctx.numExpr(2)));
-      if (row < 0 || row >= display.printHeight() || col < 0 || col >= display.printWidth()) {
+      if (row < 0 || row >= screen.printHeight() || col < 0 || col >= screen.printWidth()) {
         throw codedException(ReportCode.INTEGER_OUT_OF_RANGE, "Screen coordinates out of bounds");
       }
       if (select < 0 || select > 8) {
         throw codedException(ReportCode.INTEGER_OUT_OF_RANGE, "XATTR selector out of range [0, 8]");
       }
-      numResult = display.getXAttributes(row, col, select);
+      numResult = screen.getXAttributes(row, col, select);
       return null;
     }
     throw codedException(ReportCode.NONSENSE_IN_BASIC, "Unknown function");
@@ -649,16 +649,16 @@ public class ExpressionEvaluator extends BazLangBaseVisitor<Void> {
       return null;
     }
     if (ctx.INKEY_STR() != null) {
-      strResult = BStr.fromJavaString(display.inkey());
+      strResult = BStr.fromJavaString(screen.inkey());
       return null;
     }
     if (ctx.SCREEN_STR() != null || ctx.USCREEN_STR() != null) {
       final int row = (int) Math.round(evalNum(ctx.numExpr(0)));
       final int col = (int) Math.round(evalNum(ctx.numExpr(1)));
-      if (row < 0 || row >= display.printHeight() || col < 0 || col >= display.printWidth()) {
+      if (row < 0 || row >= screen.printHeight() || col < 0 || col >= screen.printWidth()) {
         throw codedException(ReportCode.INTEGER_OUT_OF_RANGE, "Screen coordinates out of bounds");
       }
-      final int cp = display.getScreenCodepoint(row, col);
+      final int cp = screen.getScreenCodepoint(row, col);
       if (ctx.SCREEN_STR() != null) {
         if (cp >= 0 && cp <= 127) {
           strResult = BStr.fromByte(cp);
@@ -687,7 +687,7 @@ public class ExpressionEvaluator extends BazLangBaseVisitor<Void> {
       return null;
     }
     if (ctx.UINKEY_STR() != null) {
-      strResult = BStr.fromJavaString(display.uinkey());
+      strResult = BStr.fromJavaString(screen.uinkey());
       return null;
     }
     if (ctx.VAL_STR() != null) {

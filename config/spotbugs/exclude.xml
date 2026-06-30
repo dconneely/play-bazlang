@@ -15,9 +15,9 @@
         <Bug pattern="CT_CONSTRUCTOR_THROW"/>
     </Match>
     
-    <!-- TerminalDisplay is single-threaded except for signal handlers which use AtomicBoolean -->
+    <!-- TerminalScreen is single-threaded except for signal handlers which use AtomicBoolean -->
     <Match>
-        <Class name="com.davidconneely.bazlang.io.TerminalDisplay" />
+        <Class name="com.davidconneely.bazlang.io.TerminalScreen" />
         <Bug category="MT_CORRECTNESS" />
     </Match>
 </FindBugsFilter>

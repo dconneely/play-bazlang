@@ -77,10 +77,8 @@
         <exclude name="AvoidFieldNameMatchingMethodName"/>
         <!-- if (x == 0) is clear -->
         <exclude name="AvoidLiteralsInIfCondition"/>
-        <!-- False positives on Display (closed elsewhere) -->
+        <!-- False positives on Screen (closed elsewhere) -->
         <exclude name="CloseResource"/>
-        <!-- TerminalDisplay intentionally initializes in constructor -->
-        <exclude name="ConstructorCallsOverridableMethod"/>
         <!-- CLI app uses System.exit() -->
         <exclude name="DoNotTerminateVM"/>
         <!-- Intentional: ignoring non-critical exceptions -->

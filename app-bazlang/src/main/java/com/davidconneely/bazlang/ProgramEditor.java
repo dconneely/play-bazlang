@@ -3,7 +3,7 @@ package com.davidconneely.bazlang;
 import com.davidconneely.bazlang.antlr.AntlrParser;
 import com.davidconneely.bazlang.antlr.BazLangLexer;
 import com.davidconneely.bazlang.antlr.BazLangParser;
-import com.davidconneely.bazlang.io.BazLangDisplay;
+import com.davidconneely.bazlang.io.BazLangScreen;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
@@ -18,17 +18,17 @@ import org.antlr.v4.runtime.Token;
  */
 public class ProgramEditor {
   private final EvalState state;
-  private final BazLangDisplay display;
+  private final BazLangScreen screen;
   private final AntlrParser parser;
   private final ToDoubleFunction<BazLangParser.NumExprContext> numEval;
 
   public ProgramEditor(
       EvalState state,
-      BazLangDisplay display,
+      BazLangScreen screen,
       AntlrParser parser,
       ToDoubleFunction<BazLangParser.NumExprContext> numEval) {
     this.state = state;
-    this.display = display;
+    this.screen = screen;
     this.parser = parser;
     this.numEval = numEval;
   }
@@ -235,7 +235,7 @@ public class ProgramEditor {
           if (ceilingKey != null && mapping.containsKey(ceilingKey)) {
             newTarget = mapping.get(ceilingKey);
             final Integer newLineNum = mapping.getOrDefault(lineNum, lineNum);
-            display.println(
+            screen.println(
                 "Warning: Line "
                     + lineNum
                     + " (now "

@@ -1,6 +1,6 @@
 package com.davidconneely.repl;
 
-public interface Display extends AutoCloseable {
+public interface Canvas extends AutoCloseable {
   enum InputMode {
     INPUT_NUMERIC,
     INPUT_STRING

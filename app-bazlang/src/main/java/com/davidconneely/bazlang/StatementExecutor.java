@@ -4,14 +4,14 @@ import com.davidconneely.bazlang.antlr.AntlrParser;
 import com.davidconneely.bazlang.antlr.BazLangBaseVisitor;
 import com.davidconneely.bazlang.antlr.BazLangParser;
 import com.davidconneely.bazlang.antlr.BazLangParser.*;
-import com.davidconneely.bazlang.io.BazLangDisplay;
+import com.davidconneely.bazlang.io.BazLangScreen;
 import com.davidconneely.cell.BrailleMode;
 import com.davidconneely.cell.CellMode;
 import com.davidconneely.cell.HalfCellMode;
 import com.davidconneely.cell.QuadrantMode;
 import com.davidconneely.cell.SextantMode;
 import com.davidconneely.repl.BreakException;
-import com.davidconneely.repl.Display;
+import com.davidconneely.repl.Canvas;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -19,23 +19,23 @@ import java.util.HashSet;
 /** Executes BazLang from the ANTLR ParseTree. */
 public class StatementExecutor extends BazLangBaseVisitor<Void> {
   protected final EvalState state;
-  protected final BazLangDisplay display;
+  protected final BazLangScreen screen;
   protected final ProgramStorage storage;
   protected final ExpressionEvaluator exprEvaluator;
 
   public StatementExecutor(
       EvalState state,
-      BazLangDisplay display,
+      BazLangScreen screen,
       ProgramStorage storage,
       ExpressionEvaluator exprEvaluator) {
     this.state = state;
-    this.display = display;
+    this.screen = screen;
     this.storage = storage;
     this.exprEvaluator = exprEvaluator;
   }
 
-  public BazLangDisplay display() {
-    return display;
+  public BazLangScreen screen() {
+    return screen;
   }
 
   // ===== Statement Execution =====
@@ -48,7 +48,7 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
 
   @Override
   public Void visitClsStmt(ClsStmtContext ctx) {
-    display.cls();
+    screen.cls();
     return null;
   }
 
@@ -161,7 +161,7 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
     int err = diffX + diffY;
 
     while (true) {
-      display.plot(x1, y1);
+      screen.plot(x1, y1);
       if (x1 == endX && y1 == endY) {
         break;
       }
@@ -181,7 +181,7 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
 
   @Override
   public Void visitFastStmt(FastStmtContext ctx) {
-    display.setFastMode(true);
+    screen.setFastMode(true);
     return null;
   }
 
@@ -207,7 +207,7 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
   public Void visitInputStmt(InputStmtContext ctx) {
     final var target = ctx.assignmentTarget();
     final boolean isNumeric = target.NUM_IDENTIFIER() != null;
-    final var mode = isNumeric ? Display.InputMode.INPUT_NUMERIC : Display.InputMode.INPUT_STRING;
+    final var mode = isNumeric ? Canvas.InputMode.INPUT_NUMERIC : Canvas.InputMode.INPUT_STRING;
     String line = readInputLine(mode);
 
     if (isNumeric) {
@@ -221,7 +221,7 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
           if (e.reportCode() != ReportCode.NONSENSE_IN_BASIC) {
             throw e; // Other errors (undefined variable, division by zero) end program
           }
-          display.prefillInput(line);
+          screen.prefillInput(line);
           line = readInputLine("Syntax error in expression");
         }
       }
@@ -231,9 +231,9 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
     return null;
   }
 
-  private String readInputLine(Display.InputMode mode) {
+  private String readInputLine(Canvas.InputMode mode) {
     try {
-      final String line = display.readln(mode);
+      final String line = screen.readln(mode);
       if (line != null && line.trim().equalsIgnoreCase("STOP")) {
         state.setRunning(false);
         throw codedException(ReportCode.STOP_IN_INPUT, ReportCode.STOP_IN_INPUT.getMessage());
@@ -247,7 +247,7 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
 
   private String readInputLine(String prompt) {
     try {
-      final String line = display.readln(prompt);
+      final String line = screen.readln(prompt);
       if (line != null && line.trim().equalsIgnoreCase("STOP")) {
         state.setRunning(false);
         throw codedException(ReportCode.STOP_IN_INPUT, ReportCode.STOP_IN_INPUT.getMessage());
@@ -299,7 +299,7 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
     for (final var entry : state.program().subMapEntries(range[0], true, range[1], true)) {
       final var line = entry.getValue();
       if (line.lineNumber() >= Limits.MIN_LINE_LABEL) {
-        display.println(line.lineNumber() + " " + line.sourceText());
+        screen.println(line.lineNumber() + " " + line.sourceText());
       }
     }
     return null;
@@ -311,7 +311,7 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
     for (final var entry : state.program().subMapEntries(range[0], true, range[1], true)) {
       final var line = entry.getValue();
       if (line.lineNumber() >= Limits.MIN_LINE_LABEL) {
-        display.lprintln(line.lineNumber() + " " + line.sourceText());
+        screen.lprintln(line.lineNumber() + " " + line.sourceText());
       }
     }
     return null;
@@ -367,11 +367,11 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
             // Comma moves to next tab stop
             final int nextTab = ((tp / Limits.TAB_WIDTH) + 1) * Limits.TAB_WIDTH;
             if (nextTab > tp) {
-              display.lprint(" ".repeat(nextTab - tp));
+              screen.lprint(" ".repeat(nextTab - tp));
               tp = nextTab;
             }
           } else if (sepText.equals("'")) {
-            display.lprintln();
+            screen.lprintln();
             tp = 0;
           }
           // Semicolon does nothing (items concatenate)
@@ -380,7 +380,7 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
       }
     }
     if (!suppressNewline) {
-      display.lprintln();
+      screen.lprintln();
     }
     return null;
   }
@@ -388,7 +388,7 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
   private int executeLPrintItem(PrintItemContext item, int tp) {
     if (item instanceof PrintExprItemContext expr) {
       String s = evalPrintExpr(expr.expression());
-      display.lprint(s);
+      screen.lprint(s);
       return tp + s.length();
     } else if (item instanceof PrintAtItemContext at) {
       return (int) evalNum(at.numExpr(1)); // col
@@ -398,7 +398,7 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
         t = ((tp / Limits.TAB_WIDTH) + 1) * Limits.TAB_WIDTH;
       }
       if (t > tp) {
-        display.lprint(" ".repeat(t - tp));
+        screen.lprint(" ".repeat(t - tp));
       }
       return t;
     }
@@ -416,7 +416,7 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
   public Void visitPauseStmt(PauseStmtContext ctx) {
     final double frames = evalNum(ctx.numExpr());
     final long totalMs = Math.max(0L, Math.round(frames * 20.0));
-    display.forceFlush();
+    screen.forceFlush();
     long remaining = totalMs;
     while (remaining > 0) {
       long chunk = Math.min(remaining, 20L);
@@ -427,7 +427,7 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
         break;
       }
       remaining -= chunk;
-      if (display.pollForBreak()) {
+      if (screen.pollForBreak()) {
         state.setRunning(false);
         // On a Sinclair ZX Spectrum, pressing BREAK during PAUSE gives report code L (BREAK into
         // program). CONT then advances past the PAUSE to the next statement.
@@ -446,11 +446,11 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
           final var exprs = ctx.numExpr();
           try {
             if (exprs == null || exprs.isEmpty()) {
-              display.plot(state.graphicsCursorX(), state.graphicsCursorY());
+              screen.plot(state.graphicsCursorX(), state.graphicsCursorY());
             } else if (exprs.size() == 2) {
               final int x = (int) evalNum(ctx.numExpr(0));
               final int y = (int) evalNum(ctx.numExpr(1));
-              display.plot(x, y);
+              screen.plot(x, y);
               state.setGraphicsCursorX(x);
               state.setGraphicsCursorY(y);
             }
@@ -475,7 +475,7 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
               throw codedException(
                   ReportCode.INVALID_ARGUMENT, "Invalid PLOTMODE (use 1, 2, 4, 6, or 8)");
         };
-    display.setPlotMode(pixelMode);
+    screen.setPlotMode(pixelMode);
     return null;
   }
 
@@ -483,7 +483,7 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
   public Void visitPrintStmt(PrintStmtContext ctx) {
     withRestoredStyles(
         () -> {
-          int tabPos = display.currentCol();
+          int tabPos = screen.currentCol();
           boolean suppressNewline = false;
           final var printList = ctx.printList();
           if (printList != null) {
@@ -498,11 +498,11 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
                   // Comma moves to next tab stop
                   final int nextTab = ((tabPos / Limits.TAB_WIDTH) + 1) * Limits.TAB_WIDTH;
                   if (nextTab > tabPos) {
-                    display.print(" ".repeat(nextTab - tabPos));
-                    tabPos = display.currentCol();
+                    screen.print(" ".repeat(nextTab - tabPos));
+                    tabPos = screen.currentCol();
                   }
                 } else if (sepText.equals("'")) {
-                  display.println();
+                  screen.println();
                   tabPos = 0;
                 }
                 // Semicolon does nothing (items concatenate)
@@ -511,9 +511,9 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
             }
           }
           if (!suppressNewline) {
-            display.println();
+            screen.println();
           }
-          display.flush(); // Ensure output is visible, including semicolon-terminated lines
+          screen.flush(); // Ensure output is visible, including semicolon-terminated lines
         });
     return null;
   }
@@ -521,15 +521,15 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
   private int executePrintItem(PrintItemContext item, int tabPos) {
     if (item instanceof PrintExprItemContext expr) {
       final String s = evalPrintExpr(expr.expression());
-      display.print(s);
-      return display.currentCol();
+      screen.print(s);
+      return screen.currentCol();
     } else if (item instanceof PrintAtItemContext at) {
       final int row = (int) evalNum(at.numExpr(0));
       final int col = (int) evalNum(at.numExpr(1));
       if (row < 0 || col < 0) {
         throw codedException(ReportCode.OUT_OF_SCREEN, "Screen out of bounds");
       }
-      display.locate(row, col);
+      screen.locate(row, col);
       return col;
     } else if (item instanceof PrintTabItemContext tab) {
       int t = (int) evalNum(tab.numExpr());
@@ -537,9 +537,9 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
         t = ((tabPos / Limits.TAB_WIDTH) + 1) * Limits.TAB_WIDTH;
       }
       if (t > tabPos) {
-        display.print(" ".repeat(t - tabPos));
+        screen.print(" ".repeat(t - tabPos));
       }
-      return display.currentCol();
+      return screen.currentCol();
     } else if (item instanceof PrintStyleItemContext style) {
       applyStyleItem(style.styleItem());
       return tabPos;
@@ -558,17 +558,17 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
 
   private void applyStyleItem(StyleItemContext style) {
     if (style instanceof StyleInkItemContext ink) {
-      display.setInk((int) evalNum(ink.numExpr()));
+      screen.setInk((int) evalNum(ink.numExpr()));
     } else if (style instanceof StylePaperItemContext paper) {
-      display.setPaper((int) evalNum(paper.numExpr()));
+      screen.setPaper((int) evalNum(paper.numExpr()));
     } else if (style instanceof StyleBrightItemContext bright) {
-      display.setBright((int) evalNum(bright.numExpr()));
+      screen.setBright((int) evalNum(bright.numExpr()));
     } else if (style instanceof StyleFlashItemContext flash) {
-      display.setFlash((int) evalNum(flash.numExpr()));
+      screen.setFlash((int) evalNum(flash.numExpr()));
     } else if (style instanceof StyleInverseItemContext inverse) {
-      display.setInverse((int) evalNum(inverse.numExpr()));
+      screen.setInverse((int) evalNum(inverse.numExpr()));
     } else if (style instanceof StyleOverItemContext over) {
-      display.setOver((int) evalNum(over.numExpr()));
+      screen.setOver((int) evalNum(over.numExpr()));
     }
   }
 
@@ -579,21 +579,21 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
     final int prevFlash = state.defaultFlash();
     final int prevInverse = state.defaultInverse();
     final int prevOver = state.defaultOver();
-    display.setInk(prevInk);
-    display.setPaper(prevPaper);
-    display.setBright(prevBright);
-    display.setFlash(prevFlash);
-    display.setInverse(prevInverse);
-    display.setOver(prevOver);
+    screen.setInk(prevInk);
+    screen.setPaper(prevPaper);
+    screen.setBright(prevBright);
+    screen.setFlash(prevFlash);
+    screen.setInverse(prevInverse);
+    screen.setOver(prevOver);
     try {
       action.run();
     } finally {
-      display.setInk(prevInk);
-      display.setPaper(prevPaper);
-      display.setBright(prevBright);
-      display.setFlash(prevFlash);
-      display.setInverse(prevInverse);
-      display.setOver(prevOver);
+      screen.setInk(prevInk);
+      screen.setPaper(prevPaper);
+      screen.setBright(prevBright);
+      screen.setFlash(prevFlash);
+      screen.setInverse(prevInverse);
+      screen.setOver(prevOver);
     }
   }
 
@@ -709,13 +709,13 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
 
   @Override
   public Void visitScrollStmt(ScrollStmtContext ctx) {
-    display.scroll();
+    screen.scroll();
     return null;
   }
 
   @Override
   public Void visitSlowStmt(SlowStmtContext ctx) {
-    display.setFastMode(false);
+    screen.setFastMode(false);
     return null;
   }
 
@@ -907,7 +907,7 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
   public Void visitInkStmt(InkStmtContext ctx) {
     final int colour = (int) evalNum(ctx.numExpr());
     state.setDefaultInk(colour);
-    display.setInk(colour);
+    screen.setInk(colour);
     return null;
   }
 
@@ -915,7 +915,7 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
   public Void visitPaperStmt(PaperStmtContext ctx) {
     final int colour = (int) evalNum(ctx.numExpr());
     state.setDefaultPaper(colour);
-    display.setPaper(colour);
+    screen.setPaper(colour);
     return null;
   }
 
@@ -923,7 +923,7 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
   public Void visitBrightStmt(BrightStmtContext ctx) {
     final int bright = (int) evalNum(ctx.numExpr());
     state.setDefaultBright(bright);
-    display.setBright(bright);
+    screen.setBright(bright);
     return null;
   }
 
@@ -931,7 +931,7 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
   public Void visitFlashStmt(FlashStmtContext ctx) {
     final int flash = (int) evalNum(ctx.numExpr());
     state.setDefaultFlash(flash);
-    display.setFlash(flash);
+    screen.setFlash(flash);
     return null;
   }
 
@@ -939,7 +939,7 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
   public Void visitInverseStmt(InverseStmtContext ctx) {
     final int inverse = (int) evalNum(ctx.numExpr());
     state.setDefaultInverse(inverse);
-    display.setInverse(inverse);
+    screen.setInverse(inverse);
     return null;
   }
 
@@ -947,7 +947,7 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
   public Void visitOverStmt(OverStmtContext ctx) {
     final int over = (int) evalNum(ctx.numExpr());
     state.setDefaultOver(over);
-    display.setOver(over);
+    screen.setOver(over);
     return null;
   }
 

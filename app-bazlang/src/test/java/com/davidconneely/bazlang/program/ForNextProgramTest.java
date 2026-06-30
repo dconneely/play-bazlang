@@ -10,7 +10,7 @@ import com.davidconneely.bazlang.ProgramEditor;
 import com.davidconneely.bazlang.ProgramManager;
 import com.davidconneely.bazlang.ReportCode;
 import com.davidconneely.bazlang.ReportException;
-import com.davidconneely.bazlang.io.MockDisplay;
+import com.davidconneely.bazlang.io.MockScreen;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
@@ -59,17 +59,17 @@ class ForNextProgramTest extends BaseProgramTest {
     final var ex = assertThrows(ReportException.class, () -> runProgram(source));
     assertEquals(ReportCode.RETURN_WITHOUT_GOSUB, ex.reportCode());
 
-    final var display = new MockDisplay();
+    final var screen = new MockScreen();
     try {
       final var program = PARSER.parseProgramLines(source);
       final var state = new EvalState();
-      final var executor = new ProgramManager(state, display);
+      final var executor = new ProgramManager(state, screen);
       final var interpreter = new Interpreter(state, executor);
       interpreter.execute(program);
     } catch (ReportException re) {
       // Ignore expected
     }
-    assertEquals("M=1\nM=2\nM=3\nM=4\n", display.getOutput());
+    assertEquals("M=1\nM=2\nM=3\nM=4\n", screen.getOutput());
   }
 
   @Test
@@ -104,14 +104,14 @@ class ForNextProgramTest extends BaseProgramTest {
   void testImmediateModeForLoop() {
     // REPL statements are executed via immediate mode (label 0).
     final var state = new EvalState();
-    final var display = new MockDisplay(List.of());
-    final var executor = new ProgramManager(state, display);
+    final var screen = new MockScreen(List.of());
+    final var executor = new ProgramManager(state, screen);
     final var interpreter = new Interpreter(state, executor);
-    final var editor = new ProgramEditor(state, display, PARSER, executor::evalNum);
+    final var editor = new ProgramEditor(state, screen, PARSER, executor::evalNum);
     final var repl = new BazLangReplHandler(PARSER, state, executor, editor, interpreter);
 
     repl.handleReplInput("FOR I=1 TO 3 : PRINT I : NEXT I", null);
-    assertEquals("1\n2\n3\n", display.getOutput());
+    assertEquals("1\n2\n3\n", screen.getOutput());
   }
 
   @Test

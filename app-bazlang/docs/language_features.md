@@ -129,19 +129,26 @@ Returns `1` for True, `0` for False.
   - `4` = quadrant blocks (2×2, default)
   - `6` = sextant blocks (2×3)
   - `8` = braille patterns (2×4)
-  - Does not clear the display. Other values give an error.
+  - Does not clear the screen. Other values give an error.
 
 ### Colour / Style Attributes
 
-- **`BRIGHT n`**: Set active brightness style (`1` = bright, `0` = normal, `8` = inherit/default).
-- **`FLASH n`**: Set active flashing style (`1` = flashing, `0` = normal, `8` = inherit/default).
-- **`INK n`**: Set active foreground text/pixel ink colour (0-7, or `-1` = default terminal
-  foreground, `8` = inherit/default).
-- **`INVERSE n`**: Set active inverse style (`1` = inverse colour, `0` = normal, `8` = inherit/default).
-- **`OVER n`**: Set active overlay style for graphics (`1` = XOR/overlay, `0` = overwrite,
-  `8` = inherit/default).
-- **`PAPER n`**: Set active background paper colour (0-7, or `-1` = default terminal background,
-  `8` = inherit/default).
+- **`BRIGHT n`**: Set active brightness style (`0` = normal, `1` = bright, `8` = transparent — each
+  printed cell preserves its existing bright/bold state).
+- **`FLASH n`**: Set active flashing style (`0` = normal, `1` = flashing, `8` = transparent — each
+  printed cell preserves its existing flash/blink state).
+- **`INK n`**: Set active foreground text/pixel ink colour (0–7 ZX Spectrum colours, `-1` = default
+  terminal foreground, `8` = transparent — each printed cell preserves its existing foreground
+  colour, `9` = contrast — automatically selects black or white to contrast against the current
+  paper colour).
+- **`INVERSE n`**: Set active inverse style (`0` = normal, `1` = inverse colour). Only accepts `0`
+  or `1`; `INVERSE` is not persisted as a cell attribute so transparency is not meaningful.
+- **`OVER n`**: Set active overlay style for graphics (`0` = overwrite, `1` = XOR/overlay). Only
+  accepts `0` or `1`; `OVER` is not persisted as a cell attribute so transparency is not meaningful.
+- **`PAPER n`**: Set active background paper colour (0–7 ZX Spectrum colours, `-1` = default
+  terminal background, `8` = transparent — each printed cell preserves its existing background
+  colour, `9` = contrast — automatically selects black or white to contrast against the current
+  ink colour).
 
 ### Program Management
 
