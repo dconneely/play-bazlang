@@ -4,7 +4,7 @@ import com.davidconneely.bazlang.antlr.AntlrParser;
 import com.davidconneely.bazlang.io.BazLangScreen;
 import com.davidconneely.bazlang.io.StreamScreen;
 import com.davidconneely.bazlang.io.TerminalScreen;
-import com.davidconneely.repl.Repl;
+import com.davidconneely.repl.ReplLoop;
 import com.davidconneely.repl.jline.JLineTerminalEngine;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -68,6 +68,6 @@ public class MainClass {
     screen.systemPrintln("BazLang REPL. Type 'STOP' or Ctrl+D at the prompt to exit.");
     final var handler =
         new BazLangReplHandler(screen, PARSER, state, executor, editor, interpreter);
-    new Repl().run(screen, handler);
+    new ReplLoop().run(screen, handler);
   }
 }

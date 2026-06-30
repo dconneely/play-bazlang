@@ -1,9 +1,9 @@
 package com.davidconneely.bazlang.io;
 
 import com.davidconneely.cell.PixelMode;
-import com.davidconneely.repl.Shell;
+import com.davidconneely.repl.ReplReader;
 
-public interface BazLangScreen extends Shell {
+public interface BazLangScreen extends ReplReader, AutoCloseable {
   enum InputMode {
     INPUT_NUMERIC,
     INPUT_STRING

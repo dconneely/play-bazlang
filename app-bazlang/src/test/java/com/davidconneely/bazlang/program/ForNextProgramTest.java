@@ -98,9 +98,10 @@ class ForNextProgramTest extends BaseProgramTest {
     final var executor = new ProgramManager(state, screen);
     final var interpreter = new Interpreter(state, executor);
     final var editor = new ProgramEditor(state, screen, PARSER, executor::evalNum);
-    final var repl = new BazLangReplHandler(screen, PARSER, state, executor, editor, interpreter);
+    final var handler =
+        new BazLangReplHandler(screen, PARSER, state, executor, editor, interpreter);
 
-    repl.handleReplInput("FOR I=1 TO 3 : PRINT I : NEXT I");
+    handler.handleReplInput("FOR I=1 TO 3 : PRINT I : NEXT I");
     assertEquals("❯ FOR I=1 TO 3 : PRINT I : NEXT I\n1\n2\n3\n", screen.getOutput());
   }
 

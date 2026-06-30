@@ -1,11 +1,11 @@
 package com.davidconneely.repl;
 
-public final class Repl {
-  public void run(Shell ui, ReplHandler handler) {
+public final class ReplLoop {
+  public void run(ReplReader reader, ReplHandler handler) {
     while (true) {
       String line;
       try {
-        line = ui.readReplLine();
+        line = reader.readReplInput();
       } catch (BreakException e) {
         continue;
       }

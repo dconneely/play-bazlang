@@ -130,7 +130,7 @@ public class MockScreen extends AbstractCellBufferedScreen {
   }
 
   @Override
-  public String readReplLine() {
+  public String readReplInput() {
     return readln((String) null);
   }
 

@@ -324,7 +324,7 @@ public class TerminalScreen extends AbstractCellBufferedScreen {
   }
 
   @Override
-  public String readReplLine() {
+  public String readReplInput() {
     currentInputMode = InputContext.REPL;
     if (statusText.isEmpty()) {
       statusText = new ReportException(ReportCode.OK, 0, 1, "Ready").format();

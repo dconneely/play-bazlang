@@ -16,10 +16,6 @@ public final class CellAttributes {
   public static final int STYLE_INVERSE = 1 << 5;
   public static final int STYLE_STRIKETHROUGH = 1 << 6;
 
-  public static int typeOf(int colour) {
-    return colour & COLOUR_TYPE_MASK;
-  }
-
   public static boolean isDefault(int colour) {
     return (colour & COLOUR_TYPE_MASK) == COLOUR_DEFAULT;
   }

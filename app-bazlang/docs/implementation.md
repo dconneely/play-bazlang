@@ -27,8 +27,8 @@ The interpreter executes directly from ANTLR's parse tree using a visitor patter
 ## I/O System (The `io` Package)
 
 Input and output are handled by a set of classes that share a common `BazLangScreen` interface
-(which extends the base `Canvas` and `Shell` interfaces), isolating the interpreter from the
-specific device.
+(which extends the base `ReplReader` and `AutoCloseable` interfaces), isolating the interpreter
+from the specific device.
 
 - **`TerminalScreen`**: The standard version for interactive use. It provides a TUI
   (Text User Interface) with distinct window regions: an interpreter output area at the top,

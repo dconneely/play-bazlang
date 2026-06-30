@@ -55,7 +55,8 @@ public class CellBufferRenderer {
         } else if (cp < Character.MIN_SUPPLEMENTARY_CODE_POINT) {
           out.print((char) cp);
         } else {
-          out.print(Character.toChars(cp));
+          out.print(Character.highSurrogate(cp));
+          out.print(Character.lowSurrogate(cp));
         }
       }
       if (activeStyles != 0
