@@ -399,51 +399,11 @@ public class TerminalScreen extends AbstractCellBufferedScreen {
   }
 
   private BStr readKeySequence() throws IOException {
-    int first = engine.readKey(1L);
-    if (first < 0) {
-      return null;
-    }
-    if (first == 3) {
+    final BStr seq = KeyDecoder.decodeSequence(() -> engine.readKey(1L));
+    if (seq != null && seq.isEmpty()) {
       breakFlag.set(true);
-      return BStr.EMPTY;
     }
-    java.io.ByteArrayOutputStream bos = new java.io.ByteArrayOutputStream();
-    bos.write(first);
-    if (first == 27) { // ESC sequence
-      int next = engine.readKey(1L);
-      if (next >= 0) {
-        bos.write(next);
-        if (next == '[' || next == 'O') {
-          while (true) {
-            int seq = engine.readKey(1L);
-            if (seq < 0) {
-              break;
-            }
-            bos.write(seq);
-            if (seq >= 0x40 && seq <= 0x7E) {
-              break;
-            }
-          }
-        }
-      }
-    } else if ((first & 0x80) != 0) {
-      // UTF-8 lead byte
-      int len = 0;
-      if ((first & 0xE0) == 0xC0) {
-        len = 1;
-      } else if ((first & 0xF0) == 0xE0) {
-        len = 2;
-      } else if ((first & 0xF8) == 0xF0) {
-        len = 3;
-      }
-      for (int i = 0; i < len; i++) {
-        int follow = engine.readKey(1L);
-        if (follow >= 0) {
-          bos.write(follow);
-        }
-      }
-    }
-    return BStr.fromBytes(bos.toByteArray());
+    return seq;
   }
 
   @Override

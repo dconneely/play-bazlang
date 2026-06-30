@@ -175,51 +175,8 @@ public class StreamScreen implements BazLangScreen {
       if (in.available() == 0) {
         return BStr.EMPTY;
       }
-      int first = in.read();
-      if (first < 0) {
-        return BStr.EMPTY;
-      }
-      java.io.ByteArrayOutputStream bos = new java.io.ByteArrayOutputStream();
-      bos.write(first);
-      if (first == 27) { // ESC sequence
-        if (in.available() > 0) {
-          int next = in.read();
-          if (next >= 0) {
-            bos.write(next);
-            if (next == '[' || next == 'O') {
-              while (in.available() > 0) {
-                int seq = in.read();
-                if (seq < 0) {
-                  break;
-                }
-                bos.write(seq);
-                if (seq >= 0x40 && seq <= 0x7E) {
-                  break;
-                }
-              }
-            }
-          }
-        }
-      } else if ((first & 0x80) != 0) {
-        // UTF-8 sequence
-        int len = 0;
-        if ((first & 0xE0) == 0xC0) {
-          len = 1;
-        } else if ((first & 0xF0) == 0xE0) {
-          len = 2;
-        } else if ((first & 0xF8) == 0xF0) {
-          len = 3;
-        }
-        for (int i = 0; i < len; i++) {
-          if (in.available() > 0) {
-            int follow = in.read();
-            if (follow >= 0) {
-              bos.write(follow);
-            }
-          }
-        }
-      }
-      return BStr.fromBytes(bos.toByteArray());
+      final BStr seq = KeyDecoder.decodeSequence(() -> in.available() > 0 ? in.read() : -1);
+      return seq != null ? seq : BStr.EMPTY;
     } catch (IOException e) {
       return BStr.EMPTY;
     }
