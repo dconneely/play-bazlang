@@ -1,7 +1,11 @@
 package com.davidconneely.repl;
 
-public final class ReplLoop {
-  public void run(ReplReader reader, ReplHandler handler) {
+public final class Repl {
+  private Repl() {
+    /* prevent instantiation. */
+  }
+
+  public static void loop(ReplReader reader, ReplHandler handler) {
     while (true) {
       String line;
       try {
