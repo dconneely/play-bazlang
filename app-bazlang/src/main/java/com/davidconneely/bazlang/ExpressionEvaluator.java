@@ -646,7 +646,7 @@ public class ExpressionEvaluator extends BazLangBaseVisitor<Void> {
       return null;
     }
     if (ctx.INKEY_STR() != null) {
-      strResult = BStr.fromJavaString(screen.inkey());
+      strResult = screen.inkey();
       return null;
     }
     if (ctx.SCREEN_STR() != null || ctx.USCREEN_STR() != null) {
@@ -684,7 +684,7 @@ public class ExpressionEvaluator extends BazLangBaseVisitor<Void> {
       return null;
     }
     if (ctx.UINKEY_STR() != null) {
-      strResult = BStr.fromJavaString(screen.uinkey());
+      strResult = screen.uinkey();
       return null;
     }
     if (ctx.VAL_STR() != null) {

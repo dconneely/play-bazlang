@@ -2,6 +2,7 @@ package com.davidconneely.bazlang.program;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import com.davidconneely.bazlang.BStr;
 import com.davidconneely.bazlang.EvalState;
 import com.davidconneely.bazlang.Interpreter;
 import com.davidconneely.bazlang.ProgramManager;
@@ -30,6 +31,28 @@ class BaseProgramTest {
       interpreter.execute(program);
     } catch (ReportException e) {
       if (!ignoreExceptions && e.reportCode() != ReportCode.STOP_STATEMENT) {
+        throw e;
+      }
+    }
+    return new RunResult(state, screen);
+  }
+
+  protected RunResult runWithKeys(String source, List<BStr> inkey, List<BStr> uinkey) {
+    final var program = PARSER.parseProgramLines(source);
+    final var state = new EvalState();
+    final var screen = new MockScreen(List.of());
+    for (var k : inkey) {
+      screen.queueInkey(k);
+    }
+    for (var k : uinkey) {
+      screen.queueUinkey(k);
+    }
+    final var executor = new ProgramManager(state, screen);
+    final var interpreter = new Interpreter(state, executor);
+    try {
+      interpreter.execute(program);
+    } catch (ReportException e) {
+      if (e.reportCode() != ReportCode.STOP_STATEMENT) {
         throw e;
       }
     }

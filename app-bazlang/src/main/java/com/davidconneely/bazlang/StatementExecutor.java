@@ -218,8 +218,8 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
           assignNumTarget(target, val);
           break;
         } catch (ReportException e) {
-          if (e.reportCode() != ReportCode.NONSENSE_IN_BASIC) {
-            throw e; // Other errors (undefined variable, division by zero) end program
+          if (!screen.isInteractive() || e.reportCode() != ReportCode.NONSENSE_IN_BASIC) {
+            throw e; // Other errors (undefined variable, etc.) or non-interactive screens
           }
           screen.prefillInput(line);
           line = readInputLine("Syntax error in expression");

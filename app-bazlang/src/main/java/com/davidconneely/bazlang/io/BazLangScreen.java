@@ -1,5 +1,6 @@
 package com.davidconneely.bazlang.io;
 
+import com.davidconneely.bazlang.BStr;
 import com.davidconneely.cell.PixelMode;
 import com.davidconneely.repl.ReplReader;
 
@@ -41,6 +42,10 @@ public interface BazLangScreen extends ReplReader, AutoCloseable {
 
   String readln(String prompt);
 
+  default boolean isInteractive() {
+    return false;
+  }
+
   default void prefillInput(String text) {}
 
   default void setStatus(String status) {}
@@ -51,13 +56,13 @@ public interface BazLangScreen extends ReplReader, AutoCloseable {
     return false;
   }
 
-  default String inkey() {
-    return "";
+  default BStr inkey() {
+    return BStr.EMPTY;
   }
 
   /** Reads a multibyte sequence (UTF-8 character or terminal escape sequence) without blocking. */
-  default String uinkey() {
-    return "";
+  default BStr uinkey() {
+    return BStr.EMPTY;
   }
 
   @Override

@@ -1,9 +1,12 @@
 package com.davidconneely.bazlang.io;
 
+import com.davidconneely.bazlang.BStr;
 import com.davidconneely.cell.CellBuffer;
 import com.davidconneely.cell.QuadrantMode;
 import java.util.Collections;
 import java.util.List;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 public class MockScreen extends AbstractCellBufferedScreen {
   private static final int ROWS = 25;
@@ -15,6 +18,9 @@ public class MockScreen extends AbstractCellBufferedScreen {
   private String status = null;
   private String prefillText = null;
   private boolean simulatedBreak = false;
+
+  private final Queue<BStr> inkeyQueue = new ConcurrentLinkedQueue<>();
+  private final Queue<BStr> uinkeyQueue = new ConcurrentLinkedQueue<>();
 
   public MockScreen() {
     this(Collections.emptyList());
@@ -160,6 +166,31 @@ public class MockScreen extends AbstractCellBufferedScreen {
       return true;
     }
     return false;
+  }
+
+  public void queueInkey(BStr val) {
+    inkeyQueue.add(val);
+  }
+
+  public void queueUinkey(BStr val) {
+    uinkeyQueue.add(val);
+  }
+
+  @Override
+  public BStr inkey() {
+    final var val = inkeyQueue.poll();
+    return val != null ? val : BStr.EMPTY;
+  }
+
+  @Override
+  public BStr uinkey() {
+    final var val = uinkeyQueue.poll();
+    return val != null ? val : BStr.EMPTY;
+  }
+
+  @Override
+  public boolean isInteractive() {
+    return true;
   }
 
   @Override

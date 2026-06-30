@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.davidconneely.bazlang.BStr;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
@@ -78,9 +79,39 @@ class StreamScreenTest {
     final var in = new ByteArrayInputStream(inData);
 
     try (var screen = new StreamScreen(in, printOut, printErr)) {
-      assertEquals("A", screen.inkey());
-      assertEquals("", screen.inkey()); // Empty on EOF
-      assertEquals("", screen.uinkey()); // Fallback uinkey
+      assertEquals(BStr.fromJavaString("A"), screen.inkey());
+      assertEquals(BStr.EMPTY, screen.inkey()); // Empty on EOF
+      assertEquals(BStr.EMPTY, screen.uinkey()); // Fallback uinkey
+    }
+  }
+
+  @Test
+  void testUinkeyAnsiEscape() {
+    final var out = new ByteArrayOutputStream();
+    final var err = new ByteArrayOutputStream();
+    final var printOut = new PrintStream(out, true, StandardCharsets.UTF_8);
+    final var printErr = new PrintStream(err, true, StandardCharsets.UTF_8);
+    final var inData = new byte[] {27, (byte) '[', (byte) 'A'};
+    final var in = new ByteArrayInputStream(inData);
+
+    try (var screen = new StreamScreen(in, printOut, printErr)) {
+      assertEquals(BStr.fromBytes(inData), screen.uinkey());
+      assertEquals(BStr.EMPTY, screen.uinkey());
+    }
+  }
+
+  @Test
+  void testUinkeyUtf8() {
+    final var out = new ByteArrayOutputStream();
+    final var err = new ByteArrayOutputStream();
+    final var printOut = new PrintStream(out, true, StandardCharsets.UTF_8);
+    final var printErr = new PrintStream(err, true, StandardCharsets.UTF_8);
+    final var inData = "£".getBytes(StandardCharsets.UTF_8);
+    final var in = new ByteArrayInputStream(inData);
+
+    try (var screen = new StreamScreen(in, printOut, printErr)) {
+      assertEquals(BStr.fromBytes(inData), screen.uinkey());
+      assertEquals(BStr.EMPTY, screen.uinkey());
     }
   }
 

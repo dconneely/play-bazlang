@@ -1,5 +1,6 @@
 package com.davidconneely.bazlang.io;
 
+import com.davidconneely.bazlang.BStr;
 import com.davidconneely.bazlang.ReportCode;
 import com.davidconneely.bazlang.ReportException;
 import com.davidconneely.cell.CellAttributes;
@@ -52,6 +53,15 @@ public class TerminalScreen extends AbstractCellBufferedScreen {
 
   // Track whether close() has been called
   private final AtomicBoolean closed = new AtomicBoolean(false);
+
+  // State for decoupled inkey/uinkey timeout approximation
+  private BStr lastKey = BStr.EMPTY;
+  private long lastKeyTime = 0L;
+
+  @Override
+  public boolean isInteractive() {
+    return true;
+  }
 
   public TerminalScreen(TerminalEngine engine) {
     super(createInitialBuffer(engine));
@@ -388,69 +398,107 @@ public class TerminalScreen extends AbstractCellBufferedScreen {
     return breakFlag.compareAndSet(true, false);
   }
 
-  @Override
-  public String inkey() {
-    renderIfDue(true);
-    int lastCh = -1;
-    try {
-      int ch = engine.readKey(1L);
-      if (ch < 0) {
-        return "";
-      }
-      while (ch >= 0) {
-        lastCh = ch;
-        if (ch == 3) {
-          breakFlag.set(true);
-          return "";
-        }
-        ch = engine.readKey(1L);
-      }
-      return String.valueOf((char) lastCh);
-    } catch (IOException e) {
-      // Ignore
+  private BStr readKeySequence() throws IOException {
+    int first = engine.readKey(1L);
+    if (first < 0) {
+      return null;
     }
-    return "";
-  }
-
-  @Override
-  public String uinkey() {
-    renderIfDue(true);
-    String lastKey = "";
-    try {
-      while (true) {
-        int ch = engine.readKey(1L);
-        if (ch < 0) {
-          return lastKey;
-        }
-        if (ch == 3) {
-          breakFlag.set(true);
-          return "";
-        }
-        StringBuilder sb = new StringBuilder();
-        sb.append((char) ch);
-        if (ch == 27) {
-          int nextCh = engine.readKey(1L);
-          if (nextCh >= 0) {
-            sb.append((char) nextCh);
-            if (nextCh == '[' || nextCh == 'O') {
-              while (true) {
-                int seqCh = engine.readKey(1L);
-                if (seqCh < 0) {
-                  break;
-                }
-                sb.append((char) seqCh);
-                if (seqCh >= 0x40 && seqCh <= 0x7E) {
-                  break;
-                }
-              }
+    if (first == 3) {
+      breakFlag.set(true);
+      return BStr.EMPTY;
+    }
+    java.io.ByteArrayOutputStream bos = new java.io.ByteArrayOutputStream();
+    bos.write(first);
+    if (first == 27) { // ESC sequence
+      int next = engine.readKey(1L);
+      if (next >= 0) {
+        bos.write(next);
+        if (next == '[' || next == 'O') {
+          while (true) {
+            int seq = engine.readKey(1L);
+            if (seq < 0) {
+              break;
+            }
+            bos.write(seq);
+            if (seq >= 0x40 && seq <= 0x7E) {
+              break;
             }
           }
         }
-        lastKey = sb.toString();
+      }
+    } else if ((first & 0x80) != 0) {
+      // UTF-8 lead byte
+      int len = 0;
+      if ((first & 0xE0) == 0xC0) {
+        len = 1;
+      } else if ((first & 0xF0) == 0xE0) {
+        len = 2;
+      } else if ((first & 0xF8) == 0xF0) {
+        len = 3;
+      }
+      for (int i = 0; i < len; i++) {
+        int follow = engine.readKey(1L);
+        if (follow >= 0) {
+          bos.write(follow);
+        }
+      }
+    }
+    return BStr.fromBytes(bos.toByteArray());
+  }
+
+  @Override
+  public BStr inkey() {
+    renderIfDue(true);
+    try {
+      BStr seq = readKeySequence();
+      if (seq != null) {
+        while (true) {
+          BStr next = readKeySequence();
+          if (next == null) {
+            break;
+          }
+          seq = next;
+        }
+        if (seq.isEmpty()) {
+          return BStr.EMPTY;
+        }
+        lastKey = BStr.fromByte(seq.byteAt(0));
+        lastKeyTime = System.currentTimeMillis();
+        return lastKey;
       }
     } catch (IOException e) {
+      // Ignore
+    }
+    if (System.currentTimeMillis() - lastKeyTime < 100L && lastKey.length() == 1) {
       return lastKey;
     }
+    return BStr.EMPTY;
+  }
+
+  @Override
+  public BStr uinkey() {
+    renderIfDue(true);
+    try {
+      BStr seq = readKeySequence();
+      if (seq != null) {
+        while (true) {
+          BStr next = readKeySequence();
+          if (next == null) {
+            break;
+          }
+          seq = next;
+        }
+        lastKey = seq;
+        lastKeyTime = System.currentTimeMillis();
+        return lastKey;
+      }
+    } catch (IOException e) {
+      // Ignore
+    }
+    if (System.currentTimeMillis() - lastKeyTime < 100L) {
+      return lastKey;
+    }
+    return BStr.EMPTY;
   }
 
   @Override

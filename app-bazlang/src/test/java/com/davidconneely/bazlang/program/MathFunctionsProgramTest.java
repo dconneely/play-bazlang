@@ -4,8 +4,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.davidconneely.bazlang.BStr;
 import com.davidconneely.bazlang.EvalState;
 import com.davidconneely.bazlang.ReportException;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 
 /** Tests exercising built-in math, trig, exponential, log, and random functions. */
@@ -183,5 +185,26 @@ class MathFunctionsProgramTest extends BaseProgramTest {
 
     var e4 = assertThrows(ReportException.class, () -> runProgram("10 LET X = XATTR(0, 0, 9)"));
     assertEquals(com.davidconneely.bazlang.ReportCode.INTEGER_OUT_OF_RANGE, e4.reportCode());
+  }
+
+  @Test
+  void testInkeyAndUinkeyQueues() {
+    final var source =
+        """
+        10 LET A$ = INKEY$
+        20 LET B$ = UINKEY$
+        30 LET C$ = INKEY$
+        40 LET D$ = UINKEY$
+        """;
+    final var run =
+        runWithKeys(
+            source,
+            List.of(BStr.fromJavaString("x"), BStr.fromJavaString("y")),
+            List.of(BStr.fromJavaString("hello"), BStr.fromJavaString("world")));
+    final var state = run.state();
+    assertEquals("x", ((EvalState.StrVar.Scalar) state.strVar("A$")).value().toJavaString());
+    assertEquals("hello", ((EvalState.StrVar.Scalar) state.strVar("B$")).value().toJavaString());
+    assertEquals("y", ((EvalState.StrVar.Scalar) state.strVar("C$")).value().toJavaString());
+    assertEquals("world", ((EvalState.StrVar.Scalar) state.strVar("D$")).value().toJavaString());
   }
 }
