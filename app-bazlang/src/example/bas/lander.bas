@@ -31,7 +31,7 @@
 2220 LET ty(i) = py_pct * h / 100
 2230 NEXT i
 3000 REM ### Main game loop ###
-3010 LET k$ = UINKEY$
+3010 LET k$ = INKEY$
 3020 LET thrusting = 0
 3030 IF k$ = " " AND fuel > 0 THEN LET thrusting = 1
 3040 IF thrusting = 0 THEN GO TO 3080
@@ -148,7 +148,7 @@
 5370 LET p_col = tbl_col + INT ((60 - p_len) / 2) : IF p_col < 0 THEN LET p_col = 0
 5380 IF landing_ok = 1 THEN PRINT AT 17, p_col; INK 7; "Proceed to the next moon "; INK 6; BRIGHT 1; np$; BRIGHT 0; INK 7; " (Y/N)?"
 5390 IF landing_ok = 0 THEN PRINT AT 17, p_col; INK 7; "Attempt the "; INK 6; BRIGHT 1; p$; BRIGHT 0; INK 7; " landing again (Y/N)?"
-5400 LET k$ = UINKEY$
+5400 LET k$ = INKEY$
 5410 IF k$ = "y" OR k$ = "Y" THEN GO TO 2000
 5420 IF k$ = "n" OR k$ = "N" THEN GO TO 6600
 5430 GO TO 5400

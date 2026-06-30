@@ -12,11 +12,12 @@ import org.jline.terminal.Attributes;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
 import org.jline.utils.InfoCmp.Capability;
-import org.jline.utils.NonBlockingReader;
+import org.jline.utils.NonBlocking;
+import org.jline.utils.NonBlockingInputStream;
 
 public class JLineTerminalEngine implements TerminalEngine {
   private final Terminal terminal;
-  private final NonBlockingReader reader;
+  private final NonBlockingInputStream inputStream;
   private final RobustLineReaderImpl lineReader;
   private final Attributes savedAttributes;
   private Runnable onInterrupt;
@@ -33,7 +34,7 @@ public class JLineTerminalEngine implements TerminalEngine {
     terminal.puts(Capability.cursor_invisible);
     terminal.flush();
 
-    this.reader = terminal.reader();
+    this.inputStream = NonBlocking.nonBlocking("terminal", terminal.input());
     this.lineReader = new RobustLineReaderImpl(terminal, "BazLang");
     this.lineReader.option(LineReader.Option.MOUSE, true);
 
@@ -70,7 +71,7 @@ public class JLineTerminalEngine implements TerminalEngine {
 
   @Override
   public int readKey(long timeoutMs) throws IOException {
-    return reader.read(timeoutMs);
+    return inputStream.read(timeoutMs);
   }
 
   @Override

@@ -183,7 +183,7 @@ class StringFunctionsProgramTest extends BaseProgramTest {
     var e1 = assertThrows(ReportException.class, () -> runProgram("10 LET S$ = SCREEN$(-1, 0)"));
     assertEquals(com.davidconneely.bazlang.ReportCode.INTEGER_OUT_OF_RANGE, e1.reportCode());
 
-    var e2 = assertThrows(ReportException.class, () -> runProgram("10 LET S$ = SCREEN$(24, 0)"));
+    var e2 = assertThrows(ReportException.class, () -> runProgram("10 LET S$ = SCREEN$(25, 0)"));
     assertEquals(com.davidconneely.bazlang.ReportCode.INTEGER_OUT_OF_RANGE, e2.reportCode());
 
     var e3 = assertThrows(ReportException.class, () -> runProgram("10 LET S$ = SCREEN$(0, -1)"));

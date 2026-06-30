@@ -89,9 +89,9 @@ class StreamScreenTest {
     final var screen = StreamScreen.nullScreen();
     // Verify sizing
     assertEquals(80, screen.printWidth());
-    assertEquals(24, screen.printHeight());
-    assertEquals(256, screen.plotWidth()); // inherited default
-    assertEquals(176, screen.plotHeight()); // inherited default
+    assertEquals(25, screen.printHeight());
+    assertEquals(160, screen.plotWidth()); // inherited default
+    assertEquals(50, screen.plotHeight()); // inherited default
     assertEquals(4, screen.plotMode()); // inherited default
 
     // Verify styling no-ops do not throw exceptions

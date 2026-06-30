@@ -221,9 +221,9 @@ Returns `1` for True, `0` for False.
 - **`UCODE s$`**: Unicode codepoint value of first character (UTF-8 decoded).
 - **`VAL s$`**: Evaluate string as numeric expression (not just parse a literal).
 - **`XATTR(row, col, select)`**: Extended attribute cell value at `(row, col)`. The `select` code
-  determines the return value: `0`=ink color, `1`=paper color, `2`=flash, `3`=bright, `4`=inverse,
-  `5`=italic, `6`=underline, `7`=strikethrough, `8`=faint. Reports 'Integer out of range' if
-  parameters are out of range.
+  determines the return value: `0`=ink colour, `1`=paper colour, `2`=flash, `3`=bright,
+  `4`=inverse, `5`=italic, `6`=underline, `7`=strikethrough, `8`=faint. Reports 'Integer out of
+  range' if parameters are out of range.
 - **Logs**: `EXP`, `LN`.
 - **Trig**: `SIN`, `COS`, `TAN`, `ASN`, `ACS`, `ATN`.
 
@@ -272,7 +272,7 @@ This is consistent with ZX Spectrum BASIC. Simple (variable-length) string varia
 initialised to the empty string `""`.
 
 ```
-DIM grid$(24, 80)   : REM all 1920 bytes are spaces
+DIM grid$(25, 80)   : REM all 2000 bytes are spaces
 PRINT grid$(1, 1)   : REM prints " "
 PRINT CODE grid$(1, 1)  : REM prints 32
 ```
@@ -293,16 +293,16 @@ Examples: `42`, `3.14159`, `1.23E+15`, `-5E-8`
 
 BazLang follows Sinclair ZX BASIC semantics where practical, with these intentional differences:
 
-| Feature        | BazLang                              | Sinclair ZX BASIC              |
-|:---------------|:-------------------------------------|:-------------------------------|
-| Character set  | UTF-8                                | Proprietary ZX charset         |
-| Variable names | Multi-character allowed              | Single letters for arrays/FOR  |
-| PAUSE >= 32767 | Waits that many frames               | Waits forever until keypress   |
-| File I/O       | File system                          | Tape                           |
-| RND algorithm  | Java Random                          | Linear feedback shift register |
-| Report codes   | Same codes & messages, extra context | Same codes & messages          |
-| PRINT AT bounds| Clamps to terminal bounds            | Throws "5 Out of screen"       |
-| POINT bounds   | Returns 0                            | Throws "B Integer out of range"|
+| Feature         | BazLang                              | Sinclair ZX BASIC               |
+|:----------------|:-------------------------------------|:--------------------------------|
+| Character set   | UTF-8                                | Proprietary ZX charset          |
+| Variable names  | Multi-character allowed              | Single letters for arrays/FOR   |
+| PAUSE >= 32767  | Waits that many frames               | Waits forever until keypress    |
+| File I/O        | File system                          | Tape                            |
+| RND algorithm   | Java Random                          | Linear feedback shift register  |
+| Report codes    | Same codes & messages, extra context | Same codes & messages           |
+| PRINT AT bounds | Clamps to terminal bounds            | Throws "5 Out of screen"        |
+| POINT bounds    | Returns 0                            | Throws "B Integer out of range" |
 
 ## REPL-Only Commands
 

@@ -84,11 +84,11 @@ public interface BazLangScreen extends ReplReader, AutoCloseable {
   }
 
   default int plotWidth() {
-    return 256; // ZX Spectrum default width
+    return 160;
   }
 
   default int plotHeight() {
-    return 176; // ZX Spectrum default height
+    return 50;
   }
 
   default int plotMode() {
@@ -130,7 +130,7 @@ public interface BazLangScreen extends ReplReader, AutoCloseable {
   /** Returns the extended attribute value at (row, col) for the given selector. */
   default int getXAttributes(int row, int col, int select) {
     if (select == 0 || select == 1) {
-      return -1; // Default color
+      return -1; // Default colour
     }
     return 0; // Style inactive by default
   }

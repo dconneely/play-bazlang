@@ -55,7 +55,7 @@ class TerminalScreenGraphicsTest {
 
     @Override
     public int getRows() {
-      return 24;
+      return 25;
     }
 
     @Override

@@ -71,7 +71,7 @@ public class TerminalScreen extends AbstractCellBufferedScreen {
     final int rawCols = engine.getColumns();
     final int cols = rawCols > 0 ? rawCols : 80;
     final int rawRows = engine.getRows();
-    final int rows = Math.max(1, (rawRows > 0 ? rawRows : 24));
+    final int rows = rawRows > 0 ? rawRows : 25;
     return new CellBuffer(rows, cols, QuadrantMode.INSTANCE);
   }
 
@@ -94,7 +94,7 @@ public class TerminalScreen extends AbstractCellBufferedScreen {
     final int rawCols = engine.getColumns();
     final int newCols = rawCols > 0 ? rawCols : 80;
     final int rawRows = engine.getRows();
-    final int newRows = Math.max(1, (rawRows > 0 ? rawRows : 24) - currentReservedRows());
+    final int newRows = Math.max(1, (rawRows > 0 ? rawRows : 25) - currentReservedRows());
     if (newRows != cellBuffer.rows() || newCols != cellBuffer.cols()) {
       cellBuffer.resize(newRows, newCols);
       cursorRow = Math.min(cursorRow, cellBuffer.rows() - 1);
@@ -405,9 +405,7 @@ public class TerminalScreen extends AbstractCellBufferedScreen {
         }
         ch = engine.readKey(1L);
       }
-      if (lastCh >= 0) {
-        return String.valueOf((char) lastCh);
-      }
+      return String.valueOf((char) lastCh);
     } catch (IOException e) {
       // Ignore
     }

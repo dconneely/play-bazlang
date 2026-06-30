@@ -560,9 +560,6 @@ public class ExpressionEvaluator extends BazLangBaseVisitor<Void> {
         if (indicesCount == n + 1) {
           byteIndex = indexStack[ptr + n];
           indicesCount--;
-        } else if (indicesCount != n && n == 0 && indicesCount == 1) {
-          byteIndex = indexStack[ptr];
-          indicesCount--;
         }
         final int arrayIdx = calculateArrayIndex(arrayDimensions, indexStack, ptr, indicesCount);
 

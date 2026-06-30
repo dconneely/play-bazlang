@@ -130,7 +130,7 @@
 6680 LET money = money + f * bet
 6690 LET dealer_money = dealer_money - f * bet
 7000 PRINT AT oy + 17, ox; "Press any key"
-7010 IF UINKEY$ = "" THEN GO TO 7010
+7010 IF INKEY$ = "" THEN GO TO 7010
 7020 GO TO 2000
 7500 REM ### Init deck ###
 7510 FOR i = 1 TO 52
@@ -167,7 +167,7 @@
 8650 IF player_score = 21 THEN LET player_type = 3
 8660 RETURN
 9000 REM ### Render card c at draw_x,draw_y ###
-9010 IF c = 0 THEN LET val_str$ = "?" : LET suit_str$ = "?" : LET card_ink = 1 : GO TO 9510
+9010 IF c = 0 THEN LET val_str$ = "?" : LET suit_str$ = "？" : LET card_ink = 1 : GO TO 9510
 9020 LET v = (c - 1) - INT ((c - 1) / 13) * 13 + 1
 9030 LET suit = INT ((c - 1) / 13)
 9040 LET val_str$ = STR$ (v)
@@ -175,16 +175,16 @@
 9060 IF v = 11 THEN LET val_str$ = "J"
 9070 IF v = 12 THEN LET val_str$ = "Q"
 9080 IF v = 13 THEN LET val_str$ = "K"
-9090 LET suit_str$ = "?"
-9100 IF suit = 0 THEN LET suit_str$ = UCHR$ (9824)
-9110 IF suit = 1 THEN LET suit_str$ = UCHR$ (9825)
-9120 IF suit = 2 THEN LET suit_str$ = UCHR$ (9827)
-9130 IF suit = 3 THEN LET suit_str$ = UCHR$ (9826)
+9090 LET suit_str$ = ""
+9100 IF suit = 0 THEN LET suit_str$ = "♠️" : REM UCHR$ (9824)
+9110 IF suit = 1 THEN LET suit_str$ = "♥️" : REM UCHR$ (9825)
+9120 IF suit = 2 THEN LET suit_str$ = "♣️" : REM UCHR$ (9827)
+9130 IF suit = 3 THEN LET suit_str$ = "♦️" : REM UCHR$ (9826)
 9140 LET card_ink = 0 : IF suit = 1 OR suit = 3 THEN LET card_ink = 2
 9500 REM ### Render the card box ###
 9510 PRINT AT draw_y, draw_x; INK card_ink; PAPER 7; UCHR$ (9484); UCHR$ (9472); UCHR$ (9472); UCHR$ (9472); UCHR$ (9488)
 9520 IF LEN (val_str$) = 2 THEN PRINT AT draw_y + 1, draw_x; INK card_ink; PAPER 7; UCHR$ (9474); val_str$; " "; UCHR$ (9474)
 9530 IF LEN (val_str$) = 1 THEN PRINT AT draw_y + 1, draw_x; INK card_ink; PAPER 7; UCHR$ (9474); val_str$; "  "; UCHR$ (9474)
-9540 PRINT AT draw_y + 2, draw_x; INK card_ink; PAPER 7; UCHR$ (9474); " "; suit_str$; " "; UCHR$ (9474)
+9540 PRINT AT draw_y + 2, draw_x; INK card_ink; PAPER 7; UCHR$ (9474); " "; suit_str$; ""; UCHR$ (9474)
 9550 PRINT AT draw_y + 3, draw_x; INK card_ink; PAPER 7; UCHR$ (9492); UCHR$ (9472); UCHR$ (9472); UCHR$ (9472); UCHR$ (9496)
 9560 RETURN

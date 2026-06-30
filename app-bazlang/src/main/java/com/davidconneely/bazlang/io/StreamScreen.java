@@ -49,7 +49,7 @@ public class StreamScreen implements BazLangScreen {
 
   @Override
   public int printHeight() {
-    return 24;
+    return 25;
   }
 
   @Override

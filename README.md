@@ -45,6 +45,6 @@ You can find example programs in `app-bazlang/src/example/bas/`. Run one like th
 app-bazlang/run.sh app-bazlang/src/example/bas/pontoon.bas
 ```
 
-## License
+## Licence
 
-This project is open source under the MIT License.
+This project is open source under the [MIT License](LICENCE).

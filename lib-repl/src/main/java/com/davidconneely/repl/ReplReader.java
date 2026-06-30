@@ -1,7 +1,7 @@
 package com.davidconneely.repl;
 
 /**
- * Represents the input source for the interactive REPL loop, called by {@link ReplLoop}
+ * Represents the input source for the interactive REPL loop, called by {@link Repl}
  *
  * <p>Implementing classes normally wrap TerminalEngine.readLine with behaviour such as adding any
  * prompt text or prefilled values that make sense for the next REPL line.

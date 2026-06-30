@@ -9,7 +9,6 @@ import org.jline.terminal.MouseEvent;
 import org.jline.terminal.Terminal;
 import org.jline.utils.AttributedString;
 import org.jline.utils.AttributedStringBuilder;
-import org.jline.utils.Display;
 
 /**
  * A {@link LineReaderImpl} subclass that retries on transient read-binding nulls caused by JLine's
@@ -28,14 +27,14 @@ import org.jline.utils.Display;
  * EndOfFileException} via the {@code ClosedException} path in {@code BindingReader.readCharacter()}
  * and is not caught here, so real terminal-closed scenarios still terminate correctly.
  */
-public class RobustLineReaderImpl extends LineReaderImpl {
+class RobustLineReaderImpl extends LineReaderImpl {
 
   private final Clipboard clipboard = Clipboard.getDefault();
   private boolean mouseTrackingFixed = false;
   private final ResettableDisplay resettableDisplay;
 
   @SuppressWarnings("PMD.ConstructorCallsOverridableMethod")
-  public RobustLineReaderImpl(Terminal terminal, String appName) throws IOException {
+  RobustLineReaderImpl(Terminal terminal, String appName) throws IOException {
     super(terminal, appName);
 
     // Replace JLine's Display with our ResettableDisplay subclass so that forceRedrawFromCursor()
@@ -130,17 +129,13 @@ public class RobustLineReaderImpl extends LineReaderImpl {
 
   private IntConsumer inputHeightListener;
 
-  public void setInputHeightListener(IntConsumer listener) {
+  void setInputHeightListener(IntConsumer listener) {
     this.inputHeightListener = listener;
   }
 
-  public void forceRedrawFromCursor() {
+  void forceRedrawFromCursor() {
     display.reset();
     resettableDisplay.resetCursorPos();
-  }
-
-  public Display getDisplay() {
-    return display;
   }
 
   @Override

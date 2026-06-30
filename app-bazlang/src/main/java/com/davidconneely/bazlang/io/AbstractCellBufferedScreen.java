@@ -214,8 +214,8 @@ public abstract class AbstractCellBufferedScreen implements BazLangScreen {
    *   <li>0–7: ZX Spectrum colour index (black, blue, red, magenta, green, cyan, yellow, white)
    *   <li>8: transparent (preserve existing cell colour)
    *   <li>9: contrast (auto-select black or white against the opposing colour)
-   *   <li>256–511: terminal 256-colour index (value − 256 is the ANSI index)
-   *   <li>16,777,216–33,554,431: 24-bit RGB (value − 16,777,216 is the RGB24 component)
+   *   <li>256 – 511: terminal 256-colour index (value minus 256 is the ANSI index)
+   *   <li>16,777,216 – 33,554,431: 24-bit RGB (value minus 16,777,216 is the RGB24 component)
    *   <li>−1 / anything else: terminal default colour
    * </ul>
    *

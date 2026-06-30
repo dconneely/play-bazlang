@@ -48,13 +48,13 @@ class PixelModeTest {
 
     // Test encoding/decoding
     assertEquals(' ', mode.encode(0));
-    assertEquals('\u2580', mode.encode(1)); // Upper half block
-    assertEquals('\u2584', mode.encode(2)); // Lower half block
-    assertEquals('\u2588', mode.encode(3)); // Full block
+    assertEquals('▀', mode.encode(1)); // Upper half block
+    assertEquals('▄', mode.encode(2)); // Lower half block
+    assertEquals('█', mode.encode(3)); // Full block
     assertEquals(0, mode.decode(' '));
-    assertEquals(1, mode.decode('\u2580'));
-    assertEquals(2, mode.decode('\u2584'));
-    assertEquals(3, mode.decode('\u2588'));
+    assertEquals(1, mode.decode('▀'));
+    assertEquals(2, mode.decode('▄'));
+    assertEquals(3, mode.decode('█'));
 
     // Test bitmasks (top/bottom)
     assertEquals(1, mode.bitMask(0, 1)); // top
@@ -69,11 +69,11 @@ class PixelModeTest {
 
     // Test encoding/decoding
     assertEquals(' ', mode.encode(0));
-    assertEquals('\u2596', mode.encode(4)); // Lower-left quadrant
-    assertEquals('\u259D', mode.encode(2)); // Upper-right quadrant
+    assertEquals('▖', mode.encode(4)); // Lower-left quadrant
+    assertEquals('▝', mode.encode(2)); // Upper-right quadrant
     assertEquals(0, mode.decode(' '));
-    assertEquals(4, mode.decode('\u2596'));
-    assertEquals(2, mode.decode('\u259D'));
+    assertEquals(4, mode.decode('▖'));
+    assertEquals(2, mode.decode('▝'));
 
     // Test bitmasks
     assertEquals(4, mode.bitMask(0, 0)); // bottom-left
@@ -90,9 +90,9 @@ class PixelModeTest {
 
     // Test encoding/decoding
     assertEquals(' ', mode.encode(0));
-    assertEquals('\u2588', mode.encode(63)); // Full block
+    assertEquals('█', mode.encode(63)); // Full block
     assertEquals(0, mode.decode(' '));
-    assertEquals(63, mode.decode('\u2588'));
+    assertEquals(63, mode.decode('█'));
 
     // Test bitmasks
     assertEquals(1, mode.bitMask(0, 2)); // top-left

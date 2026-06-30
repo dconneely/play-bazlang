@@ -3,7 +3,7 @@ package com.davidconneely.cell;
 public enum HalfCellMode implements PixelMode {
   INSTANCE;
 
-  private static final int[] CODEPOINTS = {' ', '\u2580', '\u2584', '\u2588'};
+  private static final int[] CODEPOINTS = {' ', '▀', '▄', '█'};
 
   @Override
   public int pixelsPerCellX() {

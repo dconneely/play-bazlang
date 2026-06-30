@@ -1,13 +1,12 @@
 package com.davidconneely.bazlang.io;
 
 import com.davidconneely.cell.CellBuffer;
-import com.davidconneely.cell.PixelMode;
 import com.davidconneely.cell.QuadrantMode;
 import java.util.Collections;
 import java.util.List;
 
 public class MockScreen extends AbstractCellBufferedScreen {
-  private static final int ROWS = 24;
+  private static final int ROWS = 25;
   private static final int COLS = 80;
 
   private final StringBuilder output = new StringBuilder();
@@ -28,13 +27,6 @@ public class MockScreen extends AbstractCellBufferedScreen {
 
   public String getOutput() {
     return output.toString();
-  }
-
-  public void clearOutput() {
-    output.setLength(0);
-    cellBuffer.clear();
-    cursorRow = 0;
-    cursorCol = 0;
   }
 
   @Override
@@ -157,10 +149,6 @@ public class MockScreen extends AbstractCellBufferedScreen {
     return prefillText;
   }
 
-  public PixelMode getPlotMode() {
-    return cellBuffer.mode();
-  }
-
   public void triggerBreak() {
     simulatedBreak = true;
   }
@@ -173,19 +161,6 @@ public class MockScreen extends AbstractCellBufferedScreen {
     }
     return false;
   }
-
-  @Override
-  public String inkey() {
-    return "";
-  }
-
-  @Override
-  public String uinkey() {
-    return inkey();
-  }
-
-  @Override
-  public void setFastMode(boolean fast) {}
 
   @Override
   public void close() {

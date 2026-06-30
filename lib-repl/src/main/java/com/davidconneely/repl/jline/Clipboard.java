@@ -2,7 +2,7 @@ package com.davidconneely.repl.jline;
 
 /** Façade for system clipboard interactions. */
 @FunctionalInterface
-public interface Clipboard {
+interface Clipboard {
 
   /**
    * Copies the given text to the system clipboard.

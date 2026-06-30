@@ -63,22 +63,21 @@ INPUT), and status updates (`setStatus` for showing report codes).
 - **`INPUT`**: This uses the `Canvas` to read a full line of text from the user. It then parses
   this text to assign it to the target variable, handling type conversion for numbers.
 
-## Performance & Memory Optimizations
+## Performance & Memory Optimisations
 
-To ensure high execution performance and minimize garbage collector pressure on the JVM, the
+To ensure high execution performance and minimise garbage collector pressure on the JVM, the
 interpreter implements two key patterns:
 
 - **Visitor as Calculator**: Rather than returning boxed `Double` wrapper objects from parsing
   visitor methods (which would cause massive boxing and unboxing overhead during arithmetic
   evaluation), the evaluation visitor
-  [ExpressionEvaluator](../app-bazlang/src/main/java/com/davidconneely/bazlang/ExpressionEvaluator.java)
+  [ExpressionEvaluator](../src/main/java/com/davidconneely/bazlang/ExpressionEvaluator.java)
   returns `Void` and stores primitive double results directly in a class field.
 - **Variable Reference Caching (`ctx.varRef`)**: Variables are normally looked up in the
-  [EvalState](../app-bazlang/src/main/java/com/davidconneely/bazlang/EvalState.java)
-  maps by their name strings. To avoid continuous hash map lookups during execution (especially
-  in tight loops), the parser context objects (`ctx`) cache their resolved reference objects
-  (such as `NumVarRef`) after the first lookup. Subsequent evaluations retrieve the cached
-  reference directly.
+  [EvalState](../src/main/java/com/davidconneely/bazlang/EvalState.java) maps by their name
+  strings. To avoid continuous hash map lookups during execution (especially in tight loops),
+  the parser context objects (`ctx`) cache their resolved reference objects (such as `NumVarRef`)
+  after the first lookup. Subsequent evaluations retrieve the cached reference directly.
 
 ## Language Quirks & Sinclair ZX BASIC Eccentricities
 

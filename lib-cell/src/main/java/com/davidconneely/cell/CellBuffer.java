@@ -144,7 +144,7 @@ public final class CellBuffer {
   }
 
   public void scrollUp() {
-    // Shift rows [1..rows-1] down by one row, then clear the last row.
+    // Shift rows [1...rows-1] down by one row, then clear the last row.
     final int rowStride = cols;
     System.arraycopy(codepoints, rowStride, codepoints, 0, (rows - 1) * rowStride);
     System.arraycopy(attributes, rowStride, attributes, 0, (rows - 1) * rowStride);

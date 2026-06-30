@@ -7,9 +7,9 @@ public enum SextantMode implements PixelMode {
 
   static {
     CODEPOINTS[0] = ' ';
-    CODEPOINTS[21] = '\u258C'; // LEFT HALF BLOCK
-    CODEPOINTS[42] = '\u2590'; // RIGHT HALF BLOCK
-    CODEPOINTS[63] = '\u2588'; // FULL BLOCK
+    CODEPOINTS[21] = '▌'; // LEFT HALF BLOCK
+    CODEPOINTS[42] = '▐'; // RIGHT HALF BLOCK
+    CODEPOINTS[63] = '█'; // FULL BLOCK
     for (int i = 1; i <= 20; i++) {
       CODEPOINTS[i] = 0x1FB00 + (i - 1);
     }

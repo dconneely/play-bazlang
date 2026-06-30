@@ -8,7 +8,7 @@ public final class CellAttributes {
   public static final int COLOUR_DEFAULT = 0x01000000;
   public static final int COLOUR_TYPE_RGB = 0x02000000;
 
-  public static final int STYLE_BOLD = 1 << 0;
+  public static final int STYLE_BOLD = 1;
   public static final int STYLE_FAINT = 1 << 1;
   public static final int STYLE_ITALIC = 1 << 2;
   public static final int STYLE_UNDERLINE = 1 << 3;
@@ -32,15 +32,23 @@ public final class CellAttributes {
     return colour & 0x00FFFFFF;
   }
 
+  /**
+   * Encode a 24-bit RGB value as a 26-bit colour value.
+   *
+   * @param rgb 24-bit RGB value (`((r & 0xFF) << 16) | ((g & 0xFF) << 8) | (b & 0xFF)`).
+   * @return 26-bit encoded colour value.
+   */
   public static int rgb(int rgb) {
     return COLOUR_TYPE_RGB | (rgb & 0x00FFFFFF);
   }
 
-  public static int rgb(int r, int g, int b) {
-    return COLOUR_TYPE_RGB | ((r & 0xFF) << 16) | ((g & 0xFF) << 8) | (b & 0xFF);
-  }
-
+  /**
+   * Encode an 8-bit xterm-256color index value as a 26-bit colour value.
+   *
+   * @param index 8-bit xterm-256color index value.
+   * @return 26-bit encoded colour value.
+   */
   public static int index(int index) {
-    return COLOUR_TYPE_INDEX | (index & 0x00FFFFFF);
+    return COLOUR_TYPE_INDEX | (index & 0x000000FF);
   }
 }

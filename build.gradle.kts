@@ -32,13 +32,13 @@ subprojects {
     add("testRuntimeOnly", junitLauncherProvider)
   }
 
-  configure<org.gradle.api.plugins.JavaPluginExtension> {
+  configure<JavaPluginExtension> {
     toolchain {
       languageVersion = JavaLanguageVersion.of(25)
     }
   }
 
-  tasks.withType<org.gradle.api.tasks.testing.Test>().configureEach {
+  tasks.withType<Test>().configureEach {
     useJUnitPlatform()
     jvmArgs("--enable-native-access=ALL-UNNAMED")
     workingDir = rootProject.projectDir
@@ -52,18 +52,18 @@ subprojects {
   }
 
   // Checkstyle
-  configure<org.gradle.api.plugins.quality.CheckstyleExtension> {
+  configure<CheckstyleExtension> {
     toolVersion = checkstyleVersion
     configFile = rootProject.file("config/checkstyle/checkstyle.xml")
     isIgnoreFailures = false
   }
 
-  tasks.withType<org.gradle.api.plugins.quality.Checkstyle>().configureEach {
+  tasks.withType<Checkstyle>().configureEach {
     exclude("**/antlr/**")
   }
 
   // PMD
-  configure<org.gradle.api.plugins.quality.PmdExtension> {
+  configure<PmdExtension> {
     toolVersion = pmdVersion
     isConsoleOutput = true
     isIgnoreFailures = false
@@ -71,13 +71,13 @@ subprojects {
     ruleSetFiles = rootProject.files("config/pmd/ruleset.xml")
   }
 
-  tasks.withType<org.gradle.api.plugins.quality.Pmd>().configureEach {
+  tasks.withType<Pmd>().configureEach {
     exclude("**/antlr/**")
   }
 
   // JaCoCo
-  tasks.withType<org.gradle.testing.jacoco.tasks.JacocoReport>().configureEach {
-    dependsOn(tasks.withType<org.gradle.api.tasks.testing.Test>())
+  tasks.withType<JacocoReport>().configureEach {
+    dependsOn(tasks.withType<Test>())
     reports {
       xml.required.set(true)
       html.required.set(true)
@@ -93,7 +93,7 @@ subprojects {
   }
 
   tasks.named("check") {
-    dependsOn(tasks.withType<org.gradle.testing.jacoco.tasks.JacocoReport>())
+    dependsOn(tasks.withType<JacocoReport>())
   }
 
   // SpotBugs

@@ -28,7 +28,7 @@
 2160 IF guess_word$ = clean_word$ THEN GO TO 2390
 2170 IF misses = 6 THEN GO TO 2410
 2180 PRINT AT oy + eh - 2, ox; INK 4; "Guess a letter: "; INK 5; 
-2190 LET a$ = UINKEY$
+2190 LET a$ = INKEY$
 2200 IF LEN (a$) <> 1 THEN GO TO 2190
 2210 PRINT a$; 
 2220 LET user_guess$ = a$(1)
@@ -70,7 +70,7 @@
 4080 RETURN
 5000 REM ### Play again ###
 5010 PRINT AT oy + eh - 1, ox; INK 4; "Play again (Y/N)? "; INK 5; 
-5020 LET r$ = UINKEY$
+5020 LET r$ = INKEY$
 5030 IF LEN (r$) <> 1 THEN GO TO 5020
 5040 PRINT r$
 5050 IF r$ = "Y" OR r$ = "y" THEN GO TO 1080
