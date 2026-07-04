@@ -27,7 +27,7 @@ public class EvalState {
   public static final class NumVarRef {
     public final String name;
     public double value;
-    public boolean initialized;
+    public boolean initialised;
 
     public NumVarRef(String name) {
       this.name = name;
@@ -195,12 +195,12 @@ public class EvalState {
 
   public boolean hasNumVar(String name) {
     NumVarRef ref = numScalars.get(name);
-    return ref != null && ref.initialized;
+    return ref != null && ref.initialised;
   }
 
   public double numVar(String name) {
     NumVarRef ref = numScalars.get(name);
-    if (ref != null && ref.initialized) {
+    if (ref != null && ref.initialised) {
       return ref.value;
     }
     throw new IllegalArgumentException("Undefined variable: " + name);
@@ -213,7 +213,7 @@ public class EvalState {
   public void setNumVar(String name, double val) {
     NumVarRef ref = getOrAddNumVar(name);
     ref.value = val;
-    ref.initialized = true;
+    ref.initialised = true;
   }
 
   // ===== Numeric arrays =====
@@ -270,7 +270,7 @@ public class EvalState {
   public void removeNumVar(String name) {
     NumVarRef ref = numScalars.get(name);
     if (ref != null) {
-      ref.initialized = false;
+      ref.initialised = false;
     }
   }
 
@@ -418,7 +418,7 @@ public class EvalState {
 
   public void clear() {
     for (NumVarRef ref : numScalars.values()) {
-      ref.initialized = false;
+      ref.initialised = false;
     }
     for (NumArrayRef ref : numArrays.values()) {
       ref.array = null;

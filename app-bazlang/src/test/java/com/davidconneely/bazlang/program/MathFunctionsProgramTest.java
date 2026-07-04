@@ -161,7 +161,7 @@ class MathFunctionsProgramTest extends BaseProgramTest {
     // Spectrum ATTR: (1*128) + (1*64) + (2*8) + 6 = 128 + 64 + 16 + 6 = 214.
     assertEquals(214.0, state.numVar("A2"));
 
-    // XATTR colors: return BazLang format.
+    // XATTR colours: return BazLang colour format.
     assertEquals(16_777_216.0 + 0xD7D7D7, state.numVar("X1"));
     assertEquals(16_777_216.0 + 0x0000D7, state.numVar("X2"));
     assertEquals(16_777_216.0 + 0xFFFF00, state.numVar("X3"));

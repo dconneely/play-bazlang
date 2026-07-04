@@ -37,7 +37,7 @@
 3040 IF thrusting = 0 THEN GO TO 3080
 3050 LET vx = vx + thrust * COS (theta)
 3060 LET vy = vy + thrust * SIN (theta)
-3070 LET fuel = fuel - 2
+3070 LET fuel = fuel - 2 : IF fuel <= 0 THEN LET fuel = 0 : LET thrusting = 0
 3080 IF k$ = "o" OR k$ = "O" THEN LET theta = theta + 0.1
 3090 IF k$ = "p" OR k$ = "P" THEN LET theta = theta - 0.1
 3100 IF theta > 6.28318 THEN LET theta = theta - 6.28318

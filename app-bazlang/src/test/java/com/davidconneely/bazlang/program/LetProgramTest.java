@@ -15,7 +15,7 @@ class LetProgramTest extends BaseProgramTest {
   }
 
   @Test
-  void testPointerOptimizationVariableReassignment() {
+  void testPointerOptimisationVariableReassignment() {
     runProgram(
         """
         10 LET A = 0

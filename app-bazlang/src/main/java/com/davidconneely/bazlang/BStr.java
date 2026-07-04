@@ -297,6 +297,20 @@ public final class BStr implements Comparable<BStr> {
     return byteIndex0 + 1; // invalid or lone byte
   }
 
+  /**
+   * Returns the number of Unicode codepoints in this BStr. Consistent with the UTF-8 iteration
+   * logic: each invalid or lone byte counts as 1.
+   */
+  public int codepointLength() {
+    int count = 0;
+    int idx = 0;
+    while (idx < length) {
+      idx = nextCodepointStart(idx);
+      count++;
+    }
+    return count;
+  }
+
   private static boolean isContByte(byte b) {
     return (b & 0xC0) == 0x80;
   }

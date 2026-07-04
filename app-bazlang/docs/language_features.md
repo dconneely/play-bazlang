@@ -218,7 +218,12 @@ Returns `1` for True, `0` for False.
   50 GOTO 20
   60 REM ...
   ```
-- **`UCODE s$`**: Unicode codepoint value of first character (UTF-8 decoded).
+- **`UCODE s$`**: Unicode codepoint value of the first character (UTF-8 decoded). If the string does
+  not start with a valid UTF-8 byte sequence (e.g. trailing bytes are missing or it contains an
+  invalid lead byte), it falls back to returning the raw value of the first byte (128–255).
+- **`ULEN s$`**: Unicode character length (codepoint count) of the string. Consistent with the UTF-8
+  iteration logic: each invalid or lone byte (whether at the start, middle, or end of the string)
+  counts as exactly 1.
 - **`VAL s$`**: Evaluate string as numeric expression (not just parse a literal).
 - **`XATTR(row, col, select)`**: Extended attribute cell value at `(row, col)`. The `select` code
   determines the return value: `0`=ink colour, `1`=paper colour, `2`=flash, `3`=bright,
@@ -242,6 +247,36 @@ Returns `1` for True, `0` for False.
   Returns Unicode Braille/quadrant characters if the location has been plotted to. Reports
   'Integer out of range' if coordinates are out of bounds.
 - **`VAL$ s$`**: Evaluate a string as a string expression.
+
+### Byte vs Unicode Functions
+
+BazLang is designed to handle modern UTF-8 input and output while preserving classic Sinclair ZX
+BASIC byte-oriented semantics where practical. Because UTF-8 characters and terminal escape
+sequences can consist of multiple bytes, BazLang provides parallel sets of functions to distinguish
+between raw bytes and decoded Unicode characters:
+
+-   **`CHR$` vs `UCHR$`**:
+    -   `CHR$ x` returns a single-byte string containing the raw byte value `x` (0–255).
+    -   `UCHR$ x` returns a string containing the multi-byte UTF-8 encoding of the Unicode codepoint
+        `x` (e.g. `UCHR$ 9608` yields the 3-byte sequence for `█`).
+-   **`CODE` vs `UCODE`**:
+    -   `CODE s$` returns the numeric value of the first raw *byte* of `s$` (0–255).
+    -   `UCODE s$` decodes the first character of `s$` as UTF-8 and returns its Unicode codepoint
+        value. If the sequence is invalid or incomplete, it falls back to the raw value of the first
+        byte (128–255).
+-   **`LEN` vs `ULEN`**:
+    -   `LEN s$` returns the raw byte length of `s$`.
+    -   `ULEN s$` returns the number of Unicode characters (codepoints) in `s$`. Each invalid or lone
+        byte (at the start, middle, or end of the string) counts as exactly 1 character.
+-   **`SCREEN$` vs `USCREEN$`**:
+    -   `SCREEN$(row, col)` reads the character cell at the specified coordinates and returns it as
+        a single-byte string. Returns `""` if the cell contains a character outside the ASCII range.
+    -   `USCREEN$(row, col)` reads the cell and returns it as a UTF-8 string, supporting multi-byte
+        Unicode characters (such as Braille or quadrant blocks).
+-   **`INKEY$` vs `UINKEY$`**:
+    -   `INKEY$` polls for a single raw byte from the input queue and returns it as a `BStr`.
+    -   `UINKEY$` polls for input, reading and returning a complete UTF-8 multi-byte sequence or
+        a terminal ANSI CSI escape sequence (e.g. cursor or function keys) as a single `BStr`.
 
 ## Slicing
 

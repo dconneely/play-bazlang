@@ -26,7 +26,7 @@
 1250 DIM poly_x(6)
 1260 DIM poly_y(6)
 1270 LET num_vertices = 0
-1280 GO SUB 6000 : REM ### Initialize vertices, edges and types ###
+1280 GO SUB 6000 : REM ### Initialise vertices, edges and types ###
 1290 LET a = 0.5 : LET b = 0.5 : LET c = 0.2
 1300 LET use_colour = 1 : REM ### 0 = B&W wireframe, 1 = Colour football ###
 1310 LET cycles = 0 : LET start_t = FRAMES : LET cps = 0
@@ -136,7 +136,7 @@
 3570 PLOT cx, cy : DRAW tx - cx, ty - cy
 3580 NEXT f
 3590 RETURN
-6000 REM ### Initialize geometry ###
+6000 REM ### Initialise geometry ###
 6010 LET phi = 1.618034
 6020 FOR s1 = -1 TO 1 STEP 2
 6030 FOR s2 = -1 TO 1 STEP 2

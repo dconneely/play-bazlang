@@ -76,7 +76,7 @@ public class ExpressionEvaluator extends BazLangBaseVisitor<Void> {
       ref = state.getOrAddNumVar(ctx.NUM_IDENTIFIER().getText().toUpperCase());
       ctx.varRef = ref;
     }
-    if (!ref.initialized) {
+    if (!ref.initialised) {
       throw codedException(ReportCode.VARIABLE_NOT_FOUND, "Undefined variable: " + ref.name);
     }
     numResult = ref.value;
@@ -406,6 +406,10 @@ public class ExpressionEvaluator extends BazLangBaseVisitor<Void> {
       numResult = s.firstCodepoint();
       return null;
     }
+    if (ctx.ULEN() != null) {
+      numResult = evalStrAtom(ctx.strAtom()).codepointLength();
+      return null;
+    }
     if (ctx.VAL() != null) {
       final String exprStr = evalStrAtom(ctx.strAtom()).toJavaString().trim();
       numResult = evaluateNumericExpression(exprStr);
@@ -459,7 +463,7 @@ public class ExpressionEvaluator extends BazLangBaseVisitor<Void> {
           ref = state.getOrAddNumVar(ctx.NUM_IDENTIFIER().getText().toUpperCase());
           ctx.varRef = ref;
         }
-        if (!ref.initialized) {
+        if (!ref.initialised) {
           throw codedException(ReportCode.VARIABLE_NOT_FOUND, "Undefined variable: " + ref.name);
         }
         return ref.value;
@@ -801,7 +805,7 @@ public class ExpressionEvaluator extends BazLangBaseVisitor<Void> {
         state.setStrVar(paramName, new EvalState.StrVar.Scalar((BStr) val));
       } else {
         final var ref = state.getNumVarRef(paramName);
-        oldNums.put(paramName, (ref != null && ref.initialized) ? ref.value : null);
+        oldNums.put(paramName, (ref != null && ref.initialised) ? ref.value : null);
         state.setNumVar(paramName, (Double) val);
       }
     }

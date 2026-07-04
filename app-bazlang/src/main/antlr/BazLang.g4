@@ -247,6 +247,7 @@ numFunc
     | TEXTY
     | UCNEXT '(' strExpr ',' numExpr ')'
     | UCODE strAtom
+    | ULEN strAtom
     | VAL strAtom
     | XATTR '(' numExpr ',' numExpr ',' numExpr ')'
     ;
@@ -384,6 +385,7 @@ UCHR_STR : 'UCHR$';
 UCNEXT   : 'UCNEXT';
 UCODE    : 'UCODE';
 UINKEY_STR: 'UINKEY$';
+ULEN     : 'ULEN';
 USCREEN_STR: 'USCREEN$';
 VAL      : 'VAL';
 VAL_STR  : 'VAL$';

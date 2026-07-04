@@ -5,7 +5,7 @@ import org.junit.jupiter.api.Test;
 class ClearProgramTest extends BaseProgramTest {
 
   @Test
-  void testPointerOptimizationClear() {
+  void testPointerOptimisationClear() {
     runProgram(
         """
         10 LET A = 10

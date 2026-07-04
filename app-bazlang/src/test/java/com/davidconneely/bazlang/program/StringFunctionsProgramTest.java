@@ -192,4 +192,20 @@ class StringFunctionsProgramTest extends BaseProgramTest {
     var e4 = assertThrows(ReportException.class, () -> runProgram("10 LET S$ = SCREEN$(0, 80)"));
     assertEquals(com.davidconneely.bazlang.ReportCode.INTEGER_OUT_OF_RANGE, e4.reportCode());
   }
+
+  @Test
+  void testUlenFunction() {
+    final var state =
+        runProgram(
+            """
+        10 LET A = ULEN("Hello")
+        20 LET B = ULEN(UCHR$(9608))
+        30 LET C = ULEN(UCHR$(128512))
+        40 LET D = ULEN(CHR$(128) + CHR$(255))
+        """);
+    assertEquals(5.0, state.numVar("A")); // ASCII: 5 characters
+    assertEquals(1.0, state.numVar("B")); // █ is 1 character
+    assertEquals(1.0, state.numVar("C")); // 😀 is 1 character
+    assertEquals(2.0, state.numVar("D")); // 2 invalid bytes = 2 characters under fallback
+  }
 }

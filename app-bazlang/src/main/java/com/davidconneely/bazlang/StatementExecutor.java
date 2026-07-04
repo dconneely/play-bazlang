@@ -752,7 +752,7 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
         target.varRef = ref;
       }
       ref.value = val;
-      ref.initialized = true;
+      ref.initialised = true;
     } else {
       // Array element
       var ref = (EvalState.NumArrayRef) target.varRef;
