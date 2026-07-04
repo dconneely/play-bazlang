@@ -1,7 +1,9 @@
 package com.davidconneely.bazlang.program;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import com.davidconneely.bazlang.ReportCode;
 import com.davidconneely.bazlang.ReportException;
 import org.junit.jupiter.api.Test;
 
@@ -66,5 +68,85 @@ class NumericArrayProgramTest extends BaseProgramTest {
                 """
         10 DIM A(5)
         20 PRINT A(1 TO 3)"""));
+  }
+
+  @Test
+  void testNumArrayDefaultsToZero() {
+    // After DIM, every element should be initialised to 0.
+    runProgram(
+        """
+        10 DIM A(3)
+        20 PRINT A(1); A(2); A(3)
+        """,
+        "000\n");
+  }
+
+  @Test
+  void testTwoDimensionalArray() {
+    // Set one cell and verify a neighbouring cell stays at 0.
+    runProgram(
+        """
+        10 DIM A(3,4)
+        20 LET A(2,3) = 99
+        30 PRINT A(2,3); A(1,1)
+        """,
+        "990\n");
+  }
+
+  @Test
+  void testTwoDimensionalArrayOutOfBounds() {
+    // Accessing row 4 of a DIM A(3,4) should raise SUBSCRIPT_WRONG.
+    final var ex =
+        assertThrows(
+            ReportException.class,
+            () ->
+                runProgram(
+                    """
+            10 DIM A(3,4)
+            20 PRINT A(4,1)
+            """));
+    assertEquals(ReportCode.SUBSCRIPT_WRONG, ex.reportCode());
+  }
+
+  @Test
+  void testReDimArray() {
+    // Re-dimensioning an array resets all elements to 0.
+    runProgram(
+        """
+        10 DIM A(3)
+        20 LET A(2) = 42
+        30 DIM A(5)
+        40 PRINT A(2); A(5)
+        """,
+        "00\n");
+  }
+
+  @Test
+  void testArrayInForLoop() {
+    // Use a numeric array as an accumulator in a FOR loop.
+    runProgram(
+        """
+        10 DIM S(3)
+        20 FOR I = 1 TO 3
+        30 LET S(I) = I * 2
+        40 NEXT I
+        50 PRINT S(1); S(2); S(3)
+        """,
+        "246\n");
+  }
+
+  @Test
+  void testOutOfBoundsReportCode() {
+    // Verify that an out-of-bounds access raises specifically SUBSCRIPT_WRONG.
+    final var ex =
+        assertThrows(
+            ReportException.class,
+            () ->
+                runProgram(
+                    """
+            10 DIM A(5)
+            20 PRINT A(6)
+            """));
+    assertEquals(ReportCode.SUBSCRIPT_WRONG, ex.reportCode());
   }
 }
