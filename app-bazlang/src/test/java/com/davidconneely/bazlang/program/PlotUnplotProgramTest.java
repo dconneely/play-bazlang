@@ -6,27 +6,23 @@ import org.junit.jupiter.api.Test;
 
 /** Tests exercising PLOT and UNPLOT screen graphics statements. */
 class PlotUnplotProgramTest extends BaseProgramTest {
-
-  @Test
-  void testPlotUnplot() {
-    // A single PLOT sets the pixel.
-    assertEquals(1, runWithScreen("10 PLOT 0, 0").point(0, 0));
-    // PLOT OVER 1 XORs the pixel back off.
-    assertEquals(
-        0,
-        runWithScreen(
-                """
-        10 PLOT 0, 0
-        20 PLOT OVER 1; 0, 0""")
-            .point(0, 0));
-  }
-
   @Test
   void testPlotSetsPixel() {
     var screen = runWithScreen("10 PLOT 0, 0");
     assertEquals(1, screen.point(0, 0));
     assertEquals(0, screen.point(1, 0));
     assertEquals(0, screen.point(0, 1));
+  }
+
+  @Test
+  void testPlotOverXorsPixel() {
+    var screen =
+        runWithScreen(
+            """
+            10 PLOT 0, 0
+            20 PLOT OVER 1; 0, 0
+            """);
+    assertEquals(0, screen.point(0, 0));
   }
 
   @Test
@@ -50,10 +46,10 @@ class PlotUnplotProgramTest extends BaseProgramTest {
     var state =
         runProgram(
             """
-        10 PLOT 10, 20
-        20 LET PX = PLOTX
-        30 LET PY = PLOTY
-        """);
+            10 PLOT 10, 20
+            20 LET PX = PLOTX
+            30 LET PY = PLOTY
+            """);
     assertEquals(10.0, state.numVar("PX"));
     assertEquals(20.0, state.numVar("PY"));
   }
@@ -63,9 +59,9 @@ class PlotUnplotProgramTest extends BaseProgramTest {
     var screen =
         runWithScreen(
             """
-        10 PLOT 0, 0
-        20 DRAW 3, 0
-        """);
+            10 PLOT 0, 0
+            20 DRAW 3, 0
+            """);
     assertEquals(1, screen.point(0, 0));
     assertEquals(1, screen.point(1, 0));
     assertEquals(1, screen.point(2, 0));
@@ -77,11 +73,11 @@ class PlotUnplotProgramTest extends BaseProgramTest {
     var state =
         runProgram(
             """
-        10 PLOT 2, 2
-        20 DRAW 4, 6
-        30 LET PX = PLOTX
-        40 LET PY = PLOTY
-        """);
+            10 PLOT 2, 2
+            20 DRAW 4, 6
+            30 LET PX = PLOTX
+            40 LET PY = PLOTY
+            """);
     assertEquals(6.0, state.numVar("PX"));
     assertEquals(8.0, state.numVar("PY"));
   }
@@ -91,9 +87,9 @@ class PlotUnplotProgramTest extends BaseProgramTest {
     var screen =
         runWithScreen(
             """
-        10 PLOT 0, 0
-        20 CLS
-        """);
+            10 PLOT 0, 0
+            20 CLS
+            """);
     assertEquals(0, screen.point(0, 0));
   }
 
