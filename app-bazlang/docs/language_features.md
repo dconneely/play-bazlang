@@ -1,4 +1,4 @@
-# BazLang Reference
+# BazLang reference
 
 BazLang is a BASIC dialect based on Sinclair ZX BASIC (supporting a superset of both ZX81 and ZX
 Spectrum BASIC). This file lists the available commands, functions, and syntax rules.
@@ -21,22 +21,23 @@ Spectrum BASIC). This file lists the available commands, functions, and syntax r
 - **Multi-statement lines**: You can use `:` to put multiple commands on one line (e.g.,
   `10 CLS : PRINT "HELLO"`). In an `IF` statement, if the condition is false, the remainder of the
   line is skipped.
-- **Strict Typing**: You cannot mix strings and numbers without converting them.
+- **Strict typing**: You cannot mix strings and numbers without converting them.
 
 ## Variables
 
 ### Numbers
 
-- **Simple Variables**: `a`, `b1`, `count`. These are double-precision decimals.
+- **Simple variables**: `a`, `b1`, `count`. These are double-precision decimals.
 - **Arrays**: `DIM a(10)`. Access with `a(1)`. Indices start at 1.
 
 ### Strings
 
-- **Simple Variables**: `a$`, `name$`. These can change length.
-- **Fixed Strings**: `DIM a$(10)` is a string of 10 bytes.
-- **String Arrays**: `DIM a$(5, 10)` is 5 strings, each 10 bytes long.
+- **Simple variables**: `a$`, `name$`. These can change length.
+- **Fixed strings**: `DIM a$(10)` is a character array that acts like a fixed string of 10 bytes.
+- **String arrays**: `DIM a$(5, 10)` is a character array that acts like 5 fixed strings,
+  each 10 bytes long.
 - **Indexing**: `a$(1)` is the first byte.
-- **Byte Semantics**: Strings are byte arrays internally. `LEN` returns the byte count. String
+- **Byte semantics**: Strings are byte arrays internally. `LEN` returns the byte count. String
   literals and input from `INPUT` are stored as UTF-8 bytes. When printed, bytes are decoded
   normally; lone invalid bytes 0xNN are displayed as the utf8-c8 synthetic `?xNN`. For behaviour of
   fixed-length string arrays with UTF-8 characters, see
@@ -80,7 +81,7 @@ Returns `1` for True, `0` for False.
 
 ## Commands
 
-### Flow Control
+### Flow control
 
 - **`GO TO n`** (alias **`GOTO n`**): Jump to line `n`.
   If line `n` doesn't exist, jumps to the next numerically higher line.
@@ -97,7 +98,7 @@ Returns `1` for True, `0` for False.
   Fractional values are accepted, e.g. `PAUSE 0.5` waits 10ms.
 - **`RUN n`**: Restart program from line `n`.
 
-### Input / Output
+### Input / output
 
 - **`PRINT`**: Print to screen.
   - `;`: Join items.
@@ -131,7 +132,7 @@ Returns `1` for True, `0` for False.
   - `8` = braille patterns (2×4)
   - Does not clear the screen. Other values give an error.
 
-### Colour / Style Attributes
+### Colour / style attributes
 
 - **`BRIGHT n`**: Set active brightness style (`0` = normal, `1` = bright, `8` = transparent — each
   printed cell preserves its existing bright/bold state).
@@ -150,7 +151,7 @@ Returns `1` for True, `0` for False.
   colour, `9` = contrast — automatically selects black or white to contrast against the current
   ink colour).
 
-### Program Management
+### Program management
 
 - **`LIST [n [TO [m]]]`**: Show program code. `LIST` shows all; `LIST n` shows from line `n` to
   end; `LIST TO m` shows from start to line `m`; `LIST n TO m` shows lines `n` through `m`.
@@ -176,12 +177,12 @@ Returns `1` for True, `0` for False.
 
 ## Functions
 
-### User Functions
+### User functions
 
 - **`DEF FN name(param1, ...) = expr`**: Define a single-line custom function.
 - **`FN name(arg1, ...)`**: Call a custom function.
 
-### Math Functions
+### Math functions
 
 - **`ABS x`**: Absolute value.
 - **`ATTR(row, col)`**: Sinclair Spectrum attribute byte at `(row, col)` computed as
@@ -219,7 +220,7 @@ Returns `1` for True, `0` for False.
   60 REM ...
   ```
 - **`UCODE s$`**: Unicode codepoint value of the first character (UTF-8 decoded). If the string does
-  not start with a valid UTF-8 byte sequence (e.g. trailing bytes are missing or it contains an
+  not start with a valid UTF-8 byte sequence (e.g. trailing bytes are missing, or it contains an
   invalid lead byte), it falls back to returning the raw value of the first byte (128–255).
 - **`ULEN s$`**: Unicode character length (codepoint count) of the string. Consistent with the UTF-8
   iteration logic: each invalid or lone byte (whether at the start, middle, or end of the string)
@@ -232,7 +233,7 @@ Returns `1` for True, `0` for False.
 - **Logs**: `EXP`, `LN`.
 - **Trig**: `SIN`, `COS`, `TAN`, `ASN`, `ACS`, `ATN`.
 
-### String Functions
+### String functions
 
 - **`CHR$ x`**: Single-byte string with raw byte value `x` (0-255). Error for x > 255.
 - **`INKEY$`**: Check key press.
@@ -248,35 +249,35 @@ Returns `1` for True, `0` for False.
   'Integer out of range' if coordinates are out of bounds.
 - **`VAL$ s$`**: Evaluate a string as a string expression.
 
-### Byte vs Unicode Functions
+### Byte vs Unicode functions
 
 BazLang is designed to handle modern UTF-8 input and output while preserving classic Sinclair ZX
 BASIC byte-oriented semantics where practical. Because UTF-8 characters and terminal escape
 sequences can consist of multiple bytes, BazLang provides parallel sets of functions to distinguish
 between raw bytes and decoded Unicode characters:
 
--   **`CHR$` vs `UCHR$`**:
-    -   `CHR$ x` returns a single-byte string containing the raw byte value `x` (0–255).
-    -   `UCHR$ x` returns a string containing the multi-byte UTF-8 encoding of the Unicode codepoint
-        `x` (e.g. `UCHR$ 9608` yields the 3-byte sequence for `█`).
--   **`CODE` vs `UCODE`**:
-    -   `CODE s$` returns the numeric value of the first raw *byte* of `s$` (0–255).
-    -   `UCODE s$` decodes the first character of `s$` as UTF-8 and returns its Unicode codepoint
-        value. If the sequence is invalid or incomplete, it falls back to the raw value of the first
-        byte (128–255).
--   **`LEN` vs `ULEN`**:
-    -   `LEN s$` returns the raw byte length of `s$`.
-    -   `ULEN s$` returns the number of Unicode characters (codepoints) in `s$`. Each invalid or lone
-        byte (at the start, middle, or end of the string) counts as exactly 1 character.
--   **`SCREEN$` vs `USCREEN$`**:
-    -   `SCREEN$(row, col)` reads the character cell at the specified coordinates and returns it as
-        a single-byte string. Returns `""` if the cell contains a character outside the ASCII range.
-    -   `USCREEN$(row, col)` reads the cell and returns it as a UTF-8 string, supporting multi-byte
-        Unicode characters (such as Braille or quadrant blocks).
--   **`INKEY$` vs `UINKEY$`**:
-    -   `INKEY$` polls for a single raw byte from the input queue and returns it as a `BStr`.
-    -   `UINKEY$` polls for input, reading and returning a complete UTF-8 multi-byte sequence or
-        a terminal ANSI CSI escape sequence (e.g. cursor or function keys) as a single `BStr`.
+- **`CHR$` vs `UCHR$`**:
+  - `CHR$ x` returns a single-byte string containing the raw byte value `x` (0–255).
+  - `UCHR$ x` returns a string containing the multibyte UTF-8 encoding of the Unicode codepoint
+    `x` (e.g. `UCHR$ 9608` yields the 3-byte sequence for `█`).
+- **`CODE` vs `UCODE`**:
+  - `CODE s$` returns the numeric value of the first raw *byte* of `s$` (0–255).
+  - `UCODE s$` decodes the first character of `s$` as UTF-8 and returns its Unicode codepoint
+    value. If the sequence is invalid or incomplete, it falls back to the raw value of the first
+    byte (128–255).
+- **`LEN` vs `ULEN`**:
+  - `LEN s$` returns the raw byte length of `s$`.
+  - `ULEN s$` returns the number of Unicode characters (codepoints) in `s$`. Each invalid or lone
+    byte (at the start, middle, or end of the string) counts as exactly 1 character.
+- **`SCREEN$` vs `USCREEN$`**:
+  - `SCREEN$(row, col)` reads the character cell at the specified coordinates and returns it as
+    a single-byte string. Returns `""` if the cell contains a character outside the ASCII range.
+  - `USCREEN$(row, col)` reads the cell and returns it as a UTF-8 string, supporting multibyte
+    Unicode characters (such as Braille or quadrant blocks).
+- **`INKEY$` vs `UINKEY$`**:
+  - `INKEY$` polls for a single raw byte from the input queue and returns it as a `BStr`.
+  - `UINKEY$` polls for input, reading and returning a complete UTF-8 multibyte sequence or
+    a terminal ANSI CSI escape sequence (e.g. cursor or function keys) as a single `BStr`.
 
 ## Slicing
 
@@ -312,8 +313,7 @@ PRINT grid$(1, 1)   : REM prints " "
 PRINT CODE grid$(1, 1)  : REM prints 32
 ```
 
-
-## Number Formatting
+## Number formatting
 
 Numbers are displayed in Sinclair ZX BASIC style:
 
@@ -324,9 +324,10 @@ Numbers are displayed in Sinclair ZX BASIC style:
 
 Examples: `42`, `3.14159`, `1.23E+15`, `-5E-8`
 
-## Divergences from Sinclair ZX BASIC
+## Divergences
 
-BazLang follows Sinclair ZX BASIC semantics where practical, with these intentional differences:
+BazLang follows Sinclair ZX BASIC semantics where practical, with these intentional differences
+(not an exhaustive list):
 
 | Feature         | BazLang                              | Sinclair ZX BASIC               |
 |:----------------|:-------------------------------------|:--------------------------------|
@@ -339,66 +340,58 @@ BazLang follows Sinclair ZX BASIC semantics where practical, with these intentio
 | PRINT AT bounds | Clamps to terminal bounds            | Throws "5 Out of screen"        |
 | POINT bounds    | Returns 0                            | Throws "B Integer out of range" |
 
-## REPL-Only Commands
+## REPL-only commands
 
 The following commands are only available in the REPL (interactive mode) and cannot be stored as
 part of a program.
 
-### DELETE
+- **`DELETE [lines]`**: Delete program lines.
 
-Delete program lines:
+  ```
+  DELETE 100
+  DELETE 10 TO 50
+  DELETE TO 100
+  DELETE 100 TO
+  DELETE TO
+  ```
 
-```
-DELETE 100
-DELETE 10 TO 50
-DELETE TO 100
-DELETE 100 TO
-DELETE TO
-```
+  `DELETE n` deletes only line `n`; `DELETE n TO m` deletes lines `n` through `m`; `DELETE TO m`
+  deletes from start to `m`; `DELETE n TO` deletes from `n` to end; `DELETE TO` deletes all lines.
+  Requires at least one line number or the `TO` keyword. Typing just a line number (e.g., `100`)
+  at the REPL also deletes that line.
 
-`DELETE n` deletes only line `n`; `DELETE n TO m` deletes lines `n` through `m`; `DELETE TO m`
-deletes from start to `m`; `DELETE n TO` deletes from `n` to end; `DELETE TO` deletes all lines.
-Requires at least one line number or the `TO` keyword. Typing just a line number (e.g., `100`)
-at the REPL also deletes that line.
+- **`EDIT [line]`**: Edit an existing line.
 
-### EDIT
+  ```
+  EDIT 100
+  ```
 
-Edit an existing line:
+  Pre-fills the input with the contents of line 100 for editing. If the line doesn't exist,
+  pre-fills with just the line number followed by a space.
 
-```
-EDIT 100
-```
+- **`REFORMAT [lines]`**: Normalise program formatting.
+  
+  ```
+  REFORMAT
+  REFORMAT 100
+  REFORMAT 10 TO 50
+  REFORMAT TO 100
+  REFORMAT 100 TO
+  REFORMAT TO
+  ```
+  
+  Reformats the specified range of lines (or all lines if no range is given). It converts keywords
+  and function names to uppercase and normalises whitespace around operators and separators.
 
-Pre-fills the input with the contents of line 100 for editing. If the line doesn't exist,
-pre-fills with just the line number followed by a space.
+- **`RENUM [numbering], [lines]`**: Renumber program lines.
 
-### REFORMAT
+  ```
+  RENUM
+  RENUM 100
+  RENUM 100 STEP 5
+  RENUM 100, 50 TO 80
+  ```
 
-Normalise program formatting:
-
-```
-REFORMAT
-REFORMAT 100
-REFORMAT 10 TO 50
-REFORMAT TO 100
-REFORMAT 100 TO
-REFORMAT TO
-```
-
-Reformats the specified range of lines (or all lines if no range is given). It converts keywords
-and function names to uppercase and normalises whitespace around operators and separators.
-
-### RENUM
-
-Renumber program lines:
-
-```
-RENUM
-RENUM 100
-RENUM 100 STEP 5
-RENUM 100, 50 TO 80
-```
-
-`RENUM` renumbers all lines starting at 10 with step 10. `RENUM n` starts at `n`.
-`RENUM n STEP s` uses step `s`. A comma introduces a range: `RENUM n, from TO to` renumbers lines
-`from` through `to` starting at `n`. Updates `GO TO`/`GO SUB` literal targets automatically.
+  `RENUM` renumbers all lines starting at 10 with step 10. `RENUM n` starts at `n`.
+  `RENUM n STEP s` uses step `s`. A comma introduces a range: `RENUM n, from TO to` renumbers lines
+  `from` through `to` starting at `n`. Updates `GO TO`/`GO SUB` literal targets automatically.

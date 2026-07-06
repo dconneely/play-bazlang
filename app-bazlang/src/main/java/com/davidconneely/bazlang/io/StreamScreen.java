@@ -67,7 +67,7 @@ public class StreamScreen implements BazLangScreen {
 
   @Override
   public void scroll() {
-    out.println();
+    out.print('\n');
   }
 
   @Override
@@ -86,7 +86,7 @@ public class StreamScreen implements BazLangScreen {
 
   @Override
   public void println() {
-    out.println();
+    out.print('\n');
     currentCol = 0;
   }
 
@@ -97,12 +97,13 @@ public class StreamScreen implements BazLangScreen {
 
   @Override
   public void lprintln(String text) {
-    err.println(text);
+    err.print(text);
+    err.print('\n');
   }
 
   @Override
   public void lprintln() {
-    err.println();
+    err.print('\n');
   }
 
   @Override

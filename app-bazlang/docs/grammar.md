@@ -1,4 +1,4 @@
-# ANTLR Grammar Implementation
+# ANTLR grammar implementation
 
 BazLang uses ANTLR 4 to generate its lexer and parser from a declarative grammar file
 (`BazLang.g4`).
@@ -13,9 +13,9 @@ BazLang uses ANTLR 4 to generate its lexer and parser from a declarative grammar
 | **Error Recovery**  | Basic                     | Sophisticated built-in       |
 | **Documentation**   | Comments + separate docs  | Grammar IS the documentation |
 
-## Key Grammar Patterns
+## Key grammar patterns
 
-### Expression Precedence
+### Expression precedence
 
 ANTLR handles operator precedence by ordering - earlier alternatives bind tighter:
 
@@ -40,7 +40,7 @@ numExpr
 
 Note: `<assoc=right>` makes `**` and `^` right-associative, so `2^3^4` = `2^(3^4)`.
 
-### Case Insensitivity
+### Case insensitivity
 
 The grammar uses ANTLR's `caseInsensitive` option for keywords and identifiers:
 
@@ -56,7 +56,7 @@ to the same variable.
 
 String literal _contents_ remain case-sensitive since they're captured as-is between quotes.
 
-### Numeric vs String Identifiers
+### Numeric vs string identifiers
 
 The grammar distinguishes numeric and string variables at the lexer level:
 
@@ -68,7 +68,7 @@ NUM_IDENTIFIER : [A-Z][A-Z0-9_]* ;
 This ensures `a` is always a numeric variable and `a$` is always a string variable, without
 ambiguity. (The pattern uses `[A-Z]` but matches case-insensitively due to the grammar option.)
 
-### Function Binding
+### Function binding
 
 Functions bind tightly to their arguments (atoms), not full expressions:
 
@@ -101,7 +101,7 @@ numFunc
 
 This means `UCNEXT(a$, i+1)` works as expected.
 
-### String Subscripts and Slicing
+### String subscripts and slicing
 
 String subscripts use a unified rule that allows indices and optional slicing:
 
@@ -116,7 +116,7 @@ strSubscript
 This supports: `a$(1)`, `a$(1,2)`, `a$(1 TO 5)`, `a$(TO 5)`, `a$(1 TO)`, `a$(TO)`,
 `a$(1, 2 TO 5)`, etc.
 
-## Statements vs. REPL Commands
+## Statements vs. REPL commands
 
 BazLang strictly separates program execution logic (statements) from interactive IDE/environment
 actions (REPL commands). 
@@ -136,7 +136,7 @@ As defined in the `replLine` root parsing rule:
   editor. They **cannot** be placed inside numbered program lines, they **cannot** be combined with
   other statements using a colon, and they **must** be the only instruction entered on the line.
 
-## Erasing Graphics (`UNPLOT` / `UNDRAW`)
+## Erasing graphics (`UNPLOT` / `UNDRAW`)
 
 Unlike ZX81 BASIC, which had a dedicated `UNPLOT` statement, BazLang adheres to the original ZX
 Spectrum philosophy for erasing graphics. There are no explicit `UNPLOT` or `UNDRAW` statements.
@@ -151,7 +151,7 @@ Instead, to erase lines or pixels, you should redraw them using style modifiers:
 When plotting, `INVERSE` means clear pixels rather than set them, and `OVER` means invert the
 current pixel state (which is slightly confusing, but consistent with the Sinclair ZX Spectrum).
 
-## Adding New Features
+## Adding new features
 
 To add a new operator (e.g., modulo `%`):
 

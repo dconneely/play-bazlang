@@ -1,14 +1,14 @@
-# Implementation Details
+# Implementation details
 
 This document explains how the BazLang interpreter is built using Java.
 
-## Code Structure
+## Code structure
 
 The interpreter executes directly from ANTLR's parse tree using a visitor pattern.
 
-### Main Components
+### Main components
 
-- **ANTLR Grammar (`BazLang.g4`)**: Defines the lexer and parser rules declaratively. ANTLR
+- **ANTLR grammar (`BazLang.g4`)**: Defines the lexer and parser rules declaratively. ANTLR
   generates `BazLangLexer` and `BazLangParser` from this grammar.
 - **`AntlrParser`**: A facade that wraps the ANTLR parser, providing simple `parseProgramLines()`
   and `parseReplLine()` methods.
@@ -24,7 +24,7 @@ The interpreter executes directly from ANTLR's parse tree using a visitor patter
 - **`ProgramLine`**: Stores the source text of each line, lazily parses to a parse tree on first
   execution, and caches a flattened statement list to avoid rebuilding it on subsequent calls.
 
-## I/O System (The `io` Package)
+## I/O system (the `io` package)
 
 Input and output are handled by a set of classes that share a common `BazLangScreen` interface
 (which extends the base `ReplReader` and `AutoCloseable` interfaces), isolating the interpreter
@@ -42,18 +42,18 @@ The `BazLangScreen` interface defines methods for screen output (`print`, `print
 graphics (`plot`, `unplot`, `setPlotMode`), input (`readln` with different modes for REPL vs
 INPUT), and status updates (`setStatus` for showing report codes).
 
-## Specific Logic
+## Specific logic
 
-- **Graphics & Rendering**: The screen uses a `CellBuffer` designed with a Structure-of-Arrays
+- **Graphics & rendering**: The screen uses a `CellBuffer` designed with a Structure-of-Arrays
   (SoA) layout for high performance, supporting 24-bit RGB colours and styles. `PLOT` and
   `UNPLOT` operate on this buffer with dynamic sizing. Coordinates (0,0) start in the bottom-left
   corner. Rendering resolution is pluggable via `CellMode` (e.g., `QuadrantMode` for 2x2 blocks,
   `SextantMode` for 2x3 blocks, or `BrailleMode` for 2x4 patterns). Text output (`PRINT`) and
   graphics share the same buffer seamlessly.
-- **Line-Based Flow**: Everything depends on line numbers. The interpreter usually proceeds
+- **Line-based flow**: Everything depends on line numbers. The interpreter usually proceeds
   sequentially. Commands like `GO TO` or `FOR` change this order by modifying the `EvalState`
   program counter.
-- **Error Handling**: If something goes wrong (e.g. dividing by zero), the interpreter stops
+- **Error handling**: If something goes wrong (e.g. dividing by zero), the interpreter stops
   execution, throws a `ReportException`, and reports a Sinclair ZX BASIC-style code in the
   status bar. The format is `<Code> <Message>, <Line>:<Statement> (Optional details)`,
   for example: `6 Number too big, 100:1 (Arithmetic overflow)`.
@@ -63,36 +63,37 @@ INPUT), and status updates (`setStatus` for showing report codes).
 - **`INPUT`**: This uses the `Canvas` to read a full line of text from the user. It then parses
   this text to assign it to the target variable, handling type conversion for numbers.
 
-## Performance & Memory Optimisations
+## Performance & memory optimisations
 
 To ensure high execution performance and minimise garbage collector pressure on the JVM, the
 interpreter implements two key patterns:
 
-- **Visitor as Calculator**: Rather than returning boxed `Double` wrapper objects from parsing
+- **Visitor as calculator**: Rather than returning boxed `Double` wrapper objects from parsing
   visitor methods (which would cause massive boxing and unboxing overhead during arithmetic
   evaluation), the evaluation visitor
   [ExpressionEvaluator](../src/main/java/com/davidconneely/bazlang/ExpressionEvaluator.java)
   returns `Void` and stores primitive double results directly in a class field.
-- **Variable Reference Caching (`ctx.varRef`)**: Variables are normally looked up in the
+- **Variable reference caching (`ctx.varRef`)**: Variables are normally looked up in the
   [EvalState](../src/main/java/com/davidconneely/bazlang/EvalState.java) maps by their name
   strings. To avoid continuous hash map lookups during execution (especially in tight loops),
   the parser context objects (`ctx`) cache their resolved reference objects (such as `NumVarRef`)
   after the first lookup. Subsequent evaluations retrieve the cached reference directly.
 
-## Language Quirks & Sinclair ZX BASIC Eccentricities
+## Language quirks
 
-To replicate Sinclair ZX BASIC behaviour, the interpreter implements several unusual behaviours:
+To replicate some eccentric Sinclair ZX BASIC behaviour, the BazLang interpreter implements several
+unusual behaviours:
 
-### Flow Control Quirks
+### Flow control quirks
 
-- **FOR Loop Stale Loop Variable Value**: The loop variable retains its last value after loop
+- **FOR loop stale loop variable value**: The loop variable retains its last value after loop
   completion. This value is equal to `limit + step` (e.g., if running `FOR i=1 TO 5`, `i` will be
   `6` after the loop terminates).
-- **FOR Loop Stale Loops and Stray `NEXT`**: A `FOR` loop is not deactivated when it terminates
+- **FOR loop stale loops and stray `NEXT`**: A `FOR` loop is not deactivated when it terminates
   naturally. Executing a stray `NEXT var` statement *after* the loop has finished will continue to
   increment `var` and resume execution from the statement following `NEXT` without raising
   an error.
-- **FOR Loop Flat Skip Scan**: When a loop's initial value falls outside its range (e.g.,
+- **FOR loop flat skip scan**: When a loop's initial value falls outside its range (e.g.,
   `FOR i=1 TO 0`), the loop body is skipped. The interpreter performs a flat, linear scan through
   all statements in source code order to find the first `NEXT i`. This scan is unconditional: it
   includes statements nested inside `IF ... THEN` bodies, even if the condition is false.
@@ -107,34 +108,32 @@ To replicate Sinclair ZX BASIC behaviour, the interpreter implements several unu
   This prints `A` then `B`. The skip scan on line 10 finds the `NEXT i` on line 20 (inside the
   always-false `IF`), causing execution to resume at line 30.
 
-### Variables & Memory Quirks
+### Variables & memory quirks
 
-- **Editing Lines Preserves Runtime State**: Adding, replacing, or deleting numbered program lines
+- **Editing lines preserves runtime state**: Adding, replacing, or deleting numbered program lines
   in interactive (REPL) mode does *not* clear runtime variables, the `DATA` pointer, the `GOSUB`
   return stack, or active `FOR` loop states. Only `NEW` and `CLEAR` reset this state. This allows
   debugging and hot-patching program code mid-run.
-- **Recursive User Functions (`DEF FN`)**: Because user-defined functions (`DEF FN`) are evaluated
+- **Recursive user functions (`DEF FN`)**: Because user-defined functions (`DEF FN`) are evaluated
   on the host system stack, deep recursion in custom functions will exceed stack depth limits.
   Rather than crashing the JVM, this is caught and surfaced as report code `4 Out of memory,
   <line>:<statement>`, matching real ZX Spectrum behaviour.
 
-### Data Quirks
+### Data quirks
 
-- **DATA Statements in IF Bodies**: `DATA` statements are indexed globally at parse time, not at
+- **DATA statements in IF bodies**: `DATA` statements are indexed globally at parse time, not at
   execution time. A `DATA` statement inside an `IF` block is always visible to `READ` and `RESTORE`
   operations, regardless of whether the enclosing `IF` condition evaluates to true or is ever
   executed.
 
-### Input & Output Quirks
+### Input & output quirks
 
-- **Negative Graphics Coordinates**: For graphics commands (`PLOT`, `DRAW`), negative coordinates
+- **Negative graphics coordinates**: For graphics commands (`PLOT`, `DRAW`), negative coordinates
   are accepted and mirrored onto the positive grid using their absolute values (matching original
   Sinclair ZX BASIC behaviour). For example, `PLOT -10, -10` draws at coordinate `(10, 10)`.
-- **Byte-Oriented Fixed-Length String Arrays**: Fixed-length string arrays (declared via
+- **Byte-oriented fixed-length string arrays**: Fixed-length string arrays (declared via
   `DIM a$(rows, cols)`) are byte-oriented. The column size `cols` specifies the maximum width in
   **bytes**, not character count. When assigning multibyte UTF-8 characters, ensure `cols` is
   sized large enough to hold the character's full byte sequence. If the assigned string exceeds
   `cols` bytes, it is truncated at the byte boundary, which can result in partial, invalid UTF-8
   sequences.
-
-
