@@ -89,13 +89,24 @@ SCORE: 42.0
 NAME$: "Alice"
 ```
 
-### `SEND <text>`
+### `SEND "<text>"`
 
-Queues `<text>` for the programme to consume:
+Queues `<text>` for the programme to consume. The argument must be a double-quoted string.
+Backslash-escape sequences are supported: `\"` represents a literal double-quote and `\\`
+represents a literal backslash. Multiple characters may be queued in a single command.
 
-- `INKEY$` receives one byte per UTF-8 byte of `<text>`.
+- `INKEY$` receives one byte per UTF-8 byte of the decoded text.
 - `UINKEY$` receives one BStr per Unicode codepoint.
-- `INPUT` receives the full `<text>` as a single line.
+- `INPUT` receives the full decoded text as a single line.
+
+Examples:
+
+```
+SEND " "          — queue a space character
+SEND "oo  o o"    — queue a multi-character sequence
+SEND "\""         — queue a double-quote character
+SEND "\\"         — queue a backslash character
+```
 
 Responds with `QUEUED`.
 
@@ -173,11 +184,14 @@ BREAK AT 500:1 IF VAR(I <> 0)
 
 ### `VIEW("<text>")`
 
-Fires when the virtual screen buffer contains `<text>` (case-insensitive). Single-shot.
+Fires when the virtual screen buffer contains `<text>` (case-insensitive). Single-shot. The text
+is a double-quoted string with the same `\"` and `\\` escape sequences as `SEND`.
 
 Example:
 ```
 BREAK IF VIEW("Game Over")
+BREAK IF VIEW("score: 100")
+BREAK IF VIEW("He said \"hello\"")
 ```
 
 ### `ELAPSE(<ms>)`

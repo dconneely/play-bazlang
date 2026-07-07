@@ -44,9 +44,12 @@ import org.antlr.v4.runtime.tree.ParseTree;
 /// scalars, `NAME$: "value"` for string scalars. With one or more names, prints only the named
 /// variables in the order given. String variables require the `$` suffix (e.g. `VAR STAT$`).
 ///
-/// **`SEND <text>`**
-/// Queue `<text>` for keyboard and input reads. INKEY$ receives one byte per UTF-8 byte;
-/// UINKEY$ receives one BStr per codepoint; INPUT receives the full text as one line.
+/// **`SEND "<text>"`**
+/// Queue `<text>` for keyboard and input reads. The argument must be a double-quoted string;
+/// `\"` represents a literal double-quote and `\\` represents a literal backslash. Multiple
+/// characters may be queued at once: e.g. `SEND "oo  o o  oo"`. INKEY$ receives one byte per
+/// UTF-8 byte; UINKEY$ receives one BStr per Unicode codepoint; INPUT receives the full text as
+/// one line.
 ///
 /// **`BREAK AT <line>:<stmt>`**
 /// Set a persistent location breakpoint (statement indices are 1-based). Fires before the named
@@ -83,7 +86,8 @@ import org.antlr.v4.runtime.tree.ParseTree;
 ///
 /// - `VAR(<varName> <op> <value>)` — numeric variable satisfies the relation; operators are
 ///   `=`, `<`, `>`, `<=`, `>=`, `<>`.
-/// - `VIEW("<text>")` — screen buffer contains the given text (case-insensitive match).
+/// - `VIEW("<text>")` — screen buffer contains the given text (case-insensitive). The text is a
+///   double-quoted string with the same `\"` and `\\` escapes as `SEND`.
 /// - `ELAPSE(<ms>)` — at least `<ms>` wall-clock milliseconds have elapsed since the last
 ///   `CONTINUE` (or since the programme started if `CONTINUE` has not yet been sent).
 ///
@@ -216,6 +220,44 @@ public final class AgentDebugger {
     System.out.println("└" + "─".repeat(c2 - c1 + 1) + "┘");
   }
 
+  /**
+   * Parses a double-quoted string argument such as {@code "hello \"world\\"}.
+   *
+   * <p>Supports {@code \"} → {@code "} and {@code \\} → {@code \}. Returns {@code null} if the
+   * argument does not start with {@code "}, is not properly closed, or ends with an unmatched
+   * backslash.
+   */
+  private static String parseQuotedArg(String arg) {
+    if (!arg.startsWith("\"")) {
+      return null;
+    }
+    StringBuilder sb = new StringBuilder();
+    int i = 1;
+    while (i < arg.length()) {
+      char c = arg.charAt(i);
+      if (c == '"') {
+        return i == arg.length() - 1 ? sb.toString() : null;
+      } else if (c == '\\') {
+        if (i + 1 >= arg.length()) {
+          return null;
+        }
+        char next = arg.charAt(i + 1);
+        if (next == '"') {
+          sb.append('"');
+        } else if (next == '\\') {
+          sb.append('\\');
+        } else {
+          sb.append('\\').append(next);
+        }
+        i += 2;
+      } else {
+        sb.append(c);
+        i++;
+      }
+    }
+    return null; // missing closing quote
+  }
+
   private static BreakCondition parseCondition(int line, int stmt, String cond) {
     String upper = cond.toUpperCase();
     if (upper.startsWith("VAR(") && cond.endsWith(")")) {
@@ -231,8 +273,13 @@ public final class AgentDebugger {
       }
       return null;
     }
-    if (upper.startsWith("VIEW(\"") && cond.endsWith("\")")) {
-      return seeBreak(line, stmt, cond.substring(6, cond.length() - 2));
+    if (upper.startsWith("VIEW(") && cond.endsWith(")")) {
+      String quotedArg = cond.substring(5, cond.length() - 1).trim();
+      String text = parseQuotedArg(quotedArg);
+      if (text == null) {
+        return null;
+      }
+      return seeBreak(line, stmt, text);
     }
     if (upper.startsWith("ELAPSE(") && cond.endsWith(")")) {
       try {
@@ -301,7 +348,7 @@ public final class AgentDebugger {
             } else if (upper.startsWith("VIEW")) {
               handleView(cmd);
             } else if (upper.startsWith("SEND ")) {
-              handleSend(cmd.substring(5));
+              handleSend(cmd.substring(5).trim());
             } else if (upper.startsWith("BREAK")) {
               handleBreak(cmd.substring(5).trim());
             } else if (upper.startsWith("CLEAR")) {
@@ -369,13 +416,18 @@ public final class AgentDebugger {
           }
 
           private void handleSend(String text) {
-            byte[] bytes = text.getBytes(StandardCharsets.UTF_8);
+            String decoded = text.startsWith("\"") ? parseQuotedArg(text) : text;
+            if (decoded == null) {
+              System.err.println("Invalid quoted string for SEND — use SEND \"text\"");
+              return;
+            }
+            byte[] bytes = decoded.getBytes(StandardCharsets.UTF_8);
             for (byte b : bytes) {
               queueInkey(BStr.fromByte(b & 0xFF));
             }
-            text.codePoints()
+            decoded.codePoints()
                 .forEach(cp -> queueUinkey(BStr.fromJavaString(new String(Character.toChars(cp)))));
-            queueInput(text);
+            queueInput(decoded);
             System.out.println("QUEUED");
           }
 
