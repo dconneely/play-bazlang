@@ -7,16 +7,27 @@ class RemProgramTest extends BaseProgramTest {
 
   @Test
   void testEmptyLinesAndComments() {
-    // Documented: blank lines and # comments are ignored.
+    // Shebang first line and blank lines are ignored.
     runProgram(
         """
-        # comment
+        #! shebang
 
         10 PRINT "OK"
 
-        # endLabel
         """,
         "OK\n");
+  }
+
+  @Test
+  void testArbitraryCommentThrows() {
+    org.junit.jupiter.api.Assertions.assertThrows(
+        com.davidconneely.bazlang.ReportException.class,
+        () ->
+            runProgram(
+                """
+            10 PRINT "OK"
+            # arbitrary comment
+            """));
   }
 
   @Test

@@ -14,7 +14,9 @@ Spectrum BASIC). This file lists the available commands, functions, and syntax r
 ### Comments
 
 - `REM comment`: Standard comment.
-- `# comment`: Line comment (ignored by the parser, useful for source files).
+- `#! shebang`: If the first line of a BazLang source file starts with `#!`, it is ignored by the
+  loader (useful for running files as scripts on Unix/Linux systems). General `#` comments on other
+  lines are not supported.
 
 ### Limits
 

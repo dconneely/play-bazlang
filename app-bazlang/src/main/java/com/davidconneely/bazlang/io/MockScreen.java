@@ -9,8 +9,8 @@ import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 public class MockScreen extends AbstractCellBufferedScreen {
-  private static final int ROWS = 25;
-  private static final int COLS = 80;
+  private int rows;
+  private int cols;
 
   private final StringBuilder output = new StringBuilder();
   private final List<String> inputs;
@@ -21,14 +21,31 @@ public class MockScreen extends AbstractCellBufferedScreen {
 
   private final Queue<BStr> inkeyQueue = new ConcurrentLinkedQueue<>();
   private final Queue<BStr> uinkeyQueue = new ConcurrentLinkedQueue<>();
+  private final Queue<String> inputQueue = new ConcurrentLinkedQueue<>();
 
   public MockScreen() {
-    this(Collections.emptyList());
+    this(25, 80, Collections.emptyList());
   }
 
   public MockScreen(List<String> inputs) {
-    super(new CellBuffer(ROWS, COLS, QuadrantMode.INSTANCE));
+    this(25, 80, inputs);
+  }
+
+  public MockScreen(int rows, int cols) {
+    this(rows, cols, Collections.emptyList());
+  }
+
+  public MockScreen(int rows, int cols, List<String> inputs) {
+    super(new CellBuffer(rows, cols, QuadrantMode.INSTANCE));
+    this.rows = rows;
+    this.cols = cols;
     this.inputs = inputs;
+  }
+
+  public void resize(int newRows, int newCols) {
+    this.rows = newRows;
+    this.cols = newCols;
+    cellBuffer.resize(newRows, newCols);
   }
 
   public String getOutput() {
@@ -51,7 +68,7 @@ public class MockScreen extends AbstractCellBufferedScreen {
         int cp = text.codePointAt(idx);
         int r = cursorRow;
         int c = cursorCol;
-        if (r >= 0 && r < ROWS && c >= 0 && c < COLS) {
+        if (r >= 0 && r < rows && c >= 0 && c < cols) {
           int ink = activeInverse == 1 ? activePaper : activeInk;
           int paper = activeInverse == 1 ? activeInk : activePaper;
           int cellFg = getMappedColour(ink, paper);
@@ -99,8 +116,20 @@ public class MockScreen extends AbstractCellBufferedScreen {
     output.append('\n');
   }
 
+  public void queueInput(String text) {
+    inputQueue.add(text);
+  }
+
   @Override
   public String readln(String prompt) {
+    String queued = inputQueue.poll();
+    if (queued != null) {
+      if (prompt != null) {
+        print(prompt);
+      }
+      println(queued);
+      return queued;
+    }
     if (inputIdx < inputs.size()) {
       String input = inputs.get(inputIdx++);
       if (prompt != null) {

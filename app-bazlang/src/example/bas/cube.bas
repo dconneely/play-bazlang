@@ -48,7 +48,7 @@
 3150 INK 8
 3160 IF now - start_t < 50 THEN GO TO 3180
 3170 LET cps = INT (cycles * 50 / (now - start_t)) : LET cycles = 0 : LET start_t = now
-3180 PRINT AT 0, 0; "Bazlang 3D Cube - "; num_vertices; " vertices, "; num_edges; " edges, "; cps; " CPS    "
+3180 PRINT AT 0, 0; "BazLang 3D Cube - "; num_vertices; " vertices, "; num_edges; " edges, "; cps; " CPS    "
 3190 SLOW
 3200 GO TO 2000
 4000 RESTORE 5000

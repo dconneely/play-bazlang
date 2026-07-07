@@ -54,7 +54,7 @@
 3150 LET now = FRAMES
 3160 IF now - start_t < 50 THEN GO TO 3180
 3170 LET cps = INT (cycles * 50 / (now - start_t)) : LET cycles = 0 : LET start_t = now
-3180 PRINT AT 0, 0; INK 8; PAPER 8; "Bazlang 3D Torus - "; num_vertices; " vertices, "; num_edges; " edges, "; cps; " CPS    "
+3180 PRINT AT 0, 0; INK 8; PAPER 8; "BazLang 3D Torus - "; num_vertices; " vertices, "; num_edges; " edges, "; cps; " CPS    "
 3190 SLOW
 3200 GO TO 2000
 4000 REM ### Init torus vertices and edges ###

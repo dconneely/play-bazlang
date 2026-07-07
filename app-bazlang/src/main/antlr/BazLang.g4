@@ -412,7 +412,6 @@ STR_LITERAL
 // Whitespace and comments
 NEWLINE  : '\r'? '\n';
 WS       : [ \t\r]+ -> skip;
-LINE_COMMENT: '#' ~[\r\n]* -> skip;
 
 // REM consumes rest of line as part of the token
 REM      : 'REM' ~[\r\n]* ;

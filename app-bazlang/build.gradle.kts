@@ -40,12 +40,12 @@ tasks.generateGrammarSource {
   arguments = arguments + listOf("-visitor")
 }
 
-tasks.register<JavaExec>("runScaffold") {
+tasks.register<JavaExec>("runAgentDebugger") {
   group = "application"
-  description = "Runs the BazLangDevelopmentScaffold"
+  description = "Runs the AgentDebugger"
   classpath = sourceSets["main"].runtimeClasspath
-  mainClass = "com.davidconneely.bazlang.program.BazLangDevelopmentScaffold"
-  // Allow passing arguments from command line like: ./gradlew runScaffold --args="monster"
+  mainClass = "com.davidconneely.bazlang.program.AgentDebugger"
+  standardInput = System.`in`
   val customArgs = project.findProperty("args") as? String
   if (customArgs != null) {
     args = customArgs.split(" ")

@@ -1,50 +1,36 @@
-# BazLang Interpreter
+# Play-BazLang repository
 
-BazLang is a simple BASIC interpreter written in Java 25. It is loosely based on Sinclair ZX BASIC
-(supporting a superset of both ZX81 and ZX Spectrum BASIC) but designed for the modern command line.
-It includes a REPL and works with standard UTF-8 source files.
+This repository contains **BazLang**, a retro-inspired Sinclair ZX BASIC interpreter modernized
+for modern terminal emulators, alongside its supporting libraries.
 
-## Documentation
+## Repository structure
 
-For more details, check the `app-bazlang/docs/` folder:
+The project is structured as a multi-module Gradle build:
 
-- [Language Features](app-bazlang/docs/language_features.md) - Details on variables, types,
-  commands, and REPL editor commands.
-- [Grammar](app-bazlang/docs/grammar.md) - The ANTLR grammar that defines the language syntax.
-- [Implementation](app-bazlang/docs/implementation.md) - How the code is structured and architected.
+- **[app-bazlang/](app-bazlang/)** - The main BASIC interpreter application, containing the
+  REPL, execution engine, AST visitors, and command-line entrypoint.
+- **[lib-cell/](lib-cell/)** - A lightweight character-cell screen buffer library supporting
+  24-bit colour, text styles, and sub-pixel graphic rendering modes (e.g. Quadrant, Braille).
+- **[lib-repl/](lib-repl/)** - A supporting line reader and console management library that wraps
+  JLine to handle command history, ANSI escape sequences, raw keyboard polling, and breaks.
 
-## Quick Start
+## Getting started
+
+### Prerequisites
+
+- **Java 25** or later.
 
 ### Building
 
-You need Java 25 or later. Build it with Gradle:
+Build the entire project (application and libraries) using the Gradle wrapper in the root folder:
 
 ```bash
 ./gradlew clean build
 ```
 
-### Running
-
-Use the shell script:
-
-```bash
-app-bazlang/run.sh <optional-source-file.bas>
-```
-
-Or run the JAR directly:
-
-```bash
-java --enable-native-access=ALL-UNNAMED -jar app-bazlang/build/libs/bazlang-1.0.0-SNAPSHOT.jar <optional-source-file.bas>
-```
-
-## Examples
-
-You can find example programs in `app-bazlang/src/example/bas/`. Run one like this:
-
-```bash
-app-bazlang/run.sh app-bazlang/src/example/bas/pontoon.bas
-```
+For instructions on running the REPL, executing programs, or reading language and architecture
+documentation, see the application README in [app-bazlang/README.md](app-bazlang/README.md).
 
 ## Licence
 
-This project is open source under the [MIT License](LICENCE).
+This project is licensed under the [MIT License](LICENCE).

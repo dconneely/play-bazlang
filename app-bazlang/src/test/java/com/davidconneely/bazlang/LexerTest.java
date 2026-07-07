@@ -15,7 +15,7 @@ class LexerTest {
   void testValidTokens() {
     assertParses("10 PRINT 10");
     assertParses("20 LET A$ = \"HELLO\"");
-    assertParses("# This is a comment\n30 REM BASIC COMMENT");
+    assertParses("#! This is a shebang\n30 REM BASIC COMMENT");
     assertParses("40 PRINT \"a \"\"b\"\" c\"");
   }
 

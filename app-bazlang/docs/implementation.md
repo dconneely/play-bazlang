@@ -60,8 +60,8 @@ INPUT), and status updates (`setStatus` for showing report codes).
 - **`FOR-NEXT`**: The `FOR` statement saves its state (target variable, limit, step, and return
   line) in `EvalState`. The `NEXT` statement increments the variable and checks if the loop
   should continue.
-- **`INPUT`**: This uses the `Canvas` to read a full line of text from the user. It then parses
-  this text to assign it to the target variable, handling type conversion for numbers.
+- **`INPUT`**: This uses the `BazLangScreen` to read a full line of text from the user. It then
+  parses this text to assign it to the target variable, handling type conversion for numbers.
 
 ## Performance & memory optimisations
 

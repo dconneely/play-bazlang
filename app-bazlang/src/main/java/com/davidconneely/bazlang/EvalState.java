@@ -7,6 +7,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.TreeMap;
 
 @SuppressWarnings("PMD.TooManyFields")
 public class EvalState {
@@ -248,6 +249,26 @@ public class EvalState {
   public void setStrVar(String name, StrVar val) {
     StrVarRef ref = getOrAddStrVar(name);
     ref.value = val;
+  }
+
+  public Map<String, Double> getVariablesSnapshot() {
+    Map<String, Double> result = new TreeMap<>();
+    for (var entry : numScalars.entrySet()) {
+      if (entry.getValue().initialised) {
+        result.put(entry.getKey(), entry.getValue().value);
+      }
+    }
+    return result;
+  }
+
+  public Map<String, String> getStringVariablesSnapshot() {
+    Map<String, String> result = new TreeMap<>();
+    for (var entry : strVars.entrySet()) {
+      if (entry.getValue().value instanceof StrVar.Scalar scalar) {
+        result.put(entry.getKey(), scalar.value().toJavaString());
+      }
+    }
+    return result;
   }
 
   // ===== Functions =====

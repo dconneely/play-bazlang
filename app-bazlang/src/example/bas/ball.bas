@@ -120,7 +120,7 @@
 3160 LET now = FRAMES
 3170 IF now - start_t < 50 THEN GO TO 3200
 3180 LET cps = INT (cycles * 50 / (now - start_t)) : LET cycles = 0 : LET start_t = now
-3200 PRINT AT 0, 0; INK -1; PAPER -1; "Bazlang 3D Football - 60 vertices, 90 edges, "; cps; " CPS    "
+3200 PRINT AT 0, 0; INK -1; PAPER -1; "BazLang 3D Football - 60 vertices, 90 edges, "; cps; " CPS    "
 3210 SLOW
 3220 LET a = a + 0.02
 3230 LET b = b + 0.015

@@ -33,10 +33,17 @@ public class AntlrParser {
     String[] lines = source.split("\n");
 
     int lastLineNumber = -1;
+    boolean isFirstLine = true;
     for (String line : lines) {
+      if (isFirstLine) {
+        isFirstLine = false;
+        if (line.startsWith("#!")) {
+          continue;
+        }
+      }
       String trimmed = line.trim();
-      if (trimmed.isEmpty() || trimmed.startsWith("#")) {
-        continue; // Skip empty lines and comments
+      if (trimmed.isEmpty()) {
+        continue; // Skip empty lines
       }
 
       Matcher matcher = LINE_PATTERN.matcher(trimmed);
