@@ -116,6 +116,11 @@ Returns `1` for True, `0` for False.
   If the expression is invalid, the user is prompted with "Syntax error? " and can edit their input.
 - **`CLS`**: Clear screen.
 - **`SCROLL`**: Scroll screen up.
+- **`FAST`**: Suppress terminal re-rendering after each output operation. Use before a block of
+  intensive screen updates to avoid visible flickering and reduce terminal I/O overhead.
+  Has no visible effect in non-interactive (piped) or headless modes.
+- **`SLOW`**: Re-enable terminal re-rendering (the default). Also immediately flushes any
+  pending screen changes that accumulated during `FAST` mode.
 - **`PLOT [modifiers;] x, y`**: Draw a block at coordinates `(x, y)`. Updates the current plot
   position. Accepts colour/style modifiers before coordinates (e.g. `PLOT INK 2; x, y`).
 - **`DRAW [modifiers;] x, y`**: Draw a line from the current plot position to relative offset

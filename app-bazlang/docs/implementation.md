@@ -36,7 +36,8 @@ from the specific device.
   JLine) for terminal control, escape sequences, and raw input. Supports command history,
   cursor movement, and handles terminal window resizes gracefully.
 - **`StreamScreen`**: A simpler version used for pipes or non-interactive environments.
-  It uses standard Java `System.in` and `System.out`. Graphics (`PLOT`/`UNPLOT`) are no-ops.
+  It uses standard Java `System.in` and `System.out`. Graphics (`PLOT` and related draw calls)
+  are no-ops.
 
 The `BazLangScreen` interface defines methods for screen output (`print`, `println`, `cls`),
 graphics (`plot`, `unplot`, `setPlotMode`), input (`readln` with different modes for REPL vs
@@ -47,7 +48,7 @@ INPUT), and status updates (`setStatus` for showing report codes).
 - **Graphics & rendering**: The screen uses a `CellBuffer` designed with a Structure-of-Arrays
   (SoA) layout for high performance, supporting 24-bit RGB colours and styles. `PLOT` and
   `UNPLOT` operate on this buffer with dynamic sizing. Coordinates (0,0) start in the bottom-left
-  corner. Rendering resolution is pluggable via `CellMode` (e.g., `QuadrantMode` for 2x2 blocks,
+  corner. Rendering resolution is pluggable via `PixelMode` (e.g., `QuadrantMode` for 2x2 blocks,
   `SextantMode` for 2x3 blocks, or `BrailleMode` for 2x4 patterns). Text output (`PRINT`) and
   graphics share the same buffer seamlessly.
 - **Line-based flow**: Everything depends on line numbers. The interpreter usually proceeds

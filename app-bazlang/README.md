@@ -11,9 +11,10 @@ characters), and UTF-8 string encoding.
 
 Detailed language and architecture references are available in the `docs/` directory:
 
-*   **[Language features](docs/language_features.md)** - Guide to variables, commands, and REPL operations.
-*   **[Grammar](docs/grammar.md)** - The ANTLR grammar specification for BazLang.
-*   **[Implementation](docs/implementation.md)** - Visitor architecture, state tracking, performance notes, and quirks.
+- **[Language features](docs/language_features.md)** - Guide to variables, commands, and REPL operations.
+- **[Grammar](docs/grammar.md)** - The ANTLR grammar specification for BazLang.
+- **[Implementation](docs/implementation.md)** - Visitor architecture, state tracking, performance notes, and quirks.
+- **[Agent debugger](docs/language_debugger.md)** - LLM-agent-friendly debugger protocol and command reference.
 
 ## Running the interpreter
 
@@ -34,6 +35,17 @@ Alternatively, you can run the built JAR directly (Gradle build required first):
 ```bash
 java --enable-native-access=ALL-UNNAMED -jar build/libs/bazlang-1.0.0-SNAPSHOT.jar [program.bas]
 ```
+
+## Running the agent debugger
+
+To run a programme under the LLM-agent-friendly debugger (stdin/stdout pipe protocol):
+
+```bash
+./gradlew :app-bazlang:runAgentDebugger -Pargs=path/to/programme.bas
+```
+
+See [docs/language_debugger.md](docs/language_debugger.md) for the full command and protocol
+reference.
 
 ## Example programs
 

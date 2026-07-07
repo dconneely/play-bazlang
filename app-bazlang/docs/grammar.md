@@ -10,7 +10,7 @@ BazLang uses ANTLR 4 to generate its lexer and parser from a declarative grammar
 | **Style**           | Imperative (how to parse) | Declarative (what to parse)  |
 | **Precedence**      | Manual climbing           | Automatic from structure     |
 | **Maintainability** | Tedious changes           | Update grammar rules         |
-| **Error Recovery**  | Basic                     | Sophisticated built-in       |
+| **Error recovery**  | Basic                     | Sophisticated built-in       |
 | **Documentation**   | Comments + separate docs  | Grammar IS the documentation |
 
 ## Key grammar patterns
@@ -132,7 +132,7 @@ replLine
 As defined in the `replLine` root parsing rule:
 - **Statements** (`PRINT`, `LET`, `IF`, etc.) can be placed inside numbered program lines, or
   chained together with colons in immediate execution mode (e.g., `PRINT 1 : PRINT 2`).
-- **REPL Commands** (`RENUM`, `REFORMAT`, `EDIT`, `DELETE`) modify the program or interact with the
+- **REPL commands** (`RENUM`, `REFORMAT`, `EDIT`, `DELETE`) modify the program or interact with the
   editor. They **cannot** be placed inside numbered program lines, they **cannot** be combined with
   other statements using a colon, and they **must** be the only instruction entered on the line.
 
@@ -156,7 +156,8 @@ current pixel state (which is slightly confusing, but consistent with the Sincla
 To add a new operator (e.g., modulo `%`):
 
 1. Add to grammar: `| numExpr '%' numExpr  # NumModExpr`
-2. Add visitor method to `BazLangExecutor`
+2. Add visitor method to `StatementExecutor` (or override it in `ProgramManager` if the
+   implementation needs access to the full programme manager)
 3. Write tests
 
 The grammar serves as both the implementation and the documentation of the language syntax.

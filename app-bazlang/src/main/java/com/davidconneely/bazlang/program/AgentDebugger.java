@@ -24,10 +24,12 @@ import org.antlr.v4.runtime.tree.ParseTree;
 /// Interactive debugger for BazLang programmes, designed for use by LLM agents over stdin/stdout
 /// pipes.
 ///
-/// The process loads the target programme, executes it, and blocks at each breakpoint and on
-/// programme termination. Each time it blocks it prints the break reason, `SIZE <rows> <cols>`,
-/// and `READY` on separate lines. The agent then sends commands until it sends `CONTINUE` or
-/// `EXIT`.
+/// The process loads the target programme and immediately blocks with reason `LOADED` before
+/// executing a single statement. This gives the agent a chance to set breakpoints and pre-queue
+/// input before the programme starts. After that initial block, execution proceeds and the
+/// debugger blocks again at each breakpoint and on programme termination. Each time it blocks it
+/// prints the break reason, `SIZE <rows> <cols>`, and `READY` on separate lines. The agent then
+/// sends commands until it sends `CONTINUE` or `EXIT`.
 ///
 /// ### Commands (uppercase; all except `CONTINUE` and `EXIT` respond with output then `READY`)
 ///
@@ -37,9 +39,10 @@ import org.antlr.v4.runtime.tree.ParseTree;
 /// With two integer arguments, limits output to that row range; with four, limits to that row and
 /// column window.
 ///
-/// **`VARS`**
-/// Print all initialised variables: `NAME: value` for numeric scalars, `NAME$: "value"` for
-/// string scalars.
+/// **`VAR [<name> ...]`**
+/// Print initialised variables. Without arguments, prints all: `NAME: value` for numeric
+/// scalars, `NAME$: "value"` for string scalars. With one or more names, prints only the named
+/// variables in the order given. String variables require the `$` suffix (e.g. `VAR STAT$`).
 ///
 /// **`SEND <text>`**
 /// Queue `<text>` for keyboard and input reads. INKEY$ receives one byte per UTF-8 byte;
@@ -95,6 +98,7 @@ import org.antlr.v4.runtime.tree.ParseTree;
 /// ```
 ///
 /// `<reason>` is one of:
+/// - `LOADED` — programme loaded; no statement has executed yet (always the first block)
 /// - `BREAK AT <line>:<stmt>` — a location breakpoint (with or without a condition guard) fired
 /// - `ELAPSE` — a condition-only `ELAPSE` wait fired
 /// - `TERMINATED` — the programme ended normally (including via `STOP`)
@@ -292,8 +296,8 @@ public final class AgentDebugger {
               exitRequested.set(true);
               state.setRunning(false);
               return true;
-            } else if (upper.equals("VARS")) {
-              handleVars();
+            } else if (upper.equals("VAR") || upper.startsWith("VAR ")) {
+              handleVar(cmd.substring(3).trim());
             } else if (upper.startsWith("VIEW")) {
               handleView(cmd);
             } else if (upper.startsWith("SEND ")) {
@@ -307,18 +311,34 @@ public final class AgentDebugger {
             } else {
               System.err.println(
                   "UNKNOWN COMMAND. Allowed:"
-                      + " VIEW, VARS, SEND, BREAK, CLEAR, CONTINUE, SIZE, EXIT");
+                      + " VAR, VIEW, SEND, BREAK, CLEAR, CONTINUE, SIZE, EXIT");
             }
             return false;
           }
 
-          private void handleVars() {
+          private void handleVar(String args) {
             System.out.println("VARIABLES:");
-            for (Map.Entry<String, Double> e : state.getVariablesSnapshot().entrySet()) {
-              System.out.printf("%s: %s%n", e.getKey(), e.getValue());
-            }
-            for (Map.Entry<String, String> e : state.getStringVariablesSnapshot().entrySet()) {
-              System.out.printf("%s$: \"%s\"%n", e.getKey(), e.getValue());
+            Map<String, Double> nums = state.getVariablesSnapshot();
+            Map<String, String> strs = state.getStringVariablesSnapshot();
+            if (args.isEmpty()) {
+              for (Map.Entry<String, Double> e : nums.entrySet()) {
+                System.out.printf("%s: %s%n", e.getKey(), e.getValue());
+              }
+              for (Map.Entry<String, String> e : strs.entrySet()) {
+                System.out.printf("%s: \"%s\"%n", e.getKey(), e.getValue());
+              }
+            } else {
+              List<String> requested = new ArrayList<>();
+              for (String token : args.split("\\s+")) {
+                requested.add(token.toUpperCase());
+              }
+              for (String name : requested) {
+                if (nums.containsKey(name)) {
+                  System.out.printf("%s: %s%n", name, nums.get(name));
+                } else if (strs.containsKey(name)) {
+                  System.out.printf("%s: \"%s\"%n", name, strs.get(name));
+                }
+              }
             }
           }
 
@@ -507,6 +527,10 @@ public final class AgentDebugger {
           }
         };
 
+    mockScreen.blockAndListen("LOADED");
+    if (exitRequested.get()) {
+      return;
+    }
     final var interpreter = new Interpreter(state, executor);
     String exitReason = "TERMINATED";
     try {
