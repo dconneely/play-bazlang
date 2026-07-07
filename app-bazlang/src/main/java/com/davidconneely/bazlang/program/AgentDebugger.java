@@ -425,7 +425,8 @@ public final class AgentDebugger {
             for (byte b : bytes) {
               queueInkey(BStr.fromByte(b & 0xFF));
             }
-            decoded.codePoints()
+            decoded
+                .codePoints()
                 .forEach(cp -> queueUinkey(BStr.fromJavaString(new String(Character.toChars(cp)))));
             queueInput(decoded);
             System.out.println("QUEUED");
