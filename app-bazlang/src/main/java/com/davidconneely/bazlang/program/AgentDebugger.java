@@ -1,12 +1,16 @@
 package com.davidconneely.bazlang.program;
 
+import com.davidconneely.bazlang.AstAnnotator;
 import com.davidconneely.bazlang.BStr;
 import com.davidconneely.bazlang.EvalState;
+import com.davidconneely.bazlang.ExpressionEvaluator;
 import com.davidconneely.bazlang.Interpreter;
+import com.davidconneely.bazlang.ProgramLine;
 import com.davidconneely.bazlang.ProgramManager;
 import com.davidconneely.bazlang.ReportCode;
 import com.davidconneely.bazlang.ReportException;
 import com.davidconneely.bazlang.antlr.AntlrParser;
+import com.davidconneely.bazlang.antlr.BazLangParser;
 import com.davidconneely.bazlang.io.MockScreen;
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -16,152 +20,172 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 import org.antlr.v4.runtime.tree.ParseTree;
 
 /// Interactive debugger for BazLang programmes, designed for use by LLM agents over stdin/stdout
 /// pipes.
 ///
-/// The process loads the target programme and immediately blocks with reason `LOADED` before
-/// executing a single statement. This gives the agent a chance to set breakpoints and pre-queue
-/// input before the programme starts. After that initial block, execution proceeds and the
-/// debugger blocks again at each breakpoint and on programme termination. Each time it blocks it
-/// prints the break reason, `SIZE <rows> <cols>`, and `READY` on separate lines. The agent then
-/// sends commands until it sends `CONTINUE` or `EXIT`.
+/// Without an argument the debugger starts in a blank REPL state — no programme is loaded and the
+/// agent uses `>` REPL commands to load or enter code before running it. With a file argument the
+/// named programme is pre-loaded so the agent sees `+READY` with the programme already in place.
 ///
-/// ### Commands (uppercase; all except `CONTINUE` and `EXIT` respond with output then `READY`)
+/// ### Protocol
 ///
-/// **`VIEW [r1 r2 [c1 c2]] [ATTR]`**
-/// Dump the screen buffer. Row and column indices are 0-based. Prints a bordered grid with runs
-/// of spaces compressed to `{N}`. `ATTR` adds `[fg,bg]` colour annotations after each cell.
-/// With two integer arguments, limits output to that row range; with four, limits to that row and
-/// column window.
+/// After `+READY`, the agent sends commands (one per line). Each command produces **exactly one**
+/// response line — either `+[data]` (success) or `-<message>` (error) — with no prompt between
+/// commands. Multiple commands may be batched in a single write; responses arrive in the same order.
 ///
-/// **`VAR [<name> ...]`**
-/// Print initialised variables. Without arguments, prints all: `NAME: value` for numeric
-/// scalars, `NAME$: "value"` for string scalars. With one or more names, prints only the named
-/// variables in the order given. String variables require the `$` suffix (e.g. `VAR STAT$`).
+/// `/GO` and `>RUN`/`>GOTO` produce a **deferred response** — the response arrives only when the
+/// programme next blocks. They must be the **last command** in any client message; commands sent
+/// after them in the same message would be consumed in the *next* break context. `/STOP` responds
+/// `+` immediately.
 ///
-/// **`SEND "<text>"`**
-/// Queue `<text>` for keyboard and input reads. The argument must be a double-quoted string;
-/// `\"` represents a literal double-quote and `\\` represents a literal backslash. Multiple
-/// characters may be queued at once: e.g. `SEND "oo  o o  oo"`. INKEY$ receives one byte per
-/// UTF-8 byte; UINKEY$ receives one BStr per Unicode codepoint; INPUT receives the full text as
-/// one line.
-///
-/// **`BREAK AT <line>:<stmt>`**
-/// Set a persistent location breakpoint (statement indices are 1-based). Fires before the named
-/// statement executes. Persists until removed with `CLEAR AT` or `CLEAR`.
-///
-/// **`BREAK AT <line>:<stmt> IF <cond>(<params>)`**
-/// Location breakpoint with a condition guard: only fires when both the location and condition
-/// are satisfied. Persists until cleared.
-///
-/// **`BREAK IF <cond>(<params>)`**
-/// Condition-only wait with no location filter. Checked on every statement. Single-shot:
-/// clears automatically after firing.
-///
-/// **`CLEAR AT <line>:<stmt>`**
-/// Remove all breakpoints registered at that exact location.
-///
-/// **`CLEAR`**
-/// Remove all persistent breakpoints.
-///
-/// **`CONTINUE`**
-/// Resume execution. Resets the `ELAPSE` timer. Does not print `READY`.
-///
-/// **`SIZE [<rows> <cols>]`**
-/// With no arguments, reports the current screen dimensions. With two arguments, resizes the
-/// virtual screen buffer. Always responds with `SIZE <rows> <cols>` reflecting the current
-/// dimensions after the command.
-///
-/// **`EXIT`**
-/// Terminate the programme immediately. Does not print `READY`.
-///
-/// ### Break Conditions
-///
-/// All conditions use the form `<NAME>(<parameters>)`:
-///
-/// - `VAR(<varName> <op> <value>)` — numeric variable satisfies the relation; operators are
-///   `=`, `<`, `>`, `<=`, `>=`, `<>`.
-/// - `VIEW("<text>")` — screen buffer contains the given text (case-insensitive). The text is a
-///   double-quoted string with the same `\"` and `\\` escapes as `SEND`.
-/// - `ELAPSE(<ms>)` — at least `<ms>` wall-clock milliseconds have elapsed since the last
-///   `CONTINUE` (or since the programme started if `CONTINUE` has not yet been sent).
-///
-/// ### Response Format
-///
-/// Each time the debugger blocks it prints, on separate lines:
-///
-/// ```
-/// <reason>
-/// SIZE <rows> <cols>
-/// READY
-/// ```
-///
-/// `<reason>` is one of:
-/// - `LOADED` — programme loaded; no statement has executed yet (always the first block)
+/// Deferred responses — `+<reason>` — where `<reason>` is one of:
+/// - `READY` — no statement has yet executed (always the first block)
 /// - `BREAK AT <line>:<stmt>` — a location breakpoint (with or without a condition guard) fired
-/// - `ELAPSE` — a condition-only `ELAPSE` wait fired
-/// - `TERMINATED` — the programme ended normally (including via `STOP`)
-/// - `ERROR <code> <msg>, <line>:<stmt>` — the programme ended with a runtime error
+/// - `ELAPSE` — an `ELAPSE` condition fired
+/// - `STOP <code> <msg>, <line>:<stmt>` — the programme ended; code `0` means normal end,
+///   code `9` means a `STOP` statement, any other code is a runtime error
+///
+/// ### Slash commands (prefixed with `/`)
+///
+/// **`/GO`**
+/// Resume execution from a breakpoint. Only valid when paused at a breakpoint — use `>RUN` to
+/// start or restart. Resets the `ELAPSE` timer. Responds `+<reason>` when the programme next
+/// blocks.
+///
+/// **`/STOP`**
+/// Terminate the programme immediately. Responds `+`.
+///
+/// **`/SPB <line>:<stmt>`**
+/// Set a **persistent** location breakpoint (statement indices are 1-based). Fires before the
+/// named statement executes. Persists until removed with `/CPB`. Responds `+`.
+///
+/// **`/SPB <line>:<stmt> <cond>`**
+/// Persistent location breakpoint with a condition guard: only fires when both the location and
+/// condition are satisfied. Persists until cleared. Responds `+`.
+///
+/// **`/SPB <cond>`**
+/// Persistent condition-only breakpoint with no location filter. Checked on every statement.
+/// Persists until removed with `/CPB`. Responds `+`.
+///
+/// **`/S1B <line>:<stmt>`**
+/// Set a **one-time** location breakpoint. Fires once, then removes itself. Responds `+`.
+///
+/// **`/S1B <line>:<stmt> <cond>`**
+/// One-time location breakpoint with a condition guard. Fires once when both the location and
+/// condition are satisfied, then removes itself. Responds `+`.
+///
+/// **`/S1B <cond>`**
+/// One-time condition-only breakpoint with no location filter. Checked on every statement.
+/// Single-shot: clears automatically after firing. Responds `+`.
+///
+/// **`/CPB <line>:<stmt>`**
+/// Clear all persistent breakpoints registered at that exact location. Responds `+`.
+///
+/// **`/CPB`**
+/// Clear all persistent breakpoints. Responds `+`.
+///
+/// **`/RSC <rowTop> <colLeft> <rowBottom> <colRight> [ATTR]`**
+/// Read screen content: dump the given rectangle of the screen buffer as a QuotedArg string. All
+/// indices are 0-based. Rows are separated by `\n`; runs of spaces are compressed to `{N}`.
+/// `ATTR` adds `[fg,bg]` colour annotations.
+/// Responds `+"<grid>"`.
+///
+/// **`/PIQ "<text>"`**
+/// Post to input queue: enqueue `<text>` for keyboard and input reads. The argument must be a
+/// QuotedArg string. `INKEY$` receives one byte per UTF-8 byte; `UINKEY$` receives one BStr per
+/// Unicode codepoint; `INPUT` receives the full decoded text as one line.
+/// Responds `+`.
+///
+/// **`/SSD <rows> <cols>`**
+/// Set screen dimensions: resize the virtual screen buffer. To read current dimensions without
+/// resizing, use `?TEXTH` and `?TEXTW`. Responds `+`.
+///
+/// ### Expression and assignment commands
+///
+/// **`?<expression>`**
+/// Evaluate a single BazLang expression in the live programme context. Numeric results are
+/// formatted like BazLang's `PRINT`; string results are returned as QuotedArg. Array elements,
+/// functions, and arithmetic are all supported. Side effects (`INKEY$`, `RND`, etc.) apply.
+/// Responds `+<value>`. Send one `?` per expression.
+///
+/// **`!<assignmentTarget> = <expression>`**
+/// Execute a single `LET` statement to mutate programme state. Only a bare assignment is
+/// accepted — no colon-separated multi-statement sequences. Responds `+`.
+///
+/// ### REPL commands (prefixed with `>`)
+///
+/// **`>n [stmt]`**
+/// Add or replace line `n` with `stmt`. If `stmt` is omitted, the line is deleted.
+/// Responds `+`.
+///
+/// **`>NEW`**
+/// Clear the programme and all runtime state (variables, stacks, etc.). Responds `+`.
+///
+/// **`>LOAD "path"`**
+/// Load a programme from a file, replacing the current programme. Accepts bare filenames (with or
+/// without `.bas`) resolved against the example directory. Responds `+` on success, `-` on error.
+///
+/// **`>LIST`**
+/// Return the current programme as a QuotedArg string, with lines separated by `\n`. Responds
+/// `+"<listing>"`.
+///
+/// **`>RUN`**
+/// Clear runtime state (variables, stacks) and run the programme from its first line. Produces a
+/// deferred response. Also valid when paused at a breakpoint — aborts the current run and
+/// restarts. Responds `+<stop-reason>` when the programme next blocks.
+///
+/// **`>GOTO n`**
+/// Run the programme from line `n` without clearing variables. Produces a deferred response.
+/// Also valid when paused at a breakpoint — jumps to line `n` and continues.
+///
+/// ### Break conditions
+///
+/// - `CSC "<text>"` — screen buffer contains the given text (case-insensitive). QuotedArg.
+/// - `ELAPSE <ms>` — at least `<ms>` wall-clock milliseconds have elapsed since the last `/GO`
+///   (or since the programme started if `/GO` has not yet been sent).
+/// - `?<expression>` — BazLang expression is truthy: non-zero for numeric results, non-empty for
+///   string results. Prefer `/SPB <line>:<stmt> ?<expr>` over `/SPB ?<expr>`; condition-only
+///   breaks evaluate before every BASIC statement.
+/// - `EVERY <n>` — fires every `n`th time the condition is checked. The counter is per-breakpoint
+///   and starts at zero when the breakpoint is registered.
+///
+/// ### QuotedArg String Format
+///
+/// Double-quoted strings used as command arguments and returned in responses. Escape sequences:
+///
+/// | Escape | Meaning |
+/// |:---|:---|
+/// | `\"` | Double-quote character (chr 34) |
+/// | `\\` | Backslash character (chr 92) |
+/// | `\n` | LF (chr 10) |
+/// | `\r` | CR (chr 13) |
+/// | `\e` | ESC (chr 27) |
 public final class AgentDebugger {
   private static final AntlrParser PARSER = AntlrParser.INSTANCE;
 
   private enum ConditionType {
     NONE,
-    VAR,
-    SEE,
-    ELAPSE
+    VIEW,
+    ELAPSE,
+    EXPR,
+    EVERY
   }
 
   private record BreakCondition(
       int line,
       int stmt,
       ConditionType type,
-      String varName,
-      String varOp,
-      double varValue,
       String seeText,
       long timeoutMs,
-      boolean persistent) {}
+      boolean persistent,
+      int everyN,
+      AtomicInteger counter) {}
 
-  private static BreakCondition locationBreak(int line, int stmt) {
-    return new BreakCondition(line, stmt, ConditionType.NONE, null, null, 0, null, 0, true);
-  }
-
-  private static BreakCondition varBreak(
-      int line, int stmt, String varName, String op, double value) {
-    return new BreakCondition(
-        line, stmt, ConditionType.VAR, varName, op, value, null, 0, line != -1);
-  }
-
-  private static BreakCondition seeBreak(int line, int stmt, String text) {
-    return new BreakCondition(line, stmt, ConditionType.SEE, null, null, 0, text, 0, line != -1);
-  }
-
-  private static BreakCondition elapseBreak(int line, int stmt, long ms) {
-    return new BreakCondition(
-        line, stmt, ConditionType.ELAPSE, null, null, 0, null, ms, line != -1);
-  }
-
-  private static boolean evalVarCondition(BreakCondition brk, EvalState state) {
-    if (!state.hasNumVar(brk.varName())) {
-      return false;
-    }
-    double actual = state.numVar(brk.varName());
-    return switch (brk.varOp()) {
-      case "=" -> actual == brk.varValue();
-      case "<" -> actual < brk.varValue();
-      case ">" -> actual > brk.varValue();
-      case "<=" -> actual <= brk.varValue();
-      case ">=" -> actual >= brk.varValue();
-      case "<>" -> actual != brk.varValue();
-      default -> false;
-    };
-  }
 
   private static boolean screenContainsText(MockScreen mockScreen, String text) {
     String query = text.toLowerCase();
@@ -179,7 +203,7 @@ public final class AgentDebugger {
     return false;
   }
 
-  private static void printScreen(
+  private static String buildScreenString(
       MockScreen mockScreen, int rStart, int rEnd, int cStart, int cEnd, boolean showAttr) {
     int maxRows = mockScreen.printHeight();
     int maxCols = mockScreen.printWidth();
@@ -187,37 +211,47 @@ public final class AgentDebugger {
     int r2 = Math.clamp(rEnd, 0, maxRows - 1);
     int c1 = Math.clamp(cStart, 0, maxCols - 1);
     int c2 = Math.clamp(cEnd, 0, maxCols - 1);
-    System.out.println("┌" + "─".repeat(c2 - c1 + 1) + "┐");
+    StringBuilder output = new StringBuilder();
+    int lastAttr = -1;
     for (int r = r1; r <= r2; r++) {
-      StringBuilder row = new StringBuilder();
-      row.append('│');
+      if (r > r1) {
+        output.append('\n');
+      }
       int c = c1;
       while (c <= c2) {
         int cp = mockScreen.getScreenCodepoint(r, c);
-        if (cp == ' ' && !showAttr) {
+        if (cp == ' ') {
+          int spaceAttr = showAttr ? mockScreen.getScreenAttributes(r, c) : 0;
           int start = c;
-          while (c <= c2 && mockScreen.getScreenCodepoint(r, c) == ' ') {
+          while (c <= c2
+              && mockScreen.getScreenCodepoint(r, c) == ' '
+              && (!showAttr || mockScreen.getScreenAttributes(r, c) == spaceAttr)) {
             c++;
           }
           int count = c - start;
-          if (count > 3) {
-            row.append('{').append(count).append('}');
+          if (showAttr && spaceAttr != lastAttr) {
+            output.append('[').append(spaceAttr & 7).append(',').append((spaceAttr >> 3) & 7).append(']');
+            lastAttr = spaceAttr;
+          }
+          if (count > 4) {
+            output.append('{').append(count).append('}');
           } else {
-            row.append(" ".repeat(count));
+            output.append(" ".repeat(count));
           }
         } else {
-          row.appendCodePoint(cp);
           if (showAttr) {
             int attr = mockScreen.getScreenAttributes(r, c);
-            row.append('[').append(attr & 7).append(',').append((attr >> 3) & 7).append(']');
+            if (attr != lastAttr) {
+              output.append('[').append(attr & 7).append(',').append((attr >> 3) & 7).append(']');
+              lastAttr = attr;
+            }
           }
+          output.appendCodePoint(cp);
           c++;
         }
       }
-      row.append('│');
-      System.out.println(row.toString());
     }
-    System.out.println("└" + "─".repeat(c2 - c1 + 1) + "┘");
+    return output.toString();
   }
 
   /**
@@ -246,6 +280,12 @@ public final class AgentDebugger {
           sb.append('"');
         } else if (next == '\\') {
           sb.append('\\');
+        } else if (next == 'n') {
+          sb.append('\n');
+        } else if (next == 'r') {
+          sb.append('\r');
+        } else if (next == 'e') {
+          sb.append('\u001B');
         } else {
           sb.append('\\').append(next);
         }
@@ -258,33 +298,64 @@ public final class AgentDebugger {
     return null; // missing closing quote
   }
 
-  private static BreakCondition parseCondition(int line, int stmt, String cond) {
-    String upper = cond.toUpperCase();
-    if (upper.startsWith("VAR(") && cond.endsWith(")")) {
-      String expr = cond.substring(4, cond.length() - 1).trim();
-      String[] parts = expr.split("\\s+");
-      if (parts.length == 3) {
-        try {
-          double val = Double.parseDouble(parts[2]);
-          return varBreak(line, stmt, parts[0].toUpperCase(), parts[1], val);
-        } catch (NumberFormatException e) {
-          return null;
-        }
+  /** Encodes a Java string as a QuotedArg for protocol output. */
+  private static String formatQuotedArg(String value) {
+    StringBuilder sb = new StringBuilder("\"");
+    for (int i = 0; i < value.length(); i++) {
+      char c = value.charAt(i);
+      switch (c) {
+        case '"' -> sb.append("\\\"");
+        case '\\' -> sb.append("\\\\");
+        case '\n' -> sb.append("\\n");
+        case '\r' -> sb.append("\\r");
+        case '\u001B' -> sb.append("\\e");
+        default -> sb.append(c);
       }
-      return null;
     }
-    if (upper.startsWith("VIEW(") && cond.endsWith(")")) {
-      String quotedArg = cond.substring(5, cond.length() - 1).trim();
+    sb.append('"');
+    return sb.toString();
+  }
+
+  private static BreakCondition parseCondition(int line, int stmt, String cond, boolean persistent) {
+    String upper = cond.toUpperCase();
+    if (upper.startsWith("CSC")) {
+      String quotedArg = cond.substring(3).trim();
       String text = parseQuotedArg(quotedArg);
       if (text == null) {
         return null;
       }
-      return seeBreak(line, stmt, text);
+      return new BreakCondition(line, stmt, ConditionType.VIEW, text, 0, persistent, 0, null);
     }
-    if (upper.startsWith("ELAPSE(") && cond.endsWith(")")) {
+    if (upper.startsWith("ELAPSE")) {
+      String rest = cond.substring(6).trim();
+      if (rest.isEmpty()) {
+        return null;
+      }
       try {
-        long ms = Long.parseLong(cond.substring(7, cond.length() - 1).trim());
-        return elapseBreak(line, stmt, ms);
+        long ms = Long.parseLong(rest);
+        return new BreakCondition(line, stmt, ConditionType.ELAPSE, null, ms, persistent, 0, null);
+      } catch (NumberFormatException e) {
+        return null;
+      }
+    }
+    if (cond.startsWith("?")) {
+      String exprSource = cond.substring(1).trim();
+      if (exprSource.isEmpty()) {
+        return null;
+      }
+      return new BreakCondition(line, stmt, ConditionType.EXPR, exprSource, 0, persistent, 0, null);
+    }
+    if (upper.startsWith("EVERY")) {
+      String rest = cond.substring(5).trim();
+      if (rest.isEmpty()) {
+        return null;
+      }
+      try {
+        int n = Integer.parseInt(rest);
+        if (n <= 0) {
+          return null;
+        }
+        return new BreakCondition(line, stmt, ConditionType.EVERY, null, 0, persistent, n, new AtomicInteger());
       } catch (NumberFormatException e) {
         return null;
       }
@@ -292,133 +363,279 @@ public final class AgentDebugger {
     return null;
   }
 
+  /**
+   * Resolves a bare programme name or file path to an actual {@link Path}.
+   *
+   * <p>Tries the argument verbatim, then with {@code .bas} appended, then under the canonical
+   * example directory. Returns {@code null} when no existing file is found.
+   */
+  private static Path resolveBasPath(String inputPath) {
+    Path p = Path.of(inputPath);
+    if (Files.exists(p)) {
+      return p;
+    }
+    String name = inputPath.endsWith(".bas") ? inputPath : inputPath + ".bas";
+    p = Path.of("src", "example", "bas", name);
+    if (Files.exists(p)) {
+      return p;
+    }
+    p = Path.of("app-bazlang", "src", "example", "bas", name);
+    if (Files.exists(p)) {
+      return p;
+    }
+    return null;
+  }
+
   @SuppressWarnings("PMD.NcssCount")
-  private static void runInteractive(String source) {
-    final var program = PARSER.parseProgramLines(source);
+  private static void runInteractive(Path initialFilePath) {
     final var state = new EvalState();
     final var inputReader =
         new BufferedReader(new InputStreamReader(System.in, StandardCharsets.UTF_8));
     final List<BreakCondition> activeBreaks = new ArrayList<>();
     final AtomicLong continueStartMs = new AtomicLong(System.currentTimeMillis());
-    final AtomicBoolean exitRequested = new AtomicBoolean(false);
+    final AtomicReference<ProgramManager> executorHolder = new AtomicReference<>();
 
     final var mockScreen =
         new MockScreen() {
+          boolean runRequested = false;
+          boolean gotoRequested = false;
+          int gotoTarget = -1;
+          boolean inBreakpoint = false;
+          boolean sessionStopped = false;
+
           void blockAndListen(String reason) {
-            System.out.println(reason);
-            System.out.printf("SIZE %d %d%n", printHeight(), printWidth());
-            System.out.println("READY");
+            inBreakpoint = !reason.equals("READY") && !reason.startsWith("STOP ");
+            System.out.println("+" + reason);
             System.out.flush();
             boolean resumed = false;
             while (!resumed) {
               try {
                 String line = inputReader.readLine();
                 if (line == null) {
-                  exitRequested.set(true);
                   state.setRunning(false);
                   resumed = true;
                 } else {
                   resumed = handleCommand(line.trim());
                   if (!resumed) {
-                    System.out.println("READY");
                     System.out.flush();
                   }
                 }
               } catch (IOException e) {
-                exitRequested.set(true);
                 state.setRunning(false);
                 resumed = true;
               }
             }
+            inBreakpoint = false;
             if (state.isRunning()) {
               continueStartMs.set(System.currentTimeMillis());
             }
           }
 
           private boolean handleCommand(String cmd) {
-            String upper = cmd.toUpperCase();
-            if (upper.equals("CONTINUE")) {
-              return true;
-            } else if (upper.equals("EXIT")) {
-              exitRequested.set(true);
-              state.setRunning(false);
-              return true;
-            } else if (upper.equals("VAR") || upper.startsWith("VAR ")) {
-              handleVar(cmd.substring(3).trim());
-            } else if (upper.startsWith("VIEW")) {
-              handleView(cmd);
-            } else if (upper.startsWith("SEND ")) {
-              handleSend(cmd.substring(5).trim());
-            } else if (upper.startsWith("BREAK")) {
-              handleBreak(cmd.substring(5).trim());
-            } else if (upper.startsWith("CLEAR")) {
-              handleClear(cmd.substring(5).trim());
-            } else if (upper.equals("SIZE") || upper.startsWith("SIZE ")) {
-              handleSize(cmd.substring(4).trim());
+            if (cmd.startsWith(">")) {
+              return handleReplCommand(cmd.substring(1).trim());
+            } else if (cmd.startsWith("/")) {
+              return handleSlashCommand(cmd.substring(1));
+            } else if (cmd.startsWith("?")) {
+              handleEval(cmd.substring(1).trim());
+            } else if (cmd.startsWith("!")) {
+              handleLet(cmd.substring(1).trim());
             } else {
-              System.err.println(
-                  "UNKNOWN COMMAND. Allowed:"
-                      + " VAR, VIEW, SEND, BREAK, CLEAR, CONTINUE, SIZE, EXIT");
+              System.out.println("-UNKNOWN COMMAND. Commands start with /, ?, !, or >");
             }
             return false;
           }
 
-          private void handleVar(String args) {
-            System.out.println("VARIABLES:");
-            Map<String, Double> nums = state.getVariablesSnapshot();
-            Map<String, String> strs = state.getStringVariablesSnapshot();
-            if (args.isEmpty()) {
-              for (Map.Entry<String, Double> e : nums.entrySet()) {
-                System.out.printf("%s: %s%n", e.getKey(), e.getValue());
+          private boolean handleSlashCommand(String cmd) {
+            if (cmd.isEmpty()) {
+              System.out.println("-Command expected after /");
+              return false;
+            }
+            String upper = cmd.toUpperCase();
+            if (upper.equals("GO")) {
+              if (!inBreakpoint) {
+                System.out.println("-/GO is only valid when paused at a breakpoint; use >RUN");
+                return false;
               }
-              for (Map.Entry<String, String> e : strs.entrySet()) {
-                System.out.printf("%s: \"%s\"%n", e.getKey(), e.getValue());
-              }
+              return true;
+            } else if (upper.equals("STOP")) {
+              System.out.println("+");
+              System.out.flush();
+              state.setRunning(false);
+              sessionStopped = true;
+              return true;
+            } else if (upper.equals("SPB") || upper.startsWith("SPB ") || upper.startsWith("SPB\t")) {
+              handleSpb(cmd.length() > 3 ? cmd.substring(3).trim() : "");
+            } else if (upper.equals("S1B") || upper.startsWith("S1B ") || upper.startsWith("S1B\t")) {
+              handleS1b(cmd.length() > 3 ? cmd.substring(3).trim() : "");
+            } else if (upper.equals("CPB") || upper.startsWith("CPB ") || upper.startsWith("CPB\t")) {
+              handleCpb(cmd.length() > 3 ? cmd.substring(3).trim() : "");
+            } else if (upper.equals("RSC") || upper.startsWith("RSC ") || upper.startsWith("RSC\t")) {
+              handleRsc(cmd.length() > 3 ? cmd.substring(3).trim() : "");
+            } else if (upper.equals("PIQ") || upper.startsWith("PIQ ") || upper.startsWith("PIQ\t")) {
+              handlePiq(cmd.length() > 3 ? cmd.substring(3).trim() : "");
+            } else if (upper.equals("SSD") || upper.startsWith("SSD ") || upper.startsWith("SSD\t")) {
+              handleSsd(cmd.length() > 3 ? cmd.substring(3).trim() : "");
             } else {
-              List<String> requested = new ArrayList<>();
-              for (String token : args.split("\\s+")) {
-                requested.add(token.toUpperCase());
-              }
-              for (String name : requested) {
-                if (nums.containsKey(name)) {
-                  System.out.printf("%s: %s%n", name, nums.get(name));
-                } else if (strs.containsKey(name)) {
-                  System.out.printf("%s: \"%s\"%n", name, strs.get(name));
-                }
-              }
+              System.out.println(
+                  "-UNKNOWN / COMMAND. Allowed: /GO, /STOP, /SPB, /S1B, /CPB, /RSC, /PIQ, /SSD");
             }
+            return false;
           }
 
-          private void handleView(String cmd) {
-            String args = cmd.substring(4).trim();
-            String argsUp = args.toUpperCase();
-            boolean showAttr = argsUp.endsWith("ATTR");
-            String numPart = args.replaceAll("(?i)\\bATTR\\b", "").trim();
-            String[] parts = numPart.isEmpty() ? new String[0] : numPart.split("\\s+");
-            int rStart = 0;
-            int rEnd = printHeight() - 1;
-            int cStart = 0;
-            int cEnd = printWidth() - 1;
+          private boolean handleReplCommand(String cmd) {
+            if (cmd.isEmpty()) {
+              System.out.println("-REPL command expected after >");
+              return false;
+            }
+            String upper = cmd.toUpperCase();
+            if (Character.isDigit(cmd.charAt(0))) {
+              handleReplLine(cmd);
+              return false;
+            }
+            if (upper.equals("NEW")) {
+              state.clear();
+              state.program().clear();
+              System.out.println("+");
+              return false;
+            }
+            if (upper.equals("LIST")) {
+              System.out.println("+" + formatQuotedArg(buildProgramListing()));
+              return false;
+            }
+            if (upper.equals("RUN")) {
+              if (state.program().isEmpty()) {
+                System.out.println(
+                    "-no programme loaded; use >n stmt or >LOAD \"path\", then >RUN");
+                return false;
+              }
+              runRequested = true;
+              if (inBreakpoint) {
+                state.setRunning(false);
+              }
+              return true;
+            }
+            if (upper.equals("GOTO") || upper.startsWith("GOTO ") || upper.startsWith("GOTO\t")) {
+              String rest = cmd.length() > 4 ? cmd.substring(4).trim() : "";
+              if (rest.isEmpty()) {
+                System.out.println("-GOTO requires a line number");
+                return false;
+              }
+              int n;
+              try {
+                n = Integer.parseInt(rest);
+              } catch (NumberFormatException e) {
+                System.out.println("-GOTO requires a valid line number");
+                return false;
+              }
+              if (inBreakpoint) {
+                state.setPendingJumpLocation(n, 1);
+              } else {
+                gotoTarget = n;
+                gotoRequested = true;
+              }
+              return true;
+            }
+            if (upper.equals("LOAD") || upper.startsWith("LOAD ") || upper.startsWith("LOAD\t")) {
+              String rest = cmd.length() > 4 ? cmd.substring(4).trim() : "";
+              if (rest.isEmpty()) {
+                System.out.println("-LOAD requires a file path: >LOAD \"path\"");
+                return false;
+              }
+              String pathStr = parseQuotedArg(rest);
+              if (pathStr == null) {
+                pathStr = rest;
+              }
+              Path p = resolveBasPath(pathStr);
+              if (p == null) {
+                System.out.printf("-File not found: %s%n", pathStr);
+                return false;
+              }
+              try {
+                state.setProgram(PARSER.parseProgramLines(Files.readString(p)));
+                System.out.println("+");
+              } catch (IOException e) {
+                System.out.printf("-Failed to read file: %s%n", e.getMessage());
+              }
+              return false;
+            }
+            System.out.println(
+                "-UNKNOWN REPL COMMAND."
+                    + " Allowed: >n [stmt], >NEW, >LOAD \"path\", >LIST, >RUN, >GOTO n");
+            return false;
+          }
+
+          private void handleReplLine(String cmd) {
+            int i = 0;
+            while (i < cmd.length() && Character.isDigit(cmd.charAt(i))) {
+              i++;
+            }
+            int lineNum;
             try {
-              if (parts.length >= 4) {
-                rStart = Integer.parseInt(parts[0]);
-                rEnd = Integer.parseInt(parts[1]);
-                cStart = Integer.parseInt(parts[2]);
-                cEnd = Integer.parseInt(parts[3]);
-              } else if (parts.length >= 2) {
-                rStart = Integer.parseInt(parts[0]);
-                rEnd = Integer.parseInt(parts[1]);
-              }
+              lineNum = Integer.parseInt(cmd.substring(0, i));
             } catch (NumberFormatException e) {
-              System.err.println("Invalid coordinates for VIEW");
+              System.out.println("-Invalid line number");
+              return;
             }
-            printScreen(this, rStart, rEnd, cStart, cEnd, showAttr);
+            if (lineNum <= 0) {
+              System.out.println("-Line number must be a positive integer");
+              return;
+            }
+            String rest = cmd.substring(i).trim();
+            if (rest.isEmpty()) {
+              state.program().remove(lineNum);
+            } else {
+              state.program().put(lineNum, new ProgramLine(lineNum, rest));
+            }
+            System.out.println("+");
           }
 
-          private void handleSend(String text) {
-            String decoded = text.startsWith("\"") ? parseQuotedArg(text) : text;
+          private String buildProgramListing() {
+            var sb = new StringBuilder();
+            boolean first = true;
+            for (var entry : state.program().entrySet()) {
+              if (entry.getKey() <= 0) {
+                continue;
+              }
+              if (!first) {
+                sb.append('\n');
+              }
+              sb.append(entry.getKey()).append(' ').append(entry.getValue().sourceText());
+              first = false;
+            }
+            return sb.toString();
+          }
+
+          private void handleRsc(String args) {
+            boolean showAttr = args.toUpperCase().endsWith("ATTR");
+            String numPart = args.replaceAll("(?i)\\bATTR\\b", "").trim();
+            String[] parts = numPart.split("\\s+");
+            if (parts.length != 4) {
+              System.out.println("-/RSC requires rowTop colLeft rowBottom colRight [ATTR]");
+              return;
+            }
+            int rStart, cStart, rEnd, cEnd;
+            try {
+              rStart = Integer.parseInt(parts[0]);
+              cStart = Integer.parseInt(parts[1]);
+              rEnd   = Integer.parseInt(parts[2]);
+              cEnd   = Integer.parseInt(parts[3]);
+            } catch (NumberFormatException e) {
+              System.out.println("-Invalid coordinates for /RSC");
+              return;
+            }
+            String grid = buildScreenString(this, rStart, rEnd, cStart, cEnd, showAttr);
+            System.out.println("+" + formatQuotedArg(grid));
+          }
+
+          private void handlePiq(String text) {
+            if (!text.startsWith("\"")) {
+              System.out.println("-/PIQ argument must be a quoted string: /PIQ \"text\"");
+              return;
+            }
+            String decoded = parseQuotedArg(text);
             if (decoded == null) {
-              System.err.println("Invalid quoted string for SEND — use SEND \"text\"");
+              System.out.println("-Invalid quoted string for /PIQ");
               return;
             }
             byte[] bytes = decoded.getBytes(StandardCharsets.UTF_8);
@@ -429,110 +646,167 @@ public final class AgentDebugger {
                 .codePoints()
                 .forEach(cp -> queueUinkey(BStr.fromJavaString(new String(Character.toChars(cp)))));
             queueInput(decoded);
-            System.out.println("QUEUED");
+            System.out.println("+");
           }
 
-          private void handleBreak(String args) {
-            String argsUp = args.toUpperCase();
-            if (argsUp.startsWith("AT ")) {
-              handleBreakAt(args.substring(3).trim());
-            } else if (argsUp.startsWith("IF ")) {
-              handleBreakIf(-1, -1, args.substring(3).trim());
-            } else {
-              System.err.println(
-                  "BREAK requires AT <line>:<stmt> [IF <cond>(<params>)]"
-                      + " or IF <cond>(<params>)");
-            }
-          }
-
-          private void handleBreakAt(String args) {
-            String argsUp = args.toUpperCase();
-            int ifIdx = argsUp.indexOf(" IF ");
-            String locStr = ifIdx >= 0 ? args.substring(0, ifIdx).trim() : args;
-            String condStr = ifIdx >= 0 ? args.substring(ifIdx + 4).trim() : null;
-            int colonIdx = locStr.indexOf(':');
-            if (colonIdx < 0) {
-              System.err.println("BREAK AT requires <line>:<stmt>");
+          private void parseBrkArgs(String args, boolean persistent) {
+            if (args.isEmpty()) {
+              System.out.println(
+                  "-requires <line>:<stmt> [<cond>] or <cond>"
+                      + " where <cond> is CSC \"<text>\", ELAPSE <ms>, ?<expr>, or EVERY <n>");
               return;
             }
-            int line;
-            int stmt;
-            try {
-              line = Integer.parseInt(locStr.substring(0, colonIdx));
-              stmt = Integer.parseInt(locStr.substring(colonIdx + 1));
-            } catch (NumberFormatException e) {
-              System.err.println("Invalid line:stmt in BREAK AT");
-              return;
-            }
-            handleBreakIf(line, stmt, condStr);
-          }
-
-          private void handleBreakIf(int line, int stmt, String condStr) {
-            BreakCondition brk;
-            if (condStr == null) {
-              brk = locationBreak(line, stmt);
-            } else {
-              brk = parseCondition(line, stmt, condStr);
-              if (brk == null) {
-                System.err.println(
-                    "Invalid condition — expected VAR(<var> <op> <val>),"
-                        + " VIEW(\"<text>\"), or ELAPSE(<ms>)");
+            int line = -1;
+            int stmt = -1;
+            String condStr = null;
+            if (Character.isDigit(args.charAt(0))) {
+              int spaceIdx = args.indexOf(' ');
+              String locStr = spaceIdx >= 0 ? args.substring(0, spaceIdx) : args;
+              condStr = spaceIdx >= 0 ? args.substring(spaceIdx).trim() : null;
+              int colonIdx = locStr.indexOf(':');
+              if (colonIdx < 0) {
+                System.out.println("-requires <line>:<stmt>");
                 return;
               }
+              try {
+                line = Integer.parseInt(locStr.substring(0, colonIdx));
+                stmt = Integer.parseInt(locStr.substring(colonIdx + 1));
+              } catch (NumberFormatException e) {
+                System.out.println("-Invalid line:stmt");
+                return;
+              }
+            } else {
+              condStr = args;
+            }
+            BreakCondition brk =
+                (condStr == null || condStr.isEmpty())
+                    ? new BreakCondition(line, stmt, ConditionType.NONE, null, 0, persistent, 0, null)
+                    : parseCondition(line, stmt, condStr, persistent);
+            if (brk == null) {
+              System.out.println(
+                  "-Invalid condition — expected CSC \"<text>\","
+                      + " ELAPSE <ms>, ?<expression>, or EVERY <n>");
+              return;
             }
             activeBreaks.add(brk);
-            System.out.println("BREAKPOINT SET");
+            System.out.println("+");
           }
 
-          private void handleClear(String args) {
+          private void handleSpb(String args) {
+            parseBrkArgs(args, true);
+          }
+
+          private void handleS1b(String args) {
+            parseBrkArgs(args, false);
+          }
+
+          private void handleCpb(String args) {
             if (args.isEmpty()) {
               activeBreaks.removeIf(BreakCondition::persistent);
-              System.out.println("BREAKPOINTS CLEARED");
+              System.out.println("+");
               return;
             }
-            String argsUp = args.toUpperCase();
-            if (!argsUp.startsWith("AT ")) {
-              System.err.println("CLEAR requires AT <line>:<stmt> or no arguments");
-              return;
-            }
-            String locStr = args.substring(3).trim();
-            int colonIdx = locStr.indexOf(':');
+            int colonIdx = args.indexOf(':');
             if (colonIdx < 0) {
-              System.err.println("CLEAR AT requires <line>:<stmt>");
+              System.out.println("-/CPB requires <line>:<stmt> or no arguments");
               return;
             }
             int line;
             int stmt;
             try {
-              line = Integer.parseInt(locStr.substring(0, colonIdx));
-              stmt = Integer.parseInt(locStr.substring(colonIdx + 1));
+              line = Integer.parseInt(args.substring(0, colonIdx).trim());
+              stmt = Integer.parseInt(args.substring(colonIdx + 1).trim());
             } catch (NumberFormatException e) {
-              System.err.println("Invalid line:stmt in CLEAR AT");
+              System.out.println("-Invalid line:stmt in /CPB");
               return;
             }
             final int finalLine = line;
             final int finalStmt = stmt;
             activeBreaks.removeIf(b -> b.line() == finalLine && b.stmt() == finalStmt);
-            System.out.println("BREAKPOINTS CLEARED");
+            System.out.println("+");
           }
 
-          private void handleSize(String args) {
-            if (!args.isEmpty()) {
-              String[] parts = args.split("\\s+");
-              if (parts.length < 2) {
-                System.err.println("SIZE requires <rows> <cols> or no arguments");
-                return;
-              }
-              try {
-                int newRows = Integer.parseInt(parts[0]);
-                int newCols = Integer.parseInt(parts[1]);
-                resize(newRows, newCols);
-              } catch (NumberFormatException e) {
-                System.err.println("Invalid values for SIZE");
-                return;
-              }
+          private void handleEval(String expr) {
+            if (expr.isEmpty()) {
+              System.out.println("-? requires an expression");
+              return;
             }
-            System.out.printf("SIZE %d %d%n", printHeight(), printWidth());
+            ExpressionEvaluator eval = executorHolder.get().getExprEvaluator();
+            // Parse numeric first; only fall through to string if the *parse* fails.
+            // If the parse succeeds but evaluation fails (e.g. undefined variable),
+            // report that error directly rather than showing a misleading string-parse error.
+            BazLangParser.NumExprContext numCtx = null;
+            try {
+              numCtx = PARSER.parseNumExpr(expr);
+            } catch (ReportException ignored) {
+              // numeric parse failed — will attempt string expression below
+            }
+            if (numCtx != null) {
+              try {
+                new AstAnnotator(0).visit(numCtx);
+                double val = eval.evalNum(numCtx);
+                System.out.printf("+%s%n", ExpressionEvaluator.formatNum(val));
+              } catch (ReportException e) {
+                System.out.printf("-%s%n", e.getMessage());
+              }
+              return;
+            }
+            try {
+              var strCtx = PARSER.parseStrExpr(expr);
+              new AstAnnotator(0).visit(strCtx);
+              BStr val = eval.evalStr(strCtx);
+              System.out.printf("+%s%n", formatQuotedArg(val.toJavaString()));
+            } catch (ReportException e) {
+              System.out.printf("-%s%n", e.getMessage());
+            }
+          }
+
+          private void handleLet(String args) {
+            if (args.isEmpty()) {
+              System.out.println("-! requires an assignment: ! <var> = <expr>");
+              return;
+            }
+            BazLangParser.StatementsContext stmts;
+            try {
+              stmts = PARSER.parseStatementsContext(args);
+              new AstAnnotator(0).visit(stmts);
+            } catch (ReportException e) {
+              System.out.printf("-Parse error: %s%n", e.getMessage());
+              return;
+            }
+            List<? extends BazLangParser.StatementContext> stmtList = stmts.statement();
+            if (stmtList.size() != 1 || !(stmtList.get(0) instanceof BazLangParser.LetStmtContext)) {
+              System.out.println("-! requires exactly one assignment statement");
+              return;
+            }
+            try {
+              executorHolder.get().visitLetStmt((BazLangParser.LetStmtContext) stmtList.get(0));
+              System.out.println("+");
+            } catch (ReportException e) {
+              System.out.printf("-%s%n", e.getMessage());
+            }
+          }
+
+          private void handleSsd(String args) {
+            if (args.isEmpty()) {
+              System.out.println(
+                  "-/SSD requires <rows> <cols> — use ?TEXTH, ?TEXTW to read dimensions");
+              return;
+            }
+            String[] parts = args.split("\\s+");
+            if (parts.length < 2) {
+              System.out.println("-/SSD requires <rows> <cols>");
+              return;
+            }
+            try {
+              int newRows = Integer.parseInt(parts[0]);
+              int newCols = Integer.parseInt(parts[1]);
+              resize(newRows, newCols);
+            } catch (NumberFormatException e) {
+              System.out.println("-Invalid values for /SSD");
+              return;
+            }
+            System.out.println("+");
           }
         };
 
@@ -557,10 +831,25 @@ public final class AgentDebugger {
               boolean condMet =
                   switch (brk.type()) {
                     case NONE -> true;
-                    case VAR -> evalVarCondition(brk, state);
-                    case SEE -> screenContainsText(mockScreen, brk.seeText());
+                    case VIEW -> screenContainsText(mockScreen, brk.seeText());
                     case ELAPSE ->
                         (System.currentTimeMillis() - continueStartMs.get()) >= brk.timeoutMs();
+                    case EXPR -> {
+                      try {
+                        var numCtx = PARSER.parseNumExpr(brk.seeText());
+                        new AstAnnotator(0).visit(numCtx);
+                        yield getExprEvaluator().evalNum(numCtx) != 0.0;
+                      } catch (ReportException e) {
+                        try {
+                          var strCtx = PARSER.parseStrExpr(brk.seeText());
+                          new AstAnnotator(0).visit(strCtx);
+                          yield !getExprEvaluator().evalStr(strCtx).isEmpty();
+                        } catch (ReportException e2) {
+                          yield false;
+                        }
+                      }
+                    }
+                    case EVERY -> brk.counter().incrementAndGet() % brk.everyN() == 0;
                   };
               if (condMet) {
                 firedBreak = brk;
@@ -576,53 +865,112 @@ public final class AgentDebugger {
                       : "BREAK AT " + line + ":" + stmt;
               mockScreen.blockAndListen(reason);
             }
+            if (!state.isRunning()) {
+              return null;
+            }
             return super.visit(tree);
           }
         };
+    executorHolder.set(executor);
 
-    mockScreen.blockAndListen("LOADED");
-    if (exitRequested.get()) {
-      return;
-    }
-    final var interpreter = new Interpreter(state, executor);
-    String exitReason = "TERMINATED";
-    try {
-      interpreter.execute(program);
-    } catch (ReportException e) {
-      if (e.reportCode() != ReportCode.STOP_STATEMENT) {
-        exitReason = "ERROR " + e.format();
+    if (initialFilePath != null) {
+      try {
+        state.setProgram(PARSER.parseProgramLines(Files.readString(initialFilePath)));
+      } catch (IOException e) {
+        System.err.printf(
+            "Could not load BASIC file from '%s': %s%n",
+            initialFilePath.toAbsolutePath(), e.getMessage());
+        return;
       }
     }
-    if (!exitRequested.get()) {
-      mockScreen.blockAndListen(exitReason);
+
+    final var interpreter = new Interpreter(state, executor);
+
+    // Outer execution loop: idle at +READY (or after each run), then execute when >RUN/>GOTO.
+    String idleReason = "READY";
+    while (true) {
+      if (idleReason != null) {
+        mockScreen.blockAndListen(idleReason);
+      }
+      idleReason = null;
+
+      if (!state.isRunning() && !mockScreen.runRequested && !mockScreen.gotoRequested) {
+        break; // STOP or EOF with no pending run
+      }
+
+      if (!mockScreen.runRequested && !mockScreen.gotoRequested) {
+        // Should not happen — CONT from idle is rejected in handleCommand
+        idleReason = "READY";
+        continue;
+      }
+
+      boolean doRun = mockScreen.runRequested;
+      int gotoTarget = mockScreen.gotoTarget;
+      mockScreen.runRequested = false;
+      mockScreen.gotoRequested = false;
+      mockScreen.sessionStopped = false;
+
+      if (doRun) {
+        state.clear();
+        if (state.program().isEmpty()) {
+          // Nothing to run — report an immediate stop and wait for more REPL commands
+          idleReason =
+              "STOP "
+                  + new ReportException(
+                          ReportCode.OK, 0, 1, ReportCode.OK.getMessage())
+                      .format();
+          continue;
+        }
+        state.setPendingJumpLocation(state.program().firstKey(), 1);
+      } else {
+        state.setPendingJumpLocation(gotoTarget, 1);
+      }
+
+      String exitReason;
+      try {
+        interpreter.resume();
+        exitReason =
+            "STOP "
+                + new ReportException(
+                        ReportCode.OK,
+                        state.currentLineLabel(),
+                        state.currentStatementIndex(),
+                        ReportCode.OK.getMessage())
+                    .format();
+      } catch (ReportException e) {
+        exitReason = "STOP " + e.format();
+      }
+
+      // If >RUN/GOTO was sent mid-execution (from a breakpoint), restart without a stop report.
+      if (mockScreen.runRequested || mockScreen.gotoRequested) {
+        continue;
+      }
+
+      // If STOP was sent during execution, the agent already got '+' — no further output needed.
+      if (mockScreen.sessionStopped) {
+        break;
+      }
+
+      idleReason = exitReason;
     }
   }
 
   public static void main(String[] args) {
-    if (args.length == 0) {
-      System.out.println("Usage: java AgentDebugger <file.bas | programme_name>");
-      return;
-    }
-    String inputPath = args[0];
-    Path p = Path.of(inputPath);
-    if (!Files.exists(p)) {
-      String name = inputPath.endsWith(".bas") ? inputPath : inputPath + ".bas";
-      p = Path.of("src", "example", "bas", name);
-      if (!Files.exists(p)) {
-        p = Path.of("app-bazlang", "src", "example", "bas", name);
+    Path initialPath = null;
+    if (args.length > 0) {
+      String inputPath = args[0];
+      initialPath = resolveBasPath(inputPath);
+      if (initialPath == null) {
+        System.err.printf(
+            "Could not find BASIC file '%s' — check the path or name%n", inputPath);
+        return;
       }
+      Path fileNamePath = initialPath.getFileName();
+      String fileName = fileNamePath != null ? fileNamePath.toString() : inputPath;
+      System.err.printf("Running Agent Debugger for programme: %s%n", fileName);
+    } else {
+      System.err.println("Running Agent Debugger (blank state — use >LOAD or >n stmt, then >RUN)");
     }
-    String source;
-    try {
-      source = Files.readString(p);
-    } catch (IOException e) {
-      System.err.printf(
-          "Could not load BASIC file from '%s': %s%n", p.toAbsolutePath(), e.getMessage());
-      return;
-    }
-    Path fileNamePath = p.getFileName();
-    String fileName = fileNamePath != null ? fileNamePath.toString() : "PROGRAMME";
-    System.out.printf("Running Agent Debugger for programme: %s%n", fileName);
-    runInteractive(source);
+    runInteractive(initialPath);
   }
 }

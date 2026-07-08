@@ -37,6 +37,10 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
     return screen;
   }
 
+  public ExpressionEvaluator getExprEvaluator() {
+    return exprEvaluator;
+  }
+
   // ===== Statement Execution =====
 
   @Override

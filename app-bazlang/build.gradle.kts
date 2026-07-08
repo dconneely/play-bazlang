@@ -50,6 +50,6 @@ tasks.register<JavaExec>("runAgentDebugger") {
   if (customArgs != null) {
     args = customArgs.split(" ")
   } else {
-    args = listOf("all")
+    args = listOf()
   }
 }

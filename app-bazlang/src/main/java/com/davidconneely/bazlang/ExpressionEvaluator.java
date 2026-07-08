@@ -878,7 +878,7 @@ public class ExpressionEvaluator extends BazLangBaseVisitor<Void> {
   private static final double ULP0 = 1e-39;
 
   /** Formats a number with up to 8 decimal digits, scientific notation for extreme values. */
-  private String formatNum(double d) {
+  public static String formatNum(double d) {
     if (Math.abs(d) < ULP0) {
       return "0";
     }
