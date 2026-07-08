@@ -3,7 +3,7 @@ package com.davidconneely.bazlang;
 import com.davidconneely.bazlang.antlr.AntlrParser;
 import com.davidconneely.bazlang.antlr.BazLangLexer;
 import com.davidconneely.bazlang.antlr.BazLangParser;
-import com.davidconneely.bazlang.io.BazLangScreen;
+import com.davidconneely.bazlang.io.VirtualScreen;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
@@ -18,13 +18,13 @@ import org.antlr.v4.runtime.Token;
  */
 public class ProgramEditor {
   private final EvalState state;
-  private final BazLangScreen screen;
+  private final VirtualScreen screen;
   private final AntlrParser parser;
   private final ToDoubleFunction<BazLangParser.NumExprContext> numEval;
 
   public ProgramEditor(
       EvalState state,
-      BazLangScreen screen,
+      VirtualScreen screen,
       AntlrParser parser,
       ToDoubleFunction<BazLangParser.NumExprContext> numEval) {
     this.state = state;

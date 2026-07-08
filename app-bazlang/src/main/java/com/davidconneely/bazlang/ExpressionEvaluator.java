@@ -3,7 +3,8 @@ package com.davidconneely.bazlang;
 import com.davidconneely.bazlang.antlr.AntlrParser;
 import com.davidconneely.bazlang.antlr.BazLangBaseVisitor;
 import com.davidconneely.bazlang.antlr.BazLangParser.*;
-import com.davidconneely.bazlang.io.BazLangScreen;
+import com.davidconneely.bazlang.io.VirtualInput;
+import com.davidconneely.bazlang.io.VirtualScreen;
 import java.math.BigInteger;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
@@ -12,7 +13,8 @@ import java.util.List;
 
 public class ExpressionEvaluator extends BazLangBaseVisitor<Void> {
   private final EvalState state;
-  private final BazLangScreen screen;
+  private final VirtualScreen screen;
+  private final VirtualInput input;
   private final AntlrParser parser;
 
   private final int[] indexStack = new int[256];
@@ -22,13 +24,15 @@ public class ExpressionEvaluator extends BazLangBaseVisitor<Void> {
   private double numResult;
   private BStr strResult;
 
-  public ExpressionEvaluator(EvalState state, BazLangScreen screen, AntlrParser parser) {
+  public ExpressionEvaluator(
+      EvalState state, VirtualScreen screen, VirtualInput input, AntlrParser parser) {
     this.state = state;
     this.screen = screen;
+    this.input = input;
     this.parser = parser;
   }
 
-  public BazLangScreen screen() {
+  public VirtualScreen screen() {
     return screen;
   }
 
@@ -650,7 +654,7 @@ public class ExpressionEvaluator extends BazLangBaseVisitor<Void> {
       return null;
     }
     if (ctx.INKEY_STR() != null) {
-      strResult = screen.inkey();
+      strResult = input.inkey();
       return null;
     }
     if (ctx.SCREEN_STR() != null || ctx.USCREEN_STR() != null) {
@@ -688,7 +692,7 @@ public class ExpressionEvaluator extends BazLangBaseVisitor<Void> {
       return null;
     }
     if (ctx.UINKEY_STR() != null) {
-      strResult = screen.uinkey();
+      strResult = input.uinkey();
       return null;
     }
     if (ctx.VAL_STR() != null) {

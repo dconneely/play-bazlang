@@ -27,7 +27,7 @@ class StopProgramTest extends BaseProgramTest {
     final var state = new EvalState();
     // Provide "STOP" first, then "42" when we continue
     final var screen = new MockScreen(List.of("STOP", "42"));
-    final var executor = new ProgramManager(state, screen);
+    final var executor = new ProgramManager(state, screen, screen);
     final var interpreter = new Interpreter(state, executor);
 
     try {

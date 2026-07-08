@@ -1,15 +1,9 @@
 package com.davidconneely.bazlang.io;
 
-import com.davidconneely.bazlang.BStr;
 import com.davidconneely.cell.PixelMode;
 import com.davidconneely.repl.ReplReader;
 
-public interface BazLangScreen extends ReplReader, AutoCloseable {
-  enum InputMode {
-    INPUT_NUMERIC,
-    INPUT_STRING
-  }
-
+public interface VirtualScreen extends ReplReader, AutoCloseable {
   int currentRow();
 
   int currentCol();
@@ -37,33 +31,6 @@ public interface BazLangScreen extends ReplReader, AutoCloseable {
   void lprintln();
 
   void flush();
-
-  String readln(InputMode mode);
-
-  String readln(String prompt);
-
-  default boolean isInteractive() {
-    return false;
-  }
-
-  default void prefillInput(String text) {}
-
-  default void setStatus(String status) {}
-
-  default void systemPrintln(String text) {}
-
-  default boolean pollForBreak() {
-    return false;
-  }
-
-  default BStr inkey() {
-    return BStr.EMPTY;
-  }
-
-  /** Reads a multibyte sequence (UTF-8 character or terminal escape sequence) without blocking. */
-  default BStr uinkey() {
-    return BStr.EMPTY;
-  }
 
   @Override
   void close();
@@ -101,26 +68,20 @@ public interface BazLangScreen extends ReplReader, AutoCloseable {
   }
 
   /** Change the pixel mode for future PLOT/UNPLOT operations. Does not clear screen content. */
-  default void setPlotMode(PixelMode mode) {
-    // no-op by default (e.g., for stream screen)
-  }
+  default void setPlotMode(PixelMode mode) {}
 
   /**
    * Forces an immediate render of any pending screen changes, bypassing rate-limiting. Used by
    * PAUSE to ensure pending output is visible before sleeping.
    */
-  default void forceFlush() {
-    // no-op by default (e.g., for stream screen where flush() is already immediate)
-  }
+  default void forceFlush() {}
 
   /**
    * Waits for a key press before closing. Called by the interpreter after a program ends (normally
    * or via STOP) so the user can see the final screen before the terminal is restored. No-op for
    * non-interactive screen implementations (e.g. StreamScreen).
    */
-  default void waitForKey() {
-    // no-op by default
-  }
+  default void waitForKey() {}
 
   /** Returns the codepoint at (row, col) on the screen. */
   default int getScreenCodepoint(int row, int col) {
@@ -139,4 +100,8 @@ public interface BazLangScreen extends ReplReader, AutoCloseable {
     }
     return 0; // Style inactive by default
   }
+
+  default void setStatus(String status) {}
+
+  default void systemPrintln(String text) {}
 }

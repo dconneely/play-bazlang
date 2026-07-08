@@ -811,7 +811,7 @@ public final class AgentDebugger {
         };
 
     final var executor =
-        new ProgramManager(state, mockScreen) {
+        new ProgramManager(state, mockScreen, mockScreen) {
           @Override
           public Void visit(ParseTree tree) {
             int line = state.currentLineLabel();

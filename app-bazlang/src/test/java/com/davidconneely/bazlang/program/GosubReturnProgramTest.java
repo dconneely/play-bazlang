@@ -5,7 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.fail;
 
-import com.davidconneely.bazlang.BazLangReplHandler;
+import com.davidconneely.bazlang.InterpreterReplHandler;
 import com.davidconneely.bazlang.EvalState;
 import com.davidconneely.bazlang.Interpreter;
 import com.davidconneely.bazlang.ProgramEditor;
@@ -68,11 +68,11 @@ class GosubReturnProgramTest extends BaseProgramTest {
     // REPL
     final var state = new EvalState();
     final var screen = new MockScreen(List.of());
-    final var executor = new ProgramManager(state, screen);
+    final var executor = new ProgramManager(state, screen, screen);
     final var interpreter = new Interpreter(state, executor);
     final var editor = new ProgramEditor(state, screen, PARSER, executor::evalNum);
     final var handler =
-        new BazLangReplHandler(screen, PARSER, state, executor, editor, interpreter);
+        new InterpreterReplHandler(screen, screen, PARSER, state, executor, editor, interpreter);
 
     handler.handleReplInput("10 PRINT \"SUB\" : RETURN");
     handler.handleReplInput("GOSUB 10");
@@ -99,7 +99,7 @@ class GosubReturnProgramTest extends BaseProgramTest {
 
     final var state = new EvalState();
     final var screen = new MockScreen(List.of());
-    final var executor = new ProgramManager(state, screen);
+    final var executor = new ProgramManager(state, screen, screen);
     final var interpreter = new Interpreter(state, executor);
 
     // Run GOSUB 30 -> stops at line 30 STOP

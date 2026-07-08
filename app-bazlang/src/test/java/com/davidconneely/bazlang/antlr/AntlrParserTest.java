@@ -12,7 +12,7 @@ import org.junit.jupiter.api.Test;
  * Tests ANTLR parsing produces correct ParseTree structure. Behavioural testing is done in
  * InterpreterTest and other test classes.
  */
-class BazLangAntlrTest {
+class AntlrParserTest {
 
   private final AntlrParser parser = AntlrParser.INSTANCE;
 

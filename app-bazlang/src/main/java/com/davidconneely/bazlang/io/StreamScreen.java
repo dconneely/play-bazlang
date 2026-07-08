@@ -8,7 +8,7 @@ import java.io.InputStreamReader;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 
-public class StreamScreen implements BazLangScreen {
+public class StreamScreen implements VirtualScreen, VirtualInput {
   private final InputStream in;
   private final PrintStream out;
   private final PrintStream err;

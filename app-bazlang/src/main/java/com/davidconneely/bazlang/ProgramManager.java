@@ -2,17 +2,19 @@ package com.davidconneely.bazlang;
 
 import com.davidconneely.bazlang.antlr.AntlrParser;
 import com.davidconneely.bazlang.antlr.BazLangParser.*;
-import com.davidconneely.bazlang.io.BazLangScreen;
+import com.davidconneely.bazlang.io.VirtualInput;
+import com.davidconneely.bazlang.io.VirtualScreen;
 
 public class ProgramManager extends StatementExecutor {
   private static final AntlrParser PARSER = AntlrParser.INSTANCE;
 
-  public ProgramManager(EvalState state, BazLangScreen screen) {
+  public ProgramManager(EvalState state, VirtualScreen screen, VirtualInput input) {
     super(
         state,
         screen,
+        input,
         new ProgramStorage(state, PARSER),
-        new ExpressionEvaluator(state, screen, PARSER));
+        new ExpressionEvaluator(state, screen, input, PARSER));
   }
 
   @Override

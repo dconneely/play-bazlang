@@ -5,10 +5,10 @@ import com.davidconneely.cell.CellBuffer;
 import com.davidconneely.cell.PixelMode;
 
 /**
- * Abstract base class for {@link BazLangScreen} implementations that use a {@link CellBuffer} to
- * manage text and pixel attributes.
+ * Abstract base class for {@link VirtualScreen} / {@link VirtualInput} implementations that use a
+ * {@link CellBuffer} to manage text and pixel attributes.
  */
-public abstract class AbstractCellBufferedScreen implements BazLangScreen {
+public abstract class AbstractCellBufferedScreen implements VirtualScreen, VirtualInput {
   protected final CellBuffer cellBuffer;
   protected int cursorRow = 0;
   protected int cursorCol = 0;

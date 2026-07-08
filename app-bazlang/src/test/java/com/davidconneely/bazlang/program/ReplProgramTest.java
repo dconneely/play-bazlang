@@ -4,7 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.davidconneely.bazlang.BazLangReplHandler;
+import com.davidconneely.bazlang.InterpreterReplHandler;
 import com.davidconneely.bazlang.EvalState;
 import com.davidconneely.bazlang.Interpreter;
 import com.davidconneely.bazlang.ProgramEditor;
@@ -38,7 +38,7 @@ class ReplProgramTest extends BaseProgramTest {
             }
           }
         };
-    final var executor = new ProgramManager(state, screen);
+    final var executor = new ProgramManager(state, screen, screen);
     final var interpreter = new Interpreter(state, executor);
 
     try {
@@ -63,7 +63,7 @@ class ReplProgramTest extends BaseProgramTest {
     final var program = PARSER.parseProgramLines("10 PRINT \"BEFORE\" : STOP : PRINT \"AFTER\"");
     final var state = new EvalState();
     final var screen = new MockScreen(List.of());
-    final var executor = new ProgramManager(state, screen);
+    final var executor = new ProgramManager(state, screen, screen);
     final var interpreter = new Interpreter(state, executor);
 
     try {
@@ -87,11 +87,11 @@ class ReplProgramTest extends BaseProgramTest {
     // Tests that LIST executed from REPL doesn't echo itself as line 0
     final var state = new EvalState();
     final var screen = new MockScreen(List.of());
-    final var executor = new ProgramManager(state, screen);
+    final var executor = new ProgramManager(state, screen, screen);
     final var interpreter = new Interpreter(state, executor);
     final var editor = new ProgramEditor(state, screen, PARSER, executor::evalNum);
     final var handler =
-        new BazLangReplHandler(screen, PARSER, state, executor, editor, interpreter);
+        new InterpreterReplHandler(screen, screen, PARSER, state, executor, editor, interpreter);
 
     handler.handleReplInput("10 PRINT \"HELLO\"");
     handler.handleReplInput("LIST");
@@ -105,11 +105,11 @@ class ReplProgramTest extends BaseProgramTest {
     // Tests that RUN executed from REPL properly runs a stored program without infinite loop
     final var state = new EvalState();
     final var screen = new MockScreen(List.of());
-    final var executor = new ProgramManager(state, screen);
+    final var executor = new ProgramManager(state, screen, screen);
     final var interpreter = new Interpreter(state, executor);
     final var editor = new ProgramEditor(state, screen, PARSER, executor::evalNum);
     final var handler =
-        new BazLangReplHandler(screen, PARSER, state, executor, editor, interpreter);
+        new InterpreterReplHandler(screen, screen, PARSER, state, executor, editor, interpreter);
 
     handler.handleReplInput("10 PRINT \"HELLO\"");
     handler.handleReplInput("RUN");
@@ -123,11 +123,11 @@ class ReplProgramTest extends BaseProgramTest {
     // Tests that STOP executed from REPL as an immediate statement returns false to exit the REPL
     final var state = new EvalState();
     final var screen = new MockScreen(List.of());
-    final var executor = new ProgramManager(state, screen);
+    final var executor = new ProgramManager(state, screen, screen);
     final var interpreter = new Interpreter(state, executor);
     final var editor = new ProgramEditor(state, screen, PARSER, executor::evalNum);
     final var handler =
-        new BazLangReplHandler(screen, PARSER, state, executor, editor, interpreter);
+        new InterpreterReplHandler(screen, screen, PARSER, state, executor, editor, interpreter);
 
     final boolean continueRepl = handler.handleReplInput("STOP");
 
@@ -140,11 +140,11 @@ class ReplProgramTest extends BaseProgramTest {
     // Tests that STOP executed inside a program returns true to continue the REPL
     final var state = new EvalState();
     final var screen = new MockScreen(List.of());
-    final var executor = new ProgramManager(state, screen);
+    final var executor = new ProgramManager(state, screen, screen);
     final var interpreter = new Interpreter(state, executor);
     final var editor = new ProgramEditor(state, screen, PARSER, executor::evalNum);
     final var handler =
-        new BazLangReplHandler(screen, PARSER, state, executor, editor, interpreter);
+        new InterpreterReplHandler(screen, screen, PARSER, state, executor, editor, interpreter);
 
     handler.handleReplInput("10 PRINT \"A\"");
     handler.handleReplInput("20 STOP");
@@ -158,11 +158,11 @@ class ReplProgramTest extends BaseProgramTest {
   void testImmediateModeMultiStatement() {
     final var state = new EvalState();
     final var screen = new MockScreen(List.of());
-    final var executor = new ProgramManager(state, screen);
+    final var executor = new ProgramManager(state, screen, screen);
     final var interpreter = new Interpreter(state, executor);
     final var editor = new ProgramEditor(state, screen, PARSER, executor::evalNum);
     final var handler =
-        new BazLangReplHandler(screen, PARSER, state, executor, editor, interpreter);
+        new InterpreterReplHandler(screen, screen, PARSER, state, executor, editor, interpreter);
 
     handler.handleReplInput("PRINT \"hello\" : PRINT \"there\"");
 

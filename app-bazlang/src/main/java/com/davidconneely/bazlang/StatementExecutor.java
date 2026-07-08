@@ -4,7 +4,8 @@ import com.davidconneely.bazlang.antlr.AntlrParser;
 import com.davidconneely.bazlang.antlr.BazLangBaseVisitor;
 import com.davidconneely.bazlang.antlr.BazLangParser;
 import com.davidconneely.bazlang.antlr.BazLangParser.*;
-import com.davidconneely.bazlang.io.BazLangScreen;
+import com.davidconneely.bazlang.io.VirtualInput;
+import com.davidconneely.bazlang.io.VirtualScreen;
 import com.davidconneely.cell.BrailleMode;
 import com.davidconneely.cell.CellMode;
 import com.davidconneely.cell.HalfCellMode;
@@ -18,23 +19,30 @@ import java.util.HashSet;
 /** Executes BazLang from the ANTLR ParseTree. */
 public class StatementExecutor extends BazLangBaseVisitor<Void> {
   protected final EvalState state;
-  protected final BazLangScreen screen;
+  protected final VirtualScreen screen;
+  protected final VirtualInput input;
   protected final ProgramStorage storage;
   protected final ExpressionEvaluator exprEvaluator;
 
   public StatementExecutor(
       EvalState state,
-      BazLangScreen screen,
+      VirtualScreen screen,
+      VirtualInput input,
       ProgramStorage storage,
       ExpressionEvaluator exprEvaluator) {
     this.state = state;
     this.screen = screen;
+    this.input = input;
     this.storage = storage;
     this.exprEvaluator = exprEvaluator;
   }
 
-  public BazLangScreen screen() {
+  public VirtualScreen screen() {
     return screen;
+  }
+
+  public VirtualInput input() {
+    return input;
   }
 
   public ExpressionEvaluator getExprEvaluator() {
@@ -211,7 +219,9 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
     final var target = ctx.assignmentTarget();
     final boolean isNumeric = target.NUM_IDENTIFIER() != null;
     final var mode =
-        isNumeric ? BazLangScreen.InputMode.INPUT_NUMERIC : BazLangScreen.InputMode.INPUT_STRING;
+        isNumeric
+            ? VirtualInput.InputMode.INPUT_NUMERIC
+            : VirtualInput.InputMode.INPUT_STRING;
     String line = readInputLine(mode);
 
     if (isNumeric) {
@@ -222,10 +232,10 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
           assignNumTarget(target, val);
           break;
         } catch (ReportException e) {
-          if (!screen.isInteractive() || e.reportCode() != ReportCode.NONSENSE_IN_BASIC) {
+          if (!input.isInteractive() || e.reportCode() != ReportCode.NONSENSE_IN_BASIC) {
             throw e; // Other errors (undefined variable, etc.) or non-interactive screens
           }
-          screen.prefillInput(line);
+          input.prefillInput(line);
           line = readInputLine("Syntax error in expression");
         }
       }
@@ -235,9 +245,9 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
     return null;
   }
 
-  private String readInputLine(BazLangScreen.InputMode mode) {
+  private String readInputLine(VirtualInput.InputMode mode) {
     try {
-      final String line = screen.readln(mode);
+      final String line = input.readln(mode);
       if (line != null && line.trim().equalsIgnoreCase("STOP")) {
         state.setRunning(false);
         throw codedException(ReportCode.STOP_IN_INPUT, ReportCode.STOP_IN_INPUT.getMessage());
@@ -251,7 +261,7 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
 
   private String readInputLine(String prompt) {
     try {
-      final String line = screen.readln(prompt);
+      final String line = input.readln(prompt);
       if (line != null && line.trim().equalsIgnoreCase("STOP")) {
         state.setRunning(false);
         throw codedException(ReportCode.STOP_IN_INPUT, ReportCode.STOP_IN_INPUT.getMessage());
@@ -431,7 +441,7 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
         break;
       }
       remaining -= chunk;
-      if (screen.pollForBreak()) {
+      if (input.pollForBreak()) {
         state.setRunning(false);
         // On a Sinclair ZX Spectrum, pressing BREAK during PAUSE gives report code L (BREAK into
         // program). CONT then advances past the PAUSE to the next statement.

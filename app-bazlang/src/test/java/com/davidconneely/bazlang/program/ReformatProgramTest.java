@@ -15,7 +15,7 @@ class ReformatProgramTest extends BaseProgramTest {
 
   private ProgramEditor makeEditor(EvalState state) {
     final var screen = StreamScreen.nullScreen();
-    final var executor = new ProgramManager(state, screen);
+    final var executor = new ProgramManager(state, screen, screen);
     return new ProgramEditor(state, screen, PARSER, executor::evalNum);
   }
 

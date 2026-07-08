@@ -3,7 +3,7 @@ package com.davidconneely.bazlang.program;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import com.davidconneely.bazlang.BazLangReplHandler;
+import com.davidconneely.bazlang.InterpreterReplHandler;
 import com.davidconneely.bazlang.EvalState;
 import com.davidconneely.bazlang.Interpreter;
 import com.davidconneely.bazlang.ProgramEditor;
@@ -95,11 +95,11 @@ class ForNextProgramTest extends BaseProgramTest {
     // REPL statements are executed via immediate mode (label 0).
     final var state = new EvalState();
     final var screen = new MockScreen(List.of());
-    final var executor = new ProgramManager(state, screen);
+    final var executor = new ProgramManager(state, screen, screen);
     final var interpreter = new Interpreter(state, executor);
     final var editor = new ProgramEditor(state, screen, PARSER, executor::evalNum);
     final var handler =
-        new BazLangReplHandler(screen, PARSER, state, executor, editor, interpreter);
+        new InterpreterReplHandler(screen, screen, PARSER, state, executor, editor, interpreter);
 
     handler.handleReplInput("FOR I=1 TO 3 : PRINT I : NEXT I");
     assertEquals("❯ FOR I=1 TO 3 : PRINT I : NEXT I\n1\n2\n3\n", screen.getOutput());

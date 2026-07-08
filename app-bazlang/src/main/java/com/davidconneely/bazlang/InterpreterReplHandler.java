@@ -2,25 +2,29 @@ package com.davidconneely.bazlang;
 
 import com.davidconneely.bazlang.antlr.AntlrParser;
 import com.davidconneely.bazlang.antlr.BazLangParser;
-import com.davidconneely.bazlang.io.BazLangScreen;
+import com.davidconneely.bazlang.io.VirtualInput;
+import com.davidconneely.bazlang.io.VirtualScreen;
 import com.davidconneely.repl.ReplHandler;
 
-public final class BazLangReplHandler implements ReplHandler {
-  private final BazLangScreen screen;
+public final class InterpreterReplHandler implements ReplHandler {
+  private final VirtualScreen screen;
+  private final VirtualInput input;
   private final AntlrParser parser;
   private final EvalState state;
   private final ProgramManager executor;
   private final ProgramEditor programEditor;
   private final Interpreter interpreter;
 
-  public BazLangReplHandler(
-      BazLangScreen screen,
+  public InterpreterReplHandler(
+      VirtualScreen screen,
+      VirtualInput input,
       AntlrParser parser,
       EvalState state,
       ProgramManager executor,
       ProgramEditor programEditor,
       Interpreter interpreter) {
     this.screen = screen;
+    this.input = input;
     this.parser = parser;
     this.state = state;
     this.executor = executor;
@@ -103,11 +107,11 @@ public final class BazLangReplHandler implements ReplHandler {
         throw new ReportException(ReportCode.INTEGER_OUT_OF_RANGE, 0, "Line number out of range");
       }
       final var programLine = state.program().get(lineNum);
-      if (screen != null) {
+      if (input != null) {
         if (programLine != null) {
-          screen.prefillInput(lineNum + " " + programLine.sourceText());
+          input.prefillInput(lineNum + " " + programLine.sourceText());
         } else {
-          screen.prefillInput(lineNum + " ");
+          input.prefillInput(lineNum + " ");
         }
       }
     } else if (ctx instanceof BazLangParser.RenumCmdContext renum) {
