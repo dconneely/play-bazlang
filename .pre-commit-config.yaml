@@ -1,0 +1,38 @@
+repos:
+  - repo: local
+    hooks:
+      - id: spotless-apply
+        name: Spotless (auto-format)
+        language: system
+        entry: ./gradlew spotlessApply
+        pass_filenames: false
+        types: [java]
+
+      - id: compile
+        name: Compile
+        language: system
+        entry: ./gradlew compileJava compileTestJava
+        pass_filenames: false
+        types: [java]
+
+      - id: checkstyle
+        name: Checkstyle
+        language: system
+        entry: ./gradlew checkstyleMain checkstyleTest
+        pass_filenames: false
+        types: [java]
+
+      - id: pmd
+        name: PMD
+        language: system
+        entry: ./gradlew pmdMain pmdTest
+        pass_filenames: false
+        types: [java]
+
+      # spotbugsMain/spotbugsTest and test are omitted — too slow for pre-commit; run via CI.
+
+      - id: gitleaks
+        name: Gitleaks (secret scan)
+        language: system
+        entry: gitleaks protect --staged --redact
+        pass_filenames: false

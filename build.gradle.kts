@@ -109,4 +109,8 @@ subprojects {
       create("xml") { required.set(true) }
     }
   }
+
+  tasks.named("check") {
+    dependsOn(tasks.withType<com.github.spotbugs.snom.SpotBugsTask>())
+  }
 }
