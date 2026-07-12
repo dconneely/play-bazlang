@@ -219,9 +219,7 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
     final var target = ctx.assignmentTarget();
     final boolean isNumeric = target.NUM_IDENTIFIER() != null;
     final var mode =
-        isNumeric
-            ? VirtualInput.InputMode.INPUT_NUMERIC
-            : VirtualInput.InputMode.INPUT_STRING;
+        isNumeric ? VirtualInput.InputMode.INPUT_NUMERIC : VirtualInput.InputMode.INPUT_STRING;
     String line = readInputLine(mode);
 
     if (isNumeric) {

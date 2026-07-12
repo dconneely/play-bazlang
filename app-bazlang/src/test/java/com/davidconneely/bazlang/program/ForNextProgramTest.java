@@ -3,9 +3,9 @@ package com.davidconneely.bazlang.program;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import com.davidconneely.bazlang.InterpreterReplHandler;
 import com.davidconneely.bazlang.EvalState;
 import com.davidconneely.bazlang.Interpreter;
+import com.davidconneely.bazlang.InterpreterReplHandler;
 import com.davidconneely.bazlang.ProgramEditor;
 import com.davidconneely.bazlang.ProgramManager;
 import com.davidconneely.bazlang.ReportCode;

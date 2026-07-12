@@ -15,8 +15,8 @@ import com.davidconneely.bazlang.ReportCode;
 import com.davidconneely.bazlang.ReportException;
 import com.davidconneely.bazlang.antlr.AntlrParser;
 import com.davidconneely.bazlang.antlr.BazLangParser;
-import com.davidconneely.bazlang.io.VirtualInput;
 import com.davidconneely.bazlang.io.MockScreen;
+import com.davidconneely.bazlang.io.VirtualInput;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 

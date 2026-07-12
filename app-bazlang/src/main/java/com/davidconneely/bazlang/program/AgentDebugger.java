@@ -36,7 +36,8 @@ import org.antlr.v4.runtime.tree.ParseTree;
 ///
 /// After `+READY`, the agent sends commands (one per line). Each command produces **exactly one**
 /// response line — either `+[data]` (success) or `-<message>` (error) — with no prompt between
-/// commands. Multiple commands may be batched in a single write; responses arrive in the same order.
+/// commands. Multiple commands may be batched in a single write; responses arrive in the same
+// order.
 ///
 /// `/GO` and `>RUN`/`>GOTO` produce a **deferred response** — the response arrives only when the
 /// programme next blocks. They must be the **last command** in any client message; commands sent
@@ -186,7 +187,6 @@ public final class AgentDebugger {
       int everyN,
       AtomicInteger counter) {}
 
-
   private static boolean screenContainsText(MockScreen mockScreen, String text) {
     String query = text.toLowerCase();
     int rows = mockScreen.printHeight();
@@ -230,7 +230,12 @@ public final class AgentDebugger {
           }
           int count = c - start;
           if (showAttr && spaceAttr != lastAttr) {
-            output.append('[').append(spaceAttr & 7).append(',').append((spaceAttr >> 3) & 7).append(']');
+            output
+                .append('[')
+                .append(spaceAttr & 7)
+                .append(',')
+                .append((spaceAttr >> 3) & 7)
+                .append(']');
             lastAttr = spaceAttr;
           }
           if (count > 4) {
@@ -316,7 +321,8 @@ public final class AgentDebugger {
     return sb.toString();
   }
 
-  private static BreakCondition parseCondition(int line, int stmt, String cond, boolean persistent) {
+  private static BreakCondition parseCondition(
+      int line, int stmt, String cond, boolean persistent) {
     String upper = cond.toUpperCase();
     if (upper.startsWith("CSC")) {
       String quotedArg = cond.substring(3).trim();
@@ -355,7 +361,8 @@ public final class AgentDebugger {
         if (n <= 0) {
           return null;
         }
-        return new BreakCondition(line, stmt, ConditionType.EVERY, null, 0, persistent, n, new AtomicInteger());
+        return new BreakCondition(
+            line, stmt, ConditionType.EVERY, null, 0, persistent, n, new AtomicInteger());
       } catch (NumberFormatException e) {
         return null;
       }
@@ -464,17 +471,29 @@ public final class AgentDebugger {
               state.setRunning(false);
               sessionStopped = true;
               return true;
-            } else if (upper.equals("SPB") || upper.startsWith("SPB ") || upper.startsWith("SPB\t")) {
+            } else if (upper.equals("SPB")
+                || upper.startsWith("SPB ")
+                || upper.startsWith("SPB\t")) {
               handleSpb(cmd.length() > 3 ? cmd.substring(3).trim() : "");
-            } else if (upper.equals("S1B") || upper.startsWith("S1B ") || upper.startsWith("S1B\t")) {
+            } else if (upper.equals("S1B")
+                || upper.startsWith("S1B ")
+                || upper.startsWith("S1B\t")) {
               handleS1b(cmd.length() > 3 ? cmd.substring(3).trim() : "");
-            } else if (upper.equals("CPB") || upper.startsWith("CPB ") || upper.startsWith("CPB\t")) {
+            } else if (upper.equals("CPB")
+                || upper.startsWith("CPB ")
+                || upper.startsWith("CPB\t")) {
               handleCpb(cmd.length() > 3 ? cmd.substring(3).trim() : "");
-            } else if (upper.equals("RSC") || upper.startsWith("RSC ") || upper.startsWith("RSC\t")) {
+            } else if (upper.equals("RSC")
+                || upper.startsWith("RSC ")
+                || upper.startsWith("RSC\t")) {
               handleRsc(cmd.length() > 3 ? cmd.substring(3).trim() : "");
-            } else if (upper.equals("PIQ") || upper.startsWith("PIQ ") || upper.startsWith("PIQ\t")) {
+            } else if (upper.equals("PIQ")
+                || upper.startsWith("PIQ ")
+                || upper.startsWith("PIQ\t")) {
               handlePiq(cmd.length() > 3 ? cmd.substring(3).trim() : "");
-            } else if (upper.equals("SSD") || upper.startsWith("SSD ") || upper.startsWith("SSD\t")) {
+            } else if (upper.equals("SSD")
+                || upper.startsWith("SSD ")
+                || upper.startsWith("SSD\t")) {
               handleSsd(cmd.length() > 3 ? cmd.substring(3).trim() : "");
             } else {
               System.out.println(
@@ -614,12 +633,15 @@ public final class AgentDebugger {
               System.out.println("-/RSC requires rowTop colLeft rowBottom colRight [ATTR]");
               return;
             }
-            int rStart, cStart, rEnd, cEnd;
+            int rStart;
+            int cStart;
+            int rEnd;
+            int cEnd;
             try {
               rStart = Integer.parseInt(parts[0]);
               cStart = Integer.parseInt(parts[1]);
-              rEnd   = Integer.parseInt(parts[2]);
-              cEnd   = Integer.parseInt(parts[3]);
+              rEnd = Integer.parseInt(parts[2]);
+              cEnd = Integer.parseInt(parts[3]);
             } catch (NumberFormatException e) {
               System.out.println("-Invalid coordinates for /RSC");
               return;
@@ -658,7 +680,7 @@ public final class AgentDebugger {
             }
             int line = -1;
             int stmt = -1;
-            String condStr = null;
+            String condStr;
             if (Character.isDigit(args.charAt(0))) {
               int spaceIdx = args.indexOf(' ');
               String locStr = spaceIdx >= 0 ? args.substring(0, spaceIdx) : args;
@@ -680,7 +702,8 @@ public final class AgentDebugger {
             }
             BreakCondition brk =
                 (condStr == null || condStr.isEmpty())
-                    ? new BreakCondition(line, stmt, ConditionType.NONE, null, 0, persistent, 0, null)
+                    ? new BreakCondition(
+                        line, stmt, ConditionType.NONE, null, 0, persistent, 0, null)
                     : parseCondition(line, stmt, condStr, persistent);
             if (brk == null) {
               System.out.println(
@@ -775,7 +798,8 @@ public final class AgentDebugger {
               return;
             }
             List<? extends BazLangParser.StatementContext> stmtList = stmts.statement();
-            if (stmtList.size() != 1 || !(stmtList.get(0) instanceof BazLangParser.LetStmtContext)) {
+            if (stmtList.size() != 1
+                || !(stmtList.get(0) instanceof BazLangParser.LetStmtContext)) {
               System.out.println("-! requires exactly one assignment statement");
               return;
             }
@@ -916,9 +940,7 @@ public final class AgentDebugger {
           // Nothing to run — report an immediate stop and wait for more REPL commands
           idleReason =
               "STOP "
-                  + new ReportException(
-                          ReportCode.OK, 0, 1, ReportCode.OK.getMessage())
-                      .format();
+                  + new ReportException(ReportCode.OK, 0, 1, ReportCode.OK.getMessage()).format();
           continue;
         }
         state.setPendingJumpLocation(state.program().firstKey(), 1);
@@ -961,8 +983,7 @@ public final class AgentDebugger {
       String inputPath = args[0];
       initialPath = resolveBasPath(inputPath);
       if (initialPath == null) {
-        System.err.printf(
-            "Could not find BASIC file '%s' — check the path or name%n", inputPath);
+        System.err.printf("Could not find BASIC file '%s' — check the path or name%n", inputPath);
         return;
       }
       Path fileNamePath = initialPath.getFileName();

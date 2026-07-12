@@ -4,9 +4,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.davidconneely.bazlang.InterpreterReplHandler;
 import com.davidconneely.bazlang.EvalState;
 import com.davidconneely.bazlang.Interpreter;
+import com.davidconneely.bazlang.InterpreterReplHandler;
 import com.davidconneely.bazlang.ProgramEditor;
 import com.davidconneely.bazlang.ProgramLine;
 import com.davidconneely.bazlang.ProgramManager;
