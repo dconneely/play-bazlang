@@ -43,7 +43,7 @@ Spectrum BASIC). This file lists the available commands, functions, and syntax r
   literals and input from `INPUT` are stored as UTF-8 bytes. When printed, bytes are decoded
   normally; lone invalid bytes 0xNN are displayed as the utf8-c8 synthetic `?xNN`. For behaviour of
   fixed-length string arrays with UTF-8 characters, see
-  [implementation.md](implementation.md#language-quirks--sinclair-zx-basic-eccentricities).
+  [quirks.md](quirks.md#input--output-quirks).
 
 ### Namespaces
 
@@ -92,7 +92,7 @@ Returns `1` for True, `0` for False.
 - **`FOR varname = start TO end STEP step` ... `NEXT varname`**: Loop.
   - Note: While the Spectrum only allows single-character loop variables (`A` to `Z`), BazLang
     supports multi-character loop variables. See
-    [implementation.md](implementation.md#language-quirks--sinclair-zx-basic-eccentricities) for loop
+    [quirks.md](quirks.md#flow-control-quirks) for loop
     execution quirks.
 - **`STOP`**: Stop the program.
 - **`CONTINUE`** (alias **`CONT`**): Continue after a `STOP`.
@@ -128,7 +128,7 @@ Returns `1` for True, `0` for False.
   (e.g. `DRAW INK 2; x, y`).
   - Coordinates start at `(0,0)` (bottom-left) and extend dynamically based on terminal size.
     For negative coordinate behaviours, see
-    [implementation.md](implementation.md#language-quirks--sinclair-zx-basic-eccentricities).
+    [quirks.md](quirks.md#input--output-quirks).
   - Uses Unicode block characters; the resolution depends on the current pixel mode (see
     `PLOTMODE`).
 - **`PLOTMODE n`**: Sets the pixel mode for graphics (`PLOT` and `DRAW`):

@@ -864,17 +864,14 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
     }
     final int arrayIdx = exprEvaluator.calculateArrayIndex(ca.arrayDimensions(), indices, 0, count);
 
-    final int st = (byteIndex != -1 ? byteIndex : 1) + (sliceStart != -1 ? sliceStart - 1 : 0);
-    final int en =
-        (byteIndex != -1 ? byteIndex : 1)
-            + (sliceEnd != -1 ? sliceEnd - 1 : (byteIndex != -1 ? 0 : ca.stringLength() - 1));
-    if (st < 1 || en > ca.stringLength() || st > en + 1) {
+    final var bounds = SliceBounds.resolve(byteIndex, sliceStart, sliceEnd, ca.stringLength());
+    if (bounds == null) {
       throw codedException(ReportCode.SUBSCRIPT_WRONG, "Slice out of bounds");
     }
 
-    final int sliceLen = en - st + 1;
+    final int sliceLen = bounds.length();
     final int copyLen = Math.min(sliceLen, val.length());
-    final int offset = arrayIdx * ca.stringLength() + (st - 1);
+    final int offset = arrayIdx * ca.stringLength() + (bounds.start() - 1);
     for (int i = 0; i < copyLen; i++) {
       ca.data()[offset + i] = (byte) val.byteAt(i);
     }
@@ -904,15 +901,12 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
           ReportCode.SUBSCRIPT_WRONG, "Scalar string only takes one index or slice");
     }
 
-    final int st = (byteIndex != -1 ? byteIndex : 1) + (sliceStart != -1 ? sliceStart - 1 : 0);
-    final int en =
-        (byteIndex != -1 ? byteIndex : 1)
-            + (sliceEnd != -1 ? sliceEnd - 1 : (byteIndex != -1 ? 0 : str.length() - 1));
-    if (st < 1 || en > str.length() || st > en + 1) {
+    final var bounds = SliceBounds.resolve(byteIndex, sliceStart, sliceEnd, str.length());
+    if (bounds == null) {
       throw codedException(ReportCode.SUBSCRIPT_WRONG, "Slice out of bounds");
     }
 
-    ref.value = new EvalState.StrVar.Scalar(str.withSlice(st, en, val));
+    ref.value = new EvalState.StrVar.Scalar(str.withSlice(bounds.start(), bounds.end(), val));
   }
 
   @Override

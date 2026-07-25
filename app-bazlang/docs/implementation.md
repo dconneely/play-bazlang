@@ -1,6 +1,10 @@
 # Implementation details
 
-This document explains how the BazLang interpreter is built using Java.
+This document explains how the BazLang interpreter is built using Java. It is written for
+**interpreter implementers** (including LLM agents modifying the code). Language-level behaviour
+is documented in [language_features.md](language_features.md) and the deliberately-preserved
+eccentric behaviours in [quirks.md](quirks.md) — nothing listed there may be changed by a
+refactoring.
 
 ## Code structure
 
@@ -10,25 +14,114 @@ The interpreter executes directly from ANTLR's parse tree using a visitor patter
 
 - **ANTLR grammar (`BazLang.g4`)**: Defines the lexer and parser rules declaratively. ANTLR
   generates `BazLangLexer` and `BazLangParser` from this grammar.
-- **`AntlrParser`**: A facade that wraps the ANTLR parser, providing simple `parseProgramLines()`
-  and `parseReplLine()` methods.
+- **`AntlrParser`**: A facade that wraps the ANTLR parser, providing `parseProgramLines()`,
+  `parseReplLine()`, `parseStatementsContext()`, `parseNumExpr()`, and `parseStrExpr()` entry
+  points. ANTLR syntax errors are converted to `ReportException` (`C Nonsense in BASIC`) by a
+  custom error listener.
 - **`ExpressionEvaluator`**: A visitor that evaluates numeric and string expressions from the
   parse tree.
 - **`StatementExecutor`**: A visitor that executes statements. It handles variable assignment,
   I/O operations, and state mutation.
+- **`ProgramManager`**: A subclass of `StatementExecutor` that adds the flow-control statement
+  visits (`CONT`, `FOR`, `GO SUB`, `GO TO`, `NEXT`, `RETURN`, `RUN`). This is the concrete
+  executor the application instantiates.
 - **`Interpreter`**: Manages the overall flow. It coordinates the executor and evaluator,
   decides which line to run next, handles jumps, and loops until the program stops.
+- **`AstAnnotator`**: A one-time pass over each freshly parsed tree that caches parsed literal
+  values (`cachedNum`, `cachedStr`) into fields declared as grammar `locals`.
 - **`EvalState`**: The program's memory. It stores variables (scalars and arrays), custom
-  functions, and the state of any active `FOR` loops.
-- **`Program`**: Encapsulates the AST line storage, ensuring the underlying map is protected.
+  functions, the state of any active `FOR` loops, the `GOSUB` return stack, the `DATA` pointer,
+  the current/pending execution position, the last report, the random generator, the graphics
+  cursor, and the default ink/paper/style attributes.
+- **`Program`**: Encapsulates the line storage (a `TreeMap<Integer, ProgramLine>`), ensuring the
+  underlying map is protected.
 - **`ProgramLine`**: Stores the source text of each line, lazily parses to a parse tree on first
   execution, and caches a flattened statement list to avoid rebuilding it on subsequent calls.
+- **`BStr`**: The immutable byte-string value type used for all BazLang string values (see
+  [language_features.md](language_features.md) for its byte semantics).
+- **`InterpreterReplHandler`**: Routes each REPL line — numbered entry (store/delete), REPL-only
+  command (`DELETE`/`EDIT`/`RENUM`/`REFORMAT`, delegated to `ProgramEditor`), or immediate
+  execution — and records the last-report state consumed by `CONT` and shown in the status bar.
+- **`ProgramEditor` / `ReformatVisitor`**: Program-editing commands; `RENUM` also rewrites
+  `GO TO`/`GO SUB`/`RESTORE`/`RUN` targets.
+- **`ProgramStorage`**: `SAVE` (plain text, one numbered line per file line, line 0 skipped) and
+  `LOAD` (from a file, or from the classpath when the name starts with `resource:`).
+- **`ReportCode` / `ReportException` / `Limits`**: The ZX-style report codes (`0`–`R`), the
+  carrier exception (code, line label, statement index, detail), and interpreter limits.
+- **`program.AgentDebugger`**: A separate main class that runs the interpreter under a
+  stdin/stdout protocol for LLM agents (see [language_debugger.md](language_debugger.md)),
+  using `MockScreen`.
+
+### Class coupling notes
+
+Facts an implementer needs before restructuring anything:
+
+- `ProgramManager extends StatementExecutor` exists to split one large visitor across two files;
+  there is no polymorphic use. `StatementExecutor`'s collaborator fields are `protected` only so
+  the subclass can reach them. `ProgramManager`'s constructor creates its own `ProgramStorage`
+  and `ExpressionEvaluator` internally.
+- `AntlrParser` is available both as the global singleton `AntlrParser.INSTANCE` (used statically
+  by `Interpreter`, `ProgramManager`, `MainClass`, and inside `StatementExecutor`) and as an
+  injected constructor parameter (`ExpressionEvaluator`, `ProgramStorage`, `ProgramEditor`).
+- Parse trees are annotated with per-`EvalState` caches (see below), so a `ProgramLine`'s cached
+  tree must never be shared between two interpreter instances.
+
+## Execution model
+
+### Statement addressing and flattening
+
+Every executable position is a pair **(line label, statement index)**, where the statement index
+is **1-based** and counts positions in the line's **flattened** statement list.
+`ProgramLine.getFlattenedStatements()` lists a line's statements in source order with the bodies
+of `IF ... THEN` statements inlined recursively after the `IF` itself: `10 IF x THEN PRINT "A":
+PRINT "B"` flattens to `[IfStmt, PrintStmt("A"), PrintStmt("B")]` with indices 1–3.
+
+Flat indices are the shared currency of the interpreter loop, `CONT`, `GOSUB` return addresses,
+the `DATA` pointer, the `FOR` skip-scan, and `AgentDebugger` breakpoints (`<line>:<stmt>`).
+
+### The fetch–execute loop
+
+`Interpreter.resume()` loops while the state is running:
+
+1. If a **pending jump** (label + statement index) is set in `EvalState`, consume it; a negative
+   label ends the run. Otherwise advance to the next higher line number; none left means a normal
+   end. If the current line label is 0 (immediate mode) and no jump is pending, the run ends.
+2. Poll `VirtualInput.pollForBreak()`; a pending break raises `L BREAK into program`.
+3. Fetch and flatten the line. The valid start-index range is `1 .. size + 1` (`size + 1` means
+   "start past the end", i.e. fall through); anything else raises `N Statement lost`.
+4. Visit statements from the start index, stopping early when a statement sets a pending jump or
+   stops the run.
+
+All control transfers are expressed as pending jumps recorded in `EvalState`; visitor methods
+never call back into the interpreter. `GO TO`/`GO SUB` resolve targets with `ceilingKey`
+(jumping past the last line is a clean stop). `RUN` implies `CLEAR`; `GO TO` does not. `CONT`
+resumes at the last-report location (for reports `9 STOP statement` and `L BREAK into program`,
+at the *following* statement).
+
+### Sentinel values
+
+- **Line 0 is the immediate-mode line.** `Interpreter.executeImmediate()` temporarily inserts the
+  immediate statements at key 0 and removes them in a `finally`. Line 0 is excluded from `GO TO`
+  targeting, `SAVE`, and `LIST`; a `0 ...` REPL line executes immediately (ZX81-style). A false
+  `IF` in immediate mode sets a pending jump to statement index `Integer.MAX_VALUE`, which the
+  loop's bounds check reports as `N Statement lost, 0:1` — intentional, see
+  [quirks.md](quirks.md).
+- **`DATA` pointer**: components of `-1` mean "not yet initialised"; a line label of
+  `Integer.MAX_VALUE` means "exhausted" (`E Out of DATA` on the next `READ`).
+
+### State lifecycle
+
+`EvalState.clear()` blanks the *contents* of the variable reference objects (`NumVarRef`,
+`NumArrayRef`, `StrVarRef`, `FnDefRef`) but keeps the objects themselves alive. This is what
+keeps references cached in parse trees valid across `CLEAR`/`RUN`. Editing program lines
+preserves all runtime state (hot-patching, see [quirks.md](quirks.md)); only `NEW` and `CLEAR`
+reset it.
 
 ## I/O system (the `io` package)
 
-Input and output are handled by a set of classes that share a common `BazLangScreen` interface
-(which extends the base `ReplReader` and `AutoCloseable` interfaces), isolating the interpreter
-from the specific device.
+Input and output are handled by a set of classes that share a common `VirtualScreen` interface
+(which extends the base `ReplReader` and `AutoCloseable` interfaces) plus a `VirtualInput`
+interface, isolating the interpreter from the specific device.
 
 - **`TerminalScreen`**: The standard version for interactive use. It provides a TUI
   (Text User Interface) with distinct window regions: an interpreter output area at the top,
@@ -37,11 +130,20 @@ from the specific device.
   cursor movement, and handles terminal window resizes gracefully.
 - **`StreamScreen`**: A simpler version used for pipes or non-interactive environments.
   It uses standard Java `System.in` and `System.out`. Graphics (`PLOT` and related draw calls)
-  are no-ops.
+  are no-ops. `MainClass` also falls back to this screen silently if `TerminalScreen` cannot be
+  initialised (intentional — see [quirks.md](quirks.md)).
+- **`MockScreen`**: An in-memory screen with a scripted input queue, used by the program tests
+  and by `AgentDebugger`.
+- **`AbstractCellBufferedScreen`**: The base class for screens backed by a lib-cell `CellBuffer`;
+  tracks the cursor and the active attribute set.
 
-The `BazLangScreen` interface defines methods for screen output (`print`, `println`, `cls`),
-graphics (`plot`, `unplot`, `setPlotMode`), input (`readln` with different modes for REPL vs
-INPUT), and status updates (`setStatus` for showing report codes).
+The `VirtualScreen` interface defines methods for screen output (`print`, `println`, `cls`),
+printer output (`lprint`, `lprintln`), graphics (`plot`, `point`, `setPlotMode`), attributes
+(`setInk` … `setOver`), introspection (`getScreenCodepoint`, `getScreenAttributes`,
+`getXAttributes`), and status updates (`setStatus`). `VirtualInput` defines `readln` (with
+different modes for REPL vs `INPUT`), non-blocking `inkey()`/`uinkey()`, break polling, and
+input prefill. Most graphics and attribute methods have no-op defaults so that simple screens
+stay simple.
 
 ## Specific logic
 
@@ -51,23 +153,32 @@ INPUT), and status updates (`setStatus` for showing report codes).
   corner. Rendering resolution is pluggable via `PixelMode` (e.g., `QuadrantMode` for 2x2 blocks,
   `SextantMode` for 2x3 blocks, or `BrailleMode` for 2x4 patterns). Text output (`PRINT`) and
   graphics share the same buffer seamlessly.
-- **Line-based flow**: Everything depends on line numbers. The interpreter usually proceeds
-  sequentially. Commands like `GO TO` or `FOR` change this order by modifying the `EvalState`
-  program counter.
+- **Styles**: Standalone style statements (`INK 2`) set both the session default (stored in
+  `EvalState`) and the screen's active attribute. Style items embedded in `PRINT`/`PLOT`/`DRAW`
+  (`PRINT INK 2; ...`) apply temporarily: the executor snapshots the defaults, applies the items,
+  and restores the defaults afterwards (`withRestoredStyles`).
 - **Error handling**: If something goes wrong (e.g. dividing by zero), the interpreter stops
   execution, throws a `ReportException`, and reports a Sinclair ZX BASIC-style code in the
   status bar. The format is `<Code> <Message>, <Line>:<Statement> (Optional details)`,
   for example: `6 Number too big, 100:1 (Arithmetic overflow)`.
 - **`FOR-NEXT`**: The `FOR` statement saves its state (target variable, limit, step, and return
-  line) in `EvalState`. The `NEXT` statement increments the variable and checks if the loop
-  should continue.
-- **`INPUT`**: This uses the `BazLangScreen` to read a full line of text from the user. It then
-  parses this text to assign it to the target variable, handling type conversion for numbers.
+  location) in `EvalState`. The `NEXT` statement increments the variable and checks if the loop
+  should continue. If the initial value is already past the limit, a flat skip-scan finds the
+  matching `NEXT` (see [quirks.md](quirks.md) for the scan's deliberate eccentricities).
+- **`DATA`/`READ`/`RESTORE`**: `DATA` is a no-op at execution time; a three-part pointer in
+  `EvalState` (line label, statement index, expression index) tracks the next value, advancing
+  within a statement, then to the next `DATA` statement in the line, then to the next line with
+  `DATA`.
+- **`INPUT`**: This uses the `VirtualInput` to read a full line of text from the user. For a
+  numeric target the input is evaluated as a full numeric expression (`VAL` semantics); on a
+  syntax error with an interactive screen, the user is re-prompted with the bad text prefilled.
+  Typing `STOP` raises `H STOP in INPUT`.
 
 ## Performance & memory optimisations
 
 To ensure high execution performance and minimise garbage collector pressure on the JVM, the
-interpreter implements two key patterns:
+interpreter implements several key patterns. These are load-bearing; refactorings must keep
+their effect:
 
 - **Visitor as calculator**: Rather than returning boxed `Double` wrapper objects from parsing
   visitor methods (which would cause massive boxing and unboxing overhead during arithmetic
@@ -79,62 +190,21 @@ interpreter implements two key patterns:
   strings. To avoid continuous hash map lookups during execution (especially in tight loops),
   the parser context objects (`ctx`) cache their resolved reference objects (such as `NumVarRef`)
   after the first lookup. Subsequent evaluations retrieve the cached reference directly.
+  (This is why cleared variables keep their ref objects, and why parse trees are bound to one
+  `EvalState` — see "State lifecycle" above.)
+- **Literal caching**: `AstAnnotator` pre-parses numeric, binary, and string literals into
+  `cachedNum`/`cachedStr` context fields once per tree, so evaluation never re-parses text.
+- **Lazy parse and flatten**: `ProgramLine` defers parsing to first execution and caches both the
+  parse tree and the flattened statement list.
+- **Index scratch stack**: `ExpressionEvaluator` evaluates array subscripts into a shared
+  `int[256]` stack (with a stack pointer restored in `finally`) instead of allocating an index
+  array per access.
+- **Single-byte string cache**: `BStr.fromByte` returns interned single-byte instances for all
+  256 byte values (used heavily by `CHR$` and `INKEY$`).
 
 ## Language quirks
 
-To replicate some eccentric Sinclair ZX BASIC behaviour, the BazLang interpreter implements several
-unusual behaviours:
-
-### Flow control quirks
-
-- **FOR loop stale loop variable value**: The loop variable retains its last value after loop
-  completion. This value is equal to `limit + step` (e.g., if running `FOR i=1 TO 5`, `i` will be
-  `6` after the loop terminates).
-- **FOR loop stale loops and stray `NEXT`**: A `FOR` loop is not deactivated when it terminates
-  naturally. Executing a stray `NEXT var` statement *after* the loop has finished will continue to
-  increment `var` and resume execution from the statement following `NEXT` without raising
-  an error.
-- **FOR loop flat skip scan**: When a loop's initial value falls outside its range (e.g.,
-  `FOR i=1 TO 0`), the loop body is skipped. The interpreter performs a flat, linear scan through
-  all statements in source code order to find the first `NEXT i`. This scan is unconditional: it
-  includes statements nested inside `IF ... THEN` bodies, even if the condition is false.
-  For example:
-  ```bas
-  10 FOR i=1 TO 0
-  20 IF 0 THEN NEXT i
-  30 PRINT "A"
-  40 NEXT i
-  50 PRINT "B"
-  ```
-  This prints `A` then `B`. The skip scan on line 10 finds the `NEXT i` on line 20 (inside the
-  always-false `IF`), causing execution to resume at line 30.
-
-### Variables & memory quirks
-
-- **Editing lines preserves runtime state**: Adding, replacing, or deleting numbered program lines
-  in interactive (REPL) mode does *not* clear runtime variables, the `DATA` pointer, the `GOSUB`
-  return stack, or active `FOR` loop states. Only `NEW` and `CLEAR` reset this state. This allows
-  debugging and hot-patching program code mid-run.
-- **Recursive user functions (`DEF FN`)**: Because user-defined functions (`DEF FN`) are evaluated
-  on the host system stack, deep recursion in custom functions will exceed stack depth limits.
-  Rather than crashing the JVM, this is caught and surfaced as report code `4 Out of memory,
-  <line>:<statement>`, matching real ZX Spectrum behaviour.
-
-### Data quirks
-
-- **DATA statements in IF bodies**: `DATA` statements are indexed globally at parse time, not at
-  execution time. A `DATA` statement inside an `IF` block is always visible to `READ` and `RESTORE`
-  operations, regardless of whether the enclosing `IF` condition evaluates to true or is ever
-  executed.
-
-### Input & output quirks
-
-- **Negative graphics coordinates**: For graphics commands (`PLOT`, `DRAW`), negative coordinates
-  are accepted and mirrored onto the positive grid using their absolute values (matching original
-  Sinclair ZX BASIC behaviour). For example, `PLOT -10, -10` draws at coordinate `(10, 10)`.
-- **Byte-oriented fixed-length string arrays**: Fixed-length string arrays (declared via
-  `DIM a$(rows, cols)`) are byte-oriented. The column size `cols` specifies the maximum width in
-  **bytes**, not character count. When assigning multibyte UTF-8 characters, ensure `cols` is
-  sized large enough to hold the character's full byte sequence. If the assigned string exceeds
-  `cols` bytes, it is truncated at the byte boundary, which can result in partial, invalid UTF-8
-  sequences.
+Deliberately preserved eccentric behaviours (stale `FOR` variables, the flat skip-scan, `DATA`
+visibility inside `IF` bodies, byte-oriented string arrays, immediate-mode line-0 reports, and
+more) are documented in [quirks.md](quirks.md). Treat that page as a contract: behaviour listed
+there must survive any change to this codebase.

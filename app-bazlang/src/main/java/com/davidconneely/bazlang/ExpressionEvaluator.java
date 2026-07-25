@@ -571,16 +571,12 @@ public class ExpressionEvaluator extends BazLangBaseVisitor<Void> {
         }
         final int arrayIdx = calculateArrayIndex(arrayDimensions, indexStack, ptr, indicesCount);
 
-        final int st = (byteIndex != -1 ? byteIndex : 1) + (sliceStart != -1 ? sliceStart - 1 : 0);
-        final int en =
-            (byteIndex != -1 ? byteIndex : 1)
-                + (sliceEnd != -1 ? sliceEnd - 1 : (byteIndex != -1 ? 0 : stringLength - 1));
-        if (st < 1 || en > stringLength || st > en + 1) {
+        final var bounds = SliceBounds.resolve(byteIndex, sliceStart, sliceEnd, stringLength);
+        if (bounds == null) {
           throw codedException(ReportCode.SUBSCRIPT_WRONG, "Slice out of bounds");
         }
-        final int offset = arrayIdx * stringLength + (st - 1);
-        final int length = en - st + 1;
-        return BStr.fromBytes(data, offset, length);
+        final int offset = arrayIdx * stringLength + (bounds.start() - 1);
+        return BStr.fromBytes(data, offset, bounds.length());
       }
       if (strVar instanceof EvalState.StrVar.Scalar(BStr s)) {
         int byteIndex = -1;
@@ -592,14 +588,11 @@ public class ExpressionEvaluator extends BazLangBaseVisitor<Void> {
           throw codedException(
               ReportCode.SUBSCRIPT_WRONG, "Scalar string only takes one index or slice");
         }
-        final int st = (byteIndex != -1 ? byteIndex : 1) + (sliceStart != -1 ? sliceStart - 1 : 0);
-        final int en =
-            (byteIndex != -1 ? byteIndex : 1)
-                + (sliceEnd != -1 ? sliceEnd - 1 : (byteIndex != -1 ? 0 : s.length() - 1));
-        if (st < 1 || en > s.length() || st > en + 1) {
+        final var bounds = SliceBounds.resolve(byteIndex, sliceStart, sliceEnd, s.length());
+        if (bounds == null) {
           throw codedException(ReportCode.SUBSCRIPT_WRONG, "Slice out of bounds");
         }
-        return s.slice(st, en);
+        return s.slice(bounds.start(), bounds.end());
       }
       throw codedException(ReportCode.NONSENSE_IN_BASIC, "Invalid string variable");
     } finally {

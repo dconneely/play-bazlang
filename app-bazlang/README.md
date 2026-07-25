@@ -13,7 +13,8 @@ Detailed language and architecture references are available in the `docs/` direc
 
 - **[Language features](docs/language_features.md)** - Guide to variables, commands, and REPL operations.
 - **[Grammar](docs/grammar.md)** - The ANTLR grammar specification for BazLang.
-- **[Implementation](docs/implementation.md)** - Visitor architecture, state tracking, performance notes, and quirks.
+- **[Implementation](docs/implementation.md)** - Visitor architecture, execution model, state tracking, and performance notes (for implementers).
+- **[Quirks](docs/quirks.md)** - Deliberately preserved ZX BASIC eccentricities and intentional behaviours.
 - **[Agent debugger](docs/language_debugger.md)** - LLM-agent-friendly debugger protocol and command reference.
 
 ## Running the interpreter

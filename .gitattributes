@@ -1,0 +1,13 @@
+# Normalise all text files to LF in the repository, and check them out with LF so
+# the working tree is byte-identical on Windows, Linux, and macOS.
+* text=auto eol=lf
+
+# Explicit entries for files that must always be LF to run (POSIX shells).
+*.sh text eol=lf
+gradlew text eol=lf
+
+# Windows batch scripts require CRLF in the working tree.
+*.bat text eol=crlf
+
+# Binary files: never normalise line endings or diff as text.
+*.jar binary
