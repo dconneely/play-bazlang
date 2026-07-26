@@ -5,7 +5,6 @@ import com.davidconneely.bazlang.antlr.BazLangBaseVisitor;
 import com.davidconneely.bazlang.antlr.BazLangParser.*;
 import com.davidconneely.bazlang.io.VirtualInput;
 import com.davidconneely.bazlang.io.VirtualScreen;
-import java.math.BigInteger;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -64,12 +63,7 @@ public class ExpressionEvaluator extends BazLangBaseVisitor<Void> {
 
   @Override
   public Void visitBinLiteralExpr(BinLiteralExprContext ctx) {
-    // Strip the BIN prefix and any spaces, then parse as binary integer.
-    final String digits = ctx.BIN_LITERAL().getText().substring(3).replaceAll("[ \t]", "");
-    if (digits.length() > 64) {
-      throw codedException(ReportCode.NUMBER_TOO_BIG, "Binary literal exceeds 64 digits");
-    }
-    numResult = new BigInteger(digits, 2).doubleValue();
+    numResult = AstAnnotator.parseBinLiteral(ctx.BIN_LITERAL().getText(), state.currentLineLabel());
     return null;
   }
 
@@ -488,9 +482,7 @@ public class ExpressionEvaluator extends BazLangBaseVisitor<Void> {
 
   @Override
   public Void visitStrLiteralExpr(StrLiteralExprContext ctx) {
-    final String text = ctx.STR_LITERAL().getText();
-    final String value = text.substring(1, text.length() - 1).replace("\"\"", "\"");
-    strResult = BStr.fromJavaString(value);
+    strResult = AstAnnotator.parseStrLiteral(ctx.STR_LITERAL().getText());
     return null;
   }
 
