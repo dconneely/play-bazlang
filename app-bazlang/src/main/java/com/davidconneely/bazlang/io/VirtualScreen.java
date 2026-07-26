@@ -24,12 +24,6 @@ public interface VirtualScreen extends ReplReader, AutoCloseable {
 
   void println();
 
-  void lprint(String text);
-
-  void lprintln(String text);
-
-  void lprintln();
-
   void flush();
 
   @Override

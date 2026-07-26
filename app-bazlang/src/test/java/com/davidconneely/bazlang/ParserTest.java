@@ -56,8 +56,6 @@ class ParserTest {
     assertParses("50 LIST 10");
     assertParses("60 LIST 10 TO 20");
     assertParses("70 LIST TO 20");
-    assertParses("80 LLIST");
-    assertParses("90 LLIST 10 TO 20");
   }
 
   @Test

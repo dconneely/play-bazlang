@@ -72,9 +72,7 @@ statement
     | INVERSE numExpr                                      # InverseStmt
     | LET assignmentTarget '=' expression                  # LetStmt
     | LIST lineRange?                                      # ListStmt
-    | LLIST lineRange?                                     # LListStmt
     | LOAD strExpr                                         # LoadStmt
-    | LPRINT printList?                                    # LPrintStmt
     | NEW                                                  # NewStmt
     | NEXT NUM_IDENTIFIER                                  # NextStmt
     | OVER numExpr                                         # OverStmt
@@ -100,7 +98,7 @@ dimDecl
     | STR_IDENTIFIER '(' numExpr (',' numExpr)* ')'        // string/char array
     ;
 
-// LIST/LLIST/DELETE line range using TO (consistent with slice syntax)
+// LIST/DELETE line range using TO (consistent with slice syntax)
 // LIST, LIST 10, LIST 10 TO, LIST TO 100, LIST 10 TO 100, LIST TO
 lineRange
     : numExpr (TO numExpr?)?                               // start or start TO end or start TO
@@ -312,9 +310,7 @@ INPUT    : 'INPUT';
 INVERSE  : 'INVERSE';
 LET      : 'LET';
 LIST     : 'LIST';
-LLIST    : 'LLIST';
 LOAD     : 'LOAD';
-LPRINT   : 'LPRINT';
 NEW      : 'NEW';
 NEXT     : 'NEXT';
 OVER     : 'OVER';

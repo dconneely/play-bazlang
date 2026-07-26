@@ -302,21 +302,6 @@ public class TerminalScreen extends AbstractCellBufferedScreen {
   }
 
   @Override
-  public void lprint(String text) {
-    System.err.print(text);
-  }
-
-  @Override
-  public void lprintln(String text) {
-    System.err.println(text);
-  }
-
-  @Override
-  public void lprintln() {
-    System.err.println();
-  }
-
-  @Override
   public String readln(InputMode mode) {
     currentInputMode =
         switch (mode) {

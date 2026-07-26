@@ -11,26 +11,24 @@ import java.nio.charset.StandardCharsets;
 public class StreamScreen implements VirtualScreen, VirtualInput {
   private final InputStream in;
   private final PrintStream out;
-  private final PrintStream err;
   private BufferedReader reader;
 
   // Simple cursor tracking for currentRow/currentCol
   private int currentCol = 0;
 
-  public StreamScreen(InputStream in, PrintStream out, PrintStream err) {
+  public StreamScreen(InputStream in, PrintStream out) {
     this.in = in;
     this.out = out;
-    this.err = err;
   }
 
   public StreamScreen() {
-    this(System.in, System.out, System.err);
+    this(System.in, System.out);
   }
 
   public static StreamScreen nullScreen() {
     final var nullOut =
         new PrintStream(java.io.OutputStream.nullOutputStream(), true, StandardCharsets.UTF_8);
-    return new StreamScreen(InputStream.nullInputStream(), nullOut, nullOut);
+    return new StreamScreen(InputStream.nullInputStream(), nullOut);
   }
 
   @Override
@@ -88,22 +86,6 @@ public class StreamScreen implements VirtualScreen, VirtualInput {
   public void println() {
     out.print('\n');
     currentCol = 0;
-  }
-
-  @Override
-  public void lprint(String text) {
-    err.print(text);
-  }
-
-  @Override
-  public void lprintln(String text) {
-    err.print(text);
-    err.print('\n');
-  }
-
-  @Override
-  public void lprintln() {
-    err.print('\n');
   }
 
   @Override

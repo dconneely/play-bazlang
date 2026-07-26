@@ -2,7 +2,6 @@ package com.davidconneely.bazlang.io;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.davidconneely.bazlang.BStr;
 import java.io.ByteArrayInputStream;
@@ -16,12 +15,10 @@ class StreamScreenTest {
   @Test
   void testPrintAndPrintln() {
     final var out = new ByteArrayOutputStream();
-    final var err = new ByteArrayOutputStream();
     final var printOut = new PrintStream(out, true, StandardCharsets.UTF_8);
-    final var printErr = new PrintStream(err, true, StandardCharsets.UTF_8);
     final var in = new ByteArrayInputStream(new byte[0]);
 
-    try (var screen = new StreamScreen(in, printOut, printErr)) {
+    try (var screen = new StreamScreen(in, printOut)) {
       assertEquals(0, screen.currentRow());
       assertEquals(0, screen.currentCol());
 
@@ -32,37 +29,17 @@ class StreamScreenTest {
       assertEquals(0, screen.currentCol()); // Reset after newline
 
       assertEquals("Hello World\n", out.toString(StandardCharsets.UTF_8));
-      assertTrue(err.toString(StandardCharsets.UTF_8).isEmpty());
-    }
-  }
-
-  @Test
-  void testLprintAndLprintln() {
-    final var out = new ByteArrayOutputStream();
-    final var err = new ByteArrayOutputStream();
-    final var printOut = new PrintStream(out, true, StandardCharsets.UTF_8);
-    final var printErr = new PrintStream(err, true, StandardCharsets.UTF_8);
-    final var in = new ByteArrayInputStream(new byte[0]);
-
-    try (var screen = new StreamScreen(in, printOut, printErr)) {
-      screen.lprint("System Log");
-      screen.lprintln();
-
-      assertEquals("System Log\n", err.toString(StandardCharsets.UTF_8));
-      assertTrue(out.toString(StandardCharsets.UTF_8).isEmpty());
     }
   }
 
   @Test
   void testReadlnWithPrompt() {
     final var out = new ByteArrayOutputStream();
-    final var err = new ByteArrayOutputStream();
     final var printOut = new PrintStream(out, true, StandardCharsets.UTF_8);
-    final var printErr = new PrintStream(err, true, StandardCharsets.UTF_8);
     final var inData = "User Input\n".getBytes(StandardCharsets.UTF_8);
     final var in = new ByteArrayInputStream(inData);
 
-    try (var screen = new StreamScreen(in, printOut, printErr)) {
+    try (var screen = new StreamScreen(in, printOut)) {
       final var result = screen.readln("Enter Name: ");
       assertEquals("User Input", result);
       assertEquals("Enter Name: ", out.toString(StandardCharsets.UTF_8));
@@ -72,13 +49,11 @@ class StreamScreenTest {
   @Test
   void testInkey() {
     final var out = new ByteArrayOutputStream();
-    final var err = new ByteArrayOutputStream();
     final var printOut = new PrintStream(out, true, StandardCharsets.UTF_8);
-    final var printErr = new PrintStream(err, true, StandardCharsets.UTF_8);
     final var inData = "A".getBytes(StandardCharsets.UTF_8);
     final var in = new ByteArrayInputStream(inData);
 
-    try (var screen = new StreamScreen(in, printOut, printErr)) {
+    try (var screen = new StreamScreen(in, printOut)) {
       assertEquals(BStr.fromJavaString("A"), screen.inkey());
       assertEquals(BStr.EMPTY, screen.inkey()); // Empty on EOF
       assertEquals(BStr.EMPTY, screen.uinkey()); // Fallback uinkey
@@ -88,13 +63,11 @@ class StreamScreenTest {
   @Test
   void testUinkeyAnsiEscape() {
     final var out = new ByteArrayOutputStream();
-    final var err = new ByteArrayOutputStream();
     final var printOut = new PrintStream(out, true, StandardCharsets.UTF_8);
-    final var printErr = new PrintStream(err, true, StandardCharsets.UTF_8);
     final var inData = new byte[] {27, (byte) '[', (byte) 'A'};
     final var in = new ByteArrayInputStream(inData);
 
-    try (var screen = new StreamScreen(in, printOut, printErr)) {
+    try (var screen = new StreamScreen(in, printOut)) {
       assertEquals(BStr.fromBytes(inData), screen.uinkey());
       assertEquals(BStr.EMPTY, screen.uinkey());
     }
@@ -103,13 +76,11 @@ class StreamScreenTest {
   @Test
   void testUinkeyUtf8() {
     final var out = new ByteArrayOutputStream();
-    final var err = new ByteArrayOutputStream();
     final var printOut = new PrintStream(out, true, StandardCharsets.UTF_8);
-    final var printErr = new PrintStream(err, true, StandardCharsets.UTF_8);
     final var inData = "£".getBytes(StandardCharsets.UTF_8);
     final var in = new ByteArrayInputStream(inData);
 
-    try (var screen = new StreamScreen(in, printOut, printErr)) {
+    try (var screen = new StreamScreen(in, printOut)) {
       assertEquals(BStr.fromBytes(inData), screen.uinkey());
       assertEquals(BStr.EMPTY, screen.uinkey());
     }

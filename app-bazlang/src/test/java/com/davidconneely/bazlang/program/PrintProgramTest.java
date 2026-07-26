@@ -128,17 +128,6 @@ class PrintProgramTest extends BaseProgramTest {
     assertEquals("", lines4[0]); // Leading apostrophe prints a blank line
     assertEquals("A", lines4[1]);
 
-    // Test LPRINT behaviour with apostrophe separators
-    final String[] linesL1 =
-        runProgramCapture(
-                """
-        10 LPRINT "A" '' "B"
-        """)
-            .split("\n");
-    assertEquals("A", linesL1[0]);
-    assertEquals("", linesL1[1]);
-    assertEquals("B", linesL1[2]);
-
     // Test case: 10 PRINT "first", 20 PRINT ' "second" -> single blank line
     final String[] lines5 =
         runProgramCapture(

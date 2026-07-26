@@ -11,7 +11,7 @@ import com.davidconneely.bazlang.io.MockScreen;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-/** Tests for LIST and LLIST statements. */
+/** Tests for the LIST statement. */
 class ListProgramTest extends BaseProgramTest {
 
   private MockScreen screen;

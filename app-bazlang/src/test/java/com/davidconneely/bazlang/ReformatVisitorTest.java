@@ -32,9 +32,8 @@ class ReformatVisitorTest {
     assertFormatsTo("let a=1:let b=2", "LET a = 1 : LET b = 2");
     assertFormatsTo("let a$=\"hello\"", "LET a$ = \"hello\"");
     assertFormatsTo("list", "LIST");
-    assertFormatsTo("llist 10 to 20", "LLIST 10 TO 20");
+    assertFormatsTo("list 10 to 20", "LIST 10 TO 20");
     assertFormatsTo("load \"game\"", "LOAD \"game\"");
-    assertFormatsTo("lprint \"test\"", "LPRINT \"test\"");
     assertFormatsTo("new", "NEW");
     assertFormatsTo("next i", "NEXT i");
     assertFormatsTo("pause 50", "PAUSE 50");

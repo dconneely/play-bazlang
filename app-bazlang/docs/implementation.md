@@ -138,7 +138,7 @@ interface, isolating the interpreter from the specific device.
   tracks the cursor and the active attribute set.
 
 The `VirtualScreen` interface defines methods for screen output (`print`, `println`, `cls`),
-printer output (`lprint`, `lprintln`), graphics (`plot`, `point`, `setPlotMode`), attributes
+graphics (`plot`, `point`, `setPlotMode`), attributes
 (`setInk` … `setOver`), introspection (`getScreenCodepoint`, `getScreenAttributes`,
 `getXAttributes`), and status updates (`setStatus`). `VirtualInput` defines `readln` (with
 different modes for REPL vs `INPUT`), non-blocking `inkey()`/`uinkey()`, break polling, and

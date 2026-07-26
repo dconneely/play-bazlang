@@ -110,7 +110,6 @@ Returns `1` for True, `0` for False.
   - `TAB n`: Move to column `n`.
   - `INK n` / `PAPER n` / `FLASH n` / `BRIGHT n` / `INVERSE n` / `OVER n`: Temporary colour/style
     modifiers for the print statement.
-- **`LPRINT`**: Print to "printer" (standard error).
 - **`INPUT varname`**: Ask user for input.
   For numeric variables, the input is evaluated as an expression.
   If the expression is invalid, the user is prompted with "Syntax error? " and can edit their input.
@@ -162,7 +161,6 @@ Returns `1` for True, `0` for False.
 
 - **`LIST [n [TO [m]]]`**: Show program code. `LIST` shows all; `LIST n` shows from line `n` to
   end; `LIST TO m` shows from start to line `m`; `LIST n TO m` shows lines `n` through `m`.
-- **`LLIST [n [TO [m]]]`**: Same as `LIST` but outputs to standard error.
 
 ### Environment
 

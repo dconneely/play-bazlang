@@ -101,21 +101,6 @@ public class MockScreen extends AbstractCellBufferedScreen {
     println();
   }
 
-  @Override
-  public void lprint(String text) {
-    output.append(text);
-  }
-
-  @Override
-  public void lprintln(String text) {
-    output.append(text).append('\n');
-  }
-
-  @Override
-  public void lprintln() {
-    output.append('\n');
-  }
-
   public void queueInput(String text) {
     inputQueue.add(text);
   }

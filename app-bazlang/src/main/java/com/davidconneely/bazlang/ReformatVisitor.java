@@ -103,18 +103,6 @@ public class ReformatVisitor extends BazLangBaseVisitor<String> {
   }
 
   @Override
-  public String visitLListStmt(LListStmtContext ctx) {
-    String res = "LLIST";
-    if (ctx.lineRange() != null) {
-      final String range = visit(ctx.lineRange());
-      if (!"0".equals(range)) {
-        res += " " + range;
-      }
-    }
-    return res;
-  }
-
-  @Override
   public String visitLineRange(LineRangeContext ctx) {
     final var nums = ctx.numExpr();
     if (ctx.TO() != null) {
@@ -137,15 +125,6 @@ public class ReformatVisitor extends BazLangBaseVisitor<String> {
   @Override
   public String visitLoadStmt(LoadStmtContext ctx) {
     return "LOAD " + visit(ctx.strExpr());
-  }
-
-  @Override
-  public String visitLPrintStmt(LPrintStmtContext ctx) {
-    String res = "LPRINT";
-    if (ctx.printList() != null) {
-      res += " " + visit(ctx.printList());
-    }
-    return res;
   }
 
   @Override

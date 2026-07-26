@@ -316,19 +316,7 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
     return null;
   }
 
-  @Override
-  public Void visitLListStmt(LListStmtContext ctx) {
-    final int[] range = parseListLineRange(ctx.lineRange());
-    for (final var entry : state.program().subMapEntries(range[0], true, range[1], true)) {
-      final var line = entry.getValue();
-      if (line.lineNumber() >= Limits.MIN_LINE_LABEL) {
-        screen.lprintln(line.lineNumber() + " " + line.sourceText());
-      }
-    }
-    return null;
-  }
-
-  /** Parses lineRange for LIST/LLIST: single number means "from n to end". */
+  /** Parses lineRange for LIST: single number means "from n to end". */
   private int[] parseListLineRange(BazLangParser.LineRangeContext range) {
     int start = Limits.MIN_TARGET_LABEL;
     int end = Limits.MAX_TARGET_LABEL;
@@ -359,61 +347,6 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
   public Void visitLoadStmt(LoadStmtContext ctx) {
     storage.load(evalStr(ctx.strExpr()).toJavaString());
     return null;
-  }
-
-  @Override
-  public Void visitLPrintStmt(LPrintStmtContext ctx) {
-    int tp = 0;
-    boolean suppressNewline = false;
-    final var printList = ctx.printList();
-    if (printList != null) {
-      for (int i = 0; i < printList.getChildCount(); i++) {
-        final var child = printList.getChild(i);
-        if (child instanceof PrintItemContext item) {
-          tp = executeLPrintItem(item, tp);
-          suppressNewline = false;
-        } else if (child instanceof PrintSepContext sep) {
-          final String sepText = sep.getText();
-          if (sepText.equals(",")) {
-            // Comma moves to next tab stop
-            final int nextTab = ((tp / Limits.TAB_WIDTH) + 1) * Limits.TAB_WIDTH;
-            if (nextTab > tp) {
-              screen.lprint(" ".repeat(nextTab - tp));
-              tp = nextTab;
-            }
-          } else if (sepText.equals("'")) {
-            screen.lprintln();
-            tp = 0;
-          }
-          // Semicolon does nothing (items concatenate)
-          suppressNewline = true;
-        }
-      }
-    }
-    if (!suppressNewline) {
-      screen.lprintln();
-    }
-    return null;
-  }
-
-  private int executeLPrintItem(PrintItemContext item, int tp) {
-    if (item instanceof PrintExprItemContext expr) {
-      String s = evalPrintExpr(expr.expression());
-      screen.lprint(s);
-      return tp + s.length();
-    } else if (item instanceof PrintAtItemContext at) {
-      return (int) evalNum(at.numExpr(1)); // col
-    } else if (item instanceof PrintTabItemContext tab) {
-      int t = (int) evalNum(tab.numExpr());
-      if (t < 0) {
-        t = ((tp / Limits.TAB_WIDTH) + 1) * Limits.TAB_WIDTH;
-      }
-      if (t > tp) {
-        screen.lprint(" ".repeat(t - tp));
-      }
-      return t;
-    }
-    return tp;
   }
 
   @Override
