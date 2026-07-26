@@ -65,7 +65,12 @@ Under `com.davidconneely.bazlang`:
   carrier exception (code, line label, statement index, detail), and interpreter limits.
 - **`debug.AgentDebugger`**: A separate main class that runs the interpreter under a
   stdin/stdout protocol for LLM agents (see [language_debugger.md](language_debugger.md)),
-  using `MockScreen`.
+  using `MockScreen`. It is split into `DebugSession` (the command loop and session wiring),
+  `BreakpointEngine` (breakpoint store and `CSC`/`ELAPSE`/`?expr`/`EVERY` condition evaluation),
+  `QuotedArg` (the protocol string codec), and `ScreenText` (screen search and the `/RSC` grid
+  dump); `AgentDebugger` itself is only the documented entry point. The protocol transcript is
+  pinned end-to-end by `AgentDebuggerProtocolTest` — a change to those transcripts is a protocol
+  change and must be reflected in `language_debugger.md`.
 
 ### Class coupling notes
 
