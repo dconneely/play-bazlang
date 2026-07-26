@@ -23,7 +23,7 @@ public class EvalState {
 
   public record ForLoopData(double limit, double step, int loopPcLabel, int loopPcStatementIndex) {}
 
-  public record JumpLocation(int lineLabel, int statementIndex) {}
+  public record StatementAddress(int lineLabel, int statementIndex) {}
 
   public static final class NumVarRef {
     public final String name;
@@ -69,7 +69,7 @@ public class EvalState {
   private final Map<String, FnDefRef> fnDefinitions = new HashMap<>();
 
   private final Map<String, ForLoopData> forLoops = new HashMap<>();
-  private final Deque<JumpLocation> returnStack = new ArrayDeque<>();
+  private final Deque<StatementAddress> returnStack = new ArrayDeque<>();
   private final Random random = new Random();
 
   private int dataExpressionIndex = -1;
@@ -79,9 +79,7 @@ public class EvalState {
   private boolean running = true;
   private int currentLineLabel = 0;
   private int currentStatementIndex = 1;
-  private Integer pendingJumpLabel = null;
-  private Integer pendingJumpStatementIndex = null;
-  private boolean hasPendingJump = false;
+  private StatementAddress pendingJump = null;
   private ReportCode lastReportCode = ReportCode.OK;
   private int lastReportLabel = 0;
   private int lastReportStatementIndex = 1;
@@ -322,11 +320,11 @@ public class EvalState {
     return returnStack.isEmpty();
   }
 
-  public void pushReturn(JumpLocation loc) {
+  public void pushReturn(StatementAddress loc) {
     returnStack.push(loc);
   }
 
-  public JumpLocation popReturn() {
+  public StatementAddress popReturn() {
     return returnStack.pop();
   }
 
@@ -366,27 +364,23 @@ public class EvalState {
   }
 
   public Integer pendingJumpLabel() {
-    return pendingJumpLabel;
+    return pendingJump != null ? pendingJump.lineLabel() : null;
   }
 
   public Integer pendingJumpStatementIndex() {
-    return pendingJumpStatementIndex;
+    return pendingJump != null ? pendingJump.statementIndex() : null;
   }
 
   public boolean hasPendingJump() {
-    return hasPendingJump;
+    return pendingJump != null;
   }
 
   public void setPendingJumpLocation(int label, int statementIndex) {
-    this.pendingJumpLabel = label;
-    this.pendingJumpStatementIndex = statementIndex;
-    this.hasPendingJump = true;
+    this.pendingJump = new StatementAddress(label, statementIndex);
   }
 
   public void clearPendingJump() {
-    this.pendingJumpLabel = null;
-    this.pendingJumpStatementIndex = null;
-    this.hasPendingJump = false;
+    this.pendingJump = null;
   }
 
   public ReportCode lastReportCode() {

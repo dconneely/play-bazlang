@@ -79,7 +79,8 @@ public class ProgramManager extends StatementExecutor {
   @Override
   public Void visitGosubStmt(GosubStmtContext ctx) {
     state.pushReturn(
-        new EvalState.JumpLocation(state.currentLineLabel(), state.currentStatementIndex() + 1));
+        new EvalState.StatementAddress(
+            state.currentLineLabel(), state.currentStatementIndex() + 1));
     final int target = (int) Math.round(exprEvaluator.evalNum(ctx.numExpr()));
     gotoLabel(target);
     return null;

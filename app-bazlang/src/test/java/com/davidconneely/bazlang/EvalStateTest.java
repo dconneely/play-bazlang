@@ -96,8 +96,8 @@ class EvalStateTest {
   @Test
   void testReturnStack() {
     assertTrue(state.isReturnStackEmpty());
-    final var loc1 = new EvalState.JumpLocation(10, 1);
-    final var loc2 = new EvalState.JumpLocation(20, 2);
+    final var loc1 = new EvalState.StatementAddress(10, 1);
+    final var loc2 = new EvalState.StatementAddress(20, 2);
 
     state.pushReturn(loc1);
     assertFalse(state.isReturnStackEmpty());
