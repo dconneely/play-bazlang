@@ -4,13 +4,14 @@ import com.davidconneely.bazlang.antlr.AntlrParser;
 import java.util.Map;
 
 public class Interpreter {
-  private static final AntlrParser PARSER = AntlrParser.INSTANCE;
   private final EvalState state;
   private final StatementExecutor executor;
+  private final AntlrParser parser;
 
   public Interpreter(EvalState state, StatementExecutor executor) {
     this.state = state;
     this.executor = executor;
+    this.parser = AntlrParser.INSTANCE;
   }
 
   public void execute(Map<Integer, ProgramLine> program) {
@@ -72,7 +73,7 @@ public class Interpreter {
         throw new ReportException(
             ReportCode.STATEMENT_LOST, state.currentLineLabel(), "Statement lost");
       }
-      final var stmts = line.getFlattenedStatements(PARSER);
+      final var stmts = line.getFlattenedStatements(parser);
       if (startIndex < 1 || startIndex > stmts.size() + 1) {
         state.setRunning(false);
         throw new ReportException(

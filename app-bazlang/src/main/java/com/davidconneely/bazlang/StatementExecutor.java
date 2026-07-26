@@ -24,6 +24,7 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
   private final VirtualInput input;
   private final ProgramStorage storage;
   private final ExpressionEvaluator exprEvaluator;
+  private final AntlrParser parser;
 
   public StatementExecutor(EvalState state, VirtualScreen screen, VirtualInput input) {
     this(
@@ -31,7 +32,8 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
         screen,
         input,
         new ProgramStorage(state, AntlrParser.INSTANCE),
-        new ExpressionEvaluator(state, screen, input, AntlrParser.INSTANCE));
+        new ExpressionEvaluator(state, screen, input, AntlrParser.INSTANCE),
+        AntlrParser.INSTANCE);
   }
 
   public StatementExecutor(
@@ -39,12 +41,14 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
       VirtualScreen screen,
       VirtualInput input,
       ProgramStorage storage,
-      ExpressionEvaluator exprEvaluator) {
+      ExpressionEvaluator exprEvaluator,
+      AntlrParser parser) {
     this.state = state;
     this.screen = screen;
     this.input = input;
     this.storage = storage;
     this.exprEvaluator = exprEvaluator;
+    this.parser = parser;
   }
 
   public VirtualScreen screen() {
@@ -276,7 +280,7 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
   }
 
   private void restoreTo(int target) {
-    final var addr = state.program().findFirstData(target, AntlrParser.INSTANCE);
+    final var addr = state.program().findFirstData(target, parser);
     if (addr != null) {
       state.setDataLineLabel(addr.lineLabel());
       state.setDataStatementIndex(addr.statementIndex());
@@ -638,7 +642,7 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
       if (line == null) {
         throw codedException(ReportCode.STATEMENT_LOST, "Statement lost");
       }
-      final var stmts = line.getFlattenedStatements(AntlrParser.INSTANCE);
+      final var stmts = line.getFlattenedStatements(parser);
       final int stmtIdx = state.dataStatementIndex();
       final var stmt = stmts.get(stmtIdx - 1);
       if (!(stmt instanceof DataStmtContext dataCtx)) {
@@ -987,10 +991,7 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
           state
               .program()
               .findMatchingNext(
-                  forVar,
-                  state.currentLineLabel(),
-                  state.currentStatementIndex() + 1,
-                  AntlrParser.INSTANCE);
+                  forVar, state.currentLineLabel(), state.currentStatementIndex() + 1, parser);
       if (addr == null) {
         throw new ReportException(
             ReportCode.FOR_WITHOUT_NEXT, state.currentLineLabel(), "FOR without NEXT");
