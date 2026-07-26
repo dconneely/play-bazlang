@@ -6,9 +6,9 @@ import com.davidconneely.bazlang.EvalState;
 import com.davidconneely.bazlang.ExpressionEvaluator;
 import com.davidconneely.bazlang.Interpreter;
 import com.davidconneely.bazlang.ProgramLine;
-import com.davidconneely.bazlang.ProgramManager;
 import com.davidconneely.bazlang.ReportCode;
 import com.davidconneely.bazlang.ReportException;
+import com.davidconneely.bazlang.StatementExecutor;
 import com.davidconneely.bazlang.antlr.AntlrParser;
 import com.davidconneely.bazlang.antlr.BazLangParser;
 import com.davidconneely.bazlang.io.MockScreen;
@@ -400,7 +400,7 @@ public final class AgentDebugger {
         new BufferedReader(new InputStreamReader(System.in, StandardCharsets.UTF_8));
     final List<BreakCondition> activeBreaks = new ArrayList<>();
     final AtomicLong continueStartMs = new AtomicLong(System.currentTimeMillis());
-    final AtomicReference<ProgramManager> executorHolder = new AtomicReference<>();
+    final AtomicReference<StatementExecutor> executorHolder = new AtomicReference<>();
 
     final var mockScreen =
         new MockScreen() {
@@ -835,7 +835,7 @@ public final class AgentDebugger {
         };
 
     final var executor =
-        new ProgramManager(state, mockScreen, mockScreen) {
+        new StatementExecutor(state, mockScreen, mockScreen) {
           @Override
           public Void visit(ParseTree tree) {
             int line = state.currentLineLabel();

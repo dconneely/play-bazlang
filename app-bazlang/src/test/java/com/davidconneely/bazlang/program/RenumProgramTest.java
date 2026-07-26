@@ -9,7 +9,7 @@ import static org.junit.jupiter.api.Assertions.fail;
 import com.davidconneely.bazlang.EvalState;
 import com.davidconneely.bazlang.ProgramEditor;
 import com.davidconneely.bazlang.ProgramLine;
-import com.davidconneely.bazlang.ProgramManager;
+import com.davidconneely.bazlang.StatementExecutor;
 import com.davidconneely.bazlang.antlr.AntlrParser;
 import com.davidconneely.bazlang.antlr.BazLangParser;
 import com.davidconneely.bazlang.io.StreamScreen;
@@ -19,7 +19,7 @@ class RenumProgramTest extends BaseProgramTest {
 
   private ProgramEditor makeEditor(EvalState state) {
     final var screen = StreamScreen.nullScreen();
-    final var executor = new ProgramManager(state, screen, screen);
+    final var executor = new StatementExecutor(state, screen, screen);
     return new ProgramEditor(state, screen, PARSER, executor::evalNum);
   }
 

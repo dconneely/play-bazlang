@@ -6,9 +6,9 @@ import java.util.Map;
 public class Interpreter {
   private static final AntlrParser PARSER = AntlrParser.INSTANCE;
   private final EvalState state;
-  private final ProgramManager executor;
+  private final StatementExecutor executor;
 
-  public Interpreter(EvalState state, ProgramManager executor) {
+  public Interpreter(EvalState state, StatementExecutor executor) {
     this.state = state;
     this.executor = executor;
   }

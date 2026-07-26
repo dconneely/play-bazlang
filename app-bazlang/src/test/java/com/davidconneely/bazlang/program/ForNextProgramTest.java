@@ -7,9 +7,9 @@ import com.davidconneely.bazlang.EvalState;
 import com.davidconneely.bazlang.Interpreter;
 import com.davidconneely.bazlang.InterpreterReplHandler;
 import com.davidconneely.bazlang.ProgramEditor;
-import com.davidconneely.bazlang.ProgramManager;
 import com.davidconneely.bazlang.ReportCode;
 import com.davidconneely.bazlang.ReportException;
+import com.davidconneely.bazlang.StatementExecutor;
 import com.davidconneely.bazlang.io.MockScreen;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -95,7 +95,7 @@ class ForNextProgramTest extends BaseProgramTest {
     // REPL statements are executed via immediate mode (label 0).
     final var state = new EvalState();
     final var screen = new MockScreen(List.of());
-    final var executor = new ProgramManager(state, screen, screen);
+    final var executor = new StatementExecutor(state, screen, screen);
     final var interpreter = new Interpreter(state, executor);
     final var editor = new ProgramEditor(state, screen, PARSER, executor::evalNum);
     final var handler =

@@ -5,7 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.davidconneely.bazlang.EvalState;
 import com.davidconneely.bazlang.ProgramLine;
-import com.davidconneely.bazlang.ProgramManager;
+import com.davidconneely.bazlang.StatementExecutor;
 import com.davidconneely.bazlang.antlr.AntlrParser;
 import com.davidconneely.bazlang.io.MockScreen;
 import org.junit.jupiter.api.BeforeEach;
@@ -15,14 +15,14 @@ import org.junit.jupiter.api.Test;
 class ListProgramTest extends BaseProgramTest {
 
   private MockScreen screen;
-  private ProgramManager executor;
+  private StatementExecutor executor;
   private AntlrParser parser;
 
   @BeforeEach
   void setUp() {
     final var state = new EvalState();
     screen = new MockScreen();
-    executor = new ProgramManager(state, screen, screen);
+    executor = new StatementExecutor(state, screen, screen);
     parser = AntlrParser.INSTANCE;
     // Set up a simple program
     state.program().put(10, new ProgramLine(10, "PRINT \"HELLO\""));

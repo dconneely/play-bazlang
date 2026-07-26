@@ -5,9 +5,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import com.davidconneely.bazlang.BStr;
 import com.davidconneely.bazlang.EvalState;
 import com.davidconneely.bazlang.Interpreter;
-import com.davidconneely.bazlang.ProgramManager;
 import com.davidconneely.bazlang.ReportCode;
 import com.davidconneely.bazlang.ReportException;
+import com.davidconneely.bazlang.StatementExecutor;
 import com.davidconneely.bazlang.antlr.AntlrParser;
 import com.davidconneely.bazlang.io.MockScreen;
 import java.util.List;
@@ -25,7 +25,7 @@ class BaseProgramTest {
     final var program = PARSER.parseProgramLines(source);
     final var state = new EvalState();
     final var screen = new MockScreen(inputs);
-    final var executor = new ProgramManager(state, screen, screen);
+    final var executor = new StatementExecutor(state, screen, screen);
     final var interpreter = new Interpreter(state, executor);
     try {
       interpreter.execute(program);
@@ -47,7 +47,7 @@ class BaseProgramTest {
     for (var k : uinkey) {
       screen.queueUinkey(k);
     }
-    final var executor = new ProgramManager(state, screen, screen);
+    final var executor = new StatementExecutor(state, screen, screen);
     final var interpreter = new Interpreter(state, executor);
     try {
       interpreter.execute(program);

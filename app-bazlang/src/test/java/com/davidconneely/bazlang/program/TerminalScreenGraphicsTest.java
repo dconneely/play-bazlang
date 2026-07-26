@@ -7,9 +7,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import com.davidconneely.bazlang.EvalState;
 import com.davidconneely.bazlang.Interpreter;
 import com.davidconneely.bazlang.ProgramLine;
-import com.davidconneely.bazlang.ProgramManager;
 import com.davidconneely.bazlang.ReportCode;
 import com.davidconneely.bazlang.ReportException;
+import com.davidconneely.bazlang.StatementExecutor;
 import com.davidconneely.bazlang.antlr.AntlrParser;
 import com.davidconneely.bazlang.io.TerminalScreen;
 import com.davidconneely.repl.TerminalEngine;
@@ -119,7 +119,7 @@ class TerminalScreenGraphicsTest {
     engine.setKeysToRead(mockKeys);
     TerminalScreen screen = new TerminalScreen(engine);
 
-    ProgramManager executor = new ProgramManager(state, screen, screen);
+    StatementExecutor executor = new StatementExecutor(state, screen, screen);
     Interpreter interpreter = new Interpreter(state, executor);
     try {
       interpreter.execute(program);

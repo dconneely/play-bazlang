@@ -11,7 +11,7 @@ public final class InterpreterReplHandler implements ReplHandler {
   private final VirtualInput input;
   private final AntlrParser parser;
   private final EvalState state;
-  private final ProgramManager executor;
+  private final StatementExecutor executor;
   private final ProgramEditor programEditor;
   private final Interpreter interpreter;
 
@@ -20,7 +20,7 @@ public final class InterpreterReplHandler implements ReplHandler {
       VirtualInput input,
       AntlrParser parser,
       EvalState state,
-      ProgramManager executor,
+      StatementExecutor executor,
       ProgramEditor programEditor,
       Interpreter interpreter) {
     this.screen = screen;

@@ -7,9 +7,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import com.davidconneely.bazlang.EvalState;
 import com.davidconneely.bazlang.Interpreter;
 import com.davidconneely.bazlang.ProgramLine;
-import com.davidconneely.bazlang.ProgramManager;
 import com.davidconneely.bazlang.ReportCode;
 import com.davidconneely.bazlang.ReportException;
+import com.davidconneely.bazlang.StatementExecutor;
 import com.davidconneely.bazlang.io.MockScreen;
 import java.util.HashMap;
 import java.util.List;
@@ -27,7 +27,7 @@ class StopProgramTest extends BaseProgramTest {
     final var state = new EvalState();
     // Provide "STOP" first, then "42" when we continue
     final var screen = new MockScreen(List.of("STOP", "42"));
-    final var executor = new ProgramManager(state, screen, screen);
+    final var executor = new StatementExecutor(state, screen, screen);
     final var interpreter = new Interpreter(state, executor);
 
     try {

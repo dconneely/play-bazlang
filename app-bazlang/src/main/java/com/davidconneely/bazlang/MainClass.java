@@ -43,7 +43,7 @@ public class MainClass {
       final String source = Files.readString(Path.of(sourceFile));
       final var program = PARSER.parseProgramLines(source);
       final var state = new EvalState();
-      final var executor = new ProgramManager(state, screen, input);
+      final var executor = new StatementExecutor(state, screen, input);
       final var interpreter = new Interpreter(state, executor);
       interpreter.execute(program);
       screen.waitForKey();
@@ -62,7 +62,7 @@ public class MainClass {
 
   private static void runRepl(VirtualScreen screen, VirtualInput input) {
     final var state = new EvalState();
-    final var executor = new ProgramManager(state, screen, input);
+    final var executor = new StatementExecutor(state, screen, input);
     final var interpreter = new Interpreter(state, executor);
     final var editor = new ProgramEditor(state, screen, PARSER, executor::evalNum);
     screen.systemPrintln("BazLang REPL. Type 'STOP' or Ctrl+D at the prompt to exit.");

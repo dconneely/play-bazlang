@@ -10,9 +10,9 @@ import com.davidconneely.bazlang.EvalState;
 import com.davidconneely.bazlang.Limits;
 import com.davidconneely.bazlang.ProgramEditor;
 import com.davidconneely.bazlang.ProgramLine;
-import com.davidconneely.bazlang.ProgramManager;
 import com.davidconneely.bazlang.ReportCode;
 import com.davidconneely.bazlang.ReportException;
+import com.davidconneely.bazlang.StatementExecutor;
 import com.davidconneely.bazlang.antlr.AntlrParser;
 import com.davidconneely.bazlang.antlr.BazLangParser;
 import com.davidconneely.bazlang.io.MockScreen;
@@ -25,7 +25,7 @@ class DeleteEditProgramTest extends BaseProgramTest {
 
   private EvalState state;
   private MockScreen screen;
-  private ProgramManager executor;
+  private StatementExecutor executor;
   private ProgramEditor editor;
   private AntlrParser parser;
 
@@ -33,7 +33,7 @@ class DeleteEditProgramTest extends BaseProgramTest {
   void setUp() {
     state = new EvalState();
     screen = new MockScreen();
-    executor = new ProgramManager(state, screen, screen);
+    executor = new StatementExecutor(state, screen, screen);
     parser = AntlrParser.INSTANCE;
     editor = new ProgramEditor(state, screen, parser, executor::evalNum);
     state.program().put(10, new ProgramLine(10, "PRINT \"HELLO\""));
@@ -53,7 +53,7 @@ class DeleteEditProgramTest extends BaseProgramTest {
 
   private static void handleReplCommand(
       BazLangParser.ReplCommandContext ctx,
-      ProgramManager executor,
+      StatementExecutor executor,
       ProgramEditor editor,
       VirtualInput ui,
       EvalState state) {
