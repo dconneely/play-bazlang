@@ -1,11 +1,14 @@
 package com.davidconneely.bazlang.exec;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.davidconneely.bazlang.ReportCode;
 import com.davidconneely.bazlang.ReportException;
 import com.davidconneely.bazlang.antlr.AntlrParser;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -54,5 +57,44 @@ class ProgramStorageTest {
         assertThrows(
             ReportException.class, () -> storage.save("invalid_dir/that/doesnt/exist/test.bas"));
     assertEquals(ReportCode.INVALID_FILE_NAME, ex.reportCode());
+  }
+
+  @Test
+  void testMergeOverlaysWithoutClearing(@TempDir Path tempDir) throws IOException {
+    final var state = new EvalState();
+    final var storage = new ProgramStorage(state, PARSER);
+    state.setProgram(PARSER.parseProgramLines("10 PRINT \"A\"\n20 PRINT \"B\""));
+
+    final var mergeFile = tempDir.resolve("merge.bas");
+    Files.writeString(mergeFile, "20 PRINT \"NEW\"\n30 PRINT \"C\"\n");
+    storage.merge(mergeFile.toString());
+
+    assertEquals(3, state.program().size());
+    assertEquals("PRINT \"A\"", state.program().get(10).sourceText()); // existing line kept
+    assertEquals("PRINT \"NEW\"", state.program().get(20).sourceText()); // same-numbered replaced
+    assertEquals("PRINT \"C\"", state.program().get(30).sourceText()); // new line added
+  }
+
+  @Test
+  void testVerifyMatches(@TempDir Path tempDir) {
+    final var state = new EvalState();
+    final var storage = new ProgramStorage(state, PARSER);
+    state.setProgram(PARSER.parseProgramLines("10 PRINT \"HELLO\"\n20 GOTO 10"));
+
+    final var file = tempDir.resolve("verify.bas");
+    storage.save(file.toString());
+    assertDoesNotThrow(() -> storage.verify(file.toString()));
+  }
+
+  @Test
+  void testVerifyMismatchThrowsTapeError(@TempDir Path tempDir) throws IOException {
+    final var state = new EvalState();
+    final var storage = new ProgramStorage(state, PARSER);
+    state.setProgram(PARSER.parseProgramLines("10 PRINT \"HELLO\""));
+
+    final var file = tempDir.resolve("verify.bas");
+    Files.writeString(file, "10 PRINT \"DIFFERENT\"\n");
+    final var ex = assertThrows(ReportException.class, () -> storage.verify(file.toString()));
+    assertEquals(ReportCode.TAPE_LOADING_ERROR, ex.reportCode());
   }
 }

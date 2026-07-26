@@ -125,6 +125,10 @@ Returns `1` for True, `0` for False.
 - **`DRAW [modifiers;] x, y`**: Draw a line from the current plot position to relative offset
   `(x, y)`. Updates the current plot position. Accepts colour/style modifiers before coordinates
   (e.g. `DRAW INK 2; x, y`).
+- **`CIRCLE [modifiers;] x, y, r`**: Draw a circle outline of radius `r` centred at `(x, y)`, using
+  the midpoint circle algorithm. Leaves the plot position at the centre `(x, y)`. A radius of `0`
+  (or less) plots a single point at the centre. Accepts colour/style modifiers before coordinates
+  (e.g. `CIRCLE INK 2; x, y, r`).
   - Coordinates start at `(0,0)` (bottom-left) and extend dynamically based on terminal size.
     For negative coordinate behaviours, see
     [quirks.md](quirks.md#input--output-quirks).
@@ -167,7 +171,13 @@ Returns `1` for True, `0` for False.
 - **`NEW`**: Clear program and all variables.
 - **`CLEAR`**: Clear all variables (keeps program).
 - **`SAVE "file"`**: Save program to file.
-- **`LOAD "file"`**: Load program from file.
+- **`LOAD "file"`**: Load program from file, replacing the current program.
+- **`MERGE "file"`**: Load program lines from a file and merge them into the current program:
+  lines are added, replacing any existing line with the same number, and all other existing lines
+  and variables are kept (unlike `LOAD`, which replaces the whole program).
+- **`VERIFY "file"`**: Check that the program text in the file matches the current program exactly
+  (line numbers and source text). Succeeds silently on a match; reports `R Tape loading error` if
+  the contents differ.
 - **`RANDOMIZE n`** (aliases **`RAND n`**, **`RANDOMISE n`**): Seed the random number generator.
   If `n` is `0` or omitted, it seeds dynamically using system entropy.
 

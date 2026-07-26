@@ -17,6 +17,8 @@ class ReformatVisitorTest {
 
   @Test
   void testFormatting() {
+    assertFormatsTo("circle 10, 20, 5", "CIRCLE 10, 20, 5");
+    assertFormatsTo("circle ink 2; 10, 20, 5", "CIRCLE INK 2; 10, 20, 5");
     assertFormatsTo("clear", "CLEAR");
     assertFormatsTo("cls", "CLS");
     assertFormatsTo("cont", "CONTINUE");
@@ -34,6 +36,7 @@ class ReformatVisitorTest {
     assertFormatsTo("list", "LIST");
     assertFormatsTo("list 10 to 20", "LIST 10 TO 20");
     assertFormatsTo("load \"game\"", "LOAD \"game\"");
+    assertFormatsTo("merge \"game\"", "MERGE \"game\"");
     assertFormatsTo("new", "NEW");
     assertFormatsTo("next i", "NEXT i");
     assertFormatsTo("pause 50", "PAUSE 50");
@@ -56,6 +59,7 @@ class ReformatVisitorTest {
     assertFormatsTo("save \"game\"", "SAVE \"game\"");
     assertFormatsTo("scroll", "SCROLL");
     assertFormatsTo("stop", "STOP");
+    assertFormatsTo("verify \"game\"", "VERIFY \"game\"");
     assertFormatsTo("print screen$(1, 2)", "PRINT SCREEN$(1, 2)");
     assertFormatsTo("print uscreen$(3, 4)", "PRINT USCREEN$(3, 4)");
     assertFormatsTo("print attr(1, 2)", "PRINT ATTR(1, 2)");

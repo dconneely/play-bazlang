@@ -128,6 +128,11 @@ public class ReformatVisitor extends BazLangBaseVisitor<String> {
   }
 
   @Override
+  public String visitMergeStmt(MergeStmtContext ctx) {
+    return "MERGE " + visit(ctx.strExpr());
+  }
+
+  @Override
   public String visitNewStmt(NewStmtContext ctx) {
     return "NEW";
   }
@@ -188,6 +193,17 @@ public class ReformatVisitor extends BazLangBaseVisitor<String> {
         + visit(ctx.numExpr(0))
         + ", "
         + visit(ctx.numExpr(1));
+  }
+
+  @Override
+  public String visitCircleStmt(CircleStmtContext ctx) {
+    return formatCommandWithStyles("CIRCLE", ctx.styleList())
+        + " "
+        + visit(ctx.numExpr(0))
+        + ", "
+        + visit(ctx.numExpr(1))
+        + ", "
+        + visit(ctx.numExpr(2));
   }
 
   @Override
@@ -318,6 +334,11 @@ public class ReformatVisitor extends BazLangBaseVisitor<String> {
   @Override
   public String visitSaveStmt(SaveStmtContext ctx) {
     return "SAVE " + visit(ctx.strExpr());
+  }
+
+  @Override
+  public String visitVerifyStmt(VerifyStmtContext ctx) {
+    return "VERIFY " + visit(ctx.strExpr());
   }
 
   @Override

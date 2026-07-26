@@ -54,6 +54,7 @@ replCommand
 // Statements
 statement
     : BRIGHT numExpr                                       # BrightStmt
+    | CIRCLE styleList numExpr ',' numExpr ',' numExpr     # CircleStmt
     | CLEAR                                                # ClearStmt
     | CLS                                                  # ClsStmt
     | (CONT | CONTINUE)                                    # ContStmt
@@ -73,6 +74,7 @@ statement
     | LET assignmentTarget '=' expression                  # LetStmt
     | LIST lineRange?                                      # ListStmt
     | LOAD strExpr                                         # LoadStmt
+    | MERGE strExpr                                        # MergeStmt
     | NEW                                                  # NewStmt
     | NEXT NUM_IDENTIFIER                                  # NextStmt
     | OVER numExpr                                         # OverStmt
@@ -91,6 +93,7 @@ statement
     | SCROLL                                               # ScrollStmt
     | SLOW                                                 # SlowStmt
     | STOP                                                 # StopStmt
+    | VERIFY strExpr                                       # VerifyStmt
     ;
 
 dimDecl
@@ -287,6 +290,7 @@ locals [ Object cachedStr, Object varRef ]
 
 // Keywords - Statements
 BRIGHT   : 'BRIGHT';
+CIRCLE   : 'CIRCLE';
 CLEAR    : 'CLEAR';
 CLS      : 'CLS';
 CONT     : 'CONT';
@@ -311,6 +315,7 @@ INVERSE  : 'INVERSE';
 LET      : 'LET';
 LIST     : 'LIST';
 LOAD     : 'LOAD';
+MERGE    : 'MERGE';
 NEW      : 'NEW';
 NEXT     : 'NEXT';
 OVER     : 'OVER';
@@ -334,6 +339,7 @@ SCROLL   : 'SCROLL';
 SLOW     : 'SLOW';
 STOP     : 'STOP';
 SUB      : 'SUB';
+VERIFY   : 'VERIFY';
 
 // Keywords - Operators
 AND      : 'AND';

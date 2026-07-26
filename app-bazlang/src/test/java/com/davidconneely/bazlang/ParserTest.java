@@ -56,6 +56,10 @@ class ParserTest {
     assertParses("50 LIST 10");
     assertParses("60 LIST 10 TO 20");
     assertParses("70 LIST TO 20");
+    assertParses("80 MERGE \"test.bas\"");
+    assertParses("90 VERIFY \"test.bas\"");
+    assertParses("100 CIRCLE 10, 20, 5");
+    assertParses("110 CIRCLE INK 2; 10, 20, 5");
   }
 
   @Test

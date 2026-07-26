@@ -209,6 +209,58 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
   }
 
   @Override
+  public Void visitCircleStmt(CircleStmtContext ctx) {
+    withRestoredStyles(
+        () -> {
+          applyStyleList(ctx.styleList());
+          final int cx = (int) Math.round(evalNum(ctx.numExpr(0)));
+          final int cy = (int) Math.round(evalNum(ctx.numExpr(1)));
+          final int r = (int) Math.round(evalNum(ctx.numExpr(2)));
+          try {
+            drawCircle(cx, cy, r);
+          } catch (IllegalArgumentException e) {
+            throw codedException(ReportCode.INTEGER_OUT_OF_RANGE, e.getMessage());
+          }
+          // Like PLOT, CIRCLE leaves the graphics cursor at its centre.
+          state.setGraphicsCursorX(cx);
+          state.setGraphicsCursorY(cy);
+        });
+    return null;
+  }
+
+  private void drawCircle(int cx, int cy, int r) {
+    if (r <= 0) {
+      screen.plot(cx, cy); // Degenerate circle: a single point at the centre.
+      return;
+    }
+    // Midpoint (Bresenham) circle algorithm: compute one octant and mirror to the other seven.
+    int x = r;
+    int y = 0;
+    int err = 1 - r;
+    while (x >= y) {
+      plotCircleOctants(cx, cy, x, y);
+      y++;
+      if (err < 0) {
+        err += 2 * y + 1;
+      } else {
+        x--;
+        err += 2 * (y - x) + 1;
+      }
+    }
+  }
+
+  private void plotCircleOctants(int cx, int cy, int x, int y) {
+    screen.plot(cx + x, cy + y);
+    screen.plot(cx - x, cy + y);
+    screen.plot(cx + x, cy - y);
+    screen.plot(cx - x, cy - y);
+    screen.plot(cx + y, cy + x);
+    screen.plot(cx - y, cy + x);
+    screen.plot(cx + y, cy - x);
+    screen.plot(cx - y, cy - x);
+  }
+
+  @Override
   public Void visitFastStmt(FastStmtContext ctx) {
     screen.setFastMode(true);
     return null;
@@ -350,6 +402,12 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
   @Override
   public Void visitLoadStmt(LoadStmtContext ctx) {
     storage.load(evalStr(ctx.strExpr()).toJavaString());
+    return null;
+  }
+
+  @Override
+  public Void visitMergeStmt(MergeStmtContext ctx) {
+    storage.merge(evalStr(ctx.strExpr()).toJavaString());
     return null;
   }
 
@@ -639,6 +697,12 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
   @Override
   public Void visitSaveStmt(SaveStmtContext ctx) {
     storage.save(exprEvaluator.evalStr(ctx.strExpr()).toJavaString());
+    return null;
+  }
+
+  @Override
+  public Void visitVerifyStmt(VerifyStmtContext ctx) {
+    storage.verify(exprEvaluator.evalStr(ctx.strExpr()).toJavaString());
     return null;
   }
 
