@@ -83,8 +83,8 @@ public final class InterpreterReplHandler implements ReplHandler {
   }
 
   private boolean handleNumberedLine(int lineNumber, String statementText, String originalLine) {
-    final String trimmed = originalLine.trim();
-    if (trimmed.matches("^\\d+\\s*$")) {
+    if (statementText.isBlank()) {
+      // A bare line number deletes the line
       state.program().remove(lineNumber);
       if (screen != null) {
         screen.systemPrintln(lineNumber + " deleted");
@@ -92,7 +92,7 @@ public final class InterpreterReplHandler implements ReplHandler {
     } else {
       state.program().put(lineNumber, new ProgramLine(lineNumber, statementText));
       if (screen != null) {
-        screen.systemPrintln("❯ " + trimmed);
+        screen.systemPrintln("❯ " + originalLine.trim());
       }
     }
     return true;

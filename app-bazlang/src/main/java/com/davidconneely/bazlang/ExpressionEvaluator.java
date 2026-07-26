@@ -20,6 +20,12 @@ public class ExpressionEvaluator extends BazLangBaseVisitor<Void> {
   private final int[] indexStack = new int[256];
   private int indexStackPtr = 0;
 
+  // DecimalFormat is not thread-safe, so cache per-thread instances for the hot PRINT path.
+  private static final ThreadLocal<DecimalFormat> SCI_FORMAT =
+      ThreadLocal.withInitial(() -> new DecimalFormat("0.########E0"));
+  private static final ThreadLocal<DecimalFormat> DEC_FORMAT =
+      ThreadLocal.withInitial(() -> new DecimalFormat("0.########"));
+
   // Populated by visitor
   private double numResult;
   private BStr strResult;
@@ -95,6 +101,9 @@ public class ExpressionEvaluator extends BazLangBaseVisitor<Void> {
     final var na = ref.array;
     final int count = ctx.numExpr().size();
     final int ptr = this.indexStackPtr;
+    if (indexStackPtr + count > indexStack.length) {
+      throw codedException(ReportCode.OUT_OF_MEMORY, "Expression too deeply nested");
+    }
     this.indexStackPtr += count;
     try {
       for (int i = 0; i < count; i++) {
@@ -380,6 +389,9 @@ public class ExpressionEvaluator extends BazLangBaseVisitor<Void> {
         }
         final int count = ctx.numExpr().size();
         final int ptr = this.indexStackPtr;
+        if (indexStackPtr + count > indexStack.length) {
+          throw codedException(ReportCode.OUT_OF_MEMORY, "Expression too deeply nested");
+        }
         this.indexStackPtr += count;
         try {
           for (int i = 0; i < count; i++) {
@@ -469,6 +481,9 @@ public class ExpressionEvaluator extends BazLangBaseVisitor<Void> {
   private BStr evalStrSubscriptCore(EvalState.StrVar strVar, StrSubscriptContext subscript) {
     int indicesCount = subscript.indices != null ? subscript.indices.size() : 0;
     final int ptr = this.indexStackPtr;
+    if (indexStackPtr + indicesCount > indexStack.length) {
+      throw codedException(ReportCode.OUT_OF_MEMORY, "Expression too deeply nested");
+    }
     this.indexStackPtr += indicesCount;
     try {
       if (indicesCount > 0) {
@@ -806,7 +821,7 @@ public class ExpressionEvaluator extends BazLangBaseVisitor<Void> {
     final double abs = Math.abs(d);
     if (abs < 1e-5 || abs >= 1e13) {
       // Scientific notation for extreme values
-      final var df = new DecimalFormat("0.########E0");
+      final var df = SCI_FORMAT.get();
       String result = df.format(d);
       // Add + sign for positive exponents (e.g., 1E15 -> 1E+15)
       final int ePos = result.indexOf('E');
@@ -816,7 +831,7 @@ public class ExpressionEvaluator extends BazLangBaseVisitor<Void> {
       return result;
     } else {
       // Normal decimal notation with up to 8 decimal places
-      final var df = new DecimalFormat("0.########");
+      final var df = DEC_FORMAT.get();
       return df.format(d);
     }
   }
