@@ -2,6 +2,7 @@ package com.davidconneely.bazlang;
 
 import com.davidconneely.bazlang.antlr.AntlrParser;
 import com.davidconneely.bazlang.antlr.BazLangBaseVisitor;
+import com.davidconneely.bazlang.antlr.BazLangParser;
 import com.davidconneely.bazlang.antlr.BazLangParser.*;
 import com.davidconneely.bazlang.io.VirtualInput;
 import com.davidconneely.bazlang.io.VirtualScreen;
@@ -243,198 +244,124 @@ public class ExpressionEvaluator extends BazLangBaseVisitor<Void> {
   @SuppressWarnings(
       "PMD.NcssCount") // Visitor method: one branch per grammar production is expected
   public Void visitNumFunc(NumFuncContext ctx) {
-    if (ctx.ABS() != null) {
-      numResult = Math.abs(evalNumAtom(ctx.numAtom()));
-      return null;
-    }
-    if (ctx.ACS() != null) {
-      final double arg = evalNumAtom(ctx.numAtom());
-      if (Math.abs(arg) > 1.0) {
-        throw codedException(ReportCode.INVALID_ARGUMENT, "ACS requires argument in [-1, 1]");
+    switch (ctx.getStart().getType()) {
+      case BazLangParser.ABS -> numResult = Math.abs(evalNumAtom(ctx.numAtom()));
+      case BazLangParser.ACS -> {
+        final double arg = evalNumAtom(ctx.numAtom());
+        if (Math.abs(arg) > 1.0) {
+          throw codedException(ReportCode.INVALID_ARGUMENT, "ACS requires argument in [-1, 1]");
+        }
+        numResult = Math.acos(arg);
       }
-      numResult = Math.acos(arg);
-      return null;
-    }
-    if (ctx.ASN() != null) {
-      final double arg = evalNumAtom(ctx.numAtom());
-      if (Math.abs(arg) > 1.0) {
-        throw codedException(ReportCode.INVALID_ARGUMENT, "ASN requires argument in [-1, 1]");
+      case BazLangParser.ASN -> {
+        final double arg = evalNumAtom(ctx.numAtom());
+        if (Math.abs(arg) > 1.0) {
+          throw codedException(ReportCode.INVALID_ARGUMENT, "ASN requires argument in [-1, 1]");
+        }
+        numResult = Math.asin(arg);
       }
-      numResult = Math.asin(arg);
-      return null;
-    }
-    if (ctx.ATTR() != null) {
-      final int row = (int) Math.round(evalNum(ctx.numExpr(0)));
-      final int col = (int) Math.round(evalNum(ctx.numExpr(1)));
-      if (row < 0 || row >= screen.printHeight() || col < 0 || col >= screen.printWidth()) {
-        throw codedException(ReportCode.INTEGER_OUT_OF_RANGE, "Screen coordinates out of bounds");
+      case BazLangParser.ATTR -> {
+        final int row = (int) Math.round(evalNum(ctx.numExpr(0)));
+        final int col = (int) Math.round(evalNum(ctx.numExpr(1)));
+        if (row < 0 || row >= screen.printHeight() || col < 0 || col >= screen.printWidth()) {
+          throw codedException(ReportCode.INTEGER_OUT_OF_RANGE, "Screen coordinates out of bounds");
+        }
+        numResult = screen.getScreenAttributes(row, col);
       }
-      numResult = screen.getScreenAttributes(row, col);
-      return null;
-    }
-    if (ctx.ATN() != null) {
-      numResult = Math.atan(evalNumAtom(ctx.numAtom()));
-      return null;
-    }
-    if (ctx.CODE() != null) {
-      final var s = evalStrAtom(ctx.strAtom());
-      // Sinclair ZX BASIC `PRINT CODE ""` shows `0`
-      numResult = s.isEmpty() ? 0 : s.byteAt(0);
-      return null;
-    }
-    if (ctx.COLOUR() != null) {
-      final double rVal = evalNum(ctx.numExpr(0));
-      final double gVal = evalNum(ctx.numExpr(1));
-      final double bVal = evalNum(ctx.numExpr(2));
-      final int r = (int) Math.round(rVal);
-      final int g = (int) Math.round(gVal);
-      final int b = (int) Math.round(bVal);
-      if (r < 0 || r > 255 || g < 0 || g > 255 || b < 0 || b > 255) {
-        throw codedException(
-            ReportCode.INVALID_ARGUMENT, "COLOUR components must be between 0 and 255");
+      case BazLangParser.ATN -> numResult = Math.atan(evalNumAtom(ctx.numAtom()));
+      case BazLangParser.CODE -> {
+        final var s = evalStrAtom(ctx.strAtom());
+        // Sinclair ZX BASIC `PRINT CODE ""` shows `0`
+        numResult = s.isEmpty() ? 0 : s.byteAt(0);
       }
-      final int y = ((r & 0xFF) << 16) | ((g & 0xFF) << 8) | (b & 0xFF);
-      numResult = 16_777_216.0 + y;
-      return null;
-    }
-    if (ctx.COS() != null) {
-      numResult = Math.cos(evalNumAtom(ctx.numAtom()));
-      return null;
-    }
-    if (ctx.EXP() != null) {
-      numResult = requireFinite(Math.exp(evalNumAtom(ctx.numAtom())));
-      return null;
-    }
-    if (ctx.FRAMES() != null) {
-      numResult = System.currentTimeMillis() / 20.0;
-      return null;
-    }
-    if (ctx.INT() != null) {
-      numResult = Math.floor(evalNumAtom(ctx.numAtom()));
-      return null;
-    }
-    if (ctx.LEN() != null) {
-      numResult = evalStrAtom(ctx.strAtom()).length();
-      return null;
-    }
-    if (ctx.LN() != null) {
-      final double arg = evalNumAtom(ctx.numAtom());
-      if (arg <= 0.0) {
-        throw codedException(ReportCode.INVALID_ARGUMENT, "LN requires a positive argument");
+      case BazLangParser.COLOUR -> {
+        final double rVal = evalNum(ctx.numExpr(0));
+        final double gVal = evalNum(ctx.numExpr(1));
+        final double bVal = evalNum(ctx.numExpr(2));
+        final int r = (int) Math.round(rVal);
+        final int g = (int) Math.round(gVal);
+        final int b = (int) Math.round(bVal);
+        if (r < 0 || r > 255 || g < 0 || g > 255 || b < 0 || b > 255) {
+          throw codedException(
+              ReportCode.INVALID_ARGUMENT, "COLOUR components must be between 0 and 255");
+        }
+        final int y = ((r & 0xFF) << 16) | ((g & 0xFF) << 8) | (b & 0xFF);
+        numResult = 16_777_216.0 + y;
       }
-      numResult = Math.log(arg);
-      return null;
-    }
-    if (ctx.PI() != null) {
-      numResult = Math.PI;
-      return null;
-    }
-    if (ctx.PLOTH() != null) {
-      numResult = screen.plotHeight();
-      return null;
-    }
-    if (ctx.PLOTMODE() != null) {
-      numResult = screen.plotMode();
-      return null;
-    }
-    if (ctx.PLOTW() != null) {
-      numResult = screen.plotWidth();
-      return null;
-    }
-    if (ctx.PLOTX() != null) {
-      numResult = state.graphicsCursorX();
-      return null;
-    }
-    if (ctx.PLOTY() != null) {
-      numResult = state.graphicsCursorY();
-      return null;
-    }
-    if (ctx.POINT() != null) {
-      final int x = (int) Math.round(evalNum(ctx.numExpr(0)));
-      final int y = (int) Math.round(evalNum(ctx.numExpr(1)));
-      numResult = screen.point(x, y);
-      return null;
-    }
-    if (ctx.RND() != null) {
-      numResult = state.nextRandom();
-      return null;
-    }
-    if (ctx.SGN() != null) {
-      numResult = Math.signum(evalNumAtom(ctx.numAtom()));
-      return null;
-    }
-    if (ctx.SIN() != null) {
-      numResult = Math.sin(evalNumAtom(ctx.numAtom()));
-      return null;
-    }
-    if (ctx.SQR() != null) {
-      final double arg = evalNumAtom(ctx.numAtom());
-      if (arg < 0.0) {
-        throw codedException(ReportCode.INVALID_ARGUMENT, "SQR requires non-negative argument");
+      case BazLangParser.COS -> numResult = Math.cos(evalNumAtom(ctx.numAtom()));
+      case BazLangParser.EXP -> numResult = requireFinite(Math.exp(evalNumAtom(ctx.numAtom())));
+      case BazLangParser.FRAMES -> numResult = System.currentTimeMillis() / 20.0;
+      case BazLangParser.INT -> numResult = Math.floor(evalNumAtom(ctx.numAtom()));
+      case BazLangParser.LEN -> numResult = evalStrAtom(ctx.strAtom()).length();
+      case BazLangParser.LN -> {
+        final double arg = evalNumAtom(ctx.numAtom());
+        if (arg <= 0.0) {
+          throw codedException(ReportCode.INVALID_ARGUMENT, "LN requires a positive argument");
+        }
+        numResult = Math.log(arg);
       }
-      numResult = Math.sqrt(arg);
-      return null;
-    }
-    if (ctx.TAN() != null) {
-      numResult = Math.tan(evalNumAtom(ctx.numAtom()));
-      return null;
-    }
-    if (ctx.TEXTH() != null) {
-      numResult = screen.printHeight();
-      return null;
-    }
-    if (ctx.TEXTW() != null) {
-      numResult = screen.printWidth();
-      return null;
-    }
-    if (ctx.TEXTX() != null) {
-      numResult = screen.currentCol();
-      return null;
-    }
-    if (ctx.TEXTY() != null) {
-      numResult = screen.currentRow();
-      return null;
-    }
-    if (ctx.UCNEXT() != null) {
-      final var s = evalStr(ctx.strExpr());
-      final int pos = (int) evalNum(ctx.numExpr(0)); // 1-based byte position
-      if (pos < 1 || pos > s.length() + 1) {
-        throw codedException(ReportCode.INTEGER_OUT_OF_RANGE, "UCNEXT position out of range");
+      case BazLangParser.PI -> numResult = Math.PI;
+      case BazLangParser.PLOTH -> numResult = screen.plotHeight();
+      case BazLangParser.PLOTMODE -> numResult = screen.plotMode();
+      case BazLangParser.PLOTW -> numResult = screen.plotWidth();
+      case BazLangParser.PLOTX -> numResult = state.graphicsCursorX();
+      case BazLangParser.PLOTY -> numResult = state.graphicsCursorY();
+      case BazLangParser.POINT -> {
+        final int x = (int) Math.round(evalNum(ctx.numExpr(0)));
+        final int y = (int) Math.round(evalNum(ctx.numExpr(1)));
+        numResult = screen.point(x, y);
       }
-      numResult = s.nextCodepointStart(pos - 1) + 1;
-      return null; // numResult = 1-based
-    }
-    if (ctx.UCODE() != null) {
-      final var s = evalStrAtom(ctx.strAtom());
-      if (s.isEmpty()) {
-        throw codedException(ReportCode.NONSENSE_IN_BASIC, "UCODE of empty string");
+      case BazLangParser.RND -> numResult = state.nextRandom();
+      case BazLangParser.SGN -> numResult = Math.signum(evalNumAtom(ctx.numAtom()));
+      case BazLangParser.SIN -> numResult = Math.sin(evalNumAtom(ctx.numAtom()));
+      case BazLangParser.SQR -> {
+        final double arg = evalNumAtom(ctx.numAtom());
+        if (arg < 0.0) {
+          throw codedException(ReportCode.INVALID_ARGUMENT, "SQR requires non-negative argument");
+        }
+        numResult = Math.sqrt(arg);
       }
-      numResult = s.firstCodepoint();
-      return null;
-    }
-    if (ctx.ULEN() != null) {
-      numResult = evalStrAtom(ctx.strAtom()).codepointLength();
-      return null;
-    }
-    if (ctx.VAL() != null) {
-      final String exprStr = evalStrAtom(ctx.strAtom()).toJavaString().trim();
-      numResult = evaluateNumericExpression(exprStr);
-      return null;
-    }
-    if (ctx.XATTR() != null) {
-      final int row = (int) Math.round(evalNum(ctx.numExpr(0)));
-      final int col = (int) Math.round(evalNum(ctx.numExpr(1)));
-      final int select = (int) Math.round(evalNum(ctx.numExpr(2)));
-      if (row < 0 || row >= screen.printHeight() || col < 0 || col >= screen.printWidth()) {
-        throw codedException(ReportCode.INTEGER_OUT_OF_RANGE, "Screen coordinates out of bounds");
+      case BazLangParser.TAN -> numResult = Math.tan(evalNumAtom(ctx.numAtom()));
+      case BazLangParser.TEXTH -> numResult = screen.printHeight();
+      case BazLangParser.TEXTW -> numResult = screen.printWidth();
+      case BazLangParser.TEXTX -> numResult = screen.currentCol();
+      case BazLangParser.TEXTY -> numResult = screen.currentRow();
+      case BazLangParser.UCNEXT -> {
+        final var s = evalStr(ctx.strExpr());
+        final int pos = (int) evalNum(ctx.numExpr(0)); // 1-based byte position
+        if (pos < 1 || pos > s.length() + 1) {
+          throw codedException(ReportCode.INTEGER_OUT_OF_RANGE, "UCNEXT position out of range");
+        }
+        numResult = s.nextCodepointStart(pos - 1) + 1; // numResult = 1-based
       }
-      if (select < 0 || select > 8) {
-        throw codedException(ReportCode.INTEGER_OUT_OF_RANGE, "XATTR selector out of range [0, 8]");
+      case BazLangParser.UCODE -> {
+        final var s = evalStrAtom(ctx.strAtom());
+        if (s.isEmpty()) {
+          throw codedException(ReportCode.NONSENSE_IN_BASIC, "UCODE of empty string");
+        }
+        numResult = s.firstCodepoint();
       }
-      numResult = screen.getXAttributes(row, col, select);
-      return null;
+      case BazLangParser.ULEN -> numResult = evalStrAtom(ctx.strAtom()).codepointLength();
+      case BazLangParser.VAL -> {
+        final String exprStr = evalStrAtom(ctx.strAtom()).toJavaString().trim();
+        numResult = evaluateNumericExpression(exprStr);
+      }
+      case BazLangParser.XATTR -> {
+        final int row = (int) Math.round(evalNum(ctx.numExpr(0)));
+        final int col = (int) Math.round(evalNum(ctx.numExpr(1)));
+        final int select = (int) Math.round(evalNum(ctx.numExpr(2)));
+        if (row < 0 || row >= screen.printHeight() || col < 0 || col >= screen.printWidth()) {
+          throw codedException(ReportCode.INTEGER_OUT_OF_RANGE, "Screen coordinates out of bounds");
+        }
+        if (select < 0 || select > 8) {
+          throw codedException(
+              ReportCode.INTEGER_OUT_OF_RANGE, "XATTR selector out of range [0, 8]");
+        }
+        numResult = screen.getXAttributes(row, col, select);
+      }
+      default -> throw codedException(ReportCode.NONSENSE_IN_BASIC, "Unknown function");
     }
-    throw codedException(ReportCode.NONSENSE_IN_BASIC, "Unknown function");
+    return null;
   }
 
   private double evalNumAtom(NumAtomContext ctx) {
@@ -637,63 +564,54 @@ public class ExpressionEvaluator extends BazLangBaseVisitor<Void> {
 
   @Override
   public Void visitStrFunc(StrFuncContext ctx) {
-    if (ctx.CHR_STR() != null) {
-      final int code = (int) evalNumAtom(ctx.numAtom());
-      if (code < 0 || code > 255) {
-        throw codedException(
-            ReportCode.INTEGER_OUT_OF_RANGE, "CHR$ argument out of range (0-255); use UCHR$");
-      }
-      strResult = BStr.fromByte(code);
-      return null;
-    }
-    if (ctx.INKEY_STR() != null) {
-      strResult = input.inkey();
-      return null;
-    }
-    if (ctx.SCREEN_STR() != null || ctx.USCREEN_STR() != null) {
-      final int row = (int) Math.round(evalNum(ctx.numExpr(0)));
-      final int col = (int) Math.round(evalNum(ctx.numExpr(1)));
-      if (row < 0 || row >= screen.printHeight() || col < 0 || col >= screen.printWidth()) {
-        throw codedException(ReportCode.INTEGER_OUT_OF_RANGE, "Screen coordinates out of bounds");
-      }
-      final int cp = screen.getScreenCodepoint(row, col);
-      if (ctx.SCREEN_STR() != null) {
-        if (cp >= 0 && cp <= 127) {
-          strResult = BStr.fromByte(cp);
-        } else {
-          strResult = BStr.EMPTY;
+    switch (ctx.getStart().getType()) {
+      case BazLangParser.CHR_STR -> {
+        final int code = (int) evalNumAtom(ctx.numAtom());
+        if (code < 0 || code > 255) {
+          throw codedException(
+              ReportCode.INTEGER_OUT_OF_RANGE, "CHR$ argument out of range (0-255); use UCHR$");
         }
-      } else {
-        if (cp < 0 || !Character.isValidCodePoint(cp)) {
-          strResult = BStr.EMPTY;
+        strResult = BStr.fromByte(code);
+      }
+      case BazLangParser.INKEY_STR -> strResult = input.inkey();
+      case BazLangParser.SCREEN_STR, BazLangParser.USCREEN_STR -> {
+        final int row = (int) Math.round(evalNum(ctx.numExpr(0)));
+        final int col = (int) Math.round(evalNum(ctx.numExpr(1)));
+        if (row < 0 || row >= screen.printHeight() || col < 0 || col >= screen.printWidth()) {
+          throw codedException(ReportCode.INTEGER_OUT_OF_RANGE, "Screen coordinates out of bounds");
+        }
+        final int cp = screen.getScreenCodepoint(row, col);
+        if (ctx.SCREEN_STR() != null) {
+          if (cp >= 0 && cp <= 127) {
+            strResult = BStr.fromByte(cp);
+          } else {
+            strResult = BStr.EMPTY;
+          }
         } else {
-          strResult = BStr.fromJavaString(new String(Character.toChars(cp)));
+          if (cp < 0 || !Character.isValidCodePoint(cp)) {
+            strResult = BStr.EMPTY;
+          } else {
+            strResult = BStr.fromJavaString(new String(Character.toChars(cp)));
+          }
         }
       }
-      return null;
-    }
-    if (ctx.STR_STR() != null) {
-      strResult = BStr.fromJavaString(formatNum(evalNumAtom(ctx.numAtom())));
-      return null;
-    }
-    if (ctx.UCHR_STR() != null) {
-      final int code = (int) evalNumAtom(ctx.numAtom());
-      if (code < 0 || !Character.isValidCodePoint(code)) {
-        throw codedException(ReportCode.INTEGER_OUT_OF_RANGE, "UCHR$ argument out of range");
+      case BazLangParser.STR_STR ->
+          strResult = BStr.fromJavaString(formatNum(evalNumAtom(ctx.numAtom())));
+      case BazLangParser.UCHR_STR -> {
+        final int code = (int) evalNumAtom(ctx.numAtom());
+        if (code < 0 || !Character.isValidCodePoint(code)) {
+          throw codedException(ReportCode.INTEGER_OUT_OF_RANGE, "UCHR$ argument out of range");
+        }
+        strResult = BStr.fromJavaString(new String(Character.toChars(code)));
       }
-      strResult = BStr.fromJavaString(new String(Character.toChars(code)));
-      return null;
+      case BazLangParser.UINKEY_STR -> strResult = input.uinkey();
+      case BazLangParser.VAL_STR -> {
+        final String exprStr = evalStrAtom(ctx.strAtom()).toJavaString().trim();
+        strResult = evaluateStringExpression(exprStr);
+      }
+      default -> throw codedException(ReportCode.NONSENSE_IN_BASIC, "Unknown string function");
     }
-    if (ctx.UINKEY_STR() != null) {
-      strResult = input.uinkey();
-      return null;
-    }
-    if (ctx.VAL_STR() != null) {
-      final String exprStr = evalStrAtom(ctx.strAtom()).toJavaString().trim();
-      strResult = evaluateStringExpression(exprStr);
-      return null;
-    }
-    throw codedException(ReportCode.NONSENSE_IN_BASIC, "Unknown string function");
+    return null;
   }
 
   private BStr evalStrAtom(StrAtomContext ctx) {
