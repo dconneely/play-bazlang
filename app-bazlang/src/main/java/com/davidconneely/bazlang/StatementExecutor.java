@@ -15,6 +15,7 @@ import com.davidconneely.repl.BreakException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.function.Supplier;
 
 /** Executes BazLang from the ANTLR ParseTree. */
 public class StatementExecutor extends BazLangBaseVisitor<Void> {
@@ -244,22 +245,16 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
   }
 
   private String readInputLine(VirtualInput.InputMode mode) {
-    try {
-      final String line = input.readln(mode);
-      if (line != null && line.trim().equalsIgnoreCase("STOP")) {
-        state.setRunning(false);
-        throw codedException(ReportCode.STOP_IN_INPUT, ReportCode.STOP_IN_INPUT.getMessage());
-      }
-      return line != null ? line : "";
-    } catch (BreakException e) {
-      state.setRunning(false);
-      throw codedException(ReportCode.STOP_IN_INPUT, ReportCode.STOP_IN_INPUT.getMessage());
-    }
+    return checkedInputLine(() -> input.readln(mode));
   }
 
   private String readInputLine(String prompt) {
+    return checkedInputLine(() -> input.readln(prompt));
+  }
+
+  private String checkedInputLine(Supplier<String> reader) {
     try {
-      final String line = input.readln(prompt);
+      final String line = reader.get();
       if (line != null && line.trim().equalsIgnoreCase("STOP")) {
         state.setRunning(false);
         throw codedException(ReportCode.STOP_IN_INPUT, ReportCode.STOP_IN_INPUT.getMessage());
