@@ -1,5 +1,7 @@
 package com.davidconneely.bazlang;
 
+import com.davidconneely.bazlang.antlr.AntlrParser;
+import com.davidconneely.bazlang.antlr.BazLangParser;
 import java.util.Collection;
 import java.util.Map;
 import java.util.NavigableMap;
@@ -76,5 +78,46 @@ public class Program {
 
   public int size() {
     return lines.size();
+  }
+
+  /**
+   * Finds the first DATA statement at or after {@code fromLabel}, scanning flattened statements in
+   * program order. Returns its address, or null if there is none.
+   */
+  public EvalState.StatementAddress findFirstData(int fromLabel, AntlrParser parser) {
+    Integer label = lines.ceilingKey(fromLabel);
+    while (label != null) {
+      final var stmts = lines.get(label).getFlattenedStatements(parser);
+      for (int i = 1; i <= stmts.size(); i++) {
+        if (stmts.get(i - 1) instanceof BazLangParser.DataStmtContext) {
+          return new EvalState.StatementAddress(label, i);
+        }
+      }
+      label = lines.higherKey(label);
+    }
+    return null;
+  }
+
+  /**
+   * Finds the first {@code NEXT forVar} at or after (fromLabel, fromStatementIndex), scanning
+   * flattened statements in program order (deliberately including IF bodies — see docs/quirks.md
+   * "FOR loop flat skip scan"). Returns its address, or null.
+   */
+  public EvalState.StatementAddress findMatchingNext(
+      String forVar, int fromLabel, int fromStatementIndex, AntlrParser parser) {
+    Integer label = lines.ceilingKey(fromLabel); // == fromLabel itself when present
+    int startIdx = fromStatementIndex;
+    while (label != null) {
+      final var stmts = lines.get(label).getFlattenedStatements(parser);
+      for (int i = startIdx; i <= stmts.size(); i++) {
+        if (stmts.get(i - 1) instanceof BazLangParser.NextStmtContext nextCtx
+            && nextCtx.NUM_IDENTIFIER().getText().equalsIgnoreCase(forVar)) {
+          return new EvalState.StatementAddress(label, i);
+        }
+      }
+      label = lines.higherKey(label);
+      startIdx = 1;
+    }
+    return null;
   }
 }

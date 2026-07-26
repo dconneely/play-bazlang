@@ -276,23 +276,14 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
   }
 
   private void restoreTo(int target) {
-    Integer searchLine = state.program().ceilingKey(target);
-    while (searchLine != null) {
-      final var line = state.program().get(searchLine);
-      final var stmts = line.getFlattenedStatements(AntlrParser.INSTANCE);
-      int stmtIdx = 1;
-      for (final var stmt : stmts) {
-        if (stmt instanceof DataStmtContext) {
-          state.setDataLineLabel(searchLine);
-          state.setDataStatementIndex(stmtIdx);
-          state.setDataExpressionIndex(0);
-          return;
-        }
-        stmtIdx++;
-      }
-      searchLine = state.program().higherKey(searchLine);
+    final var addr = state.program().findFirstData(target, AntlrParser.INSTANCE);
+    if (addr != null) {
+      state.setDataLineLabel(addr.lineLabel());
+      state.setDataStatementIndex(addr.statementIndex());
+      state.setDataExpressionIndex(0);
+    } else {
+      state.setDataLineLabel(Integer.MAX_VALUE);
     }
-    state.setDataLineLabel(Integer.MAX_VALUE);
   }
 
   @Override
@@ -990,34 +981,21 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
         new EvalState.ForLoopData(
             en, step, state.currentLineLabel(), state.currentStatementIndex()));
     if ((step >= 0) ? (st > en) : (st < en)) {
-      // Skip to matching NEXT.
-      // On a Sinclair ZX Spectrum, the scan is a flat, linear pass through all statements in
-      // program order, including those nested inside IF...THEN bodies. So `IF 0 THEN NEXT i` is
-      // still found by the scan even though the condition is always false. We use
-      // getFlattenedStatements() to replicate this behaviour, which is also consistent with the
-      // flat statement indices used by Interpreter.resume().
-      Integer searchLabel = state.currentLineLabel();
-      int startIdx = state.currentStatementIndex() + 1;
-      while (searchLabel != null) {
-        final var line = state.program().get(searchLabel);
-        if (line != null) {
-          final var flatStmts = line.getFlattenedStatements(AntlrParser.INSTANCE);
-          int stmtIdx = 1;
-          for (final var stmt : flatStmts) {
-            if (stmtIdx >= startIdx
-                && stmt instanceof NextStmtContext nextCtx
-                && nextCtx.NUM_IDENTIFIER().getText().equalsIgnoreCase(forVar)) {
-              state.setPendingJumpLocation(searchLabel, stmtIdx + 1);
-              return null;
-            }
-            stmtIdx++;
-          }
-        }
-        searchLabel = state.program().higherKey(searchLabel);
-        startIdx = 1; // For subsequent lines, check all statements
+      // Skip to matching NEXT (flat scan including IF bodies — see docs/quirks.md
+      // "FOR loop flat skip scan").
+      final var addr =
+          state
+              .program()
+              .findMatchingNext(
+                  forVar,
+                  state.currentLineLabel(),
+                  state.currentStatementIndex() + 1,
+                  AntlrParser.INSTANCE);
+      if (addr == null) {
+        throw new ReportException(
+            ReportCode.FOR_WITHOUT_NEXT, state.currentLineLabel(), "FOR without NEXT");
       }
-      throw new ReportException(
-          ReportCode.FOR_WITHOUT_NEXT, state.currentLineLabel(), "FOR without NEXT");
+      state.setPendingJumpLocation(addr.lineLabel(), addr.statementIndex() + 1);
     }
     return null;
   }
