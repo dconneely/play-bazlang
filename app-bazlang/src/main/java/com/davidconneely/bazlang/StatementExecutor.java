@@ -584,27 +584,14 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
   }
 
   private void withRestoredStyles(Runnable action) {
-    final int prevInk = state.defaultInk();
-    final int prevPaper = state.defaultPaper();
-    final int prevBright = state.defaultBright();
-    final int prevFlash = state.defaultFlash();
-    final int prevInverse = state.defaultInverse();
-    final int prevOver = state.defaultOver();
-    screen.setInk(prevInk);
-    screen.setPaper(prevPaper);
-    screen.setBright(prevBright);
-    screen.setFlash(prevFlash);
-    screen.setInverse(prevInverse);
-    screen.setOver(prevOver);
+    // Behaviour-identical to saving and re-applying the six values individually: the defaults
+    // cannot change during the action, because style *statements* are what change defaults and
+    // they cannot occur inside a PRINT/PLOT item list.
+    state.defaultStyles().applyTo(screen);
     try {
       action.run();
     } finally {
-      screen.setInk(prevInk);
-      screen.setPaper(prevPaper);
-      screen.setBright(prevBright);
-      screen.setFlash(prevFlash);
-      screen.setInverse(prevInverse);
-      screen.setOver(prevOver);
+      state.defaultStyles().applyTo(screen);
     }
   }
 

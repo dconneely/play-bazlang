@@ -9,7 +9,6 @@ import java.util.Map;
 import java.util.Random;
 import java.util.TreeMap;
 
-@SuppressWarnings("PMD.TooManyFields")
 public class EvalState {
   public record NumArray(int[] dimensions, double[] data) {}
 
@@ -91,63 +90,62 @@ public class EvalState {
   // - 9: Contrast colour
   // - 256..511: xterm colour index + 256
   // - 2^24..2^25-1: 24-bit RGB colour value + 2^24
-  private int defaultInk = -1;
-  private int defaultPaper = -1;
-  private int defaultBright = 0;
-  private int defaultFlash = 0;
-  private int defaultInverse = 0;
-  private int defaultOver = 0;
+  private final StyleState defaultStyles = new StyleState();
 
   public Program program() {
     return program;
   }
 
+  public StyleState defaultStyles() {
+    return defaultStyles;
+  }
+
   public int defaultInk() {
-    return defaultInk;
+    return defaultStyles.ink();
   }
 
   public void setDefaultInk(int defaultInk) {
-    this.defaultInk = defaultInk;
+    defaultStyles.setInk(defaultInk);
   }
 
   public int defaultPaper() {
-    return defaultPaper;
+    return defaultStyles.paper();
   }
 
   public void setDefaultPaper(int defaultPaper) {
-    this.defaultPaper = defaultPaper;
+    defaultStyles.setPaper(defaultPaper);
   }
 
   public int defaultBright() {
-    return defaultBright;
+    return defaultStyles.bright();
   }
 
   public void setDefaultBright(int defaultBright) {
-    this.defaultBright = defaultBright;
+    defaultStyles.setBright(defaultBright);
   }
 
   public int defaultFlash() {
-    return defaultFlash;
+    return defaultStyles.flash();
   }
 
   public void setDefaultFlash(int defaultFlash) {
-    this.defaultFlash = defaultFlash;
+    defaultStyles.setFlash(defaultFlash);
   }
 
   public int defaultInverse() {
-    return defaultInverse;
+    return defaultStyles.inverse();
   }
 
   public void setDefaultInverse(int defaultInverse) {
-    this.defaultInverse = defaultInverse;
+    defaultStyles.setInverse(defaultInverse);
   }
 
   public int defaultOver() {
-    return defaultOver;
+    return defaultStyles.over();
   }
 
   public void setDefaultOver(int defaultOver) {
-    this.defaultOver = defaultOver;
+    defaultStyles.setOver(defaultOver);
   }
 
   private int graphicsCursorX = 0;
@@ -452,11 +450,6 @@ public class EvalState {
     dataExpressionIndex = -1;
     dataLineLabel = -1;
     dataStatementIndex = -1;
-    defaultInk = -1; // Terminal default
-    defaultPaper = -1; // Terminal default
-    defaultBright = 0;
-    defaultFlash = 0;
-    defaultInverse = 0;
-    defaultOver = 0;
+    defaultStyles.reset();
   }
 }
