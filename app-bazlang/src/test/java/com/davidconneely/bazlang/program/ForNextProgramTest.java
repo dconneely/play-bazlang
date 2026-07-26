@@ -3,13 +3,13 @@ package com.davidconneely.bazlang.program;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import com.davidconneely.bazlang.EvalState;
-import com.davidconneely.bazlang.Interpreter;
 import com.davidconneely.bazlang.InterpreterReplHandler;
-import com.davidconneely.bazlang.ProgramEditor;
 import com.davidconneely.bazlang.ReportCode;
 import com.davidconneely.bazlang.ReportException;
-import com.davidconneely.bazlang.StatementExecutor;
+import com.davidconneely.bazlang.edit.ProgramEditor;
+import com.davidconneely.bazlang.exec.EvalState;
+import com.davidconneely.bazlang.exec.Interpreter;
+import com.davidconneely.bazlang.exec.StatementExecutor;
 import com.davidconneely.bazlang.io.MockScreen;
 import java.util.List;
 import org.junit.jupiter.api.Test;

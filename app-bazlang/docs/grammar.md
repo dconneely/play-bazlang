@@ -156,8 +156,8 @@ current pixel state (which is slightly confusing, but consistent with the Sincla
 To add a new operator (e.g., modulo `%`):
 
 1. Add to grammar: `| numExpr '%' numExpr  # NumModExpr`
-2. Add visitor method to `StatementExecutor` (or override it in `ProgramManager` if the
-   implementation needs access to the full programme manager)
+2. Add a visitor method to `ExpressionEvaluator` (for expressions) or `StatementExecutor` (for
+   statements)
 3. Write tests
 
 The grammar serves as both the implementation and the documentation of the language syntax.

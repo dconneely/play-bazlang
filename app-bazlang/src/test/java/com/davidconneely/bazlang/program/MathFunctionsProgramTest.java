@@ -5,8 +5,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.davidconneely.bazlang.BStr;
-import com.davidconneely.bazlang.EvalState;
 import com.davidconneely.bazlang.ReportException;
+import com.davidconneely.bazlang.exec.EvalState;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 

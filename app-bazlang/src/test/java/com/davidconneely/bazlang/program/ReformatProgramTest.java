@@ -2,12 +2,12 @@ package com.davidconneely.bazlang.program;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import com.davidconneely.bazlang.EvalState;
-import com.davidconneely.bazlang.ProgramEditor;
-import com.davidconneely.bazlang.ProgramLine;
-import com.davidconneely.bazlang.StatementExecutor;
 import com.davidconneely.bazlang.antlr.AntlrParser;
 import com.davidconneely.bazlang.antlr.BazLangParser;
+import com.davidconneely.bazlang.edit.ProgramEditor;
+import com.davidconneely.bazlang.exec.EvalState;
+import com.davidconneely.bazlang.exec.ProgramLine;
+import com.davidconneely.bazlang.exec.StatementExecutor;
 import com.davidconneely.bazlang.io.StreamScreen;
 import org.junit.jupiter.api.Test;
 

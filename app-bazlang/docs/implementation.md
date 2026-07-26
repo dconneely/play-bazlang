@@ -10,6 +10,20 @@ refactoring.
 
 The interpreter executes directly from ANTLR's parse tree using a visitor pattern.
 
+### Package layout
+
+Under `com.davidconneely.bazlang`:
+
+- **root**: entry point and REPL wiring (`MainClass`, `InterpreterReplHandler`) plus the shared
+  primitives used by every package (`BStr`, `Limits`, `ReportCode`, `ReportException`).
+- **`exec`**: the execution engine — `Interpreter`, `StatementExecutor`, `ExpressionEvaluator`,
+  `AstAnnotator`, `EvalState`, `Program`, `ProgramLine`, `ProgramStorage`, and the small value
+  types `Ops`, `SliceBounds`, `StyleState`.
+- **`edit`**: program-editing commands (`ProgramEditor`, `ReformatVisitor`).
+- **`antlr`**: the parser facade (`AntlrParser`) and the generated lexer/parser.
+- **`io`**: screens and input (see the I/O section below).
+- **`debug`**: `AgentDebugger`, the agent-oriented debugger main class.
+
 ### Main components
 
 - **ANTLR grammar (`BazLang.g4`)**: Defines the lexer and parser rules declaratively. ANTLR
@@ -20,21 +34,22 @@ The interpreter executes directly from ANTLR's parse tree using a visitor patter
   custom error listener.
 - **`ExpressionEvaluator`**: A visitor that evaluates numeric and string expressions from the
   parse tree.
-- **`StatementExecutor`**: A visitor that executes statements. It handles variable assignment,
-  I/O operations, and state mutation.
-- **`ProgramManager`**: A subclass of `StatementExecutor` that adds the flow-control statement
-  visits (`CONT`, `FOR`, `GO SUB`, `GO TO`, `NEXT`, `RETURN`, `RUN`). This is the concrete
-  executor the application instantiates.
+- **`StatementExecutor`**: A visitor that executes statements — variable assignment, I/O
+  operations, state mutation, and the flow-control statements (`CONT`, `FOR`, `GO SUB`, `GO TO`,
+  `NEXT`, `RETURN`, `RUN`). A 3-argument convenience constructor builds the default
+  `ProgramStorage`/`ExpressionEvaluator` collaborators; the full constructor takes them (and the
+  `AntlrParser`) injected.
 - **`Interpreter`**: Manages the overall flow. It coordinates the executor and evaluator,
   decides which line to run next, handles jumps, and loops until the program stops.
 - **`AstAnnotator`**: A one-time pass over each freshly parsed tree that caches parsed literal
   values (`cachedNum`, `cachedStr`) into fields declared as grammar `locals`.
 - **`EvalState`**: The program's memory. It stores variables (scalars and arrays), custom
   functions, the state of any active `FOR` loops, the `GOSUB` return stack, the `DATA` pointer,
-  the current/pending execution position, the last report, the random generator, the graphics
-  cursor, and the default ink/paper/style attributes.
+  the current/pending execution position (a `StatementAddress`), the last report, the random
+  generator, the graphics cursor, and the default style attributes (a `StyleState`).
 - **`Program`**: Encapsulates the line storage (a `TreeMap<Integer, ProgramLine>`), ensuring the
-  underlying map is protected.
+  underlying map is protected. Owns the program-order navigation scans `findFirstData` (the
+  `RESTORE`/`READ` pointer) and `findMatchingNext` (the `FOR` skip-scan).
 - **`ProgramLine`**: Stores the source text of each line, lazily parses to a parse tree on first
   execution, and caches a flattened statement list to avoid rebuilding it on subsequent calls.
 - **`BStr`**: The immutable byte-string value type used for all BazLang string values (see
@@ -48,7 +63,7 @@ The interpreter executes directly from ANTLR's parse tree using a visitor patter
   `LOAD` (from a file, or from the classpath when the name starts with `resource:`).
 - **`ReportCode` / `ReportException` / `Limits`**: The ZX-style report codes (`0`–`R`), the
   carrier exception (code, line label, statement index, detail), and interpreter limits.
-- **`program.AgentDebugger`**: A separate main class that runs the interpreter under a
+- **`debug.AgentDebugger`**: A separate main class that runs the interpreter under a
   stdin/stdout protocol for LLM agents (see [language_debugger.md](language_debugger.md)),
   using `MockScreen`.
 
@@ -56,13 +71,9 @@ The interpreter executes directly from ANTLR's parse tree using a visitor patter
 
 Facts an implementer needs before restructuring anything:
 
-- `ProgramManager extends StatementExecutor` exists to split one large visitor across two files;
-  there is no polymorphic use. `StatementExecutor`'s collaborator fields are `protected` only so
-  the subclass can reach them. `ProgramManager`'s constructor creates its own `ProgramStorage`
-  and `ExpressionEvaluator` internally.
-- `AntlrParser` is available both as the global singleton `AntlrParser.INSTANCE` (used statically
-  by `Interpreter`, `ProgramManager`, `MainClass`, and inside `StatementExecutor`) and as an
-  injected constructor parameter (`ExpressionEvaluator`, `ProgramStorage`, `ProgramEditor`).
+- `AntlrParser` is injected everywhere it is used at runtime; the global singleton
+  `AntlrParser.INSTANCE` is named only at composition roots (`MainClass`, `AgentDebugger`) and
+  in constructor defaults.
 - Parse trees are annotated with per-`EvalState` caches (see below), so a `ProgramLine`'s cached
   tree must never be shared between two interpreter instances.
 

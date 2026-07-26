@@ -1,8 +1,14 @@
-package com.davidconneely.bazlang;
+package com.davidconneely.bazlang.edit;
 
+import com.davidconneely.bazlang.Limits;
+import com.davidconneely.bazlang.ReportCode;
+import com.davidconneely.bazlang.ReportException;
 import com.davidconneely.bazlang.antlr.AntlrParser;
 import com.davidconneely.bazlang.antlr.BazLangLexer;
 import com.davidconneely.bazlang.antlr.BazLangParser;
+import com.davidconneely.bazlang.exec.EvalState;
+import com.davidconneely.bazlang.exec.Program;
+import com.davidconneely.bazlang.exec.ProgramLine;
 import com.davidconneely.bazlang.io.VirtualScreen;
 import java.util.ArrayList;
 import java.util.HashMap;

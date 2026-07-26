@@ -61,7 +61,11 @@ public final class BStr implements Comparable<BStr> {
     return new BStr(Arrays.copyOf(bytes, bytes.length), 0, bytes.length);
   }
 
-  static BStr fromBytes(byte[] bytes, int offset, int length) {
+  /**
+   * Wraps a range of {@code bytes} without copying — the caller must not mutate the array range
+   * afterwards. Used on hot paths (string-array slicing) to avoid allocation.
+   */
+  public static BStr fromBytes(byte[] bytes, int offset, int length) {
     if (length == 0) {
       return EMPTY;
     }

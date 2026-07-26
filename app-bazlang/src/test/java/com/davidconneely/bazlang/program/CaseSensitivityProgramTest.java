@@ -2,7 +2,7 @@ package com.davidconneely.bazlang.program;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import com.davidconneely.bazlang.EvalState;
+import com.davidconneely.bazlang.exec.EvalState;
 import org.junit.jupiter.api.Test;
 
 /** Tests exercising case insensitivity rules for keywords and variables. */

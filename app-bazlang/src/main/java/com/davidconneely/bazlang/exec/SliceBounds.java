@@ -1,4 +1,4 @@
-package com.davidconneely.bazlang;
+package com.davidconneely.bazlang.exec;
 
 /**
  * Resolved 1-based inclusive slice bounds for string indexing/slicing. {@code start} may be {@code

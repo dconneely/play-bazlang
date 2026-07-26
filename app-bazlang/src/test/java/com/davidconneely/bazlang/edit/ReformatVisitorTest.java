@@ -1,4 +1,4 @@
-package com.davidconneely.bazlang;
+package com.davidconneely.bazlang.edit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 

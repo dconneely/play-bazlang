@@ -4,13 +4,13 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.davidconneely.bazlang.EvalState;
-import com.davidconneely.bazlang.Interpreter;
-import com.davidconneely.bazlang.ProgramLine;
 import com.davidconneely.bazlang.ReportCode;
 import com.davidconneely.bazlang.ReportException;
-import com.davidconneely.bazlang.StatementExecutor;
 import com.davidconneely.bazlang.antlr.AntlrParser;
+import com.davidconneely.bazlang.exec.EvalState;
+import com.davidconneely.bazlang.exec.Interpreter;
+import com.davidconneely.bazlang.exec.ProgramLine;
+import com.davidconneely.bazlang.exec.StatementExecutor;
 import com.davidconneely.bazlang.io.TerminalScreen;
 import com.davidconneely.repl.TerminalEngine;
 import java.io.IOException;

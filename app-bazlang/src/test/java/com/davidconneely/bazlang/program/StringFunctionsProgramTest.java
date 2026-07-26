@@ -3,8 +3,8 @@ package com.davidconneely.bazlang.program;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import com.davidconneely.bazlang.EvalState;
 import com.davidconneely.bazlang.ReportException;
+import com.davidconneely.bazlang.exec.EvalState;
 import org.junit.jupiter.api.Test;
 
 /** Tests exercising built-in string functions. */

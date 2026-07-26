@@ -1,4 +1,4 @@
-package com.davidconneely.bazlang;
+package com.davidconneely.bazlang.edit;
 
 import com.davidconneely.bazlang.antlr.BazLangBaseVisitor;
 import com.davidconneely.bazlang.antlr.BazLangParser.*;

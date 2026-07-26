@@ -44,7 +44,7 @@ tasks.register<JavaExec>("runAgentDebugger") {
   group = "application"
   description = "Runs the AgentDebugger"
   classpath = sourceSets["main"].runtimeClasspath
-  mainClass = "com.davidconneely.bazlang.program.AgentDebugger"
+  mainClass = "com.davidconneely.bazlang.debug.AgentDebugger"
   standardInput = System.`in`
   val customArgs = project.findProperty("args") as? String
   if (customArgs != null) {

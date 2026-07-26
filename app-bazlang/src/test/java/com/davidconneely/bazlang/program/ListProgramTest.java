@@ -3,10 +3,10 @@ package com.davidconneely.bazlang.program;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.davidconneely.bazlang.EvalState;
-import com.davidconneely.bazlang.ProgramLine;
-import com.davidconneely.bazlang.StatementExecutor;
 import com.davidconneely.bazlang.antlr.AntlrParser;
+import com.davidconneely.bazlang.exec.EvalState;
+import com.davidconneely.bazlang.exec.ProgramLine;
+import com.davidconneely.bazlang.exec.StatementExecutor;
 import com.davidconneely.bazlang.io.MockScreen;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

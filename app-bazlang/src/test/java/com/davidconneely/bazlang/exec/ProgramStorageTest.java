@@ -1,8 +1,10 @@
-package com.davidconneely.bazlang;
+package com.davidconneely.bazlang.exec;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import com.davidconneely.bazlang.ReportCode;
+import com.davidconneely.bazlang.ReportException;
 import com.davidconneely.bazlang.antlr.AntlrParser;
 import java.nio.file.Path;
 import org.junit.jupiter.api.Test;

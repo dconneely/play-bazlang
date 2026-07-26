@@ -1,4 +1,4 @@
-package com.davidconneely.bazlang;
+package com.davidconneely.bazlang.exec;
 
 /** Cached operator codes for expression contexts; 0 means not yet resolved. */
 public final class Ops {

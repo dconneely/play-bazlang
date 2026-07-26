@@ -1,6 +1,10 @@
 package com.davidconneely.bazlang;
 
 import com.davidconneely.bazlang.antlr.AntlrParser;
+import com.davidconneely.bazlang.edit.ProgramEditor;
+import com.davidconneely.bazlang.exec.EvalState;
+import com.davidconneely.bazlang.exec.Interpreter;
+import com.davidconneely.bazlang.exec.StatementExecutor;
 import com.davidconneely.bazlang.io.StreamScreen;
 import com.davidconneely.bazlang.io.TerminalScreen;
 import com.davidconneely.bazlang.io.VirtualInput;

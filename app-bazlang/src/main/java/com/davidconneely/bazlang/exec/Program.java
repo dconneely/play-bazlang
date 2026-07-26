@@ -1,4 +1,4 @@
-package com.davidconneely.bazlang;
+package com.davidconneely.bazlang.exec;
 
 import com.davidconneely.bazlang.antlr.AntlrParser;
 import com.davidconneely.bazlang.antlr.BazLangParser;
