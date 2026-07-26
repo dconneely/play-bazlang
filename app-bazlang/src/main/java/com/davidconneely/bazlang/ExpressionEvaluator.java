@@ -148,8 +148,10 @@ public class ExpressionEvaluator extends BazLangBaseVisitor<Void> {
   public Void visitNumMulDivExpr(NumMulDivExprContext ctx) {
     final double l = evalNum(ctx.numExpr(0));
     final double r = evalNum(ctx.numExpr(1));
-    final String op = ctx.getChild(1).getText();
-    if (op.equals("*")) {
+    if (ctx.opCode == 0) {
+      ctx.opCode = Ops.fromText(ctx.getChild(1).getText());
+    }
+    if (ctx.opCode == Ops.MUL) {
       numResult = requireFinite(l * r);
     } else {
       if (r == 0.0) {
@@ -164,8 +166,10 @@ public class ExpressionEvaluator extends BazLangBaseVisitor<Void> {
   public Void visitNumAddSubExpr(NumAddSubExprContext ctx) {
     final double l = evalNum(ctx.numExpr(0));
     final double r = evalNum(ctx.numExpr(1));
-    final String op = ctx.getChild(1).getText();
-    numResult = requireFinite(op.equals("+") ? l + r : l - r);
+    if (ctx.opCode == 0) {
+      ctx.opCode = Ops.fromText(ctx.getChild(1).getText());
+    }
+    numResult = requireFinite(ctx.opCode == Ops.ADD ? l + r : l - r);
     return null;
   }
 
@@ -173,15 +177,17 @@ public class ExpressionEvaluator extends BazLangBaseVisitor<Void> {
   public Void visitNumCompExpr(NumCompExprContext ctx) {
     final double l = evalNum(ctx.numExpr(0));
     final double r = evalNum(ctx.numExpr(1));
-    final String op = ctx.getChild(1).getText();
+    if (ctx.opCode == 0) {
+      ctx.opCode = Ops.fromText(ctx.getChild(1).getText());
+    }
     numResult =
-        switch (op) {
-          case "=" -> l == r ? 1.0 : 0.0;
-          case "<>" -> l != r ? 1.0 : 0.0;
-          case "<" -> l < r ? 1.0 : 0.0;
-          case "<=" -> l <= r ? 1.0 : 0.0;
-          case ">" -> l > r ? 1.0 : 0.0;
-          case ">=" -> l >= r ? 1.0 : 0.0;
+        switch (ctx.opCode) {
+          case Ops.EQ -> l == r ? 1.0 : 0.0;
+          case Ops.NE -> l != r ? 1.0 : 0.0;
+          case Ops.LT -> l < r ? 1.0 : 0.0;
+          case Ops.LE -> l <= r ? 1.0 : 0.0;
+          case Ops.GT -> l > r ? 1.0 : 0.0;
+          case Ops.GE -> l >= r ? 1.0 : 0.0;
           default -> 0.0;
         };
     return null;
@@ -191,15 +197,17 @@ public class ExpressionEvaluator extends BazLangBaseVisitor<Void> {
   public Void visitStrCompExpr(StrCompExprContext ctx) {
     final var l = evalStr(ctx.strExpr(0));
     final var r = evalStr(ctx.strExpr(1));
-    final String op = ctx.getChild(1).getText();
+    if (ctx.opCode == 0) {
+      ctx.opCode = Ops.fromText(ctx.getChild(1).getText());
+    }
     numResult =
-        switch (op) {
-          case "=" -> l.equals(r) ? 1.0 : 0.0;
-          case "<>" -> !l.equals(r) ? 1.0 : 0.0;
-          case "<" -> l.compareTo(r) < 0 ? 1.0 : 0.0;
-          case "<=" -> l.compareTo(r) <= 0 ? 1.0 : 0.0;
-          case ">" -> l.compareTo(r) > 0 ? 1.0 : 0.0;
-          case ">=" -> l.compareTo(r) >= 0 ? 1.0 : 0.0;
+        switch (ctx.opCode) {
+          case Ops.EQ -> l.equals(r) ? 1.0 : 0.0;
+          case Ops.NE -> !l.equals(r) ? 1.0 : 0.0;
+          case Ops.LT -> l.compareTo(r) < 0 ? 1.0 : 0.0;
+          case Ops.LE -> l.compareTo(r) <= 0 ? 1.0 : 0.0;
+          case Ops.GT -> l.compareTo(r) > 0 ? 1.0 : 0.0;
+          case Ops.GE -> l.compareTo(r) >= 0 ? 1.0 : 0.0;
           default -> 0.0;
         };
     return null;

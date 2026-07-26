@@ -167,7 +167,7 @@ expression
 // ANTLR: earlier alternatives = higher precedence (bind tighter)
 // Note: ** (10) binds tighter than unary minus (9), so -2**2 = -(2**2) = -4
 numExpr
-locals [ double cachedNum, Object varRef ]
+locals [ double cachedNum, Object varRef, int opCode ]
     : NUM_LITERAL                                          # NumLiteralExpr
     | BIN_LITERAL                                          # BinLiteralExpr
     | NUM_IDENTIFIER                                       # NumVarExpr
