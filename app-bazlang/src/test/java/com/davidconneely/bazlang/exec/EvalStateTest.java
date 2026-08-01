@@ -30,8 +30,8 @@ class EvalStateTest {
     state.clear();
     assertFalse(state.hasNumVar("X"));
     assertFalse(state.hasStrVar("A$"));
-    assertEquals(ReportCode.OK, state.lastReportCode());
-    assertEquals(0, state.lastReportLabel());
+    assertEquals(ReportCode.OK, state.lastReport().code());
+    assertEquals(0, state.lastReport().lineLabel());
   }
 
   @Test

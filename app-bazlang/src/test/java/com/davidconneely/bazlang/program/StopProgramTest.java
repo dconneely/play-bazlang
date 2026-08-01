@@ -34,9 +34,8 @@ class StopProgramTest extends BaseProgramTest {
       interpreter.execute(program);
     } catch (ReportException e) {
       assertEquals(ReportCode.STOP_IN_INPUT, e.reportCode());
-      state.setLastReportCode(e.reportCode());
-      state.setLastReportLabel(e.lineLabel());
-      state.setLastReportStatementIndex(e.statementIndex());
+      state.setLastReport(
+          new EvalState.ReportState(e.reportCode(), e.lineLabel(), e.statementIndex()));
     }
 
     // CONTINUE -> should repeat the INPUT statement

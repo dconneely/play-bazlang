@@ -338,11 +338,9 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
   private void restoreTo(int target) {
     final var addr = state.program().findFirstData(target, parser);
     if (addr != null) {
-      state.setDataLineLabel(addr.lineLabel());
-      state.setDataStatementIndex(addr.statementIndex());
-      state.setDataExpressionIndex(0);
+      state.setDataPointer(new EvalState.DataPointer(addr.lineLabel(), addr.statementIndex(), 0));
     } else {
-      state.setDataLineLabel(Integer.MAX_VALUE);
+      state.setDataPointer(new EvalState.DataPointer(Integer.MAX_VALUE, -1, -1));
     }
   }
 
@@ -613,10 +611,10 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
   @Override
   public Void visitReadStmt(ReadStmtContext ctx) {
     for (final var target : ctx.assignmentTarget()) {
-      if (state.dataLineLabel() == -1) {
+      if (state.dataPointer().lineLabel() == -1) {
         restoreTo(0);
       }
-      final int lineLabel = state.dataLineLabel();
+      final int lineLabel = state.dataPointer().lineLabel();
       if (lineLabel == Integer.MAX_VALUE) {
         throw codedException(ReportCode.OUT_OF_DATA, "Out of DATA");
       }
@@ -625,24 +623,23 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
         throw codedException(ReportCode.STATEMENT_LOST, "Statement lost");
       }
       final var stmts = line.getFlattenedStatements(parser);
-      final int stmtIdx = state.dataStatementIndex();
+      final int stmtIdx = state.dataPointer().statementIndex();
       final var stmt = stmts.get(stmtIdx - 1);
       if (!(stmt instanceof DataStmtContext dataCtx)) {
         throw codedException(ReportCode.STATEMENT_LOST, "Statement lost");
       }
-      final int exprIdx = state.dataExpressionIndex();
+      final int exprIdx = state.dataPointer().expressionIndex();
       final var exprCtx = dataCtx.expression(exprIdx);
 
       // Advance pointer before evaluating and assigning
       if (exprIdx + 1 < dataCtx.expression().size()) {
-        state.setDataExpressionIndex(exprIdx + 1);
+        state.setDataPointer(new EvalState.DataPointer(lineLabel, stmtIdx, exprIdx + 1));
       } else {
         // Find next DATA statement in the current line
         boolean found = false;
         for (int i = stmtIdx + 1; i <= stmts.size(); i++) {
           if (stmts.get(i - 1) instanceof DataStmtContext) {
-            state.setDataStatementIndex(i);
-            state.setDataExpressionIndex(0);
+            state.setDataPointer(new EvalState.DataPointer(lineLabel, i, 0));
             found = true;
             break;
           }
@@ -652,7 +649,7 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
           if (nextLine != null) {
             restoreTo(nextLine);
           } else {
-            state.setDataLineLabel(Integer.MAX_VALUE);
+            state.setDataPointer(new EvalState.DataPointer(Integer.MAX_VALUE, -1, -1));
           }
         }
       }
@@ -948,15 +945,15 @@ public class StatementExecutor extends BazLangBaseVisitor<Void> {
 
   @Override
   public Void visitContStmt(ContStmtContext ctx) {
-    final int m = state.lastReportLabel();
+    final int m = state.lastReport().lineLabel();
     if (m <= 0) {
       return null;
     }
-    if (state.lastReportCode() == ReportCode.STOP_STATEMENT
-        || state.lastReportCode() == ReportCode.BREAK_INTO_PROGRAM) {
-      state.setPendingJumpLocation(m, state.lastReportStatementIndex() + 1);
+    if (state.lastReport().code() == ReportCode.STOP_STATEMENT
+        || state.lastReport().code() == ReportCode.BREAK_INTO_PROGRAM) {
+      state.setPendingJumpLocation(m, state.lastReport().statementIndex() + 1);
     } else {
-      state.setPendingJumpLocation(m, state.lastReportStatementIndex());
+      state.setPendingJumpLocation(m, state.lastReport().statementIndex());
     }
     return null;
   }

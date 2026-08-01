@@ -26,6 +26,10 @@ public class EvalState {
 
   public record StatementAddress(int lineLabel, int statementIndex) {}
 
+  public record DataPointer(int lineLabel, int statementIndex, int expressionIndex) {}
+
+  public record ReportState(ReportCode code, int lineLabel, int statementIndex) {}
+
   public static final class NumVarRef {
     public final String name;
     public double value;
@@ -73,17 +77,13 @@ public class EvalState {
   private final Deque<StatementAddress> returnStack = new ArrayDeque<>();
   private final Random random = new Random();
 
-  private int dataExpressionIndex = -1;
-  private int dataLineLabel = -1;
-  private int dataStatementIndex = -1;
+  private DataPointer dataPointer = new DataPointer(-1, -1, -1);
 
   private boolean running = true;
   private int currentLineLabel = 0;
   private int currentStatementIndex = 1;
   private StatementAddress pendingJump = null;
-  private ReportCode lastReportCode = ReportCode.OK;
-  private int lastReportLabel = 0;
-  private int lastReportStatementIndex = 1;
+  private ReportState lastReport = new ReportState(ReportCode.OK, 0, 1);
 
   // Default ink/paper colour codes:
   // - -1: Default terminal colour
@@ -383,52 +383,20 @@ public class EvalState {
     this.pendingJump = null;
   }
 
-  public ReportCode lastReportCode() {
-    return lastReportCode;
+  public ReportState lastReport() {
+    return lastReport;
   }
 
-  public void setLastReportCode(ReportCode code) {
-    this.lastReportCode = code;
+  public void setLastReport(ReportState lastReport) {
+    this.lastReport = lastReport;
   }
 
-  public int lastReportLabel() {
-    return lastReportLabel;
+  public DataPointer dataPointer() {
+    return dataPointer;
   }
 
-  public void setLastReportLabel(int label) {
-    this.lastReportLabel = label;
-  }
-
-  public int lastReportStatementIndex() {
-    return lastReportStatementIndex;
-  }
-
-  public void setLastReportStatementIndex(int index) {
-    this.lastReportStatementIndex = index;
-  }
-
-  public int dataExpressionIndex() {
-    return dataExpressionIndex;
-  }
-
-  public int dataLineLabel() {
-    return dataLineLabel;
-  }
-
-  public int dataStatementIndex() {
-    return dataStatementIndex;
-  }
-
-  public void setDataExpressionIndex(int index) {
-    this.dataExpressionIndex = index;
-  }
-
-  public void setDataLineLabel(int label) {
-    this.dataLineLabel = label;
-  }
-
-  public void setDataStatementIndex(int index) {
-    this.dataStatementIndex = index;
+  public void setDataPointer(DataPointer dataPointer) {
+    this.dataPointer = dataPointer;
   }
 
   public void clear() {
@@ -447,11 +415,8 @@ public class EvalState {
     forLoops.clear();
     returnStack.clear();
     clearPendingJump();
-    lastReportCode = ReportCode.OK;
-    lastReportLabel = 0;
-    dataExpressionIndex = -1;
-    dataLineLabel = -1;
-    dataStatementIndex = -1;
+    lastReport = new ReportState(ReportCode.OK, 0, 1);
+    dataPointer = new DataPointer(-1, -1, -1);
     defaultStyles.reset();
   }
 }

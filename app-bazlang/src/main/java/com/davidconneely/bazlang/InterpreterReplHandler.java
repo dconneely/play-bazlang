@@ -60,23 +60,22 @@ public final class InterpreterReplHandler implements ReplHandler {
       }
 
       // Success! Update last report info to OK with the current/last execution location
-      state.setLastReportCode(ReportCode.OK);
-      state.setLastReportLabel(state.currentLineLabel());
-      state.setLastReportStatementIndex(state.currentStatementIndex());
+      state.setLastReport(
+          new EvalState.ReportState(
+              ReportCode.OK, state.currentLineLabel(), state.currentStatementIndex()));
       if (screen != null) {
         screen.setStatus(
             new ReportException(
                     ReportCode.OK,
-                    state.lastReportLabel(),
-                    state.lastReportStatementIndex(),
+                    state.lastReport().lineLabel(),
+                    state.lastReport().statementIndex(),
                     "Ready")
                 .format());
       }
       return result;
     } catch (ReportException e) {
-      state.setLastReportCode(e.reportCode());
-      state.setLastReportLabel(e.lineLabel());
-      state.setLastReportStatementIndex(e.statementIndex());
+      state.setLastReport(
+          new EvalState.ReportState(e.reportCode(), e.lineLabel(), e.statementIndex()));
       if (screen != null) {
         screen.setStatus(e.format());
       }

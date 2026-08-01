@@ -298,7 +298,7 @@ final class DebugSession {
 
     // All other commands (NEW, LOAD, numbered lines, REFORMAT, etc) are delegated to the handler.
     replHandler.handleReplInput(cmd);
-    if (state.lastReportCode() == ReportCode.OK) {
+    if (state.lastReport().code() == ReportCode.OK) {
       System.out.println("+");
     } else {
       System.out.println("-" + mockScreen.getStatus());

@@ -107,9 +107,8 @@ class GosubReturnProgramTest extends BaseProgramTest {
       interpreter.execute(program);
     } catch (ReportException e) {
       assertEquals(ReportCode.STOP_STATEMENT, e.reportCode());
-      state.setLastReportCode(e.reportCode());
-      state.setLastReportLabel(e.lineLabel());
-      state.setLastReportStatementIndex(e.statementIndex());
+      state.setLastReport(
+          new EvalState.ReportState(e.reportCode(), e.lineLabel(), e.statementIndex()));
     }
 
     // Delete line 10 (the GOSUB caller) while stopped at line 30

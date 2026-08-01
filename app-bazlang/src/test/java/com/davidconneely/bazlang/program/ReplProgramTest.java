@@ -45,9 +45,8 @@ class ReplProgramTest extends BaseProgramTest {
       interpreter.execute(program);
     } catch (ReportException e) {
       assertEquals(ReportCode.BREAK_INTO_PROGRAM, e.reportCode());
-      state.setLastReportCode(e.reportCode());
-      state.setLastReportLabel(e.lineLabel());
-      state.setLastReportStatementIndex(e.statementIndex());
+      state.setLastReport(
+          new EvalState.ReportState(e.reportCode(), e.lineLabel(), e.statementIndex()));
     }
 
     // CONTINUE -> should resume at line 20 (does not repeat line 10)
@@ -70,9 +69,8 @@ class ReplProgramTest extends BaseProgramTest {
       interpreter.execute(program);
     } catch (ReportException e) {
       assertEquals(ReportCode.STOP_STATEMENT, e.reportCode());
-      state.setLastReportCode(e.reportCode());
-      state.setLastReportLabel(e.lineLabel());
-      state.setLastReportStatementIndex(e.statementIndex());
+      state.setLastReport(
+          new EvalState.ReportState(e.reportCode(), e.lineLabel(), e.statementIndex()));
     }
 
     // Simulate REPL running CONT
