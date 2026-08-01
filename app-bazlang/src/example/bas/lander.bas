@@ -4,7 +4,7 @@
 1030 INK -1 : PAPER -1
 1040 LET w = PLOTW : LET h = PLOTH
 1050 LET n = 8
-1060 DIM tx(8) : DIM ty(8)
+1060 DIM tx(8) : DIM ty(8) : REM Terrain nodes (tx, ty) generated per level
 1070 LET score = 0 : LET level = 1
 2000 REM ### Game start / Reset lander ###
 2010 IF level = 9 THEN GO TO 6500

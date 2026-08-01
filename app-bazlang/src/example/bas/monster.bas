@@ -1,7 +1,7 @@
 1000 REM ### 3D Monster Maze ###
 1010 REM ### ZX81 classic reconstructed in BazLang BASIC ###
 1020 PLOTMODE 2 : CLS
-1030 DIM c(7) : DIM w(10)
+1030 DIM c(7) : DIM w(10) : REM c() is corridor perspective widths, w() is wall perspective heights
 1040 FOR i = 1 TO 7 : READ c(i) : NEXT i
 1050 FOR i = 1 TO 10 : READ w(i) : NEXT i
 1060 DATA 1, 2, 5, 7, 9, 10, 11

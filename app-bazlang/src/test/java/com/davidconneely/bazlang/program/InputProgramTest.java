@@ -60,4 +60,20 @@ class InputProgramTest extends BaseProgramTest {
         """,
                 List.of("NOTDEF")));
   }
+
+  @Test
+  void testInputSyntaxErrorNonInteractive() {
+    // Non-interactive mode should NOT retry on syntax error
+    final var program = PARSER.parseProgramLines("10 INPUT X\n");
+    final var state = new EvalState();
+    final var screen = new com.davidconneely.bazlang.io.MockScreen(List.of("(1"));
+    screen.setInteractive(false);
+    final var executor =
+        new com.davidconneely.bazlang.exec.StatementExecutor(state, screen, screen);
+    final var interpreter = new com.davidconneely.bazlang.exec.Interpreter(state, executor);
+
+    final ReportException ex =
+        assertThrows(ReportException.class, () -> interpreter.execute(program));
+    assertEquals(com.davidconneely.bazlang.ReportCode.NONSENSE_IN_BASIC, ex.reportCode());
+  }
 }

@@ -348,7 +348,10 @@ BazLang follows Sinclair ZX BASIC semantics where practical, with these intentio
 |:----------------|:-------------------------------------|:--------------------------------|
 | Character set   | UTF-8                                | Proprietary ZX charset          |
 | Variable names  | Multi-character allowed              | Single letters for arrays/FOR   |
+| GOTO target     | Rounds to nearest line               | Truncates to integer            |
 | PAUSE >= 32767  | Waits that many frames               | Waits forever until keypress    |
+| PAUSE 0         | Immediate no-op                      | Waits forever until keypress    |
+| FRAMES epoch    | Fractional, epoch-relative           | Integer interrupts from power-on|
 | File I/O        | File system                          | Tape                            |
 | RND algorithm   | Java Random                          | Linear feedback shift register  |
 | Report codes    | Same codes & messages, extra context | Same codes & messages           |

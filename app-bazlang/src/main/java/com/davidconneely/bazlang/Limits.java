@@ -8,5 +8,6 @@ public interface Limits {
 
   int MAX_ARRAY_ELEMENTS = 100_000_000;
 
+  // Matches the ZX Spectrum print-zone width
   int TAB_WIDTH = 16;
 }

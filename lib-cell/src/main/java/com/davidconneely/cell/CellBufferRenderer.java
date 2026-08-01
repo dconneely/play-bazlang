@@ -1,15 +1,11 @@
 package com.davidconneely.cell;
 
-import java.io.PrintWriter;
-
 public class CellBufferRenderer {
   public void renderContentRows(
-      PrintWriter out, CellBuffer cellBuffer, int rowsToRender, int colsToRender) {
+      StringBuilder out, CellBuffer cellBuffer, int rowsToRender, int colsToRender) {
     final var sb = new StringBuilder();
     for (int r = 0; r < rowsToRender; r++) {
-      out.print("\033[");
-      out.print(r + 1);
-      out.print(";1H");
+      out.append("\033[").append(r + 1).append(";1H");
       long activeAttr =
           CellBuffer.packAttributes(
               CellAttributes.COLOUR_DEFAULT, CellAttributes.COLOUR_DEFAULT, 0);
@@ -43,28 +39,25 @@ public class CellBufferRenderer {
           activeBgColour = emitColour(sb, bg, activeBgColour, 48, 49);
 
           if (!sb.isEmpty()) {
-            out.print("\033[");
-            out.print(sb);
-            out.print('m');
+            out.append("\033[").append(sb).append('m');
           }
           activeAttr = attr;
         }
         final int cp = cellBuffer.getCell(r, c);
         if (cp == 0x2800) {
-          out.print(' ');
+          out.append(' ');
         } else if (cp < Character.MIN_SUPPLEMENTARY_CODE_POINT) {
-          out.print((char) cp);
+          out.append((char) cp);
         } else {
-          out.print(Character.highSurrogate(cp));
-          out.print(Character.lowSurrogate(cp));
+          out.append(Character.highSurrogate(cp)).append(Character.lowSurrogate(cp));
         }
       }
       if (activeStyles != 0
           || !CellAttributes.isDefault(activeFgColour)
           || !CellAttributes.isDefault(activeBgColour)) {
-        out.print("\033[m");
+        out.append("\033[m");
       }
-      out.print("\033[K");
+      out.append("\033[K");
     }
   }
 

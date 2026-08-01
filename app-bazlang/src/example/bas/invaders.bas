@@ -15,7 +15,7 @@
 2050 LET bx = 0 : LET by = 0 : REM Player Bullet
 2060 DIM abx(3) : DIM aby(3) : REM Alien Bullets
 2070 FOR i = 1 TO 3 : LET abx(i) = 0 : LET aby(i) = 0 : NEXT i
-2080 DIM a(5, 6) : REM 5 rows, 6 columns of aliens
+2080 DIM a(5, 6) : REM Alien grid: 5 rows by 6 columns. 1=alive, 0=dead
 2090 FOR r = 1 TO 5 : FOR c = 1 TO 6 : LET a(r, c) = 1 : NEXT c : NEXT r
 2100 LET aliens_left = 30 : LET alien_tick = 0 : LET tick_max = 12 - wave
 2110 IF tick_max < 2 THEN LET tick_max = 2

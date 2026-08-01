@@ -9,7 +9,6 @@ import com.davidconneely.cell.CellBufferRenderer;
 import com.davidconneely.cell.QuadrantMode;
 import com.davidconneely.repl.TerminalEngine;
 import java.io.IOException;
-import java.io.PrintWriter;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /** Terminal-based Screen implementation with dynamic screen regions. */
@@ -123,34 +122,39 @@ public class TerminalScreen extends AbstractCellBufferedScreen {
     final int colsToRender = Math.min(cellBuffer.cols(), termWidth);
 
     final var out = engine.writer();
-    out.print("\033[?25l");
-    renderer.renderContentRows(out, cellBuffer, rowsToRender, colsToRender);
-    renderInputRows(out, rowsToRender, termWidth);
-
+    final var frame = new StringBuilder(4096);
+    // ?2026h: synchronized output start, ?25l: hide cursor, ?7l: disable auto-wrap
+    frame.append("\033[?2026h\033[?25l\033[?7l");
+    renderer.renderContentRows(frame, cellBuffer, rowsToRender, colsToRender);
+    renderInputRows(frame, rowsToRender, termWidth);
+    // ?2026l: synchronized output end, ?7h: enable auto-wrap
+    frame.append("\033[?7h\033[?2026l");
+    out.print(frame.toString());
     out.flush();
   }
 
-  private void renderInputRows(PrintWriter out, int rowsToRender, int termWidth) {
+  private void renderInputRows(StringBuilder out, int rowsToRender, int termWidth) {
     if (inputVisible) {
-      out.printf("\033[%d;1H", rowsToRender + 1);
-      out.print("\033[90m" + "─".repeat(Math.max(0, termWidth)) + "\033[m");
-      out.print("\033[K");
+      out.append(String.format("\033[%d;1H", rowsToRender + 1))
+          .append("\033[90m")
+          .append("─".repeat(Math.max(0, termWidth)))
+          .append("\033[m\033[K");
 
       for (int i = 0; i < currentInputHeight; i++) {
-        out.printf("\033[%d;1H", rowsToRender + 2 + i);
-        out.print("\033[K");
+        out.append(String.format("\033[%d;1H\033[K", rowsToRender + 2 + i));
       }
 
-      out.printf("\033[%d;1H", rowsToRender + 2 + currentInputHeight);
-      out.print("\033[90m" + "─".repeat(Math.max(0, termWidth)) + "\033[m");
-      out.print("\033[K");
+      out.append(String.format("\033[%d;1H", rowsToRender + 2 + currentInputHeight))
+          .append("\033[90m")
+          .append("─".repeat(Math.max(0, termWidth)))
+          .append("\033[m\033[K");
 
       final String lineText = getStatusLine(termWidth);
-      out.printf("\033[%d;1H", rowsToRender + 3 + currentInputHeight);
-      out.print("\033[37m" + lineText + "\033[m");
-      out.print("\033[K");
-
-      out.printf("\033[%d;1H", rowsToRender + 2);
+      out.append(String.format("\033[%d;1H", rowsToRender + 3 + currentInputHeight))
+          .append("\033[37m")
+          .append(lineText)
+          .append("\033[m\033[K")
+          .append(String.format("\033[%d;1H", rowsToRender + 2));
     }
   }
 

@@ -6,14 +6,24 @@ import com.davidconneely.bazlang.antlr.AntlrParser;
 import java.util.Map;
 
 public class Interpreter {
+  @FunctionalInterface
+  public interface ExecutionListener {
+    void beforeStatement(int line, int stmt);
+  }
+
   private final EvalState state;
   private final StatementExecutor executor;
   private final AntlrParser parser;
+  private ExecutionListener executionListener;
 
   public Interpreter(EvalState state, StatementExecutor executor) {
     this.state = state;
     this.executor = executor;
     this.parser = AntlrParser.INSTANCE;
+  }
+
+  public void setExecutionListener(ExecutionListener executionListener) {
+    this.executionListener = executionListener;
   }
 
   public void execute(Map<Integer, ProgramLine> program) {
@@ -87,6 +97,12 @@ public class Interpreter {
       for (var stmt : stmts) {
         if (index >= startIndex) {
           state.setCurrentStatementIndex(index);
+          if (executionListener != null) {
+            executionListener.beforeStatement(nextLabel, index);
+            if (!state.isRunning()) {
+              break;
+            }
+          }
           executor.visit(stmt);
           if (state.hasPendingJump() || !state.isRunning()) {
             break;

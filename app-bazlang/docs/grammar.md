@@ -76,6 +76,7 @@ Functions bind tightly to their arguments (atoms), not full expressions:
 numFunc
     : SIN numAtom
     | COS numAtom
+    | PLOTMODE
     // ...
     ;
 
@@ -95,6 +96,7 @@ Multi-argument functions require explicit parentheses and comma-separated full e
 ```antlr
 numFunc
     : UCNEXT '(' strExpr ',' numExpr ')'
+    | XATTR '(' numExpr ',' numExpr ',' numExpr ')'
     // ...
     ;
 ```

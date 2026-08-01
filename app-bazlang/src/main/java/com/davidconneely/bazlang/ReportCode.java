@@ -1,5 +1,9 @@
 package com.davidconneely.bazlang;
 
+/**
+ * Error codes and messages. Note: This list mirrors the original ZX Spectrum report table exactly,
+ * which is why there is intentionally no code 'J'.
+ */
 public enum ReportCode {
   OK('0', "OK"),
   NEXT_WITHOUT_FOR('1', "NEXT without FOR"),

@@ -283,35 +283,29 @@ public class ProgramEditor {
     int oldEnd = program.lastKey();
 
     if (args != null) {
-      final var nums = args.numExpr();
-      int numIndex = 0;
+      boolean seenStep = false;
+      boolean seenComma = false;
+      boolean seenTo = false;
 
-      if (!nums.isEmpty() && args.STEP() == null
-          || !nums.isEmpty()
-              && args.getText().toUpperCase().indexOf("STEP")
-                  > args.getText().indexOf(nums.getFirst().getText())) {
-        newStart = (int) numEval.applyAsDouble(nums.get(numIndex++));
-      }
-
-      if (args.STEP() != null && numIndex < nums.size()) {
-        newStep = (int) numEval.applyAsDouble(nums.get(numIndex++));
-      }
-
-      if (args.TO() != null) {
-        final String argsText = args.getText().toUpperCase();
-        final int commaPos = argsText.indexOf(',');
-        final int toPos = argsText.indexOf("TO");
-
-        if (commaPos >= 0 && numIndex < nums.size()) {
-          final String numText = nums.get(numIndex).getText();
-          final int numPos = argsText.indexOf(numText, commaPos);
-          if (numPos < toPos) {
-            oldStart = (int) numEval.applyAsDouble(nums.get(numIndex++));
+      for (int i = 0; i < args.getChildCount(); i++) {
+        var child = args.getChild(i);
+        if (child.equals(args.STEP())) {
+          seenStep = true;
+        } else if (child.getText().equals(",")) {
+          seenComma = true;
+        } else if (child.equals(args.TO())) {
+          seenTo = true;
+        } else if (child instanceof BazLangParser.NumExprContext) {
+          int val = (int) numEval.applyAsDouble((BazLangParser.NumExprContext) child);
+          if (!seenStep && !seenComma) {
+            newStart = val;
+          } else if (seenStep && !seenComma) {
+            newStep = val;
+          } else if (seenComma && !seenTo) {
+            oldStart = val;
+          } else if (seenTo) {
+            oldEnd = val;
           }
-        }
-
-        if (numIndex < nums.size()) {
-          oldEnd = (int) numEval.applyAsDouble(nums.get(numIndex));
         }
       }
     }

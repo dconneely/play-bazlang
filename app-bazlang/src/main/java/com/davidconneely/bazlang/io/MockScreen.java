@@ -8,6 +8,10 @@ import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
+/**
+ * A headless screen implementation used primarily for testing, but located in src/main/java because
+ * it is also used as a load-bearing dependency by the headless AgentDebugger.
+ */
 public class MockScreen extends AbstractCellBufferedScreen {
   private int rows;
   private int cols;
@@ -202,9 +206,15 @@ public class MockScreen extends AbstractCellBufferedScreen {
     return val != null ? val : BStr.EMPTY;
   }
 
+  private boolean interactive = true;
+
+  public void setInteractive(boolean interactive) {
+    this.interactive = interactive;
+  }
+
   @Override
   public boolean isInteractive() {
-    return true;
+    return interactive;
   }
 
   @Override

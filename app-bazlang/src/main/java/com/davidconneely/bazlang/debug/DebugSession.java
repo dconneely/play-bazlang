@@ -19,7 +19,6 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
-import org.antlr.v4.runtime.tree.ParseTree;
 
 /**
  * One interactive AgentDebugger session: owns the interpreter state, the mock screen, the
@@ -46,27 +45,20 @@ final class DebugSession {
   DebugSession(AntlrParser parser) {
     this.parser = parser;
     this.breaks = new BreakpointEngine(parser);
-    this.executor =
-        new StatementExecutor(state, mockScreen, mockScreen) {
-          @Override
-          public Void visit(ParseTree tree) {
-            int line = state.currentLineLabel();
-            int stmt = state.currentStatementIndex();
-            final var firedBreak = breaks.checkFired(line, stmt, mockScreen, getExprEvaluator());
-            if (firedBreak != null) {
-              String reason =
-                  firedBreak.type() == BreakpointEngine.ConditionType.ELAPSE
-                      ? "ELAPSE"
-                      : "BREAK AT " + line + ":" + stmt;
-              blockAndListen(reason);
-            }
-            if (!state.isRunning()) {
-              return null;
-            }
-            return super.visit(tree);
-          }
-        };
+    this.executor = new StatementExecutor(state, mockScreen, mockScreen);
     this.interpreter = new Interpreter(state, executor);
+    this.interpreter.setExecutionListener(
+        (line, stmt) -> {
+          final var firedBreak =
+              breaks.checkFired(line, stmt, mockScreen, executor.getExprEvaluator());
+          if (firedBreak != null) {
+            String reason =
+                firedBreak.type() == BreakpointEngine.ConditionType.ELAPSE
+                    ? "ELAPSE"
+                    : "BREAK AT " + line + ":" + stmt;
+            blockAndListen(reason);
+          }
+        });
   }
 
   /** Runs the session until the agent stops it or stdin reaches EOF. */
