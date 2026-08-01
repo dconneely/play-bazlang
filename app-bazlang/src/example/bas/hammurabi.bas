@@ -39,19 +39,19 @@
 1380 PRINT "Land value: "; land_price; " bushels/acre"
 1390 PRINT
 1400 REM ### Buy or sell land ###
-1410 PRINT "How many acres to BUY (- to SELL)? "; 
+1410 PRINT "How many acres to BUY (- to SELL)? ";
 1420 INPUT acres_to_buy
 1430 IF acres_to_buy > 0 AND acres_to_buy * land_price > grain THEN GO TO 1830
 1440 IF acres_to_buy < 0 AND ABS (acres_to_buy) > acres THEN GO TO 1850
 1450 LET acres = acres + acres_to_buy
 1460 LET grain = grain - acres_to_buy * land_price
 1470 REM ### Feed people ###
-1480 PRINT "How many bushels to FEED people? "; 
+1480 PRINT "How many bushels to FEED people? ";
 1490 INPUT grain_to_feed
 1500 IF grain_to_feed > grain THEN GO TO 1870
 1510 LET grain = grain - grain_to_feed
 1520 REM ### Plant crops ###
-1530 PRINT "How many acres to PLANT? "; 
+1530 PRINT "How many acres to PLANT? ";
 1540 INPUT acres_to_plant
 1550 IF acres_to_plant > acres THEN GO TO 1890
 1560 IF acres_to_plant > grain * 2 THEN GO TO 1910
@@ -130,7 +130,7 @@
 2290 PRINT "*** GOOD ***"
 2300 PRINT "A respectable reign."
 2310 PRINT
-2320 PRINT "Play again (Y/N)? "; 
+2320 PRINT "Play again (Y/N)? ";
 2330 INPUT replay$
 2340 IF replay$ = "Y" OR replay$ = "y" THEN GO TO 1110
 2350 PRINT "Thanks for playing!"

@@ -72,6 +72,19 @@ Under `com.davidconneely.bazlang`:
   pinned end-to-end by `AgentDebuggerProtocolTest` — a change to those transcripts is a protocol
   change and must be reflected in `language_debugger.md`.
 
+### Debugger architecture decision
+
+**Synchronous blocking execution.** The debugger blocks inside the main execution thread.
+`DebugSession` runs its command loop (`blockAndListen`) re-entrantly from within the statement
+`visit` override (via `Interpreter.setExecutionListener`), meaning the loop runs inside statement
+execution. This strictly synchronous design entirely avoids concurrency — a genuine
+simplification — but it is the least conventional part of the architecture. A command thread
+with a handoff queue is the standard alternative for debuggers, but the trade-off (introducing
+shared-state concurrency, lock management, and thread safety across the entire `EvalState`)
+is significant. The current single-threaded approach is a documented decision: it limits
+the debugger's ability to interrupt an infinite loop (since it only gains control at statement
+boundaries) but keeps the execution model simple and deterministically testable.
+
 ### Class coupling notes
 
 Facts an implementer needs before restructuring anything:

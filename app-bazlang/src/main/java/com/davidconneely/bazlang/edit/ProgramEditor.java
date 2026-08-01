@@ -185,6 +185,10 @@ public class ProgramEditor {
     }
   }
 
+  /**
+   * Re-lexes the source line to rewrite literal jump targets (e.g. GOTO 100). Note: Computed
+   * targets (like GOTO n+10) are silently left unchanged.
+   */
   private String updateLineTargets(
       int lineNum,
       String source,

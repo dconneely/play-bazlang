@@ -1,15 +1,17 @@
 package com.davidconneely.bazlang.debug;
 
 import com.davidconneely.bazlang.BStr;
+import com.davidconneely.bazlang.InterpreterReplHandler;
 import com.davidconneely.bazlang.ReportCode;
 import com.davidconneely.bazlang.ReportException;
 import com.davidconneely.bazlang.antlr.AntlrParser;
 import com.davidconneely.bazlang.antlr.BazLangParser;
+import com.davidconneely.bazlang.edit.ProgramEditor;
 import com.davidconneely.bazlang.exec.AstAnnotator;
 import com.davidconneely.bazlang.exec.EvalState;
 import com.davidconneely.bazlang.exec.ExpressionEvaluator;
 import com.davidconneely.bazlang.exec.Interpreter;
-import com.davidconneely.bazlang.exec.ProgramLine;
+import com.davidconneely.bazlang.exec.ProgramStorage;
 import com.davidconneely.bazlang.exec.StatementExecutor;
 import com.davidconneely.bazlang.io.MockScreen;
 import java.io.BufferedReader;
@@ -32,9 +34,16 @@ final class DebugSession {
   private final BufferedReader inputReader =
       new BufferedReader(new InputStreamReader(System.in, StandardCharsets.UTF_8));
   private final BreakpointEngine breaks;
-  private final MockScreen mockScreen = new MockScreen();
+  private final MockScreen mockScreen =
+      new MockScreen() {
+        @Override
+        public void systemPrintln(String text) {
+          // AgentDebugger suppresses REPL echoing to preserve the protocol
+        }
+      };
   private final StatementExecutor executor;
   private final Interpreter interpreter;
+  private final InterpreterReplHandler replHandler;
 
   private boolean runRequested = false;
   private boolean gotoRequested = false;
@@ -45,8 +54,29 @@ final class DebugSession {
   DebugSession(AntlrParser parser) {
     this.parser = parser;
     this.breaks = new BreakpointEngine(parser);
-    this.executor = new StatementExecutor(state, mockScreen, mockScreen);
+    ProgramStorage storage =
+        new ProgramStorage(state, parser) {
+          @Override
+          public void load(String filename) {
+            Path p = AgentDebugger.resolveBasPath(filename);
+            if (p == null) {
+              throw new ReportException(
+                  ReportCode.INVALID_FILE_NAME,
+                  state.currentLineLabel(),
+                  "File not found: " + filename);
+            }
+            super.load(p.toString());
+          }
+        };
+    ExpressionEvaluator exprEvaluator =
+        new ExpressionEvaluator(state, mockScreen, mockScreen, parser);
+    this.executor =
+        new StatementExecutor(state, mockScreen, mockScreen, storage, exprEvaluator, parser);
     this.interpreter = new Interpreter(state, executor);
+    ProgramEditor programEditor = new ProgramEditor(state, mockScreen, parser, executor::evalNum);
+    this.replHandler =
+        new InterpreterReplHandler(
+            mockScreen, mockScreen, parser, state, executor, programEditor, interpreter);
     this.interpreter.setExecutionListener(
         (line, stmt) -> {
           final var firedBreak =
@@ -227,16 +257,8 @@ final class DebugSession {
       return false;
     }
     String upper = cmd.toUpperCase();
-    if (Character.isDigit(cmd.charAt(0))) {
-      handleReplLine(cmd);
-      return false;
-    }
-    if (upper.equals("NEW")) {
-      state.clear();
-      state.program().clear();
-      System.out.println("+");
-      return false;
-    }
+
+    // Special cases that can't be delegated directly:
     if (upper.equals("LIST")) {
       System.out.println("+" + QuotedArg.format(buildProgramListing()));
       return false;
@@ -273,58 +295,15 @@ final class DebugSession {
       }
       return true;
     }
-    if (upper.equals("LOAD") || upper.startsWith("LOAD ") || upper.startsWith("LOAD\t")) {
-      String rest = cmd.length() > 4 ? cmd.substring(4).trim() : "";
-      if (rest.isEmpty()) {
-        System.out.println("-LOAD requires a file path: >LOAD \"path\"");
-        return false;
-      }
-      String pathStr = QuotedArg.parse(rest);
-      if (pathStr == null) {
-        pathStr = rest;
-      }
-      Path p = AgentDebugger.resolveBasPath(pathStr);
-      if (p == null) {
-        System.out.printf("-File not found: %s%n", pathStr);
-        return false;
-      }
-      try {
-        state.setProgram(parser.parseProgramLines(Files.readString(p)));
-        System.out.println("+");
-      } catch (IOException e) {
-        System.out.printf("-Failed to read file: %s%n", e.getMessage());
-      }
-      return false;
-    }
-    System.out.println(
-        "-UNKNOWN REPL COMMAND."
-            + " Allowed: >n [stmt], >NEW, >LOAD \"path\", >LIST, >RUN, >GOTO n");
-    return false;
-  }
 
-  private void handleReplLine(String cmd) {
-    int i = 0;
-    while (i < cmd.length() && Character.isDigit(cmd.charAt(i))) {
-      i++;
-    }
-    int lineNum;
-    try {
-      lineNum = Integer.parseInt(cmd.substring(0, i));
-    } catch (NumberFormatException e) {
-      System.out.println("-Invalid line number");
-      return;
-    }
-    if (lineNum <= 0) {
-      System.out.println("-Line number must be a positive integer");
-      return;
-    }
-    String rest = cmd.substring(i).trim();
-    if (rest.isEmpty()) {
-      state.program().remove(lineNum);
+    // All other commands (NEW, LOAD, numbered lines, REFORMAT, etc) are delegated to the handler.
+    replHandler.handleReplInput(cmd);
+    if (state.lastReportCode() == ReportCode.OK) {
+      System.out.println("+");
     } else {
-      state.program().put(lineNum, new ProgramLine(lineNum, rest));
+      System.out.println("-" + mockScreen.getStatus());
     }
-    System.out.println("+");
+    return false;
   }
 
   private String buildProgramListing() {
@@ -483,7 +462,7 @@ final class DebugSession {
     }
     if (numCtx != null) {
       try {
-        new AstAnnotator(0).visit(numCtx);
+        AstAnnotator.INSTANCE.annotate(numCtx, 0);
         double val = eval.evalNum(numCtx);
         System.out.printf("+%s%n", ExpressionEvaluator.formatNum(val));
       } catch (ReportException e) {
@@ -493,7 +472,7 @@ final class DebugSession {
     }
     try {
       var strCtx = parser.parseStrExpr(expr);
-      new AstAnnotator(0).visit(strCtx);
+      AstAnnotator.INSTANCE.annotate(strCtx, 0);
       BStr val = eval.evalStr(strCtx);
       System.out.printf("+%s%n", QuotedArg.format(val.toJavaString()));
     } catch (ReportException e) {
@@ -509,7 +488,7 @@ final class DebugSession {
     BazLangParser.StatementsContext stmts;
     try {
       stmts = parser.parseStatementsContext(args);
-      new AstAnnotator(0).visit(stmts);
+      AstAnnotator.INSTANCE.annotate(stmts, 0);
     } catch (ReportException e) {
       System.out.printf("-Parse error: %s%n", e.getMessage());
       return;

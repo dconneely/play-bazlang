@@ -215,7 +215,8 @@ Returns `1` for True, `0` for False.
 - **`PLOTW`**: Logical plot width for the current pixel mode (in pixels).
 - **`PLOTX`**: Current X coordinate of the plot cursor.
 - **`PLOTY`**: Current Y coordinate of the plot cursor.
-- **`POINT(x, y)`**: Returns `1` if the pixel at `(x, y)` is set, or `0` if it is erased. Only inspects the pixel bitmask; returns `0` if the cell contains non-graphic characters.
+- **`POINT(x, y)`**: Returns `1` if the pixel at `(x, y)` is set, or `0` if it is erased. Only
+  inspects the pixel bitmask; returns `0` if the cell contains non-graphic characters.
 - **`RND`**: Random number between 0 and 1.
 - **`SGN x`**: Signum (-1, 0, 1).
 - **`SQR x`**: Square root.
@@ -388,7 +389,7 @@ part of a program.
   pre-fills with just the line number followed by a space.
 
 - **`REFORMAT [lines]`**: Normalise program formatting.
-  
+
   ```
   REFORMAT
   REFORMAT 100
@@ -397,7 +398,7 @@ part of a program.
   REFORMAT 100 TO
   REFORMAT TO
   ```
-  
+
   Reformats the specified range of lines (or all lines if no range is given). It converts keywords
   and function names to uppercase and normalises whitespace around operators and separators.
 

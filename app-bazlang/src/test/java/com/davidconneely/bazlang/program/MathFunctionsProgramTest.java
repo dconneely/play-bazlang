@@ -9,34 +9,33 @@ import com.davidconneely.bazlang.ReportException;
 import com.davidconneely.bazlang.exec.EvalState;
 import java.util.List;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
 /** Tests exercising built-in math, trig, exponential, log, and random functions. */
 class MathFunctionsProgramTest extends BaseProgramTest {
 
-  @Test
-  void testExpLogFuncs() {
-    final var state =
-        runProgram(
-            """
-        10 LET E = EXP(1)
-        20 LET L = LN(E)
-        """);
-    assertEquals(Math.E, state.numVar("E"), 0.0001);
-    assertEquals(1.0, state.numVar("L"), 0.0001);
-  }
-
-  @Test
-  void testInverseTrigFuncs() {
-    final var state =
-        runProgram(
-            """
-        10 LET A = ASN(1)
-        20 LET B = ACS(0)
-        30 LET C = ATN(1)
-        """);
-    assertEquals(Math.PI / 2, state.numVar("A"), 0.0001);
-    assertEquals(Math.PI / 2, state.numVar("B"), 0.0001);
-    assertEquals(Math.PI / 4, state.numVar("C"), 0.0001);
+  @ParameterizedTest
+  @CsvSource({
+    "EXP(1), 2.7182818",
+    "LN(EXP(1)), 1.0",
+    "ASN(1), 1.5707963",
+    "ACS(0), 1.5707963",
+    "ATN(1), 0.7853981",
+    "SIN(0), 0.0",
+    "COS(0), 1.0",
+    "TAN(0), 0.0",
+    "ABS(-5), 5.0",
+    "INT(3.14), 3.0",
+    "SGN(-10), -1.0",
+    "SQR(16), 4.0",
+    "'LEN(\"HELLO\")', 5.0",
+    "'VAL(\"123\")', 123.0",
+    "'CODE(\"A\")', 65.0"
+  })
+  void testMathFunctions(String expression, double expected) {
+    final var state = runProgram("10 LET V = " + expression);
+    assertEquals(expected, state.numVar("V"), 0.0001);
   }
 
   @Test
@@ -73,43 +72,6 @@ class MathFunctionsProgramTest extends BaseProgramTest {
     assertTrue(state.numVar("W7") >= 0);
     assertTrue(state.numVar("W8") >= 0);
     assertTrue(state.numVar("W9") >= 0);
-  }
-
-  @Test
-  void testNumFuncs() {
-    final var state =
-        runProgram(
-            """
-        10 LET A = ABS(-5)
-        20 LET B = INT(3.14)
-        30 LET C = SGN(-10)
-        40 LET D = SQR(16)
-        50 LET E = LEN("HELLO")
-        60 LET F = VAL("123")
-        70 LET G = CODE("A")
-        """);
-    assertEquals(5.0, state.numVar("A"));
-    assertEquals(3.0, state.numVar("B"));
-    assertEquals(-1.0, state.numVar("C"));
-    assertEquals(4.0, state.numVar("D"));
-    assertEquals(5.0, state.numVar("E"));
-    assertEquals(123.0, state.numVar("F"));
-    assertEquals(65.0, state.numVar("G"));
-  }
-
-  @Test
-  void testTrigFuncs() {
-    // Basic check they run and return somewhat sane values
-    final var state =
-        runProgram(
-            """
-        10 LET S = SIN(0)
-        20 LET C = COS(0)
-        30 LET T = TAN(0)
-        """);
-    assertEquals(0.0, state.numVar("S"), 0.0001);
-    assertEquals(1.0, state.numVar("C"), 0.0001);
-    assertEquals(0.0, state.numVar("T"), 0.0001);
   }
 
   @Test

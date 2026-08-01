@@ -27,10 +27,10 @@
 2150 IF misses > 0 THEN GO SUB 4000
 2160 IF guess_word$ = clean_word$ THEN GO TO 2390
 2170 IF misses = 6 THEN GO TO 2410
-2180 PRINT AT oy + eh - 2, ox; INK 4; "Guess a letter: "; INK 5; 
+2180 PRINT AT oy + eh - 2, ox; INK 4; "Guess a letter: "; INK 5;
 2190 LET a$ = INKEY$
 2200 IF LEN (a$) <> 1 THEN GO TO 2190
-2210 PRINT a$; 
+2210 PRINT a$;
 2220 LET user_guess$ = a$(1)
 2230 LET ascii_code = CODE user_guess$
 2240 IF ascii_code >= 97 AND ascii_code <= 122 THEN LET user_guess$ = CHR$ (ascii_code - 32)
@@ -69,7 +69,7 @@
 4070 IF misses >= 6 THEN PLOT cx + 20, cy - 4 : DRAW 8, -6
 4080 RETURN
 5000 REM ### Play again ###
-5010 PRINT AT oy + eh - 1, ox; INK 4; "Play again (Y/N)? "; INK 5; 
+5010 PRINT AT oy + eh - 1, ox; INK 4; "Play again (Y/N)? "; INK 5;
 5020 LET r$ = INKEY$
 5030 IF LEN (r$) <> 1 THEN GO TO 5020
 5040 PRINT r$

@@ -788,7 +788,7 @@ public class ExpressionEvaluator extends BazLangBaseVisitor<Void> {
       throw codedException(ReportCode.NONSENSE_IN_BASIC, "Empty expression");
     }
     final var exprCtx = parser.parseNumExpr(exprStr);
-    new AstAnnotator(state.currentLineLabel()).visit(exprCtx);
+    AstAnnotator.INSTANCE.annotate(exprCtx, state.currentLineLabel());
     return evalNum(exprCtx);
   }
 
@@ -804,7 +804,7 @@ public class ExpressionEvaluator extends BazLangBaseVisitor<Void> {
       throw codedException(ReportCode.NONSENSE_IN_BASIC, "Empty expression");
     }
     final var exprCtx = parser.parseStrExpr(exprStr);
-    new AstAnnotator(state.currentLineLabel()).visit(exprCtx);
+    AstAnnotator.INSTANCE.annotate(exprCtx, state.currentLineLabel());
     return evalStr(exprCtx);
   }
 

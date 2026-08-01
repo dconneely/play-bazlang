@@ -6,7 +6,7 @@
 1050 REM ### Main game loop ###
 1060 GO SUB 1230
 1070 PRINT
-1080 PRINT "Shoot or Move (S/M)? "; 
+1080 PRINT "Shoot or Move (S/M)? ";
 1090 INPUT a$
 1100 IF a$ = "S" OR a$ = "s" THEN GO SUB 1350
 1110 IF a$ = "M" OR a$ = "m" THEN GO SUB 1730
@@ -16,7 +16,7 @@
 1150 IF won = 1 THEN PRINT "HEE HEE HEE - THE WUMPUS'LL GET YOU NEXT TIME!!"
 1160 IF dead = 1 THEN PRINT "HA HA HA - YOU LOSE!"
 1170 PRINT
-1180 PRINT "Play again? (Y/N) "; 
+1180 PRINT "Play again? (Y/N) ";
 1190 INPUT a$
 1200 IF a$ = "Y" OR a$ = "y" THEN GO TO 1030
 1210 STOP
@@ -33,12 +33,12 @@
 1320 PRINT "TUNNELS LEAD TO "; tunnel(player_loc, 1); " "; tunnel(player_loc, 2); " "; tunnel(player_loc, 3)
 1330 RETURN
 1340 REM ### Shoot arrow ###
-1350 PRINT "NO. OF ROOMS (1-5)? "; 
+1350 PRINT "NO. OF ROOMS (1-5)? ";
 1360 INPUT num_rooms
 1370 IF num_rooms < 1 OR num_rooms > 5 THEN GO TO 1350
 1380 DIM arrow_path(5)
 1390 FOR i = 1 TO num_rooms
-1400 PRINT "ROOM #? "; 
+1400 PRINT "ROOM #? ";
 1410 INPUT arrow_path(i)
 1420 IF i = 1 THEN GO TO 1450
 1430 IF arrow_path(i) = arrow_path(i - 1) THEN PRINT "ARROWS AREN'T THAT CROOKED - TRY ANOTHER ROOM"
@@ -71,7 +71,7 @@
 1700 LET dead = 1
 1710 RETURN
 1720 REM ### Move player ###
-1730 PRINT "WHERE TO? "; 
+1730 PRINT "WHERE TO? ";
 1740 INPUT new_loc
 1750 LET valid_move = 0
 1760 FOR i = 1 TO 3

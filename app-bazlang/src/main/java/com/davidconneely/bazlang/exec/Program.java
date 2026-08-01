@@ -72,6 +72,10 @@ public class Program {
     return lines.subMap(fromKey, fromInclusive, toKey, toInclusive).entrySet();
   }
 
+  public Iterable<Map.Entry<Integer, ProgramLine>> subMapEntries(int fromKey, int toKey) {
+    return lines.subMap(fromKey, true, toKey, true).entrySet();
+  }
+
   public void clearRange(int fromKey, boolean fromInclusive, int toKey, boolean toInclusive) {
     lines.subMap(fromKey, fromInclusive, toKey, toInclusive).clear();
   }

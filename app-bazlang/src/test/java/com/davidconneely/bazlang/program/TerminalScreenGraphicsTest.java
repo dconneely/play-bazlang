@@ -249,4 +249,16 @@ class TerminalScreenGraphicsTest {
         "Output must contain Braille characters for the tetrahedron's wireframe but was:\n"
             + output);
   }
+
+  @Test
+  void testColourMapping() {
+    runProgram(
+        """
+        10 CLS
+        20 PRINT INK 2; PAPER 4; "A";
+        30 PRINT INK 8; PAPER 8; "B";
+        40 PRINT INK 9; PAPER 2; "C";
+        50 PRINT INK COLOUR(255, 128, 0); "D";
+        """);
+  }
 }

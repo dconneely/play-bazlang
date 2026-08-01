@@ -93,7 +93,7 @@ public class AntlrParser {
         // Line 0 in REPL executes immediately (like Sinclair ZX BASIC - ZX81 only)
         String statementText = getStatementText(line, lineNumber);
         StatementsContext stmts = parseStatementsContext(statementText);
-        new AstAnnotator(0).visit(stmts);
+        AstAnnotator.INSTANCE.annotate(stmts, 0);
         return new ParsedLine.Immediate(stmts);
       }
       if (lineNumber > Limits.MAX_LINE_LABEL) {
@@ -103,10 +103,10 @@ public class AntlrParser {
       String statementText = getStatementText(line, lineNumber);
       return new ParsedLine.Numbered(lineNumber, statementText);
     } else if (tree instanceof BazLangParser.ReplCommandLineContext cmdLine) {
-      new AstAnnotator(0).visit(cmdLine.replCommand());
+      AstAnnotator.INSTANCE.annotate(cmdLine.replCommand(), 0);
       return new ParsedLine.ReplCommand(cmdLine.replCommand());
     } else if (tree instanceof BazLangParser.ImmediateLineContext immediate) {
-      new AstAnnotator(0).visit(immediate.statements());
+      AstAnnotator.INSTANCE.annotate(immediate.statements(), 0);
       return new ParsedLine.Immediate(immediate.statements());
     }
 

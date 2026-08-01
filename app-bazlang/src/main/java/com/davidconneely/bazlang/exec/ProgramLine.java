@@ -49,7 +49,11 @@ public class ProgramLine {
   private void ensureParsed(AntlrParser parser) {
     if (cachedParseTree == null) {
       cachedParseTree = parser.parseStatementsContext(sourceText);
-      new AstAnnotator(lineNumber).visit(cachedParseTree);
+      // Mutable state (like EvalState variable references) is cached directly on the ParseTree
+      // nodes as an intentional performance optimisation. When CLEAR is executed, EvalState.clear()
+      // zeroes out the contents of those cached references in place rather than replacing the
+      // objects, so this cached ParseTree remains valid and does not need to be discarded.
+      AstAnnotator.INSTANCE.annotate(cachedParseTree, lineNumber);
     }
   }
 

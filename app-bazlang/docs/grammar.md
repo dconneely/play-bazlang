@@ -121,7 +121,7 @@ This supports: `a$(1)`, `a$(1,2)`, `a$(1 TO 5)`, `a$(TO 5)`, `a$(1 TO)`, `a$(TO)
 ## Statements vs. REPL commands
 
 BazLang strictly separates program execution logic (statements) from interactive IDE/environment
-actions (REPL commands). 
+actions (REPL commands).
 
 ```antlr
 replLine

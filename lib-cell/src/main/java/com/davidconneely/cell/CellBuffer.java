@@ -181,7 +181,11 @@ public final class CellBuffer {
 
   // === Pixel graphics ===
 
-  /** Returns whether the pixel at (x, y) maps to a cell within this buffer. */
+  /**
+   * Returns whether the pixel at (x, y) maps to a cell within this buffer. Uses Math.abs to make
+   * the bounds check symmetric around the origin, which implements the documented
+   * negative-coordinate mirroring behavior.
+   */
   public boolean isPixelInBounds(int x, int y) {
     return Math.abs(x) < pixelWidth() && Math.abs(y) < pixelHeight();
   }
@@ -196,6 +200,10 @@ public final class CellBuffer {
     return Math.abs(x) / mode.pixelsPerCellX();
   }
 
+  /**
+   * Plots a pixel using existing cell attributes. Passes -1 for fg/bg colour and 0 for style, so
+   * attributes are preserved rather than updated.
+   */
   public void plot(int x, int y) {
     updatePixel(x, y, true, -1, -1, 0, false);
   }

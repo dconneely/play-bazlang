@@ -45,19 +45,19 @@
 3250 FOR row = 1 TO term_height - 1
 3260 LET left_idx = road_hpos(row + 1) : LET int_left = INT (left_idx) : LET fraction = left_idx - int_left
 3270 LET c_val = INT (score / 10) + row : LET kerb = 2 : IF c_val - 2 * INT (c_val / 2) = 0 THEN LET kerb = 7
-3280 PRINT AT row + offset_y, offset_x; INK 4; PAPER 0; wall$(1 TO int_left * bytes_per_block); 
-3290 IF fraction < 0.5 THEN PRINT PAPER 0; " "; 
-3300 IF fraction >= 0.5 THEN PRINT INK 4; PAPER 0; block_lefth$; 
+3280 PRINT AT row + offset_y, offset_x; INK 4; PAPER 0; wall$(1 TO int_left * bytes_per_block);
+3290 IF fraction < 0.5 THEN PRINT PAPER 0; " ";
+3300 IF fraction >= 0.5 THEN PRINT INK 4; PAPER 0; block_lefth$;
 3310 LET dash$ = " " : IF (score + row) / 2 = INT ((score + row) / 2) THEN LET dash$ = "|"
-3320 PRINT PAPER kerb; " "; PAPER 0; spaces$(1 TO mid_width - 1); INK 6; dash$; INK 4; PAPER 0; spaces$(1 TO road_inner - mid_width - 2); PAPER kerb; " "; PAPER 0; 
-3330 IF fraction < 0.5 THEN PRINT INK 4; PAPER 0; block_full$; 
-3340 IF fraction >= 0.5 THEN PRINT INK 4; PAPER 0; block_righth$; 
-3350 PRINT INK 4; PAPER 0; wall$(1 TO (term_width - (int_left + road_inner + 2)) * bytes_per_block); 
+3320 PRINT PAPER kerb; " "; PAPER 0; spaces$(1 TO mid_width - 1); INK 6; dash$; INK 4; PAPER 0; spaces$(1 TO road_inner - mid_width - 2); PAPER kerb; " "; PAPER 0;
+3330 IF fraction < 0.5 THEN PRINT INK 4; PAPER 0; block_full$;
+3340 IF fraction >= 0.5 THEN PRINT INK 4; PAPER 0; block_righth$;
+3350 PRINT INK 4; PAPER 0; wall$(1 TO (term_width - (int_left + road_inner + 2)) * bytes_per_block);
 3360 NEXT row
 3370 REM ### Draw car and score ###
-3380 PRINT AT car_vpos + offset_y, car_hpos + offset_x; BRIGHT 1; INK 5; PAPER 0; "|H|"; AT car_vpos + 1 + offset_y, car_hpos + offset_x; " ¯ "; BRIGHT 0; 
-3390 PRINT AT offset_y, offset_x + 1; INK 7; PAPER 0; " Score: "; score; " "; AT offset_y, offset_x + term_width - 19; " Use Arrows/AD/HL "; 
-3400 PRINT INK 8; PAPER 8; 
+3380 PRINT AT car_vpos + offset_y, car_hpos + offset_x; BRIGHT 1; INK 5; PAPER 0; "|H|"; AT car_vpos + 1 + offset_y, car_hpos + offset_x; " ¯ "; BRIGHT 0;
+3390 PRINT AT offset_y, offset_x + 1; INK 7; PAPER 0; " Score: "; score; " "; AT offset_y, offset_x + term_width - 19; " Use Arrows/AD/HL ";
+3400 PRINT INK 8; PAPER 8;
 3410 LET score = score + 5 + INT (ABS (road_curve) * 5)
 3420 PAUSE car_vpos / 5
 3430 GO TO 3000
@@ -71,7 +71,7 @@
 4070 IF score >= 3500 AND score < 5000 THEN LET msg$ = "Speed demon! Almost there!"
 4080 IF score >= 5000 THEN LET msg$ = "Formula 1 champion!"
 4090 PRINT AT term_height - 3 + offset_y, offset_x; msg$; "                                 "
-4100 PRINT AT term_height - 2 + offset_y, offset_x; "Play again? (Y/N)                  "; 
+4100 PRINT AT term_height - 2 + offset_y, offset_x; "Play again? (Y/N)                  ";
 4110 LET k$ = INKEY$
 4120 IF k$ = "Y" OR k$ = "y" THEN GO TO 2000
 4130 IF k$ = "N" OR k$ = "n" THEN STOP

@@ -134,12 +134,12 @@ final class BreakpointEngine {
             case EXPR -> {
               try {
                 var numCtx = parser.parseNumExpr(brk.seeText());
-                new AstAnnotator(0).visit(numCtx);
+                AstAnnotator.INSTANCE.annotate(numCtx, 0);
                 yield eval.evalNum(numCtx) != 0.0;
               } catch (ReportException e) {
                 try {
                   var strCtx = parser.parseStrExpr(brk.seeText());
-                  new AstAnnotator(0).visit(strCtx);
+                  AstAnnotator.INSTANCE.annotate(strCtx, 0);
                   yield !eval.evalStr(strCtx).isEmpty();
                 } catch (ReportException e2) {
                   yield false;

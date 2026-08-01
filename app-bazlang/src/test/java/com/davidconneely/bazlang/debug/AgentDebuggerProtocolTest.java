@@ -116,10 +116,15 @@ class AgentDebuggerProtocolTest {
             "+READY",
             "-UNKNOWN COMMAND. Commands start with /, ?, !, or >",
             "-UNKNOWN / COMMAND. Allowed: /GO, /STOP, /SPB, /S1B, /CPB, /RSC, /PIQ, /SSD",
-            "-UNKNOWN REPL COMMAND."
-                + " Allowed: >n [stmt], >NEW, >LOAD \"path\", >LIST, >RUN, >GOTO n",
-            "-Invalid condition — expected CSC \"<text>\","
-                + " ELAPSE <ms>, ?<expression>, or EVERY <n>",
+            "-C Nonsense in BASIC, 0:1 (mismatched input 'XYZ' expecting {'BRIGHT', "
+                + "'CIRCLE', 'CLEAR', 'CLS', 'CONT', 'CONTINUE', 'DATA', 'DEF', 'DELETE', "
+                + "'DIM', 'DRAW', 'EDIT', 'FAST', 'FLASH', 'FOR', 'GO', 'GOSUB', 'GOTO', "
+                + "'IF', 'INK', 'INPUT', 'INVERSE', 'LET', 'LIST', 'LOAD', 'MERGE', 'NEW', "
+                + "'NEXT', 'OVER', 'PAPER', 'PAUSE', 'PLOT', 'PLOTMODE', 'PRINT', 'RAND', "
+                + "'RANDOMISE', 'RANDOMIZE', 'READ', 'REFORMAT', 'RENUM', 'RESTORE', "
+                + "'RETURN', 'RUN', 'SAVE', 'SCROLL', 'SLOW', 'STOP', 'VERIFY', NUM_LITERAL, REM})",
+            "-Invalid condition — expected CSC \"<text>\", ELAPSE <ms>,"
+                + " ?<expression>, or EVERY <n>",
             "-no programme loaded; use >n stmt or >LOAD \"path\", then >RUN"),
         lines);
   }

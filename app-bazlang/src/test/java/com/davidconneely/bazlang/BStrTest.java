@@ -386,4 +386,34 @@ class BStrTest {
     assertEquals(0x80, mid.byteAt(0));
     assertEquals(c8(0x80), mid.toJavaString());
   }
+
+  @Test
+  void testSliceEmpty() {
+    final var s = BStr.fromJavaString("Hello");
+    // from == to + 1 (empty slice)
+    assertEquals("", s.slice(3, 2).toJavaString());
+  }
+
+  // --- withSlice ---
+
+  @Test
+  void testWithSliceLongerReplacement() {
+    final var s = BStr.fromJavaString("Hello");
+    // replacing "ll" (length 2) with "llo World" (length 9)
+    // withSlice truncates the replacement to fit the slice length
+    final var replacement = BStr.fromJavaString("llo World");
+    assertEquals("Hello", s.withSlice(3, 4, replacement).toJavaString());
+  }
+
+  // --- codepointLength ---
+
+  @Test
+  void testCodepointLengthMixedBytes() {
+    // string with 1 ASCII, 1 invalid byte, 1 valid 3-byte char
+    // "A" (1) + 0xFF (1) + "█" (3)
+    final var s =
+        BStr.fromBytes(new byte[] {65, (byte) 0xFF, (byte) 0xE2, (byte) 0x96, (byte) 0x88});
+    // Expected codepoints: 'A' (1) + synthetic 0xFF (1) + █ (1) = 3
+    assertEquals(3, s.codepointLength());
+  }
 }

@@ -7,11 +7,20 @@ import com.davidconneely.bazlang.antlr.BazLangBaseVisitor;
 import com.davidconneely.bazlang.antlr.BazLangParser.*;
 import java.math.BigInteger;
 
-public class AstAnnotator extends BazLangBaseVisitor<Void> {
-  private final int lineNumber;
+public final class AstAnnotator extends BazLangBaseVisitor<Void> {
+  public static final AstAnnotator INSTANCE = new AstAnnotator();
 
-  public AstAnnotator(int lineNumber) {
-    this.lineNumber = lineNumber;
+  private final ThreadLocal<Integer> currentLineNumber = new ThreadLocal<>();
+
+  private AstAnnotator() {}
+
+  public void annotate(org.antlr.v4.runtime.tree.ParseTree tree, int lineNumber) {
+    currentLineNumber.set(lineNumber);
+    try {
+      visit(tree);
+    } finally {
+      currentLineNumber.remove();
+    }
   }
 
   /** Parses a BIN literal token text ("BIN 1010") to its numeric value. */
@@ -38,7 +47,7 @@ public class AstAnnotator extends BazLangBaseVisitor<Void> {
 
   @Override
   public Void visitBinLiteralExpr(BinLiteralExprContext ctx) {
-    ctx.cachedNum = parseBinLiteral(ctx.BIN_LITERAL().getText(), lineNumber);
+    ctx.cachedNum = parseBinLiteral(ctx.BIN_LITERAL().getText(), currentLineNumber.get());
     return super.visitBinLiteralExpr(ctx);
   }
 
@@ -53,7 +62,7 @@ public class AstAnnotator extends BazLangBaseVisitor<Void> {
     if (ctx.NUM_LITERAL() != null) {
       ctx.cachedNum = Double.parseDouble(ctx.NUM_LITERAL().getText());
     } else if (ctx.BIN_LITERAL() != null) {
-      ctx.cachedNum = parseBinLiteral(ctx.BIN_LITERAL().getText(), lineNumber);
+      ctx.cachedNum = parseBinLiteral(ctx.BIN_LITERAL().getText(), currentLineNumber.get());
     }
     return super.visitNumAtom(ctx);
   }

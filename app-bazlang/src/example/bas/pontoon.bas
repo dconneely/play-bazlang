@@ -22,7 +22,7 @@
 2540 IF k$ = "4" THEN LET bet = money : GO TO 3000
 2550 IF k$ = "5" THEN GO TO 2570
 2560 GO TO 2500
-2570 PRINT AT oy + 2, ox; "Enter bet amount: £"; 
+2570 PRINT AT oy + 2, ox; "Enter bet amount: £";
 2580 INPUT bet
 2590 IF bet <= 0 THEN PRINT AT oy + 3, ox; "Must be > £0!          " : GO TO 2570
 2600 IF bet > money THEN PRINT AT oy + 3, ox; "Insufficient funds!   " : GO TO 2570

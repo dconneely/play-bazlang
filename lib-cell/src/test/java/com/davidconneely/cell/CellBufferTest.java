@@ -103,4 +103,57 @@ class CellBufferTest {
     assertEquals('C', buf.getCell(1, 0));
     assertEquals(' ', buf.getCell(2, 0));
   }
+
+  @Test
+  void testResizeShrink() {
+    final var buf = new CellBuffer(24, 32, QuadrantMode.INSTANCE);
+    buf.setCell(20, 30, 'X');
+    buf.resize(10, 10);
+    assertEquals(10, buf.rows());
+    assertEquals(10, buf.cols());
+    // Since 20, 30 is out of bounds, it was clipped.
+  }
+
+  @Test
+  void testScrollUpSingleRow() {
+    final var buf = new CellBuffer(1, 4, QuadrantMode.INSTANCE);
+    buf.setCell(0, 0, 'A');
+    buf.scrollUp();
+    assertEquals(' ', buf.getCell(0, 0));
+  }
+
+  @Test
+  void testPlotAndPointAllModes() {
+    PixelMode[] modes = {
+      CellMode.INSTANCE,
+      HalfCellMode.INSTANCE,
+      QuadrantMode.INSTANCE,
+      SextantMode.INSTANCE,
+      BrailleMode.INSTANCE
+    };
+    for (PixelMode mode : modes) {
+      final var buf = new CellBuffer(10, 10, mode);
+      assertEquals(0, buf.point(0, 0));
+      buf.plot(0, 0);
+      assertEquals(1, buf.point(0, 0));
+    }
+  }
+
+  @Test
+  void testTransparentAttributeRoundTrip() {
+    final var buf = new CellBuffer(10, 10, QuadrantMode.INSTANCE);
+    // Plot with specific foreground, background and style
+    buf.plot(0, 0, 2, 4, CellAttributes.STYLE_BOLD);
+    long attr1 = buf.getAttr(9, 0);
+    assertEquals(2, CellBuffer.unpackFgColour(attr1));
+    assertEquals(4, CellBuffer.unpackBgColour(attr1));
+    assertEquals(CellAttributes.STYLE_BOLD, CellBuffer.unpackStyle(attr1));
+
+    // Plot over the same cell (at adjacent pixel) with attribute preservation
+    buf.plot(1, 0);
+    long attr2 = buf.getAttr(9, 0);
+    assertEquals(2, CellBuffer.unpackFgColour(attr2));
+    assertEquals(4, CellBuffer.unpackBgColour(attr2));
+    assertEquals(CellAttributes.STYLE_BOLD, CellBuffer.unpackStyle(attr2));
+  }
 }
