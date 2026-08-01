@@ -23,7 +23,12 @@ class AgentDebuggerProtocolTest {
         Path.of(System.getProperty("java.home"), "bin", "java").toAbsolutePath().toString();
     final var pb =
         new ProcessBuilder(
-            javaExe, "-cp", System.getProperty("java.class.path"), AgentDebugger.class.getName());
+            javaExe,
+            "-Dstdout.encoding=UTF-8",
+            "-Dstderr.encoding=UTF-8",
+            "-cp",
+            System.getProperty("java.class.path"),
+            AgentDebugger.class.getName());
     pb.redirectErrorStream(false);
     final Process proc = pb.start();
     proc.getOutputStream().write(script.getBytes(StandardCharsets.UTF_8));

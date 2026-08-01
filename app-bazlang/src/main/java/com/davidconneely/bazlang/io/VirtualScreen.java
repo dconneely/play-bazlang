@@ -1,9 +1,8 @@
 package com.davidconneely.bazlang.io;
 
 import com.davidconneely.cell.PixelMode;
-import com.davidconneely.repl.ReplReader;
 
-public interface VirtualScreen extends ReplReader, AutoCloseable {
+public interface VirtualScreen extends AutoCloseable {
   int currentRow();
 
   int currentCol();

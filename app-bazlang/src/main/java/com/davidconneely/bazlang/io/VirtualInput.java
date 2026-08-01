@@ -1,8 +1,9 @@
 package com.davidconneely.bazlang.io;
 
 import com.davidconneely.bazlang.BStr;
+import com.davidconneely.repl.ReplReader;
 
-public interface VirtualInput {
+public interface VirtualInput extends ReplReader {
   enum InputMode {
     INPUT_NUMERIC,
     INPUT_STRING

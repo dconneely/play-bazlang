@@ -72,6 +72,6 @@ public class MainClass {
     screen.systemPrintln("BazLang REPL. Type 'STOP' or Ctrl+D at the prompt to exit.");
     final var handler =
         new InterpreterReplHandler(screen, input, PARSER, state, executor, editor, interpreter);
-    Repl.loop(screen, handler);
+    Repl.loop(input, handler);
   }
 }

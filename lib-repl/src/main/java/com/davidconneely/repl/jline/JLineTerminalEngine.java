@@ -113,7 +113,7 @@ public class JLineTerminalEngine implements TerminalEngine {
       terminal.flush();
       terminal.setAttributes(savedAttributes);
       terminal.close();
-    } catch (IOException e) {
+    } catch (IllegalStateException | IOException e) {
       // Ignore
     }
   }
