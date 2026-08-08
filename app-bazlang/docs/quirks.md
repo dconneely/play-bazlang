@@ -1,8 +1,8 @@
 # Language quirks
 
-BazLang deliberately replicates a number of eccentric Sinclair ZX BASIC behaviours, and makes a
-few deliberate design decisions of its own that can look like bugs. This document is the register
-of those behaviours. It serves two audiences:
+BazLang deliberately replicates a number of eccentric Sinclair ZX BASIC behaviours, and makes a few
+deliberate design decisions of its own that can look like bugs. This document is the register of
+those behaviours. It serves two audiences:
 
 - **BazLang programmers**: these are observable language behaviours you can rely on.
 - **Interpreter implementers**: these are **intentional**. Do not "fix" anything listed here; any
@@ -16,13 +16,12 @@ of those behaviours. It serves two audiences:
   `6` after the loop terminates).
 - **FOR loop stale loops and stray `NEXT`**: A `FOR` loop is not deactivated when it terminates
   naturally. Executing a stray `NEXT var` statement *after* the loop has finished will continue to
-  increment `var` and resume execution from the statement following `NEXT` without raising
-  an error.
+  increment `var` and resume execution from the statement following `NEXT` without raising an error.
 - **FOR loop flat skip scan**: When a loop's initial value falls outside its range (e.g.,
   `FOR i=1 TO 0`), the loop body is skipped. The interpreter performs a flat, linear scan through
   all statements in source code order to find the first `NEXT i`. This scan is unconditional: it
-  includes statements nested inside `IF ... THEN` bodies, even if the condition is false.
-  For example:
+  includes statements nested inside `IF ... THEN` bodies, even if the condition is false. For
+  example:
   ```bas
   10 FOR i=1 TO 0
   20 IF 0 THEN NEXT i
@@ -31,8 +30,7 @@ of those behaviours. It serves two audiences:
   50 PRINT "B"
   ```
   This prints `A` then `B`. The skip scan on line 10 finds the `NEXT i` on line 20 (inside the
-  always-false `IF`), causing execution to resume at line 30.
-  (Covered by `ForNextProgramTest`.)
+  always-false `IF`), causing execution to resume at line 30. (Covered by `ForNextProgramTest`.)
 
 ## Variables & memory quirks
 
@@ -59,8 +57,8 @@ of those behaviours. It serves two audiences:
   Sinclair ZX BASIC behaviour). For example, `PLOT -10, -10` draws at coordinate `(10, 10)`.
 - **Byte-oriented fixed-length string arrays**: Fixed-length string arrays (declared via
   `DIM a$(rows, cols)`) are byte-oriented. The column size `cols` specifies the maximum width in
-  **bytes**, not character count. When assigning multibyte UTF-8 characters, ensure `cols` is
-  sized large enough to hold the character's full byte sequence. If the assigned string exceeds
+  **bytes**, not character count. When assigning multibyte UTF-8 characters, ensure `cols` is sized
+  large enough to hold the character's full byte sequence. If the assigned string exceeds
   `cols` bytes, it is truncated at the byte boundary, which can result in partial, invalid UTF-8
   sequences.
 
@@ -78,9 +76,9 @@ they equally look like bugs at first sight:
   a
   N Statement lost, 0:1
   ```
-  This is authentic ZX BASIC behaviour: when a false `IF` skips "to the next line" there is no
-  next line for the edit line to continue on.
+  This is authentic ZX BASIC behaviour: when a false `IF` skips "to the next line" there is no next
+  line for the edit line to continue on.
 - **Silent terminal fallback**: If the interactive `TerminalScreen` cannot be initialised (its
-  construction throws `IOException`), `MainClass` silently falls back to the plain
-  stdin/stdout `StreamScreen`. This is intentional graceful degradation for environments without
-  a usable terminal, not an ignored error.
+  construction throws `IOException`), `MainClass` silently falls back to the plain stdin/stdout
+  `StreamScreen`. This is intentional graceful degradation for environments without a usable
+  terminal, not an ignored error.

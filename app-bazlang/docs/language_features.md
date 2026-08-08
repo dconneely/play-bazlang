@@ -36,8 +36,8 @@ Spectrum BASIC). This file lists the available commands, functions, and syntax r
 
 - **Simple variables**: `a$`, `name$`. These can change length.
 - **Fixed strings**: `DIM a$(10)` is a character array that acts like a fixed string of 10 bytes.
-- **String arrays**: `DIM a$(5, 10)` is a character array that acts like 5 fixed strings,
-  each 10 bytes long.
+- **String arrays**: `DIM a$(5, 10)` is a character array that acts like 5 fixed strings, each 10
+  bytes long.
 - **Indexing**: `a$(1)` is the first byte.
 - **Byte semantics**: Strings are byte arrays internally. `LEN` returns the byte count. String
   literals and input from `INPUT` are stored as UTF-8 bytes. When printed, bytes are decoded
@@ -85,41 +85,40 @@ Returns `1` for True, `0` for False.
 
 ### Flow control
 
-- **`GO TO n`** (alias **`GOTO n`**): Jump to line `n`.
-  If line `n` doesn't exist, jumps to the next numerically higher line.
+- **`GO TO n`** (alias **`GOTO n`**): Jump to line `n`. If line `n` doesn't exist, jumps to the next
+  numerically higher line.
 - **`GO SUB n`** (alias **`GOSUB n`**) ... `RETURN`: Call a subroutine.
 - **`IF condition THEN statement`**: Run statement if true. No `ELSE`.
 - **`FOR varname = start TO end STEP step` ... `NEXT varname`**: Loop.
-  - Note: While the Spectrum only allows single-character loop variables (`A` to `Z`), BazLang
-    supports multi-character loop variables. See
-    [quirks.md](quirks.md#flow-control-quirks) for loop
-    execution quirks.
+    - Note: While the Spectrum only allows single-character loop variables (`A` to `Z`), BazLang
+      supports multi-character loop variables. See
+      [quirks.md](quirks.md#flow-control-quirks) for loop execution quirks.
 - **`STOP`**: Stop the program.
 - **`CONTINUE`** (alias **`CONT`**): Continue after a `STOP`.
-- **`PAUSE n`**: Wait for `n` frames (each frame is 1/50 second = 20ms).
-  Fractional values are accepted, e.g. `PAUSE 0.5` waits 10ms.
+- **`PAUSE n`**: Wait for `n` frames (each frame is 1/50 second = 20ms). Fractional values are
+  accepted, e.g. `PAUSE 0.5` waits 10ms.
 - **`RUN n`**: Restart program from line `n`.
 
 ### Input / output
 
 - **`PRINT`**: Print to screen.
-  - `;`: Join items.
-  - `,`: Tab to next zone.
-  - `'`: Advance print position to start of next line.
-  - `AT y, x`: Move cursor.
-  - `TAB n`: Move to column `n`.
-  - `INK n` / `PAPER n` / `FLASH n` / `BRIGHT n` / `INVERSE n` / `OVER n`: Temporary colour/style
-    modifiers for the print statement.
-- **`INPUT varname`**: Ask user for input.
-  For numeric variables, the input is evaluated as an expression.
-  If the expression is invalid, the user is prompted with "Syntax error? " and can edit their input.
+    - `;`: Join items.
+    - `,`: Tab to next zone.
+    - `'`: Advance print position to start of next line.
+    - `AT y, x`: Move cursor.
+    - `TAB n`: Move to column `n`.
+    - `INK n` / `PAPER n` / `FLASH n` / `BRIGHT n` / `INVERSE n` / `OVER n`: Temporary colour/style
+      modifiers for the print statement.
+- **`INPUT varname`**: Ask user for input. For numeric variables, the input is evaluated as an
+  expression. If the expression is invalid, the user is prompted with "Syntax error? " and can edit
+  their input.
 - **`CLS`**: Clear screen.
 - **`SCROLL`**: Scroll screen up.
 - **`FAST`**: Suppress terminal re-rendering after each output operation. Use before a block of
-  intensive screen updates to avoid visible flickering and reduce terminal I/O overhead.
-  Has no visible effect in non-interactive (piped) or headless modes.
-- **`SLOW`**: Re-enable terminal re-rendering (the default). Also immediately flushes any
-  pending screen changes that accumulated during `FAST` mode.
+  intensive screen updates to avoid visible flickering and reduce terminal I/O overhead. Has no
+  visible effect in non-interactive (piped) or headless modes.
+- **`SLOW`**: Re-enable terminal re-rendering (the default). Also immediately flushes any pending
+  screen changes that accumulated during `FAST` mode.
 - **`PLOT [modifiers;] x, y`**: Draw a block at coordinates `(x, y)`. Updates the current plot
   position. Accepts colour/style modifiers before coordinates (e.g. `PLOT INK 2; x, y`).
 - **`DRAW [modifiers;] x, y`**: Draw a line from the current plot position to relative offset
@@ -129,18 +128,18 @@ Returns `1` for True, `0` for False.
   the midpoint circle algorithm. Leaves the plot position at the centre `(x, y)`. A radius of `0`
   (or less) plots a single point at the centre. Accepts colour/style modifiers before coordinates
   (e.g. `CIRCLE INK 2; x, y, r`).
-  - Coordinates start at `(0,0)` (bottom-left) and extend dynamically based on terminal size.
-    For negative coordinate behaviours, see
-    [quirks.md](quirks.md#input--output-quirks).
-  - Uses Unicode block characters; the resolution depends on the current pixel mode (see
-    `PLOTMODE`).
+    - Coordinates start at `(0,0)` (bottom-left) and extend dynamically based on terminal size. For
+      negative coordinate behaviours, see
+      [quirks.md](quirks.md#input--output-quirks).
+    - Uses Unicode block characters; the resolution depends on the current pixel mode (see
+      `PLOTMODE`).
 - **`PLOTMODE n`**: Sets the pixel mode for graphics (`PLOT` and `DRAW`):
-  - `1` = full cell (1×1, each cell is blank or `█`)
-  - `2` = half cell — upper `▀` / lower `▄` (1×2)
-  - `4` = quadrant blocks (2×2, default)
-  - `6` = sextant blocks (2×3)
-  - `8` = braille patterns (2×4)
-  - Does not clear the screen. Other values give an error.
+    - `1` = full cell (1×1, each cell is blank or `█`)
+    - `2` = half cell — upper `▀` / lower `▄` (1×2)
+    - `4` = quadrant blocks (2×2, default)
+    - `6` = sextant blocks (2×3)
+    - `8` = braille patterns (2×4)
+    - Does not clear the screen. Other values give an error.
 
 ### Colour / style attributes
 
@@ -158,13 +157,13 @@ Returns `1` for True, `0` for False.
   accepts `0` or `1`; `OVER` is not persisted as a cell attribute so transparency is not meaningful.
 - **`PAPER n`**: Set active background paper colour (0–7 ZX Spectrum colours, `-1` = default
   terminal background, `8` = transparent — each printed cell preserves its existing background
-  colour, `9` = contrast — automatically selects black or white to contrast against the current
-  ink colour).
+  colour, `9` = contrast — automatically selects black or white to contrast against the current ink
+  colour).
 
 ### Program management
 
-- **`LIST [n [TO [m]]]`**: Show program code. `LIST` shows all; `LIST n` shows from line `n` to
-  end; `LIST TO m` shows from start to line `m`; `LIST n TO m` shows lines `n` through `m`.
+- **`LIST [n [TO [m]]]`**: Show program code. `LIST` shows all; `LIST n` shows from line `n` to end;
+  `LIST TO m` shows from start to line `m`; `LIST n TO m` shows lines `n` through `m`.
 
 ### Environment
 
@@ -178,8 +177,8 @@ Returns `1` for True, `0` for False.
 - **`VERIFY "file"`**: Check that the program text in the file matches the current program exactly
   (line numbers and source text). Succeeds silently on a match; reports `R Tape loading error` if
   the contents differ.
-- **`RANDOMIZE n`** (aliases **`RAND n`**, **`RANDOMISE n`**): Seed the random number generator.
-  If `n` is `0` or omitted, it seeds dynamically using system entropy.
+- **`RANDOMIZE n`** (aliases **`RAND n`**, **`RANDOMISE n`**): Seed the random number generator. If
+  `n` is `0` or omitted, it seeds dynamically using system entropy.
 
 ### Data
 
@@ -187,8 +186,8 @@ Returns `1` for True, `0` for False.
 - **`DIM varname(size)`**: Create an array.
 - **`DATA value1, value2, ...`**: Define a list of constant values to be read by `READ`.
 - **`READ varname1, varname2, ...`**: Read values from `DATA` statements into variables.
-- **`RESTORE [n]`**: Reset the data pointer to the first `DATA` statement,
-  or optionally to line `n`.
+- **`RESTORE [n]`**: Reset the data pointer to the first `DATA` statement, or optionally to line
+  `n`.
 
 ## Functions
 
@@ -201,12 +200,12 @@ Returns `1` for True, `0` for False.
 
 - **`ABS x`**: Absolute value.
 - **`ATTR(row, col)`**: Sinclair Spectrum attribute byte at `(row, col)` computed as
-  `(flash * 128) + (bright * 64) + (paper * 8) + ink`. Reports 'Integer out of range' if
-  coordinates are out of bounds.
+  `(flash * 128) + (bright * 64) + (paper * 8) + ink`. Reports 'Integer out of range' if coordinates
+  are out of bounds.
 - **`CODE s$`**: Raw byte value (0-255) of first byte in string.
 - **`COLOUR(r, g, b)`**: Packs 24-bit RGB values to a BazLang colour number (`16777216 + RGB`).
-- **`FRAMES`**: Number of ticks (1 tick = 20 milliseconds) since epoch.
-  It increases by `50.0` every second. Fractional ticks are allowed.
+- **`FRAMES`**: Number of ticks (1 tick = 20 milliseconds) since epoch. It increases by `50.0` every
+  second. Fractional ticks are allowed.
 - **`INT x`**: Round down to integer.
 - **`LEN s$`**: Byte length of string (not character count for multibyte characters).
 - **`PI`**: 3.14159...
@@ -226,7 +225,7 @@ Returns `1` for True, `0` for False.
 - **`TEXTY`**: Current text cursor row (Y coordinate).
 - **`UCNEXT(s$, i)`**: Returns the 1-based byte position of the codepoint that starts immediately
   after position `i`. Consistent with utf8-c8: each invalid byte counts as one codepoint of width
-  1. Use for codepoint-by-codepoint iteration:
+    1. Use for codepoint-by-codepoint iteration:
   ```
   10 LET i = 1
   20 IF i > LEN(s$) THEN GOTO 60
@@ -257,11 +256,11 @@ Returns `1` for True, `0` for False.
   Returns `""` if the character codepoint is outside `0..127`. Reports 'Integer out of range' if
   coordinates are out of bounds.
 - **`STR$ x`**: Convert number to string.
-- **`UCHR$ x`**: String containing the UTF-8 encoding of Unicode codepoint `x`.
-  Use for codepoints above U+007F, e.g. `UCHR$(9608)` for the full-block character █.
+- **`UCHR$ x`**: String containing the UTF-8 encoding of Unicode codepoint `x`. Use for codepoints
+  above U+007F, e.g. `UCHR$(9608)` for the full-block character █.
 - **`UINKEY$`**: Check key press, interpreting multibyte UTF-8 sequences and ANSI escape sequences.
-- **`USCREEN$(row, col)`**: Character at screen coordinate `(row, col)` as a UTF-8 string.
-  Returns Unicode Braille/quadrant characters if the location has been plotted to. Reports
+- **`USCREEN$(row, col)`**: Character at screen coordinate `(row, col)` as a UTF-8 string. Returns
+  Unicode Braille/quadrant characters if the location has been plotted to. Reports
   'Integer out of range' if coordinates are out of bounds.
 - **`VAL$ s$`**: Evaluate a string as a string expression.
 
@@ -273,27 +272,27 @@ sequences can consist of multiple bytes, BazLang provides parallel sets of funct
 between raw bytes and decoded Unicode characters:
 
 - **`CHR$` vs `UCHR$`**:
-  - `CHR$ x` returns a single-byte string containing the raw byte value `x` (0–255).
-  - `UCHR$ x` returns a string containing the multibyte UTF-8 encoding of the Unicode codepoint
-    `x` (e.g. `UCHR$ 9608` yields the 3-byte sequence for `█`).
+    - `CHR$ x` returns a single-byte string containing the raw byte value `x` (0–255).
+    - `UCHR$ x` returns a string containing the multibyte UTF-8 encoding of the Unicode codepoint
+      `x` (e.g. `UCHR$ 9608` yields the 3-byte sequence for `█`).
 - **`CODE` vs `UCODE`**:
-  - `CODE s$` returns the numeric value of the first raw *byte* of `s$` (0–255).
-  - `UCODE s$` decodes the first character of `s$` as UTF-8 and returns its Unicode codepoint
-    value. If the sequence is invalid or incomplete, it falls back to the raw value of the first
-    byte (128–255).
+    - `CODE s$` returns the numeric value of the first raw *byte* of `s$` (0–255).
+    - `UCODE s$` decodes the first character of `s$` as UTF-8 and returns its Unicode codepoint
+      value. If the sequence is invalid or incomplete, it falls back to the raw value of the first
+      byte (128–255).
 - **`LEN` vs `ULEN`**:
-  - `LEN s$` returns the raw byte length of `s$`.
-  - `ULEN s$` returns the number of Unicode characters (codepoints) in `s$`. Each invalid or lone
-    byte (at the start, middle, or end of the string) counts as exactly 1 character.
+    - `LEN s$` returns the raw byte length of `s$`.
+    - `ULEN s$` returns the number of Unicode characters (codepoints) in `s$`. Each invalid or lone
+      byte (at the start, middle, or end of the string) counts as exactly 1 character.
 - **`SCREEN$` vs `USCREEN$`**:
-  - `SCREEN$(row, col)` reads the character cell at the specified coordinates and returns it as
-    a single-byte string. Returns `""` if the cell contains a character outside the ASCII range.
-  - `USCREEN$(row, col)` reads the cell and returns it as a UTF-8 string, supporting multibyte
-    Unicode characters (such as Braille or quadrant blocks).
+    - `SCREEN$(row, col)` reads the character cell at the specified coordinates and returns it as a
+      single-byte string. Returns `""` if the cell contains a character outside the ASCII range.
+    - `USCREEN$(row, col)` reads the cell and returns it as a UTF-8 string, supporting multibyte
+      Unicode characters (such as Braille or quadrant blocks).
 - **`INKEY$` vs `UINKEY$`**:
-  - `INKEY$` polls for a single raw byte from the input queue and returns it as a `BStr`.
-  - `UINKEY$` polls for input, reading and returning a complete UTF-8 multibyte sequence or
-    a terminal ANSI CSI escape sequence (e.g. cursor or function keys) as a single `BStr`.
+    - `INKEY$` polls for a single raw byte from the input queue and returns it as a `BStr`.
+    - `UINKEY$` polls for input, reading and returning a complete UTF-8 multibyte sequence or a
+      terminal ANSI CSI escape sequence (e.g. cursor or function keys) as a single `BStr`.
 
 ## Slicing
 
@@ -307,9 +306,9 @@ You can slice strings and arrays. String indices are **byte offsets** (1-based).
 
 ### 2D string array row access
 
-When `a$` is declared as a 2D string array (e.g. `DIM a$(rows, cols)`),
-a single index `a$(i)` refers to the entire `i`-th row as a string of length `cols`.
-This can be used for reading, comparison, and assignment:
+When `a$` is declared as a 2D string array (e.g. `DIM a$(rows, cols)`), a single index `a$(i)`
+refers to the entire `i`-th row as a string of length `cols`. This can be used for reading,
+comparison, and assignment:
 
 ```
 DIM board$(8, 8)
@@ -320,8 +319,8 @@ IF board$(3) = board$(4) THEN ...  : REM compare two rows
 ### String array initialisation
 
 String arrays (both fixed-length scalars and 2D arrays) are initialised to all spaces (`CHR$ 32`).
-This is consistent with ZX Spectrum BASIC. Simple (variable-length) string variables are
-initialised to the empty string `""`.
+This is consistent with ZX Spectrum BASIC. Simple (variable-length) string variables are initialised
+to the empty string `""`.
 
 ```
 DIM grid$(25, 80)   : REM all 2000 bytes are spaces
@@ -342,22 +341,22 @@ Examples: `42`, `3.14159`, `1.23E+15`, `-5E-8`
 
 ## Divergences
 
-BazLang follows Sinclair ZX BASIC semantics where practical, with these intentional differences
-(not an exhaustive list):
+BazLang follows Sinclair ZX BASIC semantics where practical, with these intentional differences (not
+an exhaustive list):
 
-| Feature         | BazLang                              | Sinclair ZX BASIC               |
-|:----------------|:-------------------------------------|:--------------------------------|
-| Character set   | UTF-8                                | Proprietary ZX charset          |
-| Variable names  | Multi-character allowed              | Single letters for arrays/FOR   |
-| GOTO target     | Rounds to nearest line               | Truncates to integer            |
-| PAUSE >= 32767  | Waits that many frames               | Waits forever until keypress    |
-| PAUSE 0         | Immediate no-op                      | Waits forever until keypress    |
-| FRAMES epoch    | Fractional, epoch-relative           | Integer interrupts from power-on|
-| File I/O        | File system                          | Tape                            |
-| RND algorithm   | Java Random                          | Linear feedback shift register  |
-| Report codes    | Same codes & messages, extra context | Same codes & messages           |
-| PRINT AT bounds | Clamps to terminal bounds            | Throws "5 Out of screen"        |
-| POINT bounds    | Returns 0                            | Throws "B Integer out of range" |
+| Feature         | BazLang                              | Sinclair ZX BASIC                |
+|:----------------|:-------------------------------------|:---------------------------------|
+| Character set   | UTF-8                                | Proprietary ZX charset           |
+| Variable names  | Multi-character allowed              | Single letters for arrays/FOR    |
+| GOTO target     | Rounds to nearest line               | Truncates to integer             |
+| PAUSE >= 32767  | Waits that many frames               | Waits forever until keypress     |
+| PAUSE 0         | Immediate no-op                      | Waits forever until keypress     |
+| FRAMES epoch    | Fractional, epoch-relative           | Integer interrupts from power-on |
+| File I/O        | File system                          | Tape                             |
+| RND algorithm   | Java Random                          | Linear feedback shift register   |
+| Report codes    | Same codes & messages, extra context | Same codes & messages            |
+| PRINT AT bounds | Clamps to terminal bounds            | Throws "5 Out of screen"         |
+| POINT bounds    | Returns 0                            | Throws "B Integer out of range"  |
 
 ## REPL-only commands
 

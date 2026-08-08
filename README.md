@@ -1,16 +1,16 @@
 # Play-BazLang repository
 
-This repository contains **BazLang**, a retro-inspired Sinclair ZX BASIC interpreter modernized
-for modern terminal emulators, alongside its supporting libraries.
+This repository contains **BazLang**, a retro-inspired Sinclair ZX BASIC interpreter modernised for
+modern terminal emulators, alongside its supporting libraries.
 
 ## Repository structure
 
 The project is structured as a multi-module Gradle build:
 
-- **[app-bazlang/](app-bazlang/)** - The main BASIC interpreter application, containing the
-  REPL, execution engine, AST visitors, and command-line entrypoint.
-- **[lib-cell/](lib-cell/)** - A lightweight character-cell screen buffer library supporting
-  24-bit colour, text styles, and sub-pixel graphic rendering modes (e.g. Quadrant, Braille).
+- **[app-bazlang/](app-bazlang/)** - The main BASIC interpreter application, containing the REPL,
+  execution engine, AST visitors, and command-line entrypoint.
+- **[lib-cell/](lib-cell/)** - A lightweight character-cell screen buffer library supporting 24-bit
+  colour, text styles, and sub-pixel graphic rendering modes (e.g. Quadrant, Braille).
 - **[lib-repl/](lib-repl/)** - A supporting line reader and console management library that wraps
   JLine to handle command history, ANSI escape sequences, raw keyboard polling, and breaks.
 

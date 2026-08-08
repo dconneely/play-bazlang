@@ -7,11 +7,11 @@ commands before resuming.
 
 The debugger has two modes:
 
-- **File mode** — a `.bas` file is supplied as an argument; the programme is pre-loaded so the
-  agent sees `+READY` with the programme ready to run via `>RUN`.
-- **Blank mode** — no argument; the agent starts with an empty programme and uses `>` REPL
-  commands to build or load a programme before running it. This is the primary mode for
-  LLM-driven testing of new language features.
+- **File mode** — a `.bas` file is supplied as an argument; the programme is preloaded so the agent
+  sees `+READY` with the programme ready to run via `>RUN`.
+- **Blank mode** — no argument; the agent starts with an empty programme and uses `>` REPL commands
+  to build or load a programme before running it. This is the primary mode for LLM-driven testing of
+  new language features.
 
 ## Running the debugger
 
@@ -37,9 +37,9 @@ When the debugger starts it immediately prints one line to stdout:
 ```
 
 Every server success line starts with `+` and every error line starts with `-`. `+READY` signals
-that the debugger is ready for commands. In file mode the programme is pre-loaded; in blank mode
-the programme is empty and must be populated with `>` REPL commands before running. The debugger
-prints a human-readable info message to stderr before `+READY`; agents should ignore stderr.
+that the debugger is ready for commands. In file mode the programme is preloaded; in blank mode the
+programme is empty and must be populated with `>` REPL commands before running. The debugger prints
+a human-readable info message to stderr before `+READY`; agents should ignore stderr.
 
 ### Command/response model
 
@@ -54,31 +54,31 @@ per command, as each is processed.
 `/GO` and the `>RUN` / `>GOTO n` REPL commands all produce a **deferred response**: the response
 arrives only when the programme next blocks.
 
-`/GO` is only valid when the programme is paused at a breakpoint. `>RUN` and `>GOTO n` are used
-to start (or restart) execution and are valid both at `+READY` and after a `+STOP` response.
+`/GO` is only valid when the programme is paused at a breakpoint. `>RUN` and `>GOTO n` are used to
+start (or restart) execution and are valid both at `+READY` and after a `+STOP` response.
 
 `>RUN` and `/GO` (when used as the last line of a message) must be the **last command** in any
 client message — any command sent after them would be consumed in the *next* break context.
 
 The deferred response arrives when the programme next blocks:
 
-| Event                                  | Response                                     |
-|:---------------------------------------|:---------------------------------------------|
-| Programme loaded (startup)             | `+READY`                                     |
-| Location or condition breakpoint fired | `+BREAK AT <line>:<stmt>`                    |
-| `ELAPSE` condition fired               | `+ELAPSE`                                    |
-| Programme ended normally               | `+STOP 0 OK, <line>:<stmt>`                  |
-| Programme ended via `STOP` statement   | `+STOP 9 STOP statement, <line>:<stmt>`      |
-| Programme ended with a runtime error   | `+STOP <code> <msg>, <line>:<stmt>`          |
+| Event                                  | Response                                |
+|:---------------------------------------|:----------------------------------------|
+| Programme loaded (startup)             | `+READY`                                |
+| Location or condition breakpoint fired | `+BREAK AT <line>:<stmt>`               |
+| `ELAPSE` condition fired               | `+ELAPSE`                               |
+| Programme ended normally               | `+STOP 0 OK, <line>:<stmt>`             |
+| Programme ended via `STOP` statement   | `+STOP 9 STOP statement, <line>:<stmt>` |
+| Programme ended with a runtime error   | `+STOP <code> <msg>, <line>:<stmt>`     |
 
-Report code `0` always means a clean end; any other code can be treated as an error. The full
-list of codes is defined in `ReportCode.java`.
+Report code `0` always means a clean end; any other code can be treated as an error. The full list
+of codes is defined in `ReportCode.java`.
 
-A client message that ends with `/GO` or `>RUN` therefore produces N responses immediately (one
-per command before it) plus one final response when execution next blocks.
+A client message that ends with `/GO` or `>RUN` therefore produces N responses immediately (one per
+command before it) plus one final response when execution next blocks.
 
-`/STOP` also ends the command phase; it responds `+` immediately and terminates the programme.
-If stdin reaches EOF the debugger behaves as if `/STOP` was sent.
+`/STOP` also ends the command phase; it responds `+` immediately and terminates the programme. If
+stdin reaches EOF the debugger behaves as if `/STOP` was sent.
 
 ---
 
@@ -89,11 +89,11 @@ All commands are case-insensitive.
 ### `/RSC <rowTop> <colLeft> <rowBottom> <colRight> [ATTR]`
 
 Read screen content: dumps the given rectangle of the virtual screen buffer as a single-line
-QuotedArg string (see [QuotedArg format](#quotedarg-format) below). All indices are 0-based.
-Rows are separated by `\n` escapes. Runs of five or more spaces are compressed to `{N}`.
+QuotedArg string (see [QuotedArg format](#quotedarg-format) below). All indices are 0-based. Rows
+are separated by `\n` escapes. Runs of five or more spaces are compressed to `{N}`.
 
-`ATTR` prepends a `[fg,bg]` colour tag at the start of each run of cells that share the same
-colour. The tag is omitted when the colour is unchanged from the previous cell. In ATTR mode,
+`ATTR` prepends a `[fg,bg]` colour tag at the start of each run of cells that share the same colour.
+The tag is omitted when the colour is unchanged from the previous cell. In ATTR mode,
 `{N}` means N spaces all sharing the current colour.
 
 ```
@@ -110,8 +110,8 @@ Responds `+"<grid>"`.
 
 ### `/PIQ "<text>"`
 
-Post to input queue: queues `<text>` for the programme to consume. The argument must be a
-QuotedArg string. Multiple characters may be queued in a single command.
+Post to input queue: queues `<text>` for the programme to consume. The argument must be a QuotedArg
+string. Multiple characters may be queued in a single command.
 
 - `INKEY$` receives one byte per UTF-8 byte of the decoded text.
 - `UINKEY$` receives one BStr per Unicode codepoint.
@@ -132,9 +132,9 @@ Evaluates a single BazLang expression in the live programme context. Numeric res
 like BazLang's `PRINT`; string results are returned as a QuotedArg string. Send one `?` per
 expression.
 
-Array elements, built-in functions, and arithmetic are all supported. Side-effecting functions
-such as `INKEY$` and `RND` do take effect. Numeric values use BazLang's canonical number format
-(e.g. `42` not `42.0`, `3.14159`); string values are returned as QuotedArg.
+Array elements, built-in functions, and arithmetic are all supported. Side-effecting functions such
+as `INKEY$` and `RND` do take effect. Numeric values use BazLang's canonical number format (e.g.
+`42` not `42.0`, `3.14159`); string values are returned as QuotedArg.
 
 ```
 ?SCORE
@@ -150,19 +150,19 @@ such as `INKEY$` and `RND` do take effect. Numeric values use BazLang's canonica
 +"hello"
 ```
 
-Responses are in the same order as the commands, so the client can correlate by position.
-Responds `+<value>`.
+Responses are in the same order as the commands, so the client can correlate by position. Responds
+`+<value>`.
 
 **Timing note:** user-defined variables are not accessible until the programme has executed the
-statements that assign them. At `+READY` (before any `/GO`) only built-in zero-argument
-functions (`TEXTH`, `PLOTW`, `RND`, etc.) are available. Evaluating an unassigned variable
-responds `-Undefined variable: <NAME>`. Set a breakpoint inside the programme and issue `/GO`
+statements that assign them. At `+READY` (before any `/GO`) only built-in zero-argument functions
+(`TEXTH`, `PLOTW`, `RND`, etc.) are available. Evaluating an unassigned variable responds
+`-Undefined variable: <NAME>`. Set a breakpoint inside the programme and issue `/GO`
 first, then read variables with `?`.
 
 ### `!<assignmentTarget> = <expression>`
 
-Executes a single assignment to mutate programme state. Only one statement is accepted per
-command; use multiple `!` lines for multiple assignments.
+Executes a single assignment to mutate programme state. Only one statement is accepted per command;
+use multiple `!` lines for multiple assignments.
 
 ```
 !SCORE=0
@@ -190,8 +190,8 @@ Responds `+`.
 
 ### `/SPB <cond>`
 
-Sets a persistent condition-only breakpoint with no location filter. Checked before every
-statement. Persists until removed with `/CPB`. See [Break conditions](#break-conditions) below.
+Sets a persistent condition-only breakpoint with no location filter. Checked before every statement.
+Persists until removed with `/CPB`. See [Break conditions](#break-conditions) below.
 
 Responds `+`.
 
@@ -277,8 +277,8 @@ Responds `+`.
 
 ### `>NEW`
 
-Clears the entire programme and all runtime state (variables, stacks, colour attributes).
-Equivalent to the BazLang `NEW` statement.
+Clears the entire programme and all runtime state (variables, stacks, colour attributes). Equivalent
+to the BazLang `NEW` statement.
 
 ```
 >NEW
@@ -289,8 +289,8 @@ Responds `+`.
 
 ### `>LOAD "path"`
 
-Loads a programme from a file, replacing any current programme. The path may be quoted or
-unquoted. Bare filenames (with or without `.bas`) are resolved against the example directory.
+Loads a programme from a file, replacing any current programme. The path may be quoted or unquoted.
+Bare filenames (with or without `.bas`) are resolved against the example directory.
 
 ```
 >LOAD "pong"
@@ -316,9 +316,9 @@ Responds `+"<listing>"`.
 
 ### `>RUN`
 
-Clears runtime state (variables, stacks, data pointer) and runs the programme from its first
-line. Produces a deferred response like `/GO`. Also valid when paused at a breakpoint — aborts
-the current execution and restarts from the beginning.
+Clears runtime state (variables, stacks, data pointer) and runs the programme from its first line.
+Produces a deferred response like `/GO`. Also, valid when paused at a breakpoint — aborts the current
+execution and restarts from the beginning.
 
 ```
 >RUN
@@ -351,8 +351,8 @@ QuotedArg string.
 
 ### `ELAPSE <ms>`
 
-Fires when at least `<ms>` wall-clock milliseconds have elapsed since the last `/GO` (or since
-the programme started, if `/GO` has not yet been sent). The timer resets on every `/GO`.
+Fires when at least `<ms>` wall-clock milliseconds have elapsed since the last `/GO` (or since the
+programme started, if `/GO` has not yet been sent). The timer resets on every `/GO`.
 
 ```
 /S1B ELAPSE 5000
@@ -386,13 +386,13 @@ zero when the breakpoint is registered.
 
 Double-quoted strings used as command arguments and in responses. Backslash escape sequences:
 
-| Escape | Meaning |
-|:---|:---|
-| `\"` | Double-quote character (chr 34) |
-| `\\` | Backslash character (chr 92) |
-| `\n` | Line feed (chr 10) |
-| `\r` | Carriage return (chr 13) |
-| `\e` | Escape (chr 27) |
+| Escape | Meaning                         |
+|:-------|:--------------------------------|
+| `\"`   | Double-quote character (chr 34) |
+| `\\`   | Backslash character (chr 92)    |
+| `\n`   | Line feed (chr 10)              |
+| `\r`   | Carriage return (chr 13)        |
+| `\e`   | Escape (chr 27)                 |
 
 Used in: `/PIQ` arguments, `CSC` condition text, `/RSC` command output, `?` string output.
 

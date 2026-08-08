@@ -50,9 +50,8 @@ options { caseInsensitive=true; }
 PRINT : 'PRINT';  // Matches PRINT, print, Print, etc.
 ```
 
-This allows `PRINT`, `print`, and `Print` to all match the same token. Variable names are
-normalised to uppercase when building the AST, so `myVar`, `MYVAR`, and `MyVar` all refer
-to the same variable.
+This allows `PRINT`, `print`, and `Print` to all match the same token. Variable names are normalised
+to uppercase when building the AST, so `myVar`, `MYVAR`, and `MyVar` all refer to the same variable.
 
 String literal _contents_ remain case-sensitive since they're captured as-is between quotes.
 
@@ -90,8 +89,8 @@ numAtom
 
 This means `SIN PI/2` parses as `SIN(PI)/2`, not `SIN(PI/2)`.
 
-Multi-argument functions require explicit parentheses and comma-separated full expressions
-(not just atoms), consistent with ZX Spectrum BASIC functions like `ATTR` and `SCREEN$`:
+Multi-argument functions require explicit parentheses and comma-separated full expressions (not just
+atoms), consistent with ZX Spectrum BASIC functions like `ATTR` and `SCREEN$`:
 
 ```antlr
 numFunc
@@ -132,6 +131,7 @@ replLine
 ```
 
 As defined in the `replLine` root parsing rule:
+
 - **Statements** (`PRINT`, `LET`, `IF`, etc.) can be placed inside numbered program lines, or
   chained together with colons in immediate execution mode (e.g., `PRINT 1 : PRINT 2`).
 - **REPL commands** (`RENUM`, `REFORMAT`, `EDIT`, `DELETE`) modify the program or interact with the
