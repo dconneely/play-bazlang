@@ -1,0 +1,79 @@
+package com.davidconneely.bazlang.exec.ast;
+
+import com.davidconneely.bazlang.exec.EvalState;
+import java.util.List;
+
+/**
+ * A lowered numeric expression node. Collapses the grammar's {@code numExpr}/{@code numAtom} split
+ * (a syntax-level precedence rule, not a runtime one — see {@code numFunc}'s comment on why {@code
+ * SIN PI/2} parses as {@code SIN(PI)/2}): lowering either context type for the same underlying
+ * expression produces the same node type here.
+ *
+ * <p>Most cases are plain records. {@link NumVarExpr} and {@link NumArrayExpr} are small mutable
+ * classes instead: they carry a nullable, typed, lazily-populated variable-reference cache
+ * (analogous to today's {@code ctx.varRef}, but typed and off the grammar) that avoids a hash-map
+ * lookup per access in tight loops. The cache is resolved on first evaluation, not at lowering time
+ * — see {@code AstLowering}'s class Javadoc for why.
+ */
+public sealed interface NumExpr extends Expr {
+  /**
+   * A numeric literal, resolved once at lowering time from either {@code NUM_LITERAL} or {@code
+   * BIN_LITERAL} token text.
+   */
+  record NumLiteral(double value) implements NumExpr {}
+
+  /** A scalar numeric variable reference, e.g. {@code x}. */
+  final class NumVarExpr implements NumExpr {
+    public final String name;
+    public EvalState.NumVarRef ref;
+
+    public NumVarExpr(String name) {
+      this.name = name;
+    }
+  }
+
+  /** A numeric array element reference, e.g. {@code a(1, 2)}. */
+  final class NumArrayExpr implements NumExpr {
+    public final String name;
+    public final List<NumExpr> indices;
+    public EvalState.NumArrayRef ref;
+
+    public NumArrayExpr(String name, List<NumExpr> indices) {
+      this.name = name;
+      this.indices = indices;
+    }
+  }
+
+  /** A call to one of the built-in numeric functions (e.g. {@code SIN}, {@code POINT}). */
+  record NumFuncCall(NumFuncKind kind, List<Expr> args) implements NumExpr {}
+
+  /** A call to a user-defined numeric {@code DEF FN}. */
+  record FnNumCall(String name, List<Expr> args) implements NumExpr {}
+
+  /**
+   * A binary arithmetic operation: {@code *}, {@code /}, {@code +}, {@code -}, {@code **}/{@code
+   * ^}.
+   */
+  record NumBinaryOp(Op op, NumExpr left, NumExpr right) implements NumExpr {}
+
+  /** Unary negation, e.g. {@code -x}. */
+  record NumUnaryMinus(NumExpr operand) implements NumExpr {}
+
+  /** A numeric comparison, e.g. {@code x < y}; result is {@code 1.0} or {@code 0.0}. */
+  record NumCompare(Op op, NumExpr left, NumExpr right) implements NumExpr {}
+
+  /**
+   * A string comparison, e.g. {@code a$ < b$}; result is {@code 1.0} or {@code 0.0}. Part of {@code
+   * numExpr}, not {@code strExpr}, in the grammar.
+   */
+  record StrCompare(Op op, StrExpr left, StrExpr right) implements NumExpr {}
+
+  /** Logical negation: {@code NOT x} is {@code 1.0} if {@code x = 0}, else {@code 0.0}. */
+  record NumNot(NumExpr operand) implements NumExpr {}
+
+  /** {@code x AND y}: {@code x} if {@code y != 0}, else {@code 0.0}. */
+  record NumAnd(NumExpr left, NumExpr right) implements NumExpr {}
+
+  /** {@code x OR y}: {@code 1.0} if {@code y != 0}, else {@code x}. */
+  record NumOr(NumExpr left, NumExpr right) implements NumExpr {}
+}
