@@ -47,6 +47,17 @@ public class AstExpressionEvaluator {
     return screen;
   }
 
+  /**
+   * Formats an {@link Expr} for {@code PRINT}: a numeric value via {@link
+   * ExpressionEvaluator#formatNum}, a string value as-is.
+   */
+  public String evalPrintExpr(Expr expr) {
+    if (expr instanceof NumExpr numExpr) {
+      return ExpressionEvaluator.formatNum(evalNum(numExpr));
+    }
+    return evalStr((StrExpr) expr).toJavaString();
+  }
+
   // ===== Numeric expressions =====
 
   public double evalNum(NumExpr expr) {

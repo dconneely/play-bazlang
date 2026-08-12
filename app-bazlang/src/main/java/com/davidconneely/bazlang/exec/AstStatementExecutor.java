@@ -8,14 +8,26 @@ import com.davidconneely.bazlang.exec.ast.AssignTarget;
 import com.davidconneely.bazlang.exec.ast.AstFnDefinition;
 import com.davidconneely.bazlang.exec.ast.AstProgramSupport;
 import com.davidconneely.bazlang.exec.ast.NumExpr;
+import com.davidconneely.bazlang.exec.ast.PrintElement;
 import com.davidconneely.bazlang.exec.ast.Stmt;
 import com.davidconneely.bazlang.exec.ast.StrExpr;
+import com.davidconneely.bazlang.exec.ast.StyleItem;
+import com.davidconneely.bazlang.io.VirtualInput;
+import com.davidconneely.bazlang.io.VirtualScreen;
+import com.davidconneely.cell.BrailleMode;
+import com.davidconneely.cell.CellMode;
+import com.davidconneely.cell.HalfCellMode;
+import com.davidconneely.cell.QuadrantMode;
+import com.davidconneely.cell.SextantMode;
+import com.davidconneely.repl.BreakException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.NavigableMap;
+import java.util.function.IntConsumer;
+import java.util.function.Supplier;
 
 /**
  * Walks the typed {@link Stmt} AST via {@code switch} pattern matching, delegating expression
@@ -27,26 +39,34 @@ import java.util.NavigableMap;
  * tested without touching what the still-live {@code StatementExecutor}/{@code ExpressionEvaluator}
  * depend on.
  *
- * <p><strong>Only implements sub-phase 2a</strong> (control flow and program data: {@code
+ * <p><strong>Implements sub-phases 2a and 2b</strong> (2a: control flow and program data — {@code
  * CLEAR}/{@code NEW}/{@code LET}/{@code DIM}/{@code FOR}/{@code NEXT}/{@code GOTO}/{@code
  * GOSUB}/{@code RETURN}/{@code IF}/{@code CONT}/{@code STOP}/{@code RUN}/{@code DATA}/{@code
- * READ}/{@code RESTORE}/{@code DEF FN}, plus the trivial {@code REM} no-op). Every other statement
- * kind (I/O, graphics, program management — sub-phases 2b/2c) throws {@link
+ * READ}/{@code RESTORE}/{@code DEF FN}/{@code REM}; 2b: I/O and graphics — {@code PRINT}/{@code
+ * INPUT}/{@code PLOT}/{@code DRAW}/{@code CIRCLE}/{@code PLOTMODE}/the six style statements/ {@code
+ * CLS}/{@code SCROLL}/{@code FAST}/{@code SLOW}/{@code PAUSE}). Program-management statements (2c:
+ * {@code LOAD}/{@code SAVE}/{@code MERGE}/{@code VERIFY}/{@code LIST}/{@code RAND}) throw {@link
  * UnsupportedOperationException} for now; the {@code switch} below is exhaustive over {@link Stmt}
  * via its {@code default} arm specifically so adding a new {@link Stmt} case is a compile error
  * here until it's either implemented or explicitly deferred, not a silent gap.
  */
 public class AstStatementExecutor {
   private final EvalState state;
+  private final VirtualScreen screen;
+  private final VirtualInput input;
   private final AstExpressionEvaluator exprEvaluator;
   private final NavigableMap<Integer, List<Stmt>> program;
   private final Map<String, AstFnDefinition> fnDefs = new HashMap<>();
 
   public AstStatementExecutor(
       EvalState state,
+      VirtualScreen screen,
+      VirtualInput input,
       AstExpressionEvaluator exprEvaluator,
       NavigableMap<Integer, List<Stmt>> program) {
     this.state = state;
+    this.screen = screen;
+    this.input = input;
     this.exprEvaluator = exprEvaluator;
     this.program = program;
   }
@@ -94,9 +114,30 @@ public class AstStatementExecutor {
       case Stmt.RemStmt _ -> {
         /* no-op */
       }
+      case Stmt.ClsStmt _ -> screen.cls();
+      case Stmt.ScrollStmt _ -> screen.scroll();
+      case Stmt.FastStmt _ -> screen.setFastMode(true);
+      case Stmt.SlowStmt _ -> screen.setFastMode(false);
+      case Stmt.InkStmt s -> executeColourStmt(s.value(), screen::setInk, state::setDefaultInk);
+      case Stmt.PaperStmt s ->
+          executeColourStmt(s.value(), screen::setPaper, state::setDefaultPaper);
+      case Stmt.BrightStmt s ->
+          executeColourStmt(s.value(), screen::setBright, state::setDefaultBright);
+      case Stmt.FlashStmt s ->
+          executeColourStmt(s.value(), screen::setFlash, state::setDefaultFlash);
+      case Stmt.InverseStmt s ->
+          executeColourStmt(s.value(), screen::setInverse, state::setDefaultInverse);
+      case Stmt.OverStmt s -> executeColourStmt(s.value(), screen::setOver, state::setDefaultOver);
+      case Stmt.PlotmodeStmt s -> executePlotmodeStmt(s);
+      case Stmt.PlotStmt s -> executePlotStmt(s);
+      case Stmt.DrawStmt s -> executeDrawStmt(s);
+      case Stmt.CircleStmt s -> executeCircleStmt(s);
+      case Stmt.PrintStmt s -> executePrintStmt(s);
+      case Stmt.InputStmt s -> executeInputStmt(s);
+      case Stmt.PauseStmt s -> executePauseStmt(s);
       default ->
           throw new UnsupportedOperationException(
-              stmt.getClass().getSimpleName() + " not yet implemented (Phase 2b/2c)");
+              stmt.getClass().getSimpleName() + " not yet implemented (Phase 2c)");
     }
   }
 
@@ -380,6 +421,320 @@ public class AstStatementExecutor {
       }
     }
     fnDefs.put(name, new AstFnDefinition(name, stmt.params(), stmt.body()));
+  }
+
+  // ===== Style statements =====
+
+  /**
+   * Shared shape of the six {@code INK}/{@code PAPER}/{@code BRIGHT}/{@code FLASH}/{@code
+   * INVERSE}/{@code OVER} statements: evaluate, then update both the screen's active attribute and
+   * {@code EvalState}'s persistent default (unlike an inline styleList/print-item setting, which
+   * only ever touches the screen — see {@link StyleItem}'s class Javadoc).
+   */
+  private void executeColourStmt(NumExpr value, IntConsumer screenSetter, IntConsumer stateSetter) {
+    final int colour = (int) exprEvaluator.evalNum(value);
+    stateSetter.accept(colour);
+    screenSetter.accept(colour);
+  }
+
+  private void applyStyleList(List<StyleItem> styles) {
+    for (final var style : styles) {
+      applyStyleItem(style);
+    }
+  }
+
+  // Checkstyle's MissingSwitchDefault doesn't recognise enum-switch exhaustiveness and requires a
+  // default; PMD's ExhaustiveSwitchHasDefault then flags that same default as redundant. Keep it
+  // (Checkstyle wins) and suppress the PMD complaint.
+  @SuppressWarnings("PMD.ExhaustiveSwitchHasDefault")
+  private void applyStyleItem(StyleItem style) {
+    final int value = (int) exprEvaluator.evalNum(style.value());
+    switch (style.kind()) {
+      case INK -> screen.setInk(value);
+      case PAPER -> screen.setPaper(value);
+      case BRIGHT -> screen.setBright(value);
+      case FLASH -> screen.setFlash(value);
+      case INVERSE -> screen.setInverse(value);
+      case OVER -> screen.setOver(value);
+      default -> throw new IllegalStateException("Unknown style kind: " + style.kind());
+    }
+  }
+
+  private void withRestoredStyles(Runnable action) {
+    // Behaviour-identical to saving and re-applying the six values individually: the defaults
+    // cannot change during the action, because style *statements* are what change defaults and
+    // they cannot occur inside a PRINT/PLOT item list.
+    state.defaultStyles().applyTo(screen);
+    try {
+      action.run();
+    } finally {
+      state.defaultStyles().applyTo(screen);
+    }
+  }
+
+  // ===== Graphics =====
+
+  private void executePlotmodeStmt(Stmt.PlotmodeStmt stmt) {
+    final int mode = (int) exprEvaluator.evalNum(stmt.mode());
+    final var pixelMode =
+        switch (mode) {
+          case 1 -> CellMode.INSTANCE;
+          case 2 -> HalfCellMode.INSTANCE;
+          case 4 -> QuadrantMode.INSTANCE;
+          case 6 -> SextantMode.INSTANCE;
+          case 8 -> BrailleMode.INSTANCE;
+          default ->
+              throw codedException(
+                  ReportCode.INVALID_ARGUMENT, "Invalid PLOTMODE (use 1, 2, 4, 6, or 8)");
+        };
+    screen.setPlotMode(pixelMode);
+  }
+
+  private void executePlotStmt(Stmt.PlotStmt stmt) {
+    withRestoredStyles(
+        () -> {
+          applyStyleList(stmt.styles());
+          try {
+            final int x = (int) exprEvaluator.evalNum(stmt.x());
+            final int y = (int) exprEvaluator.evalNum(stmt.y());
+            screen.plot(x, y);
+            state.setGraphicsCursorX(x);
+            state.setGraphicsCursorY(y);
+          } catch (IllegalArgumentException e) {
+            throw codedException(ReportCode.INTEGER_OUT_OF_RANGE, e.getMessage());
+          }
+        });
+  }
+
+  private void executeDrawStmt(Stmt.DrawStmt stmt) {
+    withRestoredStyles(
+        () -> {
+          applyStyleList(stmt.styles());
+          final int dx = (int) Math.round(exprEvaluator.evalNum(stmt.dx()));
+          final int dy = (int) Math.round(exprEvaluator.evalNum(stmt.dy()));
+          drawLine(
+              state.graphicsCursorX(),
+              state.graphicsCursorY(),
+              state.graphicsCursorX() + dx,
+              state.graphicsCursorY() + dy);
+        });
+  }
+
+  private void drawLine(int startX, int startY, int endX, int endY) {
+    int x1 = startX;
+    int y1 = startY;
+    int diffX = Math.abs(endX - x1);
+    int diffY = -Math.abs(endY - y1);
+    int sx = x1 < endX ? 1 : -1;
+    int sy = y1 < endY ? 1 : -1;
+    int err = diffX + diffY;
+
+    while (true) {
+      screen.plot(x1, y1);
+      if (x1 == endX && y1 == endY) {
+        break;
+      }
+      final int e2 = 2 * err;
+      if (e2 >= diffY) {
+        err += diffY;
+        x1 += sx;
+      }
+      if (e2 <= diffX) {
+        err += diffX;
+        y1 += sy;
+      }
+    }
+    state.setGraphicsCursorX(endX);
+    state.setGraphicsCursorY(endY);
+  }
+
+  private void executeCircleStmt(Stmt.CircleStmt stmt) {
+    withRestoredStyles(
+        () -> {
+          applyStyleList(stmt.styles());
+          final int cx = (int) Math.round(exprEvaluator.evalNum(stmt.cx()));
+          final int cy = (int) Math.round(exprEvaluator.evalNum(stmt.cy()));
+          final int r = (int) Math.round(exprEvaluator.evalNum(stmt.radius()));
+          try {
+            drawCircle(cx, cy, r);
+          } catch (IllegalArgumentException e) {
+            throw codedException(ReportCode.INTEGER_OUT_OF_RANGE, e.getMessage());
+          }
+          // Like PLOT, CIRCLE leaves the graphics cursor at its centre.
+          state.setGraphicsCursorX(cx);
+          state.setGraphicsCursorY(cy);
+        });
+  }
+
+  private void drawCircle(int cx, int cy, int r) {
+    if (r <= 0) {
+      screen.plot(cx, cy); // Degenerate circle: a single point at the centre.
+      return;
+    }
+    // Midpoint (Bresenham) circle algorithm: compute one octant and mirror to the other seven.
+    int x = r;
+    int y = 0;
+    int err = 1 - r;
+    while (x >= y) {
+      plotCircleOctants(cx, cy, x, y);
+      y++;
+      if (err < 0) {
+        err += 2 * y + 1;
+      } else {
+        x--;
+        err += 2 * (y - x) + 1;
+      }
+    }
+  }
+
+  private void plotCircleOctants(int cx, int cy, int x, int y) {
+    screen.plot(cx + x, cy + y);
+    screen.plot(cx - x, cy + y);
+    screen.plot(cx + x, cy - y);
+    screen.plot(cx - x, cy - y);
+    screen.plot(cx + y, cy + x);
+    screen.plot(cx - y, cy + x);
+    screen.plot(cx + y, cy - x);
+    screen.plot(cx - y, cy - x);
+  }
+
+  // ===== PRINT =====
+
+  private void executePrintStmt(Stmt.PrintStmt stmt) {
+    withRestoredStyles(
+        () -> {
+          int tabPos = screen.currentCol();
+          boolean suppressNewline = false;
+          for (final var item : stmt.items()) {
+            switch (item) {
+              case PrintElement.ValueItem v -> {
+                screen.print(exprEvaluator.evalPrintExpr(v.value()));
+                tabPos = screen.currentCol();
+                suppressNewline = false;
+              }
+              case PrintElement.AtItem at -> {
+                final int row = (int) exprEvaluator.evalNum(at.row());
+                final int col = (int) exprEvaluator.evalNum(at.col());
+                if (row < 0 || col < 0) {
+                  throw codedException(ReportCode.OUT_OF_SCREEN, "Screen out of bounds");
+                }
+                screen.locate(row, col);
+                tabPos = col;
+                suppressNewline = false;
+              }
+              case PrintElement.TabItem tab -> {
+                int t = (int) exprEvaluator.evalNum(tab.col());
+                if (t < 0) {
+                  t = ((tabPos / Limits.TAB_WIDTH) + 1) * Limits.TAB_WIDTH;
+                }
+                if (t > tabPos) {
+                  screen.print(" ".repeat(t - tabPos));
+                }
+                tabPos = screen.currentCol();
+                suppressNewline = false;
+              }
+              case PrintElement.StyleElement style -> applyStyleItem(style.style());
+              case PrintElement.Sep sep -> {
+                if (sep.text() == ',') {
+                  // Comma moves to next tab stop
+                  final int nextTab = ((tabPos / Limits.TAB_WIDTH) + 1) * Limits.TAB_WIDTH;
+                  if (nextTab > tabPos) {
+                    screen.print(" ".repeat(nextTab - tabPos));
+                    tabPos = screen.currentCol();
+                  }
+                } else if (sep.text() == '\'') {
+                  screen.println();
+                  tabPos = 0;
+                }
+                // Semicolon does nothing (items concatenate)
+                suppressNewline = true;
+              }
+            }
+          }
+          if (!suppressNewline) {
+            screen.println();
+          }
+          screen.flush(); // Ensure output is visible, including semicolon-terminated lines
+        });
+  }
+
+  // ===== INPUT =====
+
+  private void executeInputStmt(Stmt.InputStmt stmt) {
+    final var target = stmt.target();
+    final boolean isNumeric =
+        target instanceof AssignTarget.NumScalarTarget
+            || target instanceof AssignTarget.NumArrayTarget;
+    final var mode =
+        isNumeric ? VirtualInput.InputMode.INPUT_NUMERIC : VirtualInput.InputMode.INPUT_STRING;
+    String line = readInputLine(mode);
+
+    if (isNumeric) {
+      // INPUT evaluates the input as a numeric expression; retry on syntax errors
+      while (true) {
+        try {
+          final double val = exprEvaluator.evaluateNumericExpression(line.trim());
+          assignNumTarget(target, val);
+          break;
+        } catch (ReportException e) {
+          if (!input.isInteractive() || e.reportCode() != ReportCode.NONSENSE_IN_BASIC) {
+            throw e; // Other errors (undefined variable, etc.) or non-interactive screens
+          }
+          input.prefillInput(line);
+          line = readInputLine("Syntax error in expression");
+        }
+      }
+    } else {
+      assignStrTarget((AssignTarget.StrTarget) target, BStr.fromJavaString(line));
+    }
+  }
+
+  private String readInputLine(VirtualInput.InputMode mode) {
+    return checkedInputLine(() -> input.readln(mode));
+  }
+
+  private String readInputLine(String prompt) {
+    return checkedInputLine(() -> input.readln(prompt));
+  }
+
+  private String checkedInputLine(Supplier<String> reader) {
+    try {
+      final String line = reader.get();
+      if (line != null && line.trim().equalsIgnoreCase("STOP")) {
+        state.setRunning(false);
+        throw codedException(ReportCode.STOP_IN_INPUT, ReportCode.STOP_IN_INPUT.getMessage());
+      }
+      return line != null ? line : "";
+    } catch (BreakException e) {
+      state.setRunning(false);
+      throw codedException(ReportCode.STOP_IN_INPUT, ReportCode.STOP_IN_INPUT.getMessage());
+    }
+  }
+
+  // ===== PAUSE =====
+
+  private void executePauseStmt(Stmt.PauseStmt stmt) {
+    final double frames = exprEvaluator.evalNum(stmt.frames());
+    final long totalMs = Math.max(0L, Math.round(frames * 20.0));
+    screen.forceFlush();
+    long remaining = totalMs;
+    while (remaining > 0) {
+      final long chunk = Math.min(remaining, 20L);
+      try {
+        Thread.sleep(chunk);
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+        break;
+      }
+      remaining -= chunk;
+      if (input.pollForBreak()) {
+        state.setRunning(false);
+        // On a Sinclair ZX Spectrum, pressing BREAK during PAUSE gives report code L (BREAK into
+        // program). CONT then advances past the PAUSE to the next statement.
+        throw codedException(
+            ReportCode.BREAK_INTO_PROGRAM, ReportCode.BREAK_INTO_PROGRAM.getMessage());
+      }
+    }
   }
 
   // ===== Assignment helpers =====
