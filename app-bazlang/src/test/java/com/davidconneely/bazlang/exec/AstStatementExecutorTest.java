@@ -15,17 +15,20 @@ import com.davidconneely.bazlang.exec.ast.AstLowering;
 import com.davidconneely.bazlang.exec.ast.NumExpr;
 import com.davidconneely.bazlang.exec.ast.Stmt;
 import com.davidconneely.bazlang.io.MockScreen;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.NavigableMap;
 import java.util.TreeMap;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 /**
- * Component tests for {@link AstStatementExecutor}'s sub-phase 2a (control flow and program data)
- * and 2b (I/O and graphics) coverage, per {@code localonly-plan-CUSTOM-AST.md}. Program-management
- * statements (2c) aren't implemented yet — see {@link #unimplementedStatementThrows}.
+ * Component tests for {@link AstStatementExecutor}, covering every statement kind (Phase 2
+ * sub-phases 2a, 2b, and 2c), per {@code localonly-plan-CUSTOM-AST.md}.
  */
 class AstStatementExecutorTest {
 
@@ -34,6 +37,7 @@ class AstStatementExecutorTest {
   private EvalState state;
   private MockScreen screen;
   private AstExpressionEvaluator evaluator;
+  private ProgramStorage storage;
   private AstStatementExecutor executor;
 
   @BeforeEach
@@ -42,7 +46,8 @@ class AstStatementExecutorTest {
     state.setCurrentLineLabel(10);
     screen = new MockScreen();
     evaluator = new AstExpressionEvaluator(state, screen, screen, PARSER);
-    executor = new AstStatementExecutor(state, screen, screen, evaluator, new TreeMap<>());
+    storage = new ProgramStorage(state, PARSER);
+    executor = new AstStatementExecutor(state, screen, screen, evaluator, storage, new TreeMap<>());
   }
 
   private Stmt firstStmt(String source) {
@@ -121,7 +126,8 @@ class AstStatementExecutorTest {
     @Test
     void newClearsVariablesAndProgram() {
       final var program = buildProgram("10 LET X=1\n");
-      final var exec2 = new AstStatementExecutor(state, screen, screen, evaluator, program);
+      final var exec2 =
+          new AstStatementExecutor(state, screen, screen, evaluator, storage, program);
       state.setNumVar("X", 5.0);
       exec2.execute(firstStmt("NEW"));
       assertFalse(state.hasNumVar("X"));
@@ -184,7 +190,7 @@ class AstStatementExecutorTest {
     @Test
     void loopsCorrectly() {
       final var program = buildProgram("10 LET S=0\n20 FOR I=1 TO 3\n30 LET S=S+I\n40 NEXT I\n");
-      run(program, new AstStatementExecutor(state, screen, screen, evaluator, program));
+      run(program, new AstStatementExecutor(state, screen, screen, evaluator, storage, program));
       assertEquals(6.0, state.numVar("S"));
       assertEquals(4.0, state.numVar("I")); // loop var ends one step past the limit
     }
@@ -193,7 +199,7 @@ class AstStatementExecutorTest {
     void skipsBodyWhenStartAfterEndWithPositiveStep() {
       final var program =
           buildProgram("10 LET S=0\n20 FOR I=5 TO 1\n30 LET S=S+1\n40 NEXT I\n50 LET DONE=1\n");
-      run(program, new AstStatementExecutor(state, screen, screen, evaluator, program));
+      run(program, new AstStatementExecutor(state, screen, screen, evaluator, storage, program));
       assertEquals(0.0, state.numVar("S")); // body never executed
       assertEquals(1.0, state.numVar("DONE"));
     }
@@ -209,7 +215,7 @@ class AstStatementExecutorTest {
     @Test
     void gotoJumpsToLine() {
       final var program = buildProgram("10 LET X=1\n20 GOTO 40\n30 LET X=99\n40 LET Y=2\n");
-      run(program, new AstStatementExecutor(state, screen, screen, evaluator, program));
+      run(program, new AstStatementExecutor(state, screen, screen, evaluator, storage, program));
       assertEquals(1.0, state.numVar("X")); // line 30 never ran
       assertEquals(2.0, state.numVar("Y"));
     }
@@ -218,7 +224,8 @@ class AstStatementExecutorTest {
     void gosubAndReturn() {
       final var program =
           buildProgram("10 GOSUB 100\n20 LET DONE=1\n30 STOP\n100 LET X=5\n110 RETURN\n");
-      final var exec2 = new AstStatementExecutor(state, screen, screen, evaluator, program);
+      final var exec2 =
+          new AstStatementExecutor(state, screen, screen, evaluator, storage, program);
       assertThrows(ReportException.class, () -> run(program, exec2)); // STOP throws
       assertEquals(5.0, state.numVar("X"));
       assertEquals(1.0, state.numVar("DONE"));
@@ -250,7 +257,7 @@ class AstStatementExecutorTest {
     @Test
     void falseConditionSkipsToNextLine() {
       final var program = buildProgram("10 IF 0 THEN LET A=1\n20 LET B=2\n");
-      run(program, new AstStatementExecutor(state, screen, screen, evaluator, program));
+      run(program, new AstStatementExecutor(state, screen, screen, evaluator, storage, program));
       assertFalse(state.hasNumVar("A"));
       assertEquals(2.0, state.numVar("B"));
     }
@@ -292,7 +299,8 @@ class AstStatementExecutorTest {
     @Test
     void runClearsStateAndJumpsToFirstLine() {
       final var program = buildProgram("10 LET X=1\n");
-      final var exec2 = new AstStatementExecutor(state, screen, screen, evaluator, program);
+      final var exec2 =
+          new AstStatementExecutor(state, screen, screen, evaluator, storage, program);
       state.setNumVar("X", 99.0);
       exec2.execute(firstStmt("RUN"));
       assertFalse(state.hasNumVar("X")); // cleared
@@ -305,7 +313,7 @@ class AstStatementExecutorTest {
     @Test
     void readConsumesDataInOrder() {
       final var program = buildProgram("10 DATA 1, 2, 3\n20 READ A, B, C\n");
-      run(program, new AstStatementExecutor(state, screen, screen, evaluator, program));
+      run(program, new AstStatementExecutor(state, screen, screen, evaluator, storage, program));
       assertEquals(1.0, state.numVar("A"));
       assertEquals(2.0, state.numVar("B"));
       assertEquals(3.0, state.numVar("C"));
@@ -314,7 +322,7 @@ class AstStatementExecutorTest {
     @Test
     void readAcrossMultipleDataStatements() {
       final var program = buildProgram("10 DATA 1\n20 DATA 2\n30 READ A, B\n");
-      run(program, new AstStatementExecutor(state, screen, screen, evaluator, program));
+      run(program, new AstStatementExecutor(state, screen, screen, evaluator, storage, program));
       assertEquals(1.0, state.numVar("A"));
       assertEquals(2.0, state.numVar("B"));
     }
@@ -322,14 +330,15 @@ class AstStatementExecutorTest {
     @Test
     void readPastEndThrowsOutOfData() {
       final var program = buildProgram("10 DATA 1\n20 READ A, B\n");
-      final var exec2 = new AstStatementExecutor(state, screen, screen, evaluator, program);
+      final var exec2 =
+          new AstStatementExecutor(state, screen, screen, evaluator, storage, program);
       assertThrows(ReportException.class, () -> run(program, exec2));
     }
 
     @Test
     void restoreResetsDataPointer() {
       final var program = buildProgram("10 DATA 1, 2\n20 READ A\n30 RESTORE\n40 READ B\n");
-      run(program, new AstStatementExecutor(state, screen, screen, evaluator, program));
+      run(program, new AstStatementExecutor(state, screen, screen, evaluator, storage, program));
       assertEquals(1.0, state.numVar("A"));
       assertEquals(1.0, state.numVar("B")); // restored, re-reads from the start
     }
@@ -337,7 +346,7 @@ class AstStatementExecutorTest {
     @Test
     void readStringData() {
       final var program = buildProgram("10 DATA \"HI\"\n20 READ A$\n");
-      run(program, new AstStatementExecutor(state, screen, screen, evaluator, program));
+      run(program, new AstStatementExecutor(state, screen, screen, evaluator, storage, program));
       assertEquals(
           BStr.fromJavaString("HI"), ((EvalState.StrVar.Scalar) state.strVar("A$")).value());
     }
@@ -529,10 +538,88 @@ class AstStatementExecutorTest {
     }
   }
 
-  @Test
-  void unimplementedStatementThrows() {
-    // RAND/LIST/LOAD/SAVE/MERGE/VERIFY (sub-phase 2c) aren't implemented yet.
-    assertThrows(
-        UnsupportedOperationException.class, () -> executor.execute(firstStmt("RANDOMIZE")));
+  @Nested
+  class Rand {
+    @Test
+    void explicitSeedIsDeterministic() {
+      exec("RANDOMIZE 42");
+      final double first = state.nextRandom();
+      exec("RANDOMIZE 42");
+      final double second = state.nextRandom();
+      assertEquals(first, second);
+    }
+
+    @Test
+    void bareRandomizeDoesNotThrow() {
+      exec("RANDOMIZE");
+    }
+  }
+
+  @Nested
+  class ListStatement {
+    @Test
+    void listsAllLinesWithNoRange() {
+      state.setProgram(PARSER.parseProgramLines("10 LET X=1\n20 LET Y=2\n"));
+      exec("LIST");
+      assertEquals("10 LET X=1\n20 LET Y=2\n", screen.getOutput());
+    }
+
+    @Test
+    void listsFromASingleLineNumberToEnd() {
+      state.setProgram(PARSER.parseProgramLines("10 LET X=1\n20 LET Y=2\n"));
+      exec("LIST 20");
+      assertEquals("20 LET Y=2\n", screen.getOutput());
+    }
+
+    @Test
+    void listsAnExplicitRange() {
+      state.setProgram(PARSER.parseProgramLines("10 LET X=1\n20 LET Y=2\n30 LET Z=3\n"));
+      exec("LIST 10 TO 20");
+      assertEquals("10 LET X=1\n20 LET Y=2\n", screen.getOutput());
+    }
+  }
+
+  @Nested
+  class ProgramManagement {
+    @TempDir Path tempDir;
+
+    @Test
+    void saveThenLoadRoundTrips() {
+      state.setProgram(PARSER.parseProgramLines("10 LET X=1\n20 LET Y=2\n"));
+      final String file = tempDir.resolve("prog.bas").toString();
+      exec("SAVE \"" + file + "\"");
+
+      state.setProgram(new TreeMap<>());
+      exec("LOAD \"" + file + "\"");
+      assertEquals(2, state.program().size());
+      assertEquals("LET X=1", state.program().get(10).sourceText());
+    }
+
+    @Test
+    void mergeAddsLinesWithoutClearingExisting() throws IOException {
+      state.setProgram(PARSER.parseProgramLines("10 LET X=1\n"));
+      final var file = tempDir.resolve("merge.bas");
+      Files.writeString(file, "20 LET Y=2\n");
+      exec("MERGE \"" + file + "\"");
+      assertTrue(state.program().containsKey(10));
+      assertTrue(state.program().containsKey(20));
+    }
+
+    @Test
+    void verifySucceedsAfterSave() {
+      state.setProgram(PARSER.parseProgramLines("10 LET X=1\n"));
+      final String file = tempDir.resolve("verify.bas").toString();
+      exec("SAVE \"" + file + "\"");
+      exec("VERIFY \"" + file + "\""); // must not throw
+    }
+
+    @Test
+    void verifyFailsOnMismatch() {
+      state.setProgram(PARSER.parseProgramLines("10 LET X=1\n"));
+      final String file = tempDir.resolve("verify2.bas").toString();
+      exec("SAVE \"" + file + "\"");
+      state.setProgram(PARSER.parseProgramLines("10 LET X=2\n"));
+      assertThrows(ReportException.class, () -> exec("VERIFY \"" + file + "\""));
+    }
   }
 }

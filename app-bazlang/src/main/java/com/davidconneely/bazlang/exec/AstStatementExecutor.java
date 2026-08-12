@@ -32,42 +32,51 @@ import java.util.function.Supplier;
 /**
  * Walks the typed {@link Stmt} AST via {@code switch} pattern matching, delegating expression
  * evaluation to {@link AstExpressionEvaluator}. Standalone (Phase 2 of {@code
- * localonly-plan-CUSTOM-AST.md}): not wired into the live interpreter, and — unlike the eventual
- * cutover shape — does not read/write {@code EvalState.program()} or {@code EvalState.fn()}/{@code
- * setFn()}. Instead it takes its own AST-flavoured program map (see {@link AstProgramSupport}) and
- * keeps its own {@code DEF FN} store (see {@link AstFnDefinition}), so this class can be built and
- * tested without touching what the still-live {@code StatementExecutor}/{@code ExpressionEvaluator}
- * depend on.
+ * localonly-plan-CUSTOM-AST.md}): not wired into the live interpreter. For {@code GOTO}/{@code
+ * NEXT}/{@code RESTORE}/{@code DATA}/{@code READ} addressing it takes its own AST-flavoured program
+ * map (see {@link AstProgramSupport}) rather than reading {@code EvalState.program()} (whose {@code
+ * ProgramLine}s only expose ANTLR-typed statement lists, not {@link Stmt}), and it keeps its own
+ * {@code DEF FN} store (see {@link AstFnDefinition}) rather than {@code EvalState.fn()}/{@code
+ * setFn()} (whose body type is still ANTLR-based). {@code LIST}, by contrast, needs only line
+ * number and source text — both already on {@code ProgramLine} — so it reads {@code
+ * EvalState.program()} directly, and {@code LOAD}/{@code SAVE}/{@code MERGE}/{@code VERIFY}
+ * delegate straight to {@link ProgramStorage} exactly as {@code StatementExecutor} does today,
+ * since that class already operates purely on {@code EvalState.program()}/{@code ProgramLine} text
+ * — see this class's constructor Javadoc for what that means for a LOAD/MERGE run standalone.
  *
- * <p><strong>Implements sub-phases 2a and 2b</strong> (2a: control flow and program data — {@code
- * CLEAR}/{@code NEW}/{@code LET}/{@code DIM}/{@code FOR}/{@code NEXT}/{@code GOTO}/{@code
- * GOSUB}/{@code RETURN}/{@code IF}/{@code CONT}/{@code STOP}/{@code RUN}/{@code DATA}/{@code
- * READ}/{@code RESTORE}/{@code DEF FN}/{@code REM}; 2b: I/O and graphics — {@code PRINT}/{@code
- * INPUT}/{@code PLOT}/{@code DRAW}/{@code CIRCLE}/{@code PLOTMODE}/the six style statements/ {@code
- * CLS}/{@code SCROLL}/{@code FAST}/{@code SLOW}/{@code PAUSE}). Program-management statements (2c:
- * {@code LOAD}/{@code SAVE}/{@code MERGE}/{@code VERIFY}/{@code LIST}/{@code RAND}) throw {@link
- * UnsupportedOperationException} for now; the {@code switch} below is exhaustive over {@link Stmt}
- * via its {@code default} arm specifically so adding a new {@link Stmt} case is a compile error
- * here until it's either implemented or explicitly deferred, not a silent gap.
+ * <p><strong>Implements every statement kind</strong> (Phase 2 sub-phases 2a, 2b, and 2c). {@code
+ * switch (stmt)} below is exhaustive over the sealed {@link Stmt} with no {@code default} arm, so
+ * adding a new {@code Stmt} case is a compile error here, not a silent gap.
  */
 public class AstStatementExecutor {
   private final EvalState state;
   private final VirtualScreen screen;
   private final VirtualInput input;
   private final AstExpressionEvaluator exprEvaluator;
+  private final ProgramStorage storage;
   private final NavigableMap<Integer, List<Stmt>> program;
   private final Map<String, AstFnDefinition> fnDefs = new HashMap<>();
 
+  /**
+   * {@code storage} is the same {@link ProgramStorage} type {@code StatementExecutor} uses, so
+   * {@code LOAD}/{@code MERGE} mutate {@code EvalState.program()} exactly as they do today — but
+   * this executor's own {@code program} map (used for every other statement's addressing) is a
+   * separate, static snapshot built once at construction, so it will not reflect a LOAD/MERGE run
+   * through this executor. Harmless for the isolated component tests this phase verifies with; the
+   * two representations unify naturally at the Phase 4 cutover.
+   */
   public AstStatementExecutor(
       EvalState state,
       VirtualScreen screen,
       VirtualInput input,
       AstExpressionEvaluator exprEvaluator,
+      ProgramStorage storage,
       NavigableMap<Integer, List<Stmt>> program) {
     this.state = state;
     this.screen = screen;
     this.input = input;
     this.exprEvaluator = exprEvaluator;
+    this.storage = storage;
     this.program = program;
   }
 
@@ -135,9 +144,12 @@ public class AstStatementExecutor {
       case Stmt.PrintStmt s -> executePrintStmt(s);
       case Stmt.InputStmt s -> executeInputStmt(s);
       case Stmt.PauseStmt s -> executePauseStmt(s);
-      default ->
-          throw new UnsupportedOperationException(
-              stmt.getClass().getSimpleName() + " not yet implemented (Phase 2c)");
+      case Stmt.RandStmt s -> executeRandStmt(s);
+      case Stmt.ListStmt s -> executeListStmt(s);
+      case Stmt.LoadStmt s -> storage.load(exprEvaluator.evalStr(s.fileName()).toJavaString());
+      case Stmt.MergeStmt s -> storage.merge(exprEvaluator.evalStr(s.fileName()).toJavaString());
+      case Stmt.SaveStmt s -> storage.save(exprEvaluator.evalStr(s.fileName()).toJavaString());
+      case Stmt.VerifyStmt s -> storage.verify(exprEvaluator.evalStr(s.fileName()).toJavaString());
     }
   }
 
@@ -733,6 +745,41 @@ public class AstStatementExecutor {
         // program). CONT then advances past the PAUSE to the next statement.
         throw codedException(
             ReportCode.BREAK_INTO_PROGRAM, ReportCode.BREAK_INTO_PROGRAM.getMessage());
+      }
+    }
+  }
+
+  // ===== Program management =====
+
+  private void executeRandStmt(Stmt.RandStmt stmt) {
+    long seed = stmt.seed() != null ? Math.round(exprEvaluator.evalNum(stmt.seed())) : 0;
+    // RAND with 0 or no argument seeds from system state
+    if (seed == 0) {
+      // Combine multiple entropy sources and mix with XorShift
+      seed = System.nanoTime() ^ ((long) new Object().hashCode() << 32 | new Object().hashCode());
+      seed ^= seed << 17;
+      seed ^= seed >>> 31;
+      seed ^= seed << 8;
+    }
+    state.seedRandom(seed);
+  }
+
+  private void executeListStmt(Stmt.ListStmt stmt) {
+    int start = Limits.MIN_TARGET_LABEL;
+    int end = Limits.MAX_TARGET_LABEL;
+    final var range = stmt.range();
+    if (range != null) {
+      if (range.from() != null) {
+        start = (int) exprEvaluator.evalNum(range.from());
+      }
+      if (range.to() != null) {
+        end = (int) exprEvaluator.evalNum(range.to());
+      }
+    }
+    for (final var entry : state.program().subMapEntries(start, true, end, true)) {
+      final var line = entry.getValue();
+      if (line.lineNumber() >= Limits.MIN_LINE_LABEL) {
+        screen.println(line.lineNumber() + " " + line.sourceText());
       }
     }
   }
