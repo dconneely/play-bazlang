@@ -5,8 +5,10 @@ import com.davidconneely.bazlang.ReportCode;
 import com.davidconneely.bazlang.ReportException;
 import com.davidconneely.bazlang.antlr.BazLangParser.*;
 import java.math.BigInteger;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import org.antlr.v4.runtime.Token;
 
 /**
  * Lowers ANTLR expression parse trees ({@code numExpr}/{@code numAtom}/{@code strExpr}/{@code
@@ -344,6 +346,238 @@ public final class AstLowering {
       slice = new StrSubscript.StrSlice(start, end);
     }
     return new StrSubscript(indices, slice);
+  }
+
+  // ===== Statements =====
+
+  /**
+   * Lowers a {@code statements} rule to a single <em>flat</em> {@code List<Stmt>}: {@code IfStmt}
+   * bodies are recursively inlined right after the {@code IfStmt} itself, exactly as {@code
+   * ProgramLine.flatten()} does today (the "flat skip-scan" quirk — see {@link Stmt}'s class
+   * Javadoc). This is the list a {@code ProgramLine}/{@code Interpreter} walks for execution;
+   * {@link Stmt.IfStmt#body()} itself holds the un-flattened nested form.
+   */
+  public static List<Stmt> lowerStatements(StatementsContext ctx, int lineNumber) {
+    final var flat = new ArrayList<Stmt>();
+    flattenInto(lowerStatementList(ctx, lineNumber), flat);
+    return List.copyOf(flat);
+  }
+
+  private static List<Stmt> lowerStatementList(StatementsContext ctx, int lineNumber) {
+    if (ctx == null) {
+      return List.of();
+    }
+    return ctx.statement().stream().map(s -> lowerStatement(s, lineNumber)).toList();
+  }
+
+  private static void flattenInto(List<Stmt> stmts, List<Stmt> flat) {
+    for (final var stmt : stmts) {
+      flat.add(stmt);
+      if (stmt instanceof Stmt.IfStmt ifStmt) {
+        flattenInto(ifStmt.body(), flat);
+      }
+    }
+  }
+
+  private static Stmt lowerStatement(StatementContext ctx, int lineNumber) {
+    return switch (ctx) {
+      case BrightStmtContext c -> new Stmt.BrightStmt(lowerNum(c.numExpr(), lineNumber));
+      case CircleStmtContext c ->
+          new Stmt.CircleStmt(
+              lowerStyleList(c.styleList(), lineNumber),
+              lowerNum(c.numExpr(0), lineNumber),
+              lowerNum(c.numExpr(1), lineNumber),
+              lowerNum(c.numExpr(2), lineNumber));
+      case ClearStmtContext _ -> new Stmt.ClearStmt();
+      case ClsStmtContext _ -> new Stmt.ClsStmt();
+      case ContStmtContext _ -> new Stmt.ContStmt();
+      case DataStmtContext c ->
+          new Stmt.DataStmt(
+              c.expression().stream().map(e -> lowerExpression(e, lineNumber)).toList());
+      case DefFnStmtContext c -> lowerDefFnStmt(c, lineNumber);
+      case DimStmtContext c -> lowerDimStmt(c.dimDecl(), lineNumber);
+      case DrawStmtContext c ->
+          new Stmt.DrawStmt(
+              lowerStyleList(c.styleList(), lineNumber),
+              lowerNum(c.numExpr(0), lineNumber),
+              lowerNum(c.numExpr(1), lineNumber));
+      case FastStmtContext _ -> new Stmt.FastStmt();
+      case FlashStmtContext c -> new Stmt.FlashStmt(lowerNum(c.numExpr(), lineNumber));
+      case ForStmtContext c -> lowerForStmt(c, lineNumber);
+      case GosubStmtContext c -> new Stmt.GosubStmt(lowerNum(c.numExpr(), lineNumber));
+      case GotoStmtContext c -> new Stmt.GotoStmt(lowerNum(c.numExpr(), lineNumber));
+      case IfStmtContext c ->
+          new Stmt.IfStmt(
+              lowerNum(c.numExpr(), lineNumber), lowerStatementList(c.statements(), lineNumber));
+      case InkStmtContext c -> new Stmt.InkStmt(lowerNum(c.numExpr(), lineNumber));
+      case InputStmtContext c ->
+          new Stmt.InputStmt(lowerAssignTarget(c.assignmentTarget(), lineNumber));
+      case InverseStmtContext c -> new Stmt.InverseStmt(lowerNum(c.numExpr(), lineNumber));
+      case LetStmtContext c ->
+          new Stmt.LetStmt(
+              lowerAssignTarget(c.assignmentTarget(), lineNumber),
+              lowerExpression(c.expression(), lineNumber));
+      case ListStmtContext c -> new Stmt.ListStmt(lowerLineRange(c.lineRange(), lineNumber));
+      case LoadStmtContext c -> new Stmt.LoadStmt(lowerStr(c.strExpr(), lineNumber));
+      case MergeStmtContext c -> new Stmt.MergeStmt(lowerStr(c.strExpr(), lineNumber));
+      case NewStmtContext _ -> new Stmt.NewStmt();
+      case NextStmtContext c -> new Stmt.NextStmt(upper(c.NUM_IDENTIFIER().getText()));
+      case OverStmtContext c -> new Stmt.OverStmt(lowerNum(c.numExpr(), lineNumber));
+      case PaperStmtContext c -> new Stmt.PaperStmt(lowerNum(c.numExpr(), lineNumber));
+      case PauseStmtContext c -> new Stmt.PauseStmt(lowerNum(c.numExpr(), lineNumber));
+      case PlotStmtContext c ->
+          new Stmt.PlotStmt(
+              lowerStyleList(c.styleList(), lineNumber),
+              lowerNum(c.numExpr(0), lineNumber),
+              lowerNum(c.numExpr(1), lineNumber));
+      case PlotmodeStmtContext c -> new Stmt.PlotmodeStmt(lowerNum(c.numExpr(), lineNumber));
+      case PrintStmtContext c -> new Stmt.PrintStmt(lowerPrintList(c.printList(), lineNumber));
+      case RandStmtContext c ->
+          new Stmt.RandStmt(c.numExpr() != null ? lowerNum(c.numExpr(), lineNumber) : null);
+      case ReadStmtContext c ->
+          new Stmt.ReadStmt(
+              c.assignmentTarget().stream().map(t -> lowerAssignTarget(t, lineNumber)).toList());
+      case RemStmtContext _ -> new Stmt.RemStmt();
+      case RestoreStmtContext c ->
+          new Stmt.RestoreStmt(c.numExpr() != null ? lowerNum(c.numExpr(), lineNumber) : null);
+      case ReturnStmtContext _ -> new Stmt.ReturnStmt();
+      case RunStmtContext c ->
+          new Stmt.RunStmt(c.numExpr() != null ? lowerNum(c.numExpr(), lineNumber) : null);
+      case SaveStmtContext c -> new Stmt.SaveStmt(lowerStr(c.strExpr(), lineNumber));
+      case ScrollStmtContext _ -> new Stmt.ScrollStmt();
+      case SlowStmtContext _ -> new Stmt.SlowStmt();
+      case StopStmtContext _ -> new Stmt.StopStmt();
+      case VerifyStmtContext c -> new Stmt.VerifyStmt(lowerStr(c.strExpr(), lineNumber));
+      default ->
+          throw new IllegalStateException("Unknown statement alternative: " + ctx.getClass());
+    };
+  }
+
+  private static Stmt.DefFnStmt lowerDefFnStmt(DefFnStmtContext ctx, int lineNumber) {
+    // Duplicate-parameter and body-type-mismatch validation stay in AstStatementExecutor, not
+    // here: they need state.currentStatementIndex() for identical error attribution to today's
+    // visitDefFnStmt, which lowering (a pure, EvalState-free function) does not have access to.
+    final String name = upper(ctx.name.getText());
+    final List<String> params =
+        ctx.params != null
+            ? ctx.params.stream().map(Token::getText).map(AstLowering::upper).toList()
+            : List.of();
+    return new Stmt.DefFnStmt(name, params, lowerExpression(ctx.expression(), lineNumber));
+  }
+
+  private static Stmt.DimStmt lowerDimStmt(DimDeclContext ctx, int lineNumber) {
+    final boolean isStr = ctx.STR_IDENTIFIER() != null;
+    final String name =
+        upper(isStr ? ctx.STR_IDENTIFIER().getText() : ctx.NUM_IDENTIFIER().getText());
+    return new Stmt.DimStmt(name, isStr, lowerNumList(ctx.numExpr(), lineNumber));
+  }
+
+  private static Stmt.ForStmt lowerForStmt(ForStmtContext ctx, int lineNumber) {
+    final String forVar = upper(ctx.NUM_IDENTIFIER().getText());
+    final NumExpr start = lowerNum(ctx.numExpr(0), lineNumber);
+    final NumExpr end = lowerNum(ctx.numExpr(1), lineNumber);
+    final NumExpr step =
+        ctx.numExpr().size() > 2
+            ? lowerNum(ctx.numExpr(2), lineNumber)
+            : new NumExpr.NumLiteral(1.0);
+    return new Stmt.ForStmt(forVar, start, end, step);
+  }
+
+  private static AssignTarget lowerAssignTarget(AssignmentTargetContext ctx, int lineNumber) {
+    if (ctx.STR_IDENTIFIER() != null) {
+      final String name = upper(ctx.STR_IDENTIFIER().getText());
+      final StrSubscript subscript =
+          ctx.strSubscript() != null ? lowerStrSubscript(ctx.strSubscript(), lineNumber) : null;
+      return new AssignTarget.StrTarget(name, subscript);
+    }
+    final String name = upper(ctx.NUM_IDENTIFIER().getText());
+    if (!ctx.numExpr().isEmpty()) {
+      return new AssignTarget.NumArrayTarget(name, lowerNumList(ctx.numExpr(), lineNumber));
+    }
+    return new AssignTarget.NumScalarTarget(name);
+  }
+
+  /**
+   * Lowers a {@code lineRange}. Disambiguates the single-bound-with-{@code TO} case ("{@code n TO}"
+   * vs. "{@code TO n}") from tree child order rather than {@code ctx.getText()} sniffing — see
+   * {@link LineRange}'s class Javadoc.
+   */
+  private static LineRange lowerLineRange(LineRangeContext ctx, int lineNumber) {
+    if (ctx == null) {
+      return null;
+    }
+    final var nums = ctx.numExpr();
+    if (ctx.TO() != null) {
+      if (nums.size() == 2) {
+        return new LineRange(lowerNum(nums.get(0), lineNumber), lowerNum(nums.get(1), lineNumber));
+      }
+      if (nums.size() == 1) {
+        // Reference identity, not equals(): checking tree child order (is the numExpr node the
+        // first child?), not value equality.
+        @SuppressWarnings("PMD.CompareObjectsWithEquals")
+        final boolean numComesFirst = ctx.getChild(0) == nums.get(0);
+        return numComesFirst
+            ? new LineRange(lowerNum(nums.get(0), lineNumber), null)
+            : new LineRange(null, lowerNum(nums.get(0), lineNumber));
+      }
+      return new LineRange(null, null); // just "TO": whole program
+    }
+    // No TO: the only other alternative requires exactly one numExpr ("LIST n": n to end).
+    return new LineRange(lowerNum(nums.getFirst(), lineNumber), null);
+  }
+
+  private static List<StyleItem> lowerStyleList(StyleListContext ctx, int lineNumber) {
+    if (ctx == null || ctx.styleItem().isEmpty()) {
+      return List.of();
+    }
+    return ctx.styleItem().stream().map(s -> lowerStyleItem(s, lineNumber)).toList();
+  }
+
+  private static StyleItem lowerStyleItem(StyleItemContext ctx, int lineNumber) {
+    if (ctx instanceof StyleBrightItemContext c) {
+      return new StyleItem(StyleItem.StyleKind.BRIGHT, lowerNum(c.numExpr(), lineNumber));
+    }
+    if (ctx instanceof StyleFlashItemContext c) {
+      return new StyleItem(StyleItem.StyleKind.FLASH, lowerNum(c.numExpr(), lineNumber));
+    }
+    if (ctx instanceof StyleInkItemContext c) {
+      return new StyleItem(StyleItem.StyleKind.INK, lowerNum(c.numExpr(), lineNumber));
+    }
+    if (ctx instanceof StyleInverseItemContext c) {
+      return new StyleItem(StyleItem.StyleKind.INVERSE, lowerNum(c.numExpr(), lineNumber));
+    }
+    if (ctx instanceof StyleOverItemContext c) {
+      return new StyleItem(StyleItem.StyleKind.OVER, lowerNum(c.numExpr(), lineNumber));
+    }
+    if (ctx instanceof StylePaperItemContext c) {
+      return new StyleItem(StyleItem.StyleKind.PAPER, lowerNum(c.numExpr(), lineNumber));
+    }
+    throw new IllegalStateException("Unknown styleItem alternative: " + ctx.getText());
+  }
+
+  private static List<PrintElement> lowerPrintList(PrintListContext ctx, int lineNumber) {
+    if (ctx == null) {
+      return List.of();
+    }
+    final var elements = new ArrayList<PrintElement>();
+    for (int i = 0; i < ctx.getChildCount(); i++) {
+      final var child = ctx.getChild(i);
+      if (child instanceof PrintSepContext sep) {
+        elements.add(new PrintElement.Sep(sep.getText().charAt(0)));
+      } else if (child instanceof PrintAtItemContext at) {
+        elements.add(
+            new PrintElement.AtItem(
+                lowerNum(at.numExpr(0), lineNumber), lowerNum(at.numExpr(1), lineNumber)));
+      } else if (child instanceof PrintTabItemContext tab) {
+        elements.add(new PrintElement.TabItem(lowerNum(tab.numExpr(), lineNumber)));
+      } else if (child instanceof PrintStyleItemContext style) {
+        elements.add(new PrintElement.StyleElement(lowerStyleItem(style.styleItem(), lineNumber)));
+      } else if (child instanceof PrintExprItemContext exprItem) {
+        elements.add(
+            new PrintElement.ValueItem(lowerExpression(exprItem.expression(), lineNumber)));
+      }
+    }
+    return List.copyOf(elements);
   }
 
   // ===== Shared helpers =====
