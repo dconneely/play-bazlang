@@ -7,7 +7,9 @@ behaviours in [quirks.md](quirks.md) — nothing listed there may be changed by 
 
 ## Code structure
 
-The interpreter executes directly from ANTLR's parse tree using a visitor pattern.
+The interpreter executes from a typed AST — `Stmt`/`NumExpr`/`StrExpr` — walked via Java `switch`
+pattern matching, not from the ANTLR parse tree directly. Each `ProgramLine`'s source text is parsed
+once and lowered once, lazily, on first execution.
 
 ### Package layout
 
@@ -16,9 +18,13 @@ Under `com.davidconneely.bazlang`:
 - **root**: entry point and REPL wiring (`MainClass`, `InterpreterReplHandler`) plus the shared
   primitives used by every package (`BStr`, `Limits`, `ReportCode`, `ReportException`).
 - **`exec`**: the execution engine — `Interpreter`, `StatementExecutor`, `ExpressionEvaluator`,
-  `AstAnnotator`, `EvalState`, `Program`, `ProgramLine`, `ProgramStorage`, and the small value types
-  `Ops`, `SliceBounds`, `StyleState`.
-- **`edit`**: program-editing commands (`ProgramEditor`, `ReformatVisitor`).
+  `EvalState`, `Program`, `ProgramLine`, `ProgramStorage`, and the small value types `SliceBounds`,
+  `StyleState`.
+- **`exec.ast`**: the typed AST and the lowering pass — `Stmt`, `Expr`/`NumExpr`/`StrExpr`, `Op`,
+  `NumFuncKind`/`StrFuncKind`, `AssignTarget`, `StyleItem`, `PrintElement`, `LineRange`,
+  `StrSubscript`, and `AstLowering` (the ANTLR-parse-tree-to-AST lowering pass).
+- **`edit`**: program-editing commands (`ProgramEditor`, `ReformatVisitor`) — these operate directly
+  on freshly parsed ANTLR trees or source text, not the AST; see "Parse tree vs. AST" below.
 - **`antlr`**: the parser facade (`AntlrParser`) and the generated lexer/parser.
 - **`io`**: screens and input (see the I/O section below).
 - **`debug`**: `AgentDebugger`, the agent-oriented debugger main class.
@@ -31,26 +37,37 @@ Under `com.davidconneely.bazlang`:
   `parseReplLine()`, `parseStatementsContext()`, `parseNumExpr()`, and `parseStrExpr()` entry
   points. ANTLR syntax errors are converted to `ReportException` (`C Nonsense in BASIC`) by a custom
   error listener.
-- **`ExpressionEvaluator`**: A visitor that evaluates numeric and string expressions from the parse
-  tree.
-- **`StatementExecutor`**: A visitor that executes statements — variable assignment, I/O operations,
-  state mutation, and the flow-control statements (`CONT`, `FOR`, `GO SUB`, `GO TO`,
-  `NEXT`, `RETURN`, `RUN`). A 3-argument convenience constructor builds the default
-  `ProgramStorage`/`ExpressionEvaluator` collaborators; the full constructor takes them (and the
-  `AntlrParser`) injected.
+- **`AstLowering`**: A pure, `EvalState`-free set of functions that lower an ANTLR parse tree
+  (`StatementsContext`/`NumExprContext`/`StrExprContext`/...) to the typed AST. Resolves literals
+  and operators once, at lowering time; variable/array references stay unresolved until first
+  evaluation (see "Variable reference caching" below). `AstLowering.lowerStatements` also performs
+  the flattening described in "Statement addressing and flattening" — folding what used to be a
+  separate `ProgramLine.flatten()` pass into the same walk that produces the AST.
+- **`ExpressionEvaluator`**: Walks the typed `NumExpr`/`StrExpr` AST via `switch` pattern matching
+  and returns `double`/`BStr` directly from `evalNum`/`evalStr`.
+- **`StatementExecutor`**: Walks the typed `Stmt` AST via `switch` pattern matching, executing
+  variable assignment, I/O operations, state mutation, and the flow-control statements (`CONT`,
+  `FOR`, `GO SUB`, `GO TO`, `NEXT`, `RETURN`, `RUN`). The `switch` in `execute(Stmt)` has no
+  `default` arm — it is exhaustive over the sealed `Stmt`, so a new statement kind is a compile
+  error here until handled, not a silent gap. A 3-argument convenience constructor builds the
+  default `ProgramStorage`/`ExpressionEvaluator` collaborators; the full constructor takes them
+  (and the `AntlrParser`) injected.
 - **`Interpreter`**: Manages the overall flow. It coordinates the executor and evaluator, decides
   which line to run next, handles jumps, and loops until the program stops.
-- **`AstAnnotator`**: A one-time pass over each freshly parsed tree that caches parsed literal
-  values (`cachedNum`, `cachedStr`) into fields declared as grammar `locals`.
 - **`EvalState`**: The program's memory. It stores variables (scalars and arrays), custom functions,
   the state of any active `FOR` loops, the `GOSUB` return stack, the `DATA` pointer, the
   current/pending execution position (a `StatementAddress`), the last report, the random generator,
-  the graphics cursor, and the default style attributes (a `StyleState`).
+  the graphics cursor, and the default style attributes (a `StyleState`). `FnDefinition.body` is a
+  lowered `Expr`, not a parse-tree node.
 - **`Program`**: Encapsulates the line storage (a `TreeMap<Integer, ProgramLine>`), ensuring the
   underlying map is protected. Owns the program-order navigation scans `findFirstData` (the
-  `RESTORE`/`READ` pointer) and `findMatchingNext` (the `FOR` skip-scan).
-- **`ProgramLine`**: Stores the source text of each line, lazily parses to a parse tree on first
-  execution, and caches a flattened statement list to avoid rebuilding it on subsequent calls.
+  `RESTORE`/`READ` pointer) and `findMatchingNext` (the `FOR` skip-scan), matching `Stmt.DataStmt`/
+  `Stmt.NextStmt` via pattern matching.
+- **`ProgramLine`**: Stores the source text of each line and lazily lowers it to a flat `Stmt` list
+  on first execution, caching that list to avoid re-lowering on subsequent calls.
+  `getStatements(parser)` is a separate accessor that always re-parses the source text fresh into a
+  raw ANTLR tree — used only by `ProgramEditor`/`ReformatVisitor` and parser-level tests, never
+  execution, and deliberately shares no state with the cached AST (see "Parse tree vs. AST" below).
 - **`BStr`**: The immutable byte-string value type used for all BazLang string values (see
   [language_features.md](language_features.md) for its byte semantics).
 - **`InterpreterReplHandler`**: Routes each REPL line — numbered entry (store/delete), REPL-only
@@ -91,8 +108,27 @@ Facts an implementer needs before restructuring anything:
 - `AntlrParser` is injected everywhere it is used at runtime; the global singleton
   `AntlrParser.INSTANCE` is named only at composition roots (`MainClass`, `AgentDebugger`) and in
   constructor defaults.
-- Parse trees are annotated with per-`EvalState` caches (see below), so a `ProgramLine`'s cached
-  tree must never be shared between two interpreter instances.
+- AST nodes carry per-`EvalState` reference caches (see below), so a `ProgramLine`'s cached `Stmt`
+  list must never be shared between two interpreter instances.
+
+### Parse tree vs. AST
+
+Two representations of a line's source text coexist deliberately, for different purposes:
+
+- **`ProgramLine.getFlattenedStatements(parser)`** — the typed AST (`List<Stmt>`), lowered once and
+  cached. This is what execution walks: `Interpreter`, `StatementExecutor`, `ExpressionEvaluator`,
+  and `Program`'s scans all operate on it exclusively.
+- **`ProgramLine.getStatements(parser)`** — a raw ANTLR parse tree, re-parsed fresh on every call,
+  sharing no state with the cached AST. `ProgramEditor.executeReformat` and `ReformatVisitor` use
+  this (`REFORMAT` needs to walk grammar structure and regenerate source text, not execute), as do
+  parser-level tests that assert on parse-tree shape directly. Because it is always freshly parsed,
+  nothing here observes or mutates the execution AST's variable-reference caches or vice versa.
+
+`ProgramEditor`'s other commands (`RENUM`, `DELETE`) work from source text and token streams
+directly, never touching either representation — see `ProgramEditor.updateLineTargets`.
+`BreakpointEngine`'s `?expr` condition and `DebugSession`'s `?`/`!LET` commands parse-and-lower a
+fresh `NumExpr`/`StrExpr`/`Stmt` on every check/call (the same "parse fresh every time" shape `VAL`/
+`INPUT` use — see below), rather than reading any cached AST.
 
 ## Execution model
 
@@ -141,7 +177,7 @@ the *following* statement).
 
 `EvalState.clear()` blanks the *contents* of the variable reference objects (`NumVarRef`,
 `NumArrayRef`, `StrVarRef`, `FnDefRef`) but keeps the objects themselves alive. This is what keeps
-references cached in parse trees valid across `CLEAR`/`RUN`. Editing program lines preserves all
+references cached on AST nodes valid across `CLEAR`/`RUN`. Editing program lines preserves all
 runtime state (hot-patching, see [quirks.md](quirks.md)); only `NEW` and `CLEAR`
 reset it.
 
@@ -207,23 +243,28 @@ To ensure high execution performance and minimise garbage collector pressure on 
 interpreter implements several key patterns. These are load-bearing; refactorings must keep their
 effect:
 
-- **Visitor as calculator**: Rather than returning boxed `Double` wrapper objects from parsing
-  visitor methods (which would cause massive boxing and unboxing overhead during arithmetic
-  evaluation), the evaluation visitor
-  [ExpressionEvaluator](../src/main/java/com/davidconneely/bazlang/exec/ExpressionEvaluator.java)
-  returns `Void` and stores primitive double results directly in a class field.
-- **Variable reference caching (`ctx.varRef`)**: Variables are normally looked up in the
+- **Direct primitive returns, no boxing**: `ExpressionEvaluator.evalNum`/`evalStr` return `double`/
+  `BStr` directly from a `switch` expression over the sealed `NumExpr`/`StrExpr` — no boxed
+  `Double` wrapper objects, and no `numResult`/`strResult` side fields for the visitor to stash
+  into (the ANTLR-visitor predecessor this replaced at the parse-tree-to-AST migration had to use
+  side fields, since a single visitor type parameter can't cleanly return `double` for one rule
+  family and `BStr` for another without boxing; ordinary method returns don't have that
+  restriction).
+- **Variable reference caching**: Variables are normally looked up in the
   [EvalState](../src/main/java/com/davidconneely/bazlang/exec/EvalState.java) maps by their name
-  strings.
-  To avoid continuous hash map lookups during execution (especially in tight loops), the parser
-  context objects (`ctx`) cache their resolved reference objects (such as `NumVarRef`)
-  after the first lookup. Subsequent evaluations retrieve the cached reference directly. (This is
-  why cleared variables keep their ref objects, and why parse trees are bound to one
-  `EvalState` — see "State lifecycle" above.)
-- **Literal caching**: `AstAnnotator` pre-parses numeric, binary, and string literals into
-  `cachedNum`/`cachedStr` context fields once per tree, so evaluation never reparses text.
-- **Lazy parse and flatten**: `ProgramLine` defers parsing to first execution and caches both the
-  parse tree and the flattened statement list.
+  strings. To avoid continuous hash map lookups during execution (especially in tight loops), the
+  AST's variable/array/subscript nodes (`NumExpr.NumVarExpr`, `NumExpr.NumArrayExpr`,
+  `StrExpr.StrVarExpr`, `StrExpr.StrSubscriptExpr`, and the `AssignTarget` variants) are small
+  mutable classes, not plain records: each carries a nullable, typed `ref` field (e.g.
+  `EvalState.NumVarRef`) that is resolved once on first evaluation and reused thereafter. (This is
+  why cleared variables keep their ref objects, and why a `ProgramLine`'s cached `Stmt` list is
+  bound to one `EvalState` — see "State lifecycle" above.)
+- **Literal and operator resolution at lowering time**: `AstLowering` resolves numeric, binary, and
+  string literals, and arithmetic/comparison operators (`Op`), once when lowering a parse tree to
+  AST — every other node in the AST is an immutable record — so evaluation never reparses literal
+  text or re-derives an operator from token text.
+- **Lazy lowering**: `ProgramLine` defers parsing-and-lowering to first execution and caches the
+  resulting flat `Stmt` list.
 - **Index scratch stack**: `ExpressionEvaluator` evaluates array subscripts into a shared
   `int[256]` stack (with a stack pointer restored in `finally`) instead of allocating an index array
   per access.

@@ -158,8 +158,10 @@ current pixel state (which is slightly confusing, but consistent with the Sincla
 To add a new operator (e.g., modulo `%`):
 
 1. Add to grammar: `| numExpr '%' numExpr  # NumModExpr`
-2. Add a visitor method to `ExpressionEvaluator` (for expressions) or `StatementExecutor` (for
-   statements)
+2. Add a case to `AstLowering.lowerNum` producing the AST node (a new `Op` enum value plus a
+   `NumBinaryOp` case, or a new `NumExpr` record if it doesn't fit the existing binary-op shape),
+   and a matching `case` in `ExpressionEvaluator.evalNum`/`evalNumBinaryOp` (for expressions) or the
+   equivalent `Stmt`/`StatementExecutor` pair (for statements)
 3. Write tests
 
 The grammar serves as both the implementation and the documentation of the language syntax.

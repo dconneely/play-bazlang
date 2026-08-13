@@ -13,7 +13,7 @@ Detailed language and architecture references are available in the `docs/` direc
 
 - **[Language features](docs/language_features.md)** - Guide to variables, commands, and REPL operations.
 - **[Grammar](docs/grammar.md)** - The ANTLR grammar specification for BazLang.
-- **[Implementation](docs/implementation.md)** - Visitor architecture, execution model, state
+- **[Implementation](docs/implementation.md)** - AST architecture, execution model, state
   tracking, and performance notes (for implementers).
 - **[Quirks](docs/quirks.md)** - Deliberately preserved ZX BASIC eccentricities and intentional
   behaviours.
@@ -75,7 +75,7 @@ The parser is built using ANTLR 4. The grammar is defined in `src/main/antlr/Baz
 
 When running a file or entering commands in the REPL:
 
-- Source statements are parsed into an Abstract Syntax Tree (AST).
-- `StatementExecutor` walks the statement AST nodes using the visitor pattern.
-- `ExpressionEvaluator` resolves numeric and string expressions.
+- Source statements are parsed by ANTLR, then lowered into a typed Abstract Syntax Tree (AST).
+- `StatementExecutor` walks the statement AST nodes via `switch` pattern matching.
+- `ExpressionEvaluator` resolves numeric and string expressions the same way.
 - `EvalState` maintains variable values, array definitions, loops, and call stacks.

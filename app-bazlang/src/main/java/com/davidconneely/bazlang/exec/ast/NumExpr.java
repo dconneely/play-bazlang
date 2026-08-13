@@ -11,7 +11,7 @@ import java.util.List;
  *
  * <p>Most cases are plain records. {@link NumVarExpr} and {@link NumArrayExpr} are small mutable
  * classes instead: they carry a nullable, typed, lazily-populated variable-reference cache
- * (analogous to today's {@code ctx.varRef}, but typed and off the grammar) that avoids a hash-map
+ * (replacing the pre-AST grammar's untyped {@code ctx.varRef}, now removed) that avoids a hash-map
  * lookup per access in tight loops. The cache is resolved on first evaluation, not at lowering time
  * — see {@code AstLowering}'s class Javadoc for why.
  */

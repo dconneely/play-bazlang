@@ -18,9 +18,9 @@ import org.antlr.v4.runtime.Token;
  * (at {@code ProgramLine} parse time) and for one-off runtime parses ({@code VAL}, {@code INPUT})
  * without needing an {@code EvalState} to exist yet.
  *
- * <p>{@code lineNumber} is threaded through as a plain parameter (not a {@code ThreadLocal}, as
- * {@code AstAnnotator} does today) purely so a {@code BIN} literal that overflows 64 digits can
- * report the line it came from; it is never used to resolve variables.
+ * <p>{@code lineNumber} is threaded through as a plain parameter (not a {@code ThreadLocal}, as the
+ * retired {@code AstAnnotator} class did) purely so a {@code BIN} literal that overflows 64 digits
+ * can report the line it came from; it is never used to resolve variables.
  */
 public final class AstLowering {
   private AstLowering() {}
@@ -622,9 +622,9 @@ public final class AstLowering {
   }
 
   /**
-   * Parses a BIN literal token text ("BIN 1010") to its numeric value. Mirrors {@code
-   * AstAnnotator.parseBinLiteral}; duplicated here (not shared) since {@code AstAnnotator} is
-   * retired at the Phase 4 cutover.
+   * Parses a BIN literal token text ("BIN 1010") to its numeric value. Mirrored the retired {@code
+   * AstAnnotator.parseBinLiteral}; kept as its own copy here rather than shared, since {@code
+   * AstAnnotator} no longer exists.
    */
   private static double parseBinLiteral(String tokenText, int lineNumber) {
     final String digits = tokenText.substring(3).replaceAll("[ \t]", "");
@@ -636,8 +636,9 @@ public final class AstLowering {
   }
 
   /**
-   * Unquotes a STR_LITERAL token text (strips quotes, un-doubles embedded quotes). Mirrors {@code
-   * AstAnnotator.parseStrLiteral}; duplicated for the same reason as {@link #parseBinLiteral}.
+   * Unquotes a STR_LITERAL token text (strips quotes, un-doubles embedded quotes). Mirrored the
+   * retired {@code AstAnnotator.parseStrLiteral}; kept as its own copy for the same reason as
+   * {@link #parseBinLiteral}.
    */
   private static BStr parseStrLiteral(String tokenText) {
     return BStr.fromJavaString(
