@@ -2,8 +2,8 @@ package com.davidconneely.bazlang.debug;
 
 import com.davidconneely.bazlang.ReportException;
 import com.davidconneely.bazlang.antlr.AntlrParser;
-import com.davidconneely.bazlang.exec.AstAnnotator;
 import com.davidconneely.bazlang.exec.ExpressionEvaluator;
+import com.davidconneely.bazlang.exec.ast.AstLowering;
 import com.davidconneely.bazlang.io.MockScreen;
 import java.util.ArrayList;
 import java.util.List;
@@ -134,13 +134,11 @@ final class BreakpointEngine {
             case EXPR -> {
               try {
                 var numCtx = parser.parseNumExpr(brk.seeText());
-                AstAnnotator.INSTANCE.annotate(numCtx, 0);
-                yield eval.evalNum(numCtx) != 0.0;
+                yield eval.evalNum(AstLowering.lowerNum(numCtx, 0)) != 0.0;
               } catch (ReportException e) {
                 try {
                   var strCtx = parser.parseStrExpr(brk.seeText());
-                  AstAnnotator.INSTANCE.annotate(strCtx, 0);
-                  yield !eval.evalStr(strCtx).isEmpty();
+                  yield !eval.evalStr(AstLowering.lowerStr(strCtx, 0)).isEmpty();
                 } catch (ReportException e2) {
                   yield false;
                 }

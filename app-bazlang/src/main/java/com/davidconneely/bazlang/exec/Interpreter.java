@@ -103,7 +103,7 @@ public class Interpreter {
               break;
             }
           }
-          executor.visit(stmt);
+          executor.execute(stmt);
           if (state.hasPendingJump() || !state.isRunning()) {
             break;
           }

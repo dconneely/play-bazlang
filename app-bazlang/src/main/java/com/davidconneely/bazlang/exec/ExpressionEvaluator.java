@@ -4,9 +4,12 @@ import com.davidconneely.bazlang.BStr;
 import com.davidconneely.bazlang.ReportCode;
 import com.davidconneely.bazlang.ReportException;
 import com.davidconneely.bazlang.antlr.AntlrParser;
-import com.davidconneely.bazlang.antlr.BazLangBaseVisitor;
-import com.davidconneely.bazlang.antlr.BazLangParser;
-import com.davidconneely.bazlang.antlr.BazLangParser.*;
+import com.davidconneely.bazlang.exec.ast.AstLowering;
+import com.davidconneely.bazlang.exec.ast.Expr;
+import com.davidconneely.bazlang.exec.ast.NumExpr;
+import com.davidconneely.bazlang.exec.ast.StrExpr;
+import com.davidconneely.bazlang.exec.ast.StrFuncKind;
+import com.davidconneely.bazlang.exec.ast.StrSubscript;
 import com.davidconneely.bazlang.io.VirtualInput;
 import com.davidconneely.bazlang.io.VirtualScreen;
 import java.text.DecimalFormat;
@@ -14,7 +17,13 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
-public class ExpressionEvaluator extends BazLangBaseVisitor<Void> {
+/**
+ * Walks the typed {@link NumExpr}/{@link StrExpr} AST directly via {@code switch} pattern matching
+ * and returns {@code double}/{@link BStr} directly from {@link #evalNum}/{@link #evalStr} — no
+ * {@code numResult}/{@code strResult} side fields, unlike the original ANTLR-visitor-based
+ * evaluator this replaced at the Phase 4 cutover (see {@code localonly-plan-CUSTOM-AST.md}).
+ */
+public class ExpressionEvaluator {
   private final EvalState state;
   private final VirtualScreen screen;
   private final VirtualInput input;
@@ -22,16 +31,6 @@ public class ExpressionEvaluator extends BazLangBaseVisitor<Void> {
 
   private final int[] indexStack = new int[256];
   private int indexStackPtr = 0;
-
-  // DecimalFormat is not thread-safe, so cache per-thread instances for the hot PRINT path.
-  private static final ThreadLocal<DecimalFormat> SCI_FORMAT =
-      ThreadLocal.withInitial(() -> new DecimalFormat("0.########E0"));
-  private static final ThreadLocal<DecimalFormat> DEC_FORMAT =
-      ThreadLocal.withInitial(() -> new DecimalFormat("0.########"));
-
-  // Populated by visitor
-  private double numResult;
-  private BStr strResult;
 
   public ExpressionEvaluator(
       EvalState state, VirtualScreen screen, VirtualInput input, AntlrParser parser) {
@@ -45,64 +44,59 @@ public class ExpressionEvaluator extends BazLangBaseVisitor<Void> {
     return screen;
   }
 
-  public double evalNum(NumExprContext ctx) {
-    visit(ctx);
-    return numResult;
-  }
-
-  public BStr evalStr(StrExprContext ctx) {
-    visit(ctx);
-    return strResult;
-  }
-
-  public String evalPrintExpr(ExpressionContext ctx) {
-    if (ctx.numExpr() != null) {
-      return formatNum(evalNum(ctx.numExpr()));
-    } else {
-      return evalStr(ctx.strExpr()).toJavaString();
+  /**
+   * Formats an {@link Expr} for {@code PRINT}: a numeric value via {@link
+   * ExpressionEvaluator#formatNum}, a string value as-is.
+   */
+  public String evalPrintExpr(Expr expr) {
+    if (expr instanceof NumExpr numExpr) {
+      return formatNum(evalNum(numExpr));
     }
+    return evalStr((StrExpr) expr).toJavaString();
   }
 
-  // Numeric expression visitors
+  // ===== Numeric expressions =====
 
-  @Override
-  public Void visitNumLiteralExpr(NumLiteralExprContext ctx) {
-    numResult = ctx.cachedNum;
-    return null;
+  public double evalNum(NumExpr expr) {
+    return switch (expr) {
+      case NumExpr.NumLiteral n -> n.value();
+      case NumExpr.NumVarExpr v -> evalNumVar(v);
+      case NumExpr.NumArrayExpr a -> evalNumArray(a);
+      case NumExpr.NumFuncCall f -> evalNumFuncCall(f);
+      case NumExpr.FnNumCall f -> evalFnNumCall(f);
+      case NumExpr.NumBinaryOp b -> evalNumBinaryOp(b);
+      case NumExpr.NumUnaryMinus u -> -evalNum(u.operand());
+      case NumExpr.NumCompare c -> evalNumCompare(c);
+      case NumExpr.StrCompare c -> evalStrCompare(c);
+      case NumExpr.NumNot n -> evalNum(n.operand()) == 0.0 ? 1.0 : 0.0;
+      case NumExpr.NumAnd a -> evalNumAnd(a);
+      case NumExpr.NumOr o -> evalNumOr(o);
+    };
   }
 
-  @Override
-  public Void visitBinLiteralExpr(BinLiteralExprContext ctx) {
-    numResult = AstAnnotator.parseBinLiteral(ctx.BIN_LITERAL().getText(), state.currentLineLabel());
-    return null;
-  }
-
-  @Override
-  public Void visitNumVarExpr(NumVarExprContext ctx) {
-    var ref = (EvalState.NumVarRef) ctx.varRef;
+  private double evalNumVar(NumExpr.NumVarExpr v) {
+    var ref = v.ref;
     if (ref == null) {
-      ref = state.getOrAddNumVar(ctx.NUM_IDENTIFIER().getText().toUpperCase());
-      ctx.varRef = ref;
+      ref = state.getOrAddNumVar(v.name);
+      v.ref = ref;
     }
     if (!ref.initialised) {
       throw codedException(ReportCode.VARIABLE_NOT_FOUND, "Undefined variable: " + ref.name);
     }
-    numResult = ref.value;
-    return null;
+    return ref.value;
   }
 
-  @Override
-  public Void visitNumArrayExpr(NumArrayExprContext ctx) {
-    var ref = (EvalState.NumArrayRef) ctx.varRef;
+  private double evalNumArray(NumExpr.NumArrayExpr a) {
+    var ref = a.ref;
     if (ref == null) {
-      ref = state.getOrAddNumArray(ctx.NUM_IDENTIFIER().getText().toUpperCase());
-      ctx.varRef = ref;
+      ref = state.getOrAddNumArray(a.name);
+      a.ref = ref;
     }
     if (ref.array == null) {
       throw codedException(ReportCode.VARIABLE_NOT_FOUND, "Undefined array: " + ref.name);
     }
     final var na = ref.array;
-    final int count = ctx.numExpr().size();
+    final int count = a.indices.size();
     final int ptr = this.indexStackPtr;
     if (indexStackPtr + count > indexStack.length) {
       throw codedException(ReportCode.OUT_OF_MEMORY, "Expression too deeply nested");
@@ -110,258 +104,183 @@ public class ExpressionEvaluator extends BazLangBaseVisitor<Void> {
     this.indexStackPtr += count;
     try {
       for (int i = 0; i < count; i++) {
-        indexStack[ptr + i] = (int) evalNum(ctx.numExpr(i));
+        indexStack[ptr + i] = (int) evalNum(a.indices.get(i));
       }
       final int idx = calculateArrayIndex(na.dimensions(), indexStack, ptr, count);
-      numResult = na.data()[idx];
+      return na.data()[idx];
     } finally {
       this.indexStackPtr = ptr;
     }
-    return null;
   }
 
-  @Override
-  public Void visitNumParenExpr(NumParenExprContext ctx) {
-    numResult = evalNum(ctx.numExpr());
-    return null;
-  }
-
-  @Override
-  public Void visitNumFuncCallExpr(NumFuncCallExprContext ctx) {
-    visit(ctx.numFunc());
-    return null;
-  }
-
-  @Override
-  public Void visitFnNumCallExpr(FnNumCallExprContext ctx) {
-    final String name = ctx.NUM_IDENTIFIER().getText().toUpperCase();
-    final var args = ctx.args != null ? ctx.args : List.<ExpressionContext>of();
-    evaluateFnCall(name, args);
-    return null;
-  }
-
-  @Override
-  public Void visitNumPowerExpr(NumPowerExprContext ctx) {
-    final double l = evalNum(ctx.numExpr(0));
-    final double r = evalNum(ctx.numExpr(1));
-    if (l < 0.0 && r != Math.floor(r)) {
-      throw codedException(ReportCode.INVALID_ARGUMENT, "Negative base with non-integer exponent");
-    }
-    numResult = requireFinite(Math.pow(l, r));
-    return null;
-  }
-
-  @Override
-  public Void visitNumUnaryMinusExpr(NumUnaryMinusExprContext ctx) {
-    numResult = -evalNum(ctx.numExpr());
-    return null;
-  }
-
-  @Override
-  public Void visitNumMulDivExpr(NumMulDivExprContext ctx) {
-    final double l = evalNum(ctx.numExpr(0));
-    final double r = evalNum(ctx.numExpr(1));
-    if (ctx.opCode == 0) {
-      ctx.opCode = Ops.fromText(ctx.getChild(1).getText());
-    }
-    if (ctx.opCode == Ops.MUL) {
-      numResult = requireFinite(l * r);
-    } else {
-      if (r == 0.0) {
-        throw codedException(ReportCode.NUMBER_TOO_BIG, "Division by zero");
+  private double evalNumBinaryOp(NumExpr.NumBinaryOp b) {
+    final double l = evalNum(b.left());
+    final double r = evalNum(b.right());
+    return switch (b.op()) {
+      case MUL -> requireFinite(l * r);
+      case DIV -> {
+        if (r == 0.0) {
+          throw codedException(ReportCode.NUMBER_TOO_BIG, "Division by zero");
+        }
+        yield requireFinite(l / r);
       }
-      numResult = requireFinite(l / r);
-    }
-    return null;
+      case ADD -> requireFinite(l + r);
+      case SUB -> requireFinite(l - r);
+      case POW -> {
+        if (l < 0.0 && r != Math.floor(r)) {
+          throw codedException(
+              ReportCode.INVALID_ARGUMENT, "Negative base with non-integer exponent");
+        }
+        yield requireFinite(Math.pow(l, r));
+      }
+      default -> throw new IllegalStateException("Not a binary arithmetic operator: " + b.op());
+    };
   }
 
-  @Override
-  public Void visitNumAddSubExpr(NumAddSubExprContext ctx) {
-    final double l = evalNum(ctx.numExpr(0));
-    final double r = evalNum(ctx.numExpr(1));
-    if (ctx.opCode == 0) {
-      ctx.opCode = Ops.fromText(ctx.getChild(1).getText());
-    }
-    numResult = requireFinite(ctx.opCode == Ops.ADD ? l + r : l - r);
-    return null;
+  private double evalNumCompare(NumExpr.NumCompare c) {
+    final double l = evalNum(c.left());
+    final double r = evalNum(c.right());
+    return switch (c.op()) {
+      case EQ -> l == r ? 1.0 : 0.0;
+      case NE -> l != r ? 1.0 : 0.0;
+      case LT -> l < r ? 1.0 : 0.0;
+      case LE -> l <= r ? 1.0 : 0.0;
+      case GT -> l > r ? 1.0 : 0.0;
+      case GE -> l >= r ? 1.0 : 0.0;
+      default -> throw new IllegalStateException("Not a comparison operator: " + c.op());
+    };
   }
 
-  @Override
-  public Void visitNumCompExpr(NumCompExprContext ctx) {
-    final double l = evalNum(ctx.numExpr(0));
-    final double r = evalNum(ctx.numExpr(1));
-    if (ctx.opCode == 0) {
-      ctx.opCode = Ops.fromText(ctx.getChild(1).getText());
-    }
-    numResult =
-        switch (ctx.opCode) {
-          case Ops.EQ -> l == r ? 1.0 : 0.0;
-          case Ops.NE -> l != r ? 1.0 : 0.0;
-          case Ops.LT -> l < r ? 1.0 : 0.0;
-          case Ops.LE -> l <= r ? 1.0 : 0.0;
-          case Ops.GT -> l > r ? 1.0 : 0.0;
-          case Ops.GE -> l >= r ? 1.0 : 0.0;
-          default -> 0.0;
-        };
-    return null;
+  private double evalStrCompare(NumExpr.StrCompare c) {
+    final var l = evalStr(c.left());
+    final var r = evalStr(c.right());
+    return switch (c.op()) {
+      case EQ -> l.equals(r) ? 1.0 : 0.0;
+      case NE -> !l.equals(r) ? 1.0 : 0.0;
+      case LT -> l.compareTo(r) < 0 ? 1.0 : 0.0;
+      case LE -> l.compareTo(r) <= 0 ? 1.0 : 0.0;
+      case GT -> l.compareTo(r) > 0 ? 1.0 : 0.0;
+      case GE -> l.compareTo(r) >= 0 ? 1.0 : 0.0;
+      default -> throw new IllegalStateException("Not a comparison operator: " + c.op());
+    };
   }
 
-  @Override
-  public Void visitStrCompExpr(StrCompExprContext ctx) {
-    final var l = evalStr(ctx.strExpr(0));
-    final var r = evalStr(ctx.strExpr(1));
-    if (ctx.opCode == 0) {
-      ctx.opCode = Ops.fromText(ctx.getChild(1).getText());
-    }
-    numResult =
-        switch (ctx.opCode) {
-          case Ops.EQ -> l.equals(r) ? 1.0 : 0.0;
-          case Ops.NE -> !l.equals(r) ? 1.0 : 0.0;
-          case Ops.LT -> l.compareTo(r) < 0 ? 1.0 : 0.0;
-          case Ops.LE -> l.compareTo(r) <= 0 ? 1.0 : 0.0;
-          case Ops.GT -> l.compareTo(r) > 0 ? 1.0 : 0.0;
-          case Ops.GE -> l.compareTo(r) >= 0 ? 1.0 : 0.0;
-          default -> 0.0;
-        };
-    return null;
+  private double evalNumAnd(NumExpr.NumAnd a) {
+    final double left = evalNum(a.left());
+    final double right = evalNum(a.right());
+    // A AND B = A if B != 0, 0 if B = 0
+    return right != 0.0 ? left : 0.0;
   }
 
-  @Override
-  public Void visitNumNotExpr(NumNotExprContext ctx) {
-    numResult = evalNum(ctx.numExpr()) == 0.0 ? 1.0 : 0.0;
-    return null;
+  private double evalNumOr(NumExpr.NumOr o) {
+    final double left = evalNum(o.left());
+    final double right = evalNum(o.right());
+    // A OR B = 1 if B != 0, A if B = 0
+    return right != 0.0 ? 1.0 : left;
   }
 
-  @Override
-  public Void visitNumAndExpr(NumAndExprContext ctx) {
-    final double left = evalNum(ctx.numExpr(0));
-    final double right = evalNum(ctx.numExpr(1));
-    // A AND B = A if B ≠ 0, 0 if B = 0
-    numResult = right != 0.0 ? left : 0.0;
-    return null;
-  }
-
-  @Override
-  public Void visitNumOrExpr(NumOrExprContext ctx) {
-    final double left = evalNum(ctx.numExpr(0));
-    final double right = evalNum(ctx.numExpr(1));
-    // A OR B = 1 if B ≠ 0, A if B = 0
-    numResult = right != 0.0 ? 1.0 : left;
-    return null;
-  }
-
-  // Numeric function visitors
-
-  @Override
-  @SuppressWarnings(
-      "PMD.NcssCount") // Visitor method: one branch per grammar production is expected
-  public Void visitNumFunc(NumFuncContext ctx) {
-    switch (ctx.getStart().getType()) {
-      case BazLangParser.ABS -> numResult = Math.abs(evalNumAtom(ctx.numAtom()));
-      case BazLangParser.ACS -> {
-        final double arg = evalNumAtom(ctx.numAtom());
+  private double evalNumFuncCall(NumExpr.NumFuncCall call) {
+    final var args = call.args();
+    return switch (call.kind()) {
+      case ABS -> Math.abs(argNum(args, 0));
+      case ACS -> {
+        final double arg = argNum(args, 0);
         if (Math.abs(arg) > 1.0) {
           throw codedException(ReportCode.INVALID_ARGUMENT, "ACS requires argument in [-1, 1]");
         }
-        numResult = Math.acos(arg);
+        yield Math.acos(arg);
       }
-      case BazLangParser.ASN -> {
-        final double arg = evalNumAtom(ctx.numAtom());
+      case ASN -> {
+        final double arg = argNum(args, 0);
         if (Math.abs(arg) > 1.0) {
           throw codedException(ReportCode.INVALID_ARGUMENT, "ASN requires argument in [-1, 1]");
         }
-        numResult = Math.asin(arg);
+        yield Math.asin(arg);
       }
-      case BazLangParser.ATTR -> {
-        final int row = (int) Math.round(evalNum(ctx.numExpr(0)));
-        final int col = (int) Math.round(evalNum(ctx.numExpr(1)));
+      case ATTR -> {
+        final int row = (int) Math.round(argNum(args, 0));
+        final int col = (int) Math.round(argNum(args, 1));
         if (row < 0 || row >= screen.printHeight() || col < 0 || col >= screen.printWidth()) {
           throw codedException(ReportCode.INTEGER_OUT_OF_RANGE, "Screen coordinates out of bounds");
         }
-        numResult = screen.getScreenAttributes(row, col);
+        yield screen.getScreenAttributes(row, col);
       }
-      case BazLangParser.ATN -> numResult = Math.atan(evalNumAtom(ctx.numAtom()));
-      case BazLangParser.CODE -> {
-        final var s = evalStrAtom(ctx.strAtom());
+      case ATN -> Math.atan(argNum(args, 0));
+      case CODE -> {
+        final var s = argStr(args, 0);
         // Sinclair ZX BASIC `PRINT CODE ""` shows `0`
-        numResult = s.isEmpty() ? 0 : s.byteAt(0);
+        yield s.isEmpty() ? 0 : s.byteAt(0);
       }
-      case BazLangParser.COLOUR -> {
-        final double rVal = evalNum(ctx.numExpr(0));
-        final double gVal = evalNum(ctx.numExpr(1));
-        final double bVal = evalNum(ctx.numExpr(2));
-        final int r = (int) Math.round(rVal);
-        final int g = (int) Math.round(gVal);
-        final int b = (int) Math.round(bVal);
+      case COLOUR -> {
+        final int r = (int) Math.round(argNum(args, 0));
+        final int g = (int) Math.round(argNum(args, 1));
+        final int b = (int) Math.round(argNum(args, 2));
         if (r < 0 || r > 255 || g < 0 || g > 255 || b < 0 || b > 255) {
           throw codedException(
               ReportCode.INVALID_ARGUMENT, "COLOUR components must be between 0 and 255");
         }
         final int y = ((r & 0xFF) << 16) | ((g & 0xFF) << 8) | (b & 0xFF);
-        numResult = 16_777_216.0 + y;
+        yield 16_777_216.0 + y;
       }
-      case BazLangParser.COS -> numResult = Math.cos(evalNumAtom(ctx.numAtom()));
-      case BazLangParser.EXP -> numResult = requireFinite(Math.exp(evalNumAtom(ctx.numAtom())));
-      case BazLangParser.FRAMES -> numResult = System.currentTimeMillis() / 20.0;
-      case BazLangParser.INT -> numResult = Math.floor(evalNumAtom(ctx.numAtom()));
-      case BazLangParser.LEN -> numResult = evalStrAtom(ctx.strAtom()).length();
-      case BazLangParser.LN -> {
-        final double arg = evalNumAtom(ctx.numAtom());
+      case COS -> Math.cos(argNum(args, 0));
+      case EXP -> requireFinite(Math.exp(argNum(args, 0)));
+      case FRAMES -> System.currentTimeMillis() / 20.0;
+      case INT -> Math.floor(argNum(args, 0));
+      case LEN -> argStr(args, 0).length();
+      case LN -> {
+        final double arg = argNum(args, 0);
         if (arg <= 0.0) {
           throw codedException(ReportCode.INVALID_ARGUMENT, "LN requires a positive argument");
         }
-        numResult = Math.log(arg);
+        yield Math.log(arg);
       }
-      case BazLangParser.PI -> numResult = Math.PI;
-      case BazLangParser.PLOTH -> numResult = screen.plotHeight();
-      case BazLangParser.PLOTMODE -> numResult = screen.plotMode();
-      case BazLangParser.PLOTW -> numResult = screen.plotWidth();
-      case BazLangParser.PLOTX -> numResult = state.graphicsCursorX();
-      case BazLangParser.PLOTY -> numResult = state.graphicsCursorY();
-      case BazLangParser.POINT -> {
-        final int x = (int) Math.round(evalNum(ctx.numExpr(0)));
-        final int y = (int) Math.round(evalNum(ctx.numExpr(1)));
-        numResult = screen.point(x, y);
+      case PI -> Math.PI;
+      case PLOTH -> screen.plotHeight();
+      case PLOTMODE -> screen.plotMode();
+      case PLOTW -> screen.plotWidth();
+      case PLOTX -> state.graphicsCursorX();
+      case PLOTY -> state.graphicsCursorY();
+      case POINT -> {
+        final int x = (int) Math.round(argNum(args, 0));
+        final int y = (int) Math.round(argNum(args, 1));
+        yield screen.point(x, y);
       }
-      case BazLangParser.RND -> numResult = state.nextRandom();
-      case BazLangParser.SGN -> numResult = Math.signum(evalNumAtom(ctx.numAtom()));
-      case BazLangParser.SIN -> numResult = Math.sin(evalNumAtom(ctx.numAtom()));
-      case BazLangParser.SQR -> {
-        final double arg = evalNumAtom(ctx.numAtom());
+      case RND -> state.nextRandom();
+      case SGN -> Math.signum(argNum(args, 0));
+      case SIN -> Math.sin(argNum(args, 0));
+      case SQR -> {
+        final double arg = argNum(args, 0);
         if (arg < 0.0) {
           throw codedException(ReportCode.INVALID_ARGUMENT, "SQR requires non-negative argument");
         }
-        numResult = Math.sqrt(arg);
+        yield Math.sqrt(arg);
       }
-      case BazLangParser.TAN -> numResult = Math.tan(evalNumAtom(ctx.numAtom()));
-      case BazLangParser.TEXTH -> numResult = screen.printHeight();
-      case BazLangParser.TEXTW -> numResult = screen.printWidth();
-      case BazLangParser.TEXTX -> numResult = screen.currentCol();
-      case BazLangParser.TEXTY -> numResult = screen.currentRow();
-      case BazLangParser.UCNEXT -> {
-        final var s = evalStr(ctx.strExpr());
-        final int pos = (int) evalNum(ctx.numExpr(0)); // 1-based byte position
+      case TAN -> Math.tan(argNum(args, 0));
+      case TEXTH -> screen.printHeight();
+      case TEXTW -> screen.printWidth();
+      case TEXTX -> screen.currentCol();
+      case TEXTY -> screen.currentRow();
+      case UCNEXT -> {
+        final var s = argStr(args, 0);
+        final int pos = (int) argNum(args, 1); // 1-based byte position
         if (pos < 1 || pos > s.length() + 1) {
           throw codedException(ReportCode.INTEGER_OUT_OF_RANGE, "UCNEXT position out of range");
         }
-        numResult = s.nextCodepointStart(pos - 1) + 1; // numResult = 1-based
+        yield s.nextCodepointStart(pos - 1) + 1; // 1-based
       }
-      case BazLangParser.UCODE -> {
-        final var s = evalStrAtom(ctx.strAtom());
+      case UCODE -> {
+        final var s = argStr(args, 0);
         if (s.isEmpty()) {
           throw codedException(ReportCode.NONSENSE_IN_BASIC, "UCODE of empty string");
         }
-        numResult = s.firstCodepoint();
+        yield s.firstCodepoint();
       }
-      case BazLangParser.ULEN -> numResult = evalStrAtom(ctx.strAtom()).codepointLength();
-      case BazLangParser.VAL -> {
-        final String exprStr = evalStrAtom(ctx.strAtom()).toJavaString().trim();
-        numResult = evaluateNumericExpression(exprStr);
-      }
-      case BazLangParser.XATTR -> {
-        final int row = (int) Math.round(evalNum(ctx.numExpr(0)));
-        final int col = (int) Math.round(evalNum(ctx.numExpr(1)));
-        final int select = (int) Math.round(evalNum(ctx.numExpr(2)));
+      case ULEN -> argStr(args, 0).codepointLength();
+      case VAL -> evaluateNumericExpression(argStr(args, 0).toJavaString().trim());
+      case XATTR -> {
+        final int row = (int) Math.round(argNum(args, 0));
+        final int col = (int) Math.round(argNum(args, 1));
+        final int select = (int) Math.round(argNum(args, 2));
         if (row < 0 || row >= screen.printHeight() || col < 0 || col >= screen.printWidth()) {
           throw codedException(ReportCode.INTEGER_OUT_OF_RANGE, "Screen coordinates out of bounds");
         }
@@ -369,140 +288,88 @@ public class ExpressionEvaluator extends BazLangBaseVisitor<Void> {
           throw codedException(
               ReportCode.INTEGER_OUT_OF_RANGE, "XATTR selector out of range [0, 8]");
         }
-        numResult = screen.getXAttributes(row, col, select);
+        yield screen.getXAttributes(row, col, select);
       }
-      default -> throw codedException(ReportCode.NONSENSE_IN_BASIC, "Unknown function");
-    }
-    return null;
+    };
   }
 
-  private double evalNumAtom(NumAtomContext ctx) {
-    if (ctx.NUM_LITERAL() != null) {
-      return ctx.cachedNum;
-    }
-    if (ctx.NUM_IDENTIFIER() != null) {
-      if (!ctx.numExpr().isEmpty()) {
-        var ref = (EvalState.NumArrayRef) ctx.varRef;
-        if (ref == null) {
-          ref = state.getOrAddNumArray(ctx.NUM_IDENTIFIER().getText().toUpperCase());
-          ctx.varRef = ref;
-        }
-        if (ref.array == null) {
-          throw codedException(ReportCode.VARIABLE_NOT_FOUND, "Undefined array: " + ref.name);
-        }
-        final int count = ctx.numExpr().size();
-        final int ptr = this.indexStackPtr;
-        if (indexStackPtr + count > indexStack.length) {
-          throw codedException(ReportCode.OUT_OF_MEMORY, "Expression too deeply nested");
-        }
-        this.indexStackPtr += count;
-        try {
-          for (int i = 0; i < count; i++) {
-            indexStack[ptr + i] = (int) evalNum(ctx.numExpr(i));
-          }
-          int arrayIdx = calculateArrayIndex(ref.array.dimensions(), indexStack, ptr, count);
-          return ref.array.data()[arrayIdx];
-        } finally {
-          this.indexStackPtr = ptr;
-        }
-      } else {
-        var ref = (EvalState.NumVarRef) ctx.varRef;
-        if (ref == null) {
-          ref = state.getOrAddNumVar(ctx.NUM_IDENTIFIER().getText().toUpperCase());
-          ctx.varRef = ref;
-        }
-        if (!ref.initialised) {
-          throw codedException(ReportCode.VARIABLE_NOT_FOUND, "Undefined variable: " + ref.name);
-        }
-        return ref.value;
-      }
-    }
-    if (!ctx.numExpr().isEmpty()) {
-      // Parenthesized: ( numExpr )
-      return evalNum(ctx.numExpr(0));
-    }
-    if (ctx.numFunc() != null) {
-      visit(ctx.numFunc());
-      return numResult;
-    }
-    throw codedException(ReportCode.NONSENSE_IN_BASIC, "Invalid numeric atom");
+  private double evalFnNumCall(NumExpr.FnNumCall call) {
+    return (Double) evaluateFnCall(call.name(), call.args());
   }
 
-  // String expression visitors
-
-  @Override
-  public Void visitStrLiteralExpr(StrLiteralExprContext ctx) {
-    strResult = AstAnnotator.parseStrLiteral(ctx.STR_LITERAL().getText());
-    return null;
+  private double argNum(List<Expr> args, int i) {
+    return evalNum((NumExpr) args.get(i));
   }
 
-  @Override
-  public Void visitStrVarExpr(StrVarExprContext ctx) {
-    var ref = (EvalState.StrVarRef) ctx.varRef;
+  // ===== String expressions =====
+
+  public BStr evalStr(StrExpr expr) {
+    return switch (expr) {
+      case StrExpr.StrLiteral s -> s.value();
+      case StrExpr.StrVarExpr v -> evalStrVar(v);
+      case StrExpr.StrSubscriptExpr s -> evalStrSubscriptExpr(s);
+      case StrExpr.StrConcat c -> evalStr(c.left()).concat(evalStr(c.right()));
+      case StrExpr.StrFuncCall f -> evalStrFuncCall(f);
+      case StrExpr.FnStrCall f -> evalFnStrCall(f);
+      case StrExpr.StrAnd a -> evalStrAnd(a);
+    };
+  }
+
+  private BStr evalStrVar(StrExpr.StrVarExpr v) {
+    var ref = v.ref;
     if (ref == null) {
-      ref = state.getOrAddStrVar(ctx.STR_IDENTIFIER().getText().toUpperCase());
-      ctx.varRef = ref;
+      ref = state.getOrAddStrVar(v.name);
+      v.ref = ref;
     }
     if (ref.value == null) {
       throw codedException(ReportCode.VARIABLE_NOT_FOUND, "Undefined string: " + ref.name);
     }
-    var strVar = ref.value;
+    final var strVar = ref.value;
     if (strVar
         instanceof EvalState.StrVar.Array(int[] arrayDimensions, int stringLength, byte[] data)) {
       if (arrayDimensions.length == 0) {
-        strResult = BStr.fromBytes(data, 0, stringLength);
-        return null;
+        return BStr.fromBytes(data, 0, stringLength);
       }
       throw codedException(ReportCode.SUBSCRIPT_WRONG, "Subscript wrong");
     }
     if (strVar instanceof EvalState.StrVar.Scalar(BStr value)) {
-      strResult = value;
-      return null;
+      return value;
     }
     throw codedException(ReportCode.VARIABLE_NOT_FOUND, "Undefined string: " + ref.name);
   }
 
-  @Override
-  public Void visitStrSubscriptExpr(StrSubscriptExprContext ctx) {
-    var ref = (EvalState.StrVarRef) ctx.varRef;
+  private BStr evalStrSubscriptExpr(StrExpr.StrSubscriptExpr s) {
+    var ref = s.ref;
     if (ref == null) {
-      ref = state.getOrAddStrVar(ctx.STR_IDENTIFIER().getText().toUpperCase());
-      ctx.varRef = ref;
+      ref = state.getOrAddStrVar(s.name);
+      s.ref = ref;
     }
     if (ref.value == null) {
       throw codedException(ReportCode.VARIABLE_NOT_FOUND, "Undefined string array: " + ref.name);
     }
-    strResult = evalStrSubscriptCore(ref.value, ctx.strSubscript());
-    return null;
+    return evalStrSubscriptCore(ref.value, s.subscript);
   }
 
-  private BStr evalStrSubscript(String name, StrSubscriptContext subscript) {
-    final var strVar = state.strVar(name);
-    return evalStrSubscriptCore(strVar, subscript);
-  }
-
-  private BStr evalStrSubscriptCore(EvalState.StrVar strVar, StrSubscriptContext subscript) {
-    int indicesCount = subscript.indices != null ? subscript.indices.size() : 0;
+  private BStr evalStrSubscriptCore(EvalState.StrVar strVar, StrSubscript subscript) {
+    final int indicesCount = subscript.indices().size();
     final int ptr = this.indexStackPtr;
     if (indexStackPtr + indicesCount > indexStack.length) {
       throw codedException(ReportCode.OUT_OF_MEMORY, "Expression too deeply nested");
     }
     this.indexStackPtr += indicesCount;
     try {
-      if (indicesCount > 0) {
-        for (int i = 0; i < indicesCount; i++) {
-          indexStack[ptr + i] = (int) evalNum(subscript.indices.get(i));
-        }
+      for (int i = 0; i < indicesCount; i++) {
+        indexStack[ptr + i] = (int) evalNum(subscript.indices().get(i));
       }
       int sliceStart = -1;
       int sliceEnd = -1;
-      boolean hasSlice = subscript.slice != null;
+      final boolean hasSlice = subscript.slice() != null;
       if (hasSlice) {
-        if (subscript.slice.start != null) {
-          sliceStart = (int) evalNum(subscript.slice.start);
+        if (subscript.slice().start() != null) {
+          sliceStart = (int) evalNum(subscript.slice().start());
         }
-        if (subscript.slice.end != null) {
-          sliceEnd = (int) evalNum(subscript.slice.end);
+        if (subscript.slice().end() != null) {
+          sliceEnd = (int) evalNum(subscript.slice().end());
         }
       }
 
@@ -510,11 +377,12 @@ public class ExpressionEvaluator extends BazLangBaseVisitor<Void> {
           instanceof EvalState.StrVar.Array(int[] arrayDimensions, int stringLength, byte[] data)) {
         final int n = arrayDimensions.length;
         int byteIndex = -1;
-        if (indicesCount == n + 1) {
+        int count = indicesCount;
+        if (count == n + 1) {
           byteIndex = indexStack[ptr + n];
-          indicesCount--;
+          count--;
         }
-        final int arrayIdx = calculateArrayIndex(arrayDimensions, indexStack, ptr, indicesCount);
+        final int arrayIdx = calculateArrayIndex(arrayDimensions, indexStack, ptr, count);
 
         final var bounds = SliceBounds.resolve(byteIndex, sliceStart, sliceEnd, stringLength);
         if (bounds == null) {
@@ -523,21 +391,22 @@ public class ExpressionEvaluator extends BazLangBaseVisitor<Void> {
         final int offset = arrayIdx * stringLength + (bounds.start() - 1);
         return BStr.fromBytes(data, offset, bounds.length());
       }
-      if (strVar instanceof EvalState.StrVar.Scalar(BStr s)) {
+      if (strVar instanceof EvalState.StrVar.Scalar(BStr scalar)) {
         int byteIndex = -1;
-        if (indicesCount == 1 && !hasSlice) {
+        int count = indicesCount;
+        if (count == 1 && !hasSlice) {
           byteIndex = indexStack[ptr];
-          indicesCount--;
+          count--;
         }
-        if (indicesCount > 0) {
+        if (count > 0) {
           throw codedException(
               ReportCode.SUBSCRIPT_WRONG, "Scalar string only takes one index or slice");
         }
-        final var bounds = SliceBounds.resolve(byteIndex, sliceStart, sliceEnd, s.length());
+        final var bounds = SliceBounds.resolve(byteIndex, sliceStart, sliceEnd, scalar.length());
         if (bounds == null) {
           throw codedException(ReportCode.SUBSCRIPT_WRONG, "Slice out of bounds");
         }
-        return s.slice(bounds.start(), bounds.end());
+        return scalar.slice(bounds.start(), bounds.end());
       }
       throw codedException(ReportCode.NONSENSE_IN_BASIC, "Invalid string variable");
     } finally {
@@ -545,126 +414,62 @@ public class ExpressionEvaluator extends BazLangBaseVisitor<Void> {
     }
   }
 
-  @Override
-  public Void visitStrParenExpr(StrParenExprContext ctx) {
-    strResult = evalStr(ctx.strExpr());
-    return null;
+  private BStr evalStrAnd(StrExpr.StrAnd a) {
+    // str AND n = str if n != 0, "" if n = 0
+    final var left = evalStr(a.left());
+    final double right = evalNum(a.right());
+    return right != 0.0 ? left : BStr.EMPTY;
   }
 
-  @Override
-  public Void visitStrConcatExpr(StrConcatExprContext ctx) {
-    strResult = evalStr(ctx.strExpr(0)).concat(evalStr(ctx.strExpr(1)));
-    return null;
-  }
-
-  @Override
-  public Void visitStrAndExpr(StrAndExprContext ctx) {
-    // str AND n = str if n ≠ 0, "" if n = 0
-    final var left = evalStr(ctx.strExpr());
-    final double right = evalNum(ctx.numExpr());
-    strResult = right != 0.0 ? left : BStr.EMPTY;
-    return null;
-  }
-
-  @Override
-  public Void visitStrFuncCallExpr(StrFuncCallExprContext ctx) {
-    visit(ctx.strFunc());
-    return null;
-  }
-
-  @Override
-  public Void visitFnStrCallExpr(FnStrCallExprContext ctx) {
-    final String name = ctx.STR_IDENTIFIER().getText().toUpperCase();
-    final var args = ctx.args != null ? ctx.args : List.<ExpressionContext>of();
-    evaluateFnCall(name, args);
-    return null;
-  }
-
-  @Override
-  public Void visitStrFunc(StrFuncContext ctx) {
-    switch (ctx.getStart().getType()) {
-      case BazLangParser.CHR_STR -> {
-        final int code = (int) evalNumAtom(ctx.numAtom());
+  private BStr evalStrFuncCall(StrExpr.StrFuncCall call) {
+    final var args = call.args();
+    return switch (call.kind()) {
+      case CHR_STR -> {
+        final int code = (int) argNum(args, 0);
         if (code < 0 || code > 255) {
           throw codedException(
               ReportCode.INTEGER_OUT_OF_RANGE, "CHR$ argument out of range (0-255); use UCHR$");
         }
-        strResult = BStr.fromByte(code);
+        yield BStr.fromByte(code);
       }
-      case BazLangParser.INKEY_STR -> strResult = input.inkey();
-      case BazLangParser.SCREEN_STR, BazLangParser.USCREEN_STR -> {
-        final int row = (int) Math.round(evalNum(ctx.numExpr(0)));
-        final int col = (int) Math.round(evalNum(ctx.numExpr(1)));
+      case INKEY_STR -> input.inkey();
+      case SCREEN_STR, USCREEN_STR -> {
+        final int row = (int) Math.round(argNum(args, 0));
+        final int col = (int) Math.round(argNum(args, 1));
         if (row < 0 || row >= screen.printHeight() || col < 0 || col >= screen.printWidth()) {
           throw codedException(ReportCode.INTEGER_OUT_OF_RANGE, "Screen coordinates out of bounds");
         }
         final int cp = screen.getScreenCodepoint(row, col);
-        if (ctx.SCREEN_STR() != null) {
-          if (cp >= 0 && cp <= 127) {
-            strResult = BStr.fromByte(cp);
-          } else {
-            strResult = BStr.EMPTY;
-          }
+        if (call.kind() == StrFuncKind.SCREEN_STR) {
+          yield cp >= 0 && cp <= 127 ? BStr.fromByte(cp) : BStr.EMPTY;
         } else {
-          if (cp < 0 || !Character.isValidCodePoint(cp)) {
-            strResult = BStr.EMPTY;
-          } else {
-            strResult = BStr.fromJavaString(new String(Character.toChars(cp)));
-          }
+          yield cp < 0 || !Character.isValidCodePoint(cp)
+              ? BStr.EMPTY
+              : BStr.fromJavaString(new String(Character.toChars(cp)));
         }
       }
-      case BazLangParser.STR_STR ->
-          strResult = BStr.fromJavaString(formatNum(evalNumAtom(ctx.numAtom())));
-      case BazLangParser.UCHR_STR -> {
-        final int code = (int) evalNumAtom(ctx.numAtom());
+      case STR_STR -> BStr.fromJavaString(formatNum(argNum(args, 0)));
+      case UCHR_STR -> {
+        final int code = (int) argNum(args, 0);
         if (code < 0 || !Character.isValidCodePoint(code)) {
           throw codedException(ReportCode.INTEGER_OUT_OF_RANGE, "UCHR$ argument out of range");
         }
-        strResult = BStr.fromJavaString(new String(Character.toChars(code)));
+        yield BStr.fromJavaString(new String(Character.toChars(code)));
       }
-      case BazLangParser.UINKEY_STR -> strResult = input.uinkey();
-      case BazLangParser.VAL_STR -> {
-        final String exprStr = evalStrAtom(ctx.strAtom()).toJavaString().trim();
-        strResult = evaluateStringExpression(exprStr);
-      }
-      default -> throw codedException(ReportCode.NONSENSE_IN_BASIC, "Unknown string function");
-    }
-    return null;
+      case UINKEY_STR -> input.uinkey();
+      case VAL_STR -> evaluateStringExpression(argStr(args, 0).toJavaString().trim());
+    };
   }
 
-  private BStr evalStrAtom(StrAtomContext ctx) {
-    if (ctx.STR_LITERAL() != null) {
-      return (BStr) ctx.cachedStr;
-    }
-    if (ctx.strSubscript() != null) {
-      return evalStrSubscript(ctx.STR_IDENTIFIER().getText().toUpperCase(), ctx.strSubscript());
-    }
-    if (ctx.STR_IDENTIFIER() != null) {
-      final String name = ctx.STR_IDENTIFIER().getText().toUpperCase();
-      final var strVar = state.strVar(name);
-      if (strVar
-          instanceof EvalState.StrVar.Array(int[] arrayDimensions, int stringLength, byte[] data)) {
-        if (arrayDimensions.length == 0) {
-          return BStr.fromBytes(data, 0, stringLength);
-        }
-        throw codedException(ReportCode.SUBSCRIPT_WRONG, "Subscript wrong");
-      }
-      if (strVar instanceof EvalState.StrVar.Scalar(BStr value)) {
-        return value;
-      }
-      throw codedException(ReportCode.VARIABLE_NOT_FOUND, "Undefined variable: " + name);
-    }
-    if (ctx.strExpr() != null) {
-      return evalStr(ctx.strExpr());
-    }
-    if (ctx.strFunc() != null) {
-      visit(ctx.strFunc());
-      return strResult;
-    }
-    throw codedException(ReportCode.NONSENSE_IN_BASIC, "Invalid string atom");
+  private BStr evalFnStrCall(StrExpr.FnStrCall call) {
+    return (BStr) evaluateFnCall(call.name(), call.args());
   }
 
-  // ===== Assignment Helpers =====
+  private BStr argStr(List<Expr> args, int i) {
+    return evalStr((StrExpr) args.get(i));
+  }
+
+  // ===== Shared helpers =====
 
   public int calculateArrayIndex(int[] dimensions, int[] indices, int offset, int indicesCount) {
     if (dimensions == null || indices == null) {
@@ -691,7 +496,7 @@ public class ExpressionEvaluator extends BazLangBaseVisitor<Void> {
     return idx;
   }
 
-  private void evaluateFnCall(String name, List<ExpressionContext> callArgs) {
+  private Object evaluateFnCall(String name, List<Expr> callArgs) {
     if (!state.hasFn(name)) {
       throw codedException(ReportCode.FN_WITHOUT_DEF, "FN without DEF");
     }
@@ -711,19 +516,19 @@ public class ExpressionEvaluator extends BazLangBaseVisitor<Void> {
       final var argExpr = callArgs.get(i);
       final String paramName = def.params().get(i);
       if (paramName.endsWith("$")) {
-        if (argExpr.strExpr() == null) {
+        if (!(argExpr instanceof StrExpr strArg)) {
           throw codedException(
               ReportCode.PARAMETER_ERROR,
               "Type mismatch: expected string for parameter " + paramName);
         }
-        argValues.add(evalStr(argExpr.strExpr()));
+        argValues.add(evalStr(strArg));
       } else {
-        if (argExpr.numExpr() == null) {
+        if (!(argExpr instanceof NumExpr numArg)) {
           throw codedException(
               ReportCode.PARAMETER_ERROR,
               "Type mismatch: expected number for parameter " + paramName);
         }
-        argValues.add(evalNum(argExpr.numExpr()));
+        argValues.add(evalNum(numArg));
       }
     }
 
@@ -745,9 +550,9 @@ public class ExpressionEvaluator extends BazLangBaseVisitor<Void> {
 
     try {
       if (name.endsWith("$")) {
-        evalStr(def.body().strExpr());
+        return evalStr((StrExpr) def.body());
       } else {
-        evalNum(def.body().numExpr());
+        return evalNum((NumExpr) def.body());
       }
     } catch (StackOverflowError e) {
       // Recursive DEF FN: matches ZX Spectrum report "4 Out of memory".
@@ -776,8 +581,10 @@ public class ExpressionEvaluator extends BazLangBaseVisitor<Void> {
   }
 
   /**
-   * Evaluates a string as a numeric expression. Used by VAL function and INPUT for numeric
-   * variables. Per Sinclair ZX BASIC, this parses and evaluates the full expression.
+   * Evaluates a string as a numeric expression. Used by VAL and numeric INPUT. Per Sinclair ZX
+   * BASIC, this parses and evaluates the full expression, fresh every call — see the
+   * IMPROVEMENTS.md note "VAL / VAL$ / INPUT parse at runtime — intentional" for why this must not
+   * be memoized on the AST node the way literals are.
    *
    * @param exprStr the expression string to evaluate
    * @return the numeric result
@@ -788,12 +595,11 @@ public class ExpressionEvaluator extends BazLangBaseVisitor<Void> {
       throw codedException(ReportCode.NONSENSE_IN_BASIC, "Empty expression");
     }
     final var exprCtx = parser.parseNumExpr(exprStr);
-    AstAnnotator.INSTANCE.annotate(exprCtx, state.currentLineLabel());
-    return evalNum(exprCtx);
+    return evalNum(AstLowering.lowerNum(exprCtx, state.currentLineLabel()));
   }
 
   /**
-   * Evaluates a string as a string expression. Used by VAL$ function.
+   * Evaluates a string as a string expression. Used by VAL$.
    *
    * @param exprStr the expression string to evaluate
    * @return the string result
@@ -804,11 +610,16 @@ public class ExpressionEvaluator extends BazLangBaseVisitor<Void> {
       throw codedException(ReportCode.NONSENSE_IN_BASIC, "Empty expression");
     }
     final var exprCtx = parser.parseStrExpr(exprStr);
-    AstAnnotator.INSTANCE.annotate(exprCtx, state.currentLineLabel());
-    return evalStr(exprCtx);
+    return evalStr(AstLowering.lowerStr(exprCtx, state.currentLineLabel()));
   }
 
   private static final double ULP0 = 1e-39;
+
+  // DecimalFormat is not thread-safe, so cache per-thread instances for the hot PRINT path.
+  private static final ThreadLocal<DecimalFormat> SCI_FORMAT =
+      ThreadLocal.withInitial(() -> new DecimalFormat("0.########E0"));
+  private static final ThreadLocal<DecimalFormat> DEC_FORMAT =
+      ThreadLocal.withInitial(() -> new DecimalFormat("0.########"));
 
   /** Formats a number with up to 8 decimal digits, scientific notation for extreme values. */
   public static String formatNum(double d) {

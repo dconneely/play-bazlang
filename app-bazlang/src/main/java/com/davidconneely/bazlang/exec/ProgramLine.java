@@ -1,24 +1,23 @@
 package com.davidconneely.bazlang.exec;
 
 import com.davidconneely.bazlang.antlr.AntlrParser;
-import com.davidconneely.bazlang.antlr.BazLangParser.*;
-import java.util.ArrayList;
+import com.davidconneely.bazlang.antlr.BazLangParser.StatementsContext;
+import com.davidconneely.bazlang.exec.ast.AstLowering;
+import com.davidconneely.bazlang.exec.ast.Stmt;
 import java.util.List;
 
 /**
- * Represents a single line in a BazLang program. Stores the original source text and lazily parses
- * to ParseTree on first execution.
+ * Represents a single line in a BazLang program. Stores the original source text and lazily lowers
+ * to a flat {@link Stmt} list on first execution.
  */
 public class ProgramLine {
   private final int lineNumber;
   private final String sourceText;
-  private StatementsContext cachedParseTree;
-  private List<StatementContext> cachedFlatStatements;
+  private List<Stmt> cachedFlatStatements;
 
   public ProgramLine(int lineNumber, String sourceText) {
     this.lineNumber = lineNumber;
     this.sourceText = sourceText;
-    this.cachedParseTree = null;
     this.cachedFlatStatements = null;
   }
 
@@ -30,42 +29,31 @@ public class ProgramLine {
     return sourceText;
   }
 
-  /** Returns the parsed StatementsContext for this line, parsing lazily on first access. */
-  public List<StatementContext> getFlattenedStatements(AntlrParser parser) {
+  /**
+   * Returns the flattened, lowered statement list for this line, parsing and lowering lazily on
+   * first access. {@code IfStmt} bodies are inlined into the flat list — see {@link
+   * AstLowering#lowerStatements} and {@link Stmt}'s class Javadoc for the "flat skip-scan" quirk
+   * this preserves.
+   */
+  public List<Stmt> getFlattenedStatements(AntlrParser parser) {
     if (cachedFlatStatements == null) {
-      ensureParsed(parser);
-      final var flat = new ArrayList<StatementContext>();
-      flatten(cachedParseTree, flat);
-      cachedFlatStatements = flat;
+      // Mutable state (like EvalState variable references) is cached directly on the AST nodes as
+      // an intentional performance optimisation. When CLEAR is executed, EvalState.clear() zeroes
+      // out the contents of those cached references in place rather than replacing the objects, so
+      // this cached statement list remains valid and does not need to be discarded.
+      cachedFlatStatements =
+          AstLowering.lowerStatements(parser.parseStatementsContext(sourceText), lineNumber);
     }
     return cachedFlatStatements;
   }
 
+  /**
+   * Returns a freshly parsed, independent ANTLR parse tree for this line — used by text-preserving
+   * operations ({@code REFORMAT} and various parser/grammar tests) that need the raw parse tree,
+   * not the lowered AST used for execution. Always re-parses; shares no state with {@link
+   * #getFlattenedStatements}, so callers never observe (or mutate) the cached execution form.
+   */
   public StatementsContext getStatements(AntlrParser parser) {
-    ensureParsed(parser);
-    return cachedParseTree;
-  }
-
-  private void ensureParsed(AntlrParser parser) {
-    if (cachedParseTree == null) {
-      cachedParseTree = parser.parseStatementsContext(sourceText);
-      // Mutable state (like EvalState variable references) is cached directly on the ParseTree
-      // nodes as an intentional performance optimisation. When CLEAR is executed, EvalState.clear()
-      // zeroes out the contents of those cached references in place rather than replacing the
-      // objects, so this cached ParseTree remains valid and does not need to be discarded.
-      AstAnnotator.INSTANCE.annotate(cachedParseTree, lineNumber);
-    }
-  }
-
-  private void flatten(StatementsContext ctx, List<StatementContext> flat) {
-    if (ctx == null) {
-      return;
-    }
-    for (final var stmt : ctx.statement()) {
-      flat.add(stmt);
-      if (stmt instanceof IfStmtContext ifStmt) {
-        flatten(ifStmt.statements(), flat);
-      }
-    }
+    return parser.parseStatementsContext(sourceText);
   }
 }

@@ -7,12 +7,13 @@ import com.davidconneely.bazlang.ReportException;
 import com.davidconneely.bazlang.antlr.AntlrParser;
 import com.davidconneely.bazlang.antlr.BazLangParser;
 import com.davidconneely.bazlang.edit.ProgramEditor;
-import com.davidconneely.bazlang.exec.AstAnnotator;
 import com.davidconneely.bazlang.exec.EvalState;
 import com.davidconneely.bazlang.exec.ExpressionEvaluator;
 import com.davidconneely.bazlang.exec.Interpreter;
 import com.davidconneely.bazlang.exec.ProgramStorage;
 import com.davidconneely.bazlang.exec.StatementExecutor;
+import com.davidconneely.bazlang.exec.ast.AstLowering;
+import com.davidconneely.bazlang.exec.ast.Stmt;
 import com.davidconneely.bazlang.io.MockScreen;
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -462,8 +463,7 @@ final class DebugSession {
     }
     if (numCtx != null) {
       try {
-        AstAnnotator.INSTANCE.annotate(numCtx, 0);
-        double val = eval.evalNum(numCtx);
+        double val = eval.evalNum(AstLowering.lowerNum(numCtx, 0));
         System.out.printf("+%s%n", ExpressionEvaluator.formatNum(val));
       } catch (ReportException e) {
         System.out.printf("-%s%n", e.getMessage());
@@ -472,8 +472,7 @@ final class DebugSession {
     }
     try {
       var strCtx = parser.parseStrExpr(expr);
-      AstAnnotator.INSTANCE.annotate(strCtx, 0);
-      BStr val = eval.evalStr(strCtx);
+      BStr val = eval.evalStr(AstLowering.lowerStr(strCtx, 0));
       System.out.printf("+%s%n", QuotedArg.format(val.toJavaString()));
     } catch (ReportException e) {
       System.out.printf("-%s%n", e.getMessage());
@@ -488,18 +487,17 @@ final class DebugSession {
     BazLangParser.StatementsContext stmts;
     try {
       stmts = parser.parseStatementsContext(args);
-      AstAnnotator.INSTANCE.annotate(stmts, 0);
     } catch (ReportException e) {
       System.out.printf("-Parse error: %s%n", e.getMessage());
       return;
     }
-    List<? extends BazLangParser.StatementContext> stmtList = stmts.statement();
-    if (stmtList.size() != 1 || !(stmtList.get(0) instanceof BazLangParser.LetStmtContext)) {
+    List<Stmt> lowered = AstLowering.lowerStatements(stmts, 0);
+    if (lowered.size() != 1 || !(lowered.get(0) instanceof Stmt.LetStmt letStmt)) {
       System.out.println("-! requires exactly one assignment statement");
       return;
     }
     try {
-      executor.visitLetStmt((BazLangParser.LetStmtContext) stmtList.get(0));
+      executor.execute(letStmt);
       System.out.println("+");
     } catch (ReportException e) {
       System.out.printf("-%s%n", e.getMessage());

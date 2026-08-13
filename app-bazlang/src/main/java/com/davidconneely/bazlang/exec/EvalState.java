@@ -2,7 +2,7 @@ package com.davidconneely.bazlang.exec;
 
 import com.davidconneely.bazlang.BStr;
 import com.davidconneely.bazlang.ReportCode;
-import com.davidconneely.bazlang.antlr.BazLangParser.ExpressionContext;
+import com.davidconneely.bazlang.exec.ast.Expr;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.HashMap;
@@ -20,7 +20,7 @@ public class EvalState {
     record Array(int[] arrayDimensions, int stringLength, byte[] data) implements StrVar {}
   }
 
-  public record FnDefinition(String name, List<String> params, ExpressionContext body) {}
+  public record FnDefinition(String name, List<String> params, Expr body) {}
 
   public record ForLoopData(double limit, double step, int loopPcLabel, int loopPcStatementIndex) {}
 

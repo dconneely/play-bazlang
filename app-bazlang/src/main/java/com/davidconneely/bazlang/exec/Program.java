@@ -1,7 +1,7 @@
 package com.davidconneely.bazlang.exec;
 
 import com.davidconneely.bazlang.antlr.AntlrParser;
-import com.davidconneely.bazlang.antlr.BazLangParser;
+import com.davidconneely.bazlang.exec.ast.Stmt;
 import java.util.Collection;
 import java.util.Map;
 import java.util.NavigableMap;
@@ -93,7 +93,7 @@ public class Program {
     while (label != null) {
       final var stmts = lines.get(label).getFlattenedStatements(parser);
       for (int i = 1; i <= stmts.size(); i++) {
-        if (stmts.get(i - 1) instanceof BazLangParser.DataStmtContext) {
+        if (stmts.get(i - 1) instanceof Stmt.DataStmt) {
           return new EvalState.StatementAddress(label, i);
         }
       }
@@ -114,8 +114,8 @@ public class Program {
     while (label != null) {
       final var stmts = lines.get(label).getFlattenedStatements(parser);
       for (int i = startIdx; i <= stmts.size(); i++) {
-        if (stmts.get(i - 1) instanceof BazLangParser.NextStmtContext nextCtx
-            && nextCtx.NUM_IDENTIFIER().getText().equalsIgnoreCase(forVar)) {
+        if (stmts.get(i - 1) instanceof Stmt.NextStmt(String next)
+            && next.equalsIgnoreCase(forVar)) {
           return new EvalState.StatementAddress(label, i);
         }
       }

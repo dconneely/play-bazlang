@@ -7,6 +7,7 @@ import com.davidconneely.bazlang.antlr.AntlrParser;
 import com.davidconneely.bazlang.exec.EvalState;
 import com.davidconneely.bazlang.exec.ProgramLine;
 import com.davidconneely.bazlang.exec.StatementExecutor;
+import com.davidconneely.bazlang.exec.ast.AstLowering;
 import com.davidconneely.bazlang.io.MockScreen;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -33,8 +34,10 @@ class ListProgramTest extends BaseProgramTest {
 
   private void execute(String statement) {
     final var parsed = parser.parseReplLine(statement);
-    if (parsed instanceof AntlrParser.ParsedLine.Immediate(var stmt)) {
-      executor.visit(stmt);
+    if (parsed instanceof AntlrParser.ParsedLine.Immediate(var stmts)) {
+      for (var stmt : AstLowering.lowerStatements(stmts, 0)) {
+        executor.execute(stmt);
+      }
     }
   }
 

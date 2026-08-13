@@ -12,6 +12,7 @@ import com.davidconneely.bazlang.exec.EvalState;
 import com.davidconneely.bazlang.exec.Interpreter;
 import com.davidconneely.bazlang.exec.ProgramLine;
 import com.davidconneely.bazlang.exec.StatementExecutor;
+import com.davidconneely.bazlang.exec.ast.Stmt;
 import com.davidconneely.bazlang.io.MockScreen;
 import java.util.HashMap;
 import java.util.List;
@@ -50,7 +51,7 @@ class ReplProgramTest extends BaseProgramTest {
     }
 
     // CONTINUE -> should resume at line 20 (does not repeat line 10)
-    executor.visitContStmt(null);
+    executor.execute(new Stmt.ContStmt());
     interpreter.resume();
 
     assertEquals("A\nB\nC\n", screen.getOutput());
@@ -74,7 +75,7 @@ class ReplProgramTest extends BaseProgramTest {
     }
 
     // Simulate REPL running CONT
-    executor.visitContStmt(null);
+    executor.execute(new Stmt.ContStmt());
     interpreter.resume();
 
     assertEquals("BEFORE\nAFTER\n", screen.getOutput());
