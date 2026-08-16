@@ -1,102 +1,41 @@
 package com.davidconneely.bazlang.debug;
 
 import com.davidconneely.bazlang.BStr;
-import com.davidconneely.bazlang.InterpreterReplHandler;
-import com.davidconneely.bazlang.ReportCode;
 import com.davidconneely.bazlang.ReportException;
 import com.davidconneely.bazlang.antlr.AntlrParser;
-import com.davidconneely.bazlang.antlr.BazLangParser;
-import com.davidconneely.bazlang.edit.ProgramEditor;
-import com.davidconneely.bazlang.exec.EvalState;
 import com.davidconneely.bazlang.exec.ExpressionEvaluator;
-import com.davidconneely.bazlang.exec.Interpreter;
-import com.davidconneely.bazlang.exec.ProgramStorage;
-import com.davidconneely.bazlang.exec.StatementExecutor;
-import com.davidconneely.bazlang.exec.ast.AstLowering;
-import com.davidconneely.bazlang.exec.ast.Stmt;
-import com.davidconneely.bazlang.io.MockScreen;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.List;
 
 /**
- * One interactive AgentDebugger session: owns the interpreter state, the mock screen, the
- * breakpoint engine, and the stdin/stdout command loop. The protocol itself is documented on {@link
- * AgentDebugger}.
+ * One interactive AgentDebugger session: a thin stdin/stdout text-protocol adapter over a shared
+ * {@link DebugEngine}. Parses {@code >}/{@code /}/{@code ?}/{@code !} command lines and formats
+ * {@code +}/{@code -} responses; the protocol itself is documented on {@link AgentDebugger}. All
+ * actual interpreter/breakpoint/screen state lives in {@link DebugEngine}, which the MCP server
+ * ({@code com.davidconneely.bazlang.mcp}) adapts the same way for JSON-RPC.
  */
 final class DebugSession {
 
   private final AntlrParser parser;
-  private final EvalState state = new EvalState();
+  private final DebugEngine engine;
   private final BufferedReader inputReader =
       new BufferedReader(new InputStreamReader(System.in, StandardCharsets.UTF_8));
-  private final BreakpointEngine breaks;
-  private final MockScreen mockScreen =
-      new MockScreen() {
-        @Override
-        public void systemPrintln(String text) {
-          // AgentDebugger suppresses REPL echoing to preserve the protocol
-        }
-      };
-  private final StatementExecutor executor;
-  private final Interpreter interpreter;
-  private final InterpreterReplHandler replHandler;
-
-  private boolean runRequested = false;
-  private boolean gotoRequested = false;
-  private int gotoTarget = -1;
-  private boolean inBreakpoint = false;
   private boolean sessionStopped = false;
 
   DebugSession(AntlrParser parser) {
     this.parser = parser;
-    this.breaks = new BreakpointEngine(parser);
-    ProgramStorage storage =
-        new ProgramStorage(state, parser) {
-          @Override
-          public void load(String filename) {
-            Path p = AgentDebugger.resolveBasPath(filename);
-            if (p == null) {
-              throw new ReportException(
-                  ReportCode.INVALID_FILE_NAME,
-                  state.currentLineLabel(),
-                  "File not found: " + filename);
-            }
-            super.load(p.toString());
-          }
-        };
-    ExpressionEvaluator exprEvaluator =
-        new ExpressionEvaluator(state, mockScreen, mockScreen, parser);
-    this.executor =
-        new StatementExecutor(state, mockScreen, mockScreen, storage, exprEvaluator, parser);
-    this.interpreter = new Interpreter(state, executor);
-    ProgramEditor programEditor = new ProgramEditor(state, mockScreen, parser, executor::evalNum);
-    this.replHandler =
-        new InterpreterReplHandler(
-            mockScreen, mockScreen, parser, state, executor, programEditor, interpreter);
-    this.interpreter.setExecutionListener(
-        (line, stmt) -> {
-          final var firedBreak =
-              breaks.checkFired(line, stmt, mockScreen, executor.getExprEvaluator());
-          if (firedBreak != null) {
-            String reason =
-                firedBreak.type() == BreakpointEngine.ConditionType.ELAPSE
-                    ? "ELAPSE"
-                    : "BREAK AT " + line + ":" + stmt;
-            blockAndListen(reason);
-          }
-        });
+    this.engine = new DebugEngine(parser);
   }
 
   /** Runs the session until the agent stops it or stdin reaches EOF. */
   void run(Path initialFilePath) {
     if (initialFilePath != null) {
       try {
-        state.setProgram(parser.parseProgramLines(Files.readString(initialFilePath)));
+        engine.state().setProgram(parser.parseProgramLines(Files.readString(initialFilePath)));
       } catch (IOException e) {
         System.err.printf(
             "Could not load BASIC file from '%s': %s%n",
@@ -104,107 +43,28 @@ final class DebugSession {
         return;
       }
     }
-
-    // Outer execution loop: idle at +READY (or after each run), then execute when >RUN/>GOTO.
-    String idleReason = "READY";
-    while (true) {
-      if (idleReason != null) {
-        blockAndListen(idleReason);
-      }
-      idleReason = null;
-
-      if (!state.isRunning() && !runRequested && !gotoRequested) {
-        break; // STOP or EOF with no pending run
-      }
-
-      if (!runRequested && !gotoRequested) {
-        // Should not happen — CONT from idle is rejected in handleCommand
-        idleReason = "READY";
-        continue;
-      }
-
-      boolean doRun = runRequested;
-      int target = gotoTarget;
-      runRequested = false;
-      gotoRequested = false;
-      sessionStopped = false;
-
-      if (doRun) {
-        state.clear();
-        if (state.program().isEmpty()) {
-          // Nothing to run — report an immediate stop and wait for more REPL commands
-          idleReason =
-              "STOP "
-                  + new ReportException(ReportCode.OK, 0, 1, ReportCode.OK.getMessage()).format();
-          continue;
-        }
-        state.setPendingJumpLocation(state.program().firstKey(), 1);
-      } else {
-        state.setPendingJumpLocation(target, 1);
-      }
-
-      String exitReason;
+    System.out.println("+READY");
+    System.out.flush();
+    while (!sessionStopped) {
+      String line;
       try {
-        interpreter.resume();
-        exitReason =
-            "STOP "
-                + new ReportException(
-                        ReportCode.OK,
-                        state.currentLineLabel(),
-                        state.currentStatementIndex(),
-                        ReportCode.OK.getMessage())
-                    .format();
-      } catch (ReportException e) {
-        exitReason = "STOP " + e.format();
-      }
-
-      // If >RUN/GOTO was sent mid-execution (from a breakpoint), restart without a stop report.
-      if (runRequested || gotoRequested) {
-        continue;
-      }
-
-      // If STOP was sent during execution, the agent already got '+' — no further output needed.
-      if (sessionStopped) {
+        line = inputReader.readLine();
+      } catch (IOException e) {
         break;
       }
-
-      idleReason = exitReason;
-    }
-  }
-
-  private void blockAndListen(String reason) {
-    inBreakpoint = !reason.equals("READY") && !reason.startsWith("STOP ");
-    System.out.println("+" + reason);
-    System.out.flush();
-    boolean resumed = false;
-    while (!resumed) {
-      try {
-        String line = inputReader.readLine();
-        if (line == null) {
-          state.setRunning(false);
-          resumed = true;
-        } else {
-          resumed = handleCommand(line.trim());
-          if (!resumed) {
-            System.out.flush();
-          }
-        }
-      } catch (IOException e) {
-        state.setRunning(false);
-        resumed = true;
+      if (line == null) {
+        break; // EOF behaves as /STOP
       }
-    }
-    inBreakpoint = false;
-    if (state.isRunning()) {
-      breaks.resetTimer();
+      handleCommand(line.trim());
+      System.out.flush();
     }
   }
 
-  private boolean handleCommand(String cmd) {
+  private void handleCommand(String cmd) {
     if (cmd.startsWith(">")) {
-      return handleReplCommand(cmd.substring(1).trim());
+      handleReplCommand(cmd.substring(1).trim());
     } else if (cmd.startsWith("/")) {
-      return handleSlashCommand(cmd.substring(1));
+      handleSlashCommand(cmd.substring(1));
     } else if (cmd.startsWith("?")) {
       handleEval(cmd.substring(1).trim());
     } else if (cmd.startsWith("!")) {
@@ -212,27 +72,21 @@ final class DebugSession {
     } else {
       System.out.println("-UNKNOWN COMMAND. Commands start with /, ?, !, or >");
     }
-    return false;
   }
 
-  private boolean handleSlashCommand(String cmd) {
+  private void handleSlashCommand(String cmd) {
     if (cmd.isEmpty()) {
       System.out.println("-Command expected after /");
-      return false;
+      return;
     }
     String upper = cmd.toUpperCase();
     if (upper.equals("GO")) {
-      if (!inBreakpoint) {
-        System.out.println("-/GO is only valid when paused at a breakpoint; use >RUN");
-        return false;
-      }
-      return true;
+      handleGo();
     } else if (upper.equals("STOP")) {
       System.out.println("+");
       System.out.flush();
-      state.setRunning(false);
+      engine.stop();
       sessionStopped = true;
-      return true;
     } else if (upper.equals("SPB") || upper.startsWith("SPB ") || upper.startsWith("SPB\t")) {
       handleSpb(cmd.length() > 3 ? cmd.substring(3).trim() : "");
     } else if (upper.equals("S1B") || upper.startsWith("S1B ") || upper.startsWith("S1B\t")) {
@@ -249,78 +103,70 @@ final class DebugSession {
       System.out.println(
           "-UNKNOWN / COMMAND. Allowed: /GO, /STOP, /SPB, /S1B, /CPB, /RSC, /PIQ, /SSD");
     }
-    return false;
   }
 
-  private boolean handleReplCommand(String cmd) {
+  private void handleReplCommand(String cmd) {
     if (cmd.isEmpty()) {
       System.out.println("-REPL command expected after >");
-      return false;
+      return;
     }
     String upper = cmd.toUpperCase();
 
     // Special cases that can't be delegated directly:
     if (upper.equals("LIST")) {
-      System.out.println("+" + QuotedArg.format(buildProgramListing()));
-      return false;
+      System.out.println("+" + QuotedArg.format(engine.listProgram()));
+      return;
     }
     if (upper.equals("RUN")) {
-      if (state.program().isEmpty()) {
+      if (engine.state().program().isEmpty()) {
         System.out.println("-no programme loaded; use >n stmt or >LOAD \"path\", then >RUN");
-        return false;
+        return;
       }
-      runRequested = true;
-      if (inBreakpoint) {
-        state.setRunning(false);
-      }
-      return true;
+      printPauseResult(engine.run());
+      return;
     }
     if (upper.equals("GOTO") || upper.startsWith("GOTO ") || upper.startsWith("GOTO\t")) {
       String rest = cmd.length() > 4 ? cmd.substring(4).trim() : "";
       if (rest.isEmpty()) {
         System.out.println("-GOTO requires a line number");
-        return false;
+        return;
       }
       int n;
       try {
         n = Integer.parseInt(rest);
       } catch (NumberFormatException e) {
         System.out.println("-GOTO requires a valid line number");
-        return false;
+        return;
       }
-      if (inBreakpoint) {
-        state.setPendingJumpLocation(n, 1);
-      } else {
-        gotoTarget = n;
-        gotoRequested = true;
-      }
-      return true;
+      printPauseResult(engine.gotoLine(n));
+      return;
     }
 
-    // All other commands (NEW, LOAD, numbered lines, REFORMAT, etc) are delegated to the handler.
-    replHandler.handleReplInput(cmd);
-    if (state.lastReport().code() == ReportCode.OK) {
+    // All other commands (NEW, LOAD, numbered lines, REFORMAT, etc) are delegated to the engine.
+    try {
+      engine.applyReplCommand(cmd);
       System.out.println("+");
-    } else {
-      System.out.println("-" + mockScreen.getStatus());
+    } catch (DebugEngineException e) {
+      System.out.println("-" + e.getMessage());
     }
-    return false;
   }
 
-  private String buildProgramListing() {
-    var sb = new StringBuilder();
-    boolean first = true;
-    for (var entry : state.program().entrySet()) {
-      if (entry.getKey() <= 0) {
-        continue;
-      }
-      if (!first) {
-        sb.append('\n');
-      }
-      sb.append(entry.getKey()).append(' ').append(entry.getValue().sourceText());
-      first = false;
+  private void handleGo() {
+    if (!engine.isPaused()) {
+      System.out.println("-/GO is only valid when paused at a breakpoint; use >RUN");
+      return;
     }
-    return sb.toString();
+    printPauseResult(engine.go());
+  }
+
+  private void printPauseResult(DebugEngine.PauseResult result) {
+    String reason =
+        switch (result) {
+          case DebugEngine.PauseResult.Break(int line, int stmt) -> "BREAK AT " + line + ":" + stmt;
+          case DebugEngine.PauseResult.Elapse ignored -> "ELAPSE";
+          case DebugEngine.PauseResult.Stopped(ReportException report) -> "STOP " + report.format();
+        };
+    System.out.println("+" + reason);
   }
 
   private void handleRsc(String args) {
@@ -344,7 +190,8 @@ final class DebugSession {
       System.out.println("-Invalid coordinates for /RSC");
       return;
     }
-    String grid = ScreenText.buildScreenString(mockScreen, rStart, rEnd, cStart, cEnd, showAttr);
+    String grid =
+        ScreenText.buildScreenString(engine.screen(), rStart, rEnd, cStart, cEnd, showAttr);
     System.out.println("+" + QuotedArg.format(grid));
   }
 
@@ -360,13 +207,16 @@ final class DebugSession {
     }
     byte[] bytes = decoded.getBytes(StandardCharsets.UTF_8);
     for (byte b : bytes) {
-      mockScreen.queueInkey(BStr.fromByte(b & 0xFF));
+      engine.screen().queueInkey(BStr.fromByte(b & 0xFF));
     }
     decoded
         .codePoints()
         .forEach(
-            cp -> mockScreen.queueUinkey(BStr.fromJavaString(new String(Character.toChars(cp)))));
-    mockScreen.queueInput(decoded);
+            cp ->
+                engine
+                    .screen()
+                    .queueUinkey(BStr.fromJavaString(new String(Character.toChars(cp)))));
+    engine.screen().queueInput(decoded);
     System.out.println("+");
   }
 
@@ -410,7 +260,7 @@ final class DebugSession {
               + " ELAPSE <ms>, ?<expression>, or EVERY <n>");
       return;
     }
-    breaks.add(brk);
+    engine.breakpoints().add(brk);
     System.out.println("+");
   }
 
@@ -424,7 +274,7 @@ final class DebugSession {
 
   private void handleCpb(String args) {
     if (args.isEmpty()) {
-      breaks.clearPersistent();
+      engine.breakpoints().clearPersistent();
       System.out.println("+");
       return;
     }
@@ -442,7 +292,7 @@ final class DebugSession {
       System.out.println("-Invalid line:stmt in /CPB");
       return;
     }
-    breaks.clearAt(line, stmt);
+    engine.breakpoints().clearAt(line, stmt);
     System.out.println("+");
   }
 
@@ -451,29 +301,14 @@ final class DebugSession {
       System.out.println("-? requires an expression");
       return;
     }
-    ExpressionEvaluator eval = executor.getExprEvaluator();
-    // Parse numeric first; only fall through to string if the *parse* fails.
-    // If the parse succeeds but evaluation fails (e.g. undefined variable),
-    // report that error directly rather than showing a misleading string-parse error.
-    BazLangParser.NumExprContext numCtx = null;
     try {
-      numCtx = parser.parseNumExpr(expr);
-    } catch (ReportException ignored) {
-      // numeric parse failed — will attempt string expression below
-    }
-    if (numCtx != null) {
-      try {
-        double val = eval.evalNum(AstLowering.lowerNum(numCtx, 0));
-        System.out.printf("+%s%n", ExpressionEvaluator.formatNum(val));
-      } catch (ReportException e) {
-        System.out.printf("-%s%n", e.getMessage());
+      DebugEngine.EvalResult result = engine.evalExpression(expr);
+      switch (result) {
+        case DebugEngine.EvalResult.Num(double value) ->
+            System.out.printf("+%s%n", ExpressionEvaluator.formatNum(value));
+        case DebugEngine.EvalResult.Str(String value) ->
+            System.out.printf("+%s%n", QuotedArg.format(value));
       }
-      return;
-    }
-    try {
-      var strCtx = parser.parseStrExpr(expr);
-      BStr val = eval.evalStr(AstLowering.lowerStr(strCtx, 0));
-      System.out.printf("+%s%n", QuotedArg.format(val.toJavaString()));
     } catch (ReportException e) {
       System.out.printf("-%s%n", e.getMessage());
     }
@@ -484,22 +319,10 @@ final class DebugSession {
       System.out.println("-! requires an assignment: ! <var> = <expr>");
       return;
     }
-    BazLangParser.StatementsContext stmts;
     try {
-      stmts = parser.parseStatementsContext(args);
-    } catch (ReportException e) {
-      System.out.printf("-Parse error: %s%n", e.getMessage());
-      return;
-    }
-    List<Stmt> lowered = AstLowering.lowerStatements(stmts, 0);
-    if (lowered.size() != 1 || !(lowered.get(0) instanceof Stmt.LetStmt letStmt)) {
-      System.out.println("-! requires exactly one assignment statement");
-      return;
-    }
-    try {
-      executor.execute(letStmt);
+      engine.executeAssignment(args);
       System.out.println("+");
-    } catch (ReportException e) {
+    } catch (DebugEngineException | ReportException e) {
       System.out.printf("-%s%n", e.getMessage());
     }
   }
@@ -517,7 +340,7 @@ final class DebugSession {
     try {
       int newRows = Integer.parseInt(parts[0]);
       int newCols = Integer.parseInt(parts[1]);
-      mockScreen.resize(newRows, newCols);
+      engine.screen().resize(newRows, newCols);
     } catch (NumberFormatException e) {
       System.out.println("-Invalid values for /SSD");
       return;

@@ -20,4 +20,20 @@
         <Class name="com.davidconneely.bazlang.io.TerminalScreen" />
         <Bug category="MT_CORRECTNESS" />
     </Match>
+
+    <!-- False positive: firedPauseReason is mutated by the ExecutionListener callback invoked
+         indirectly via interpreter.resume(), which SpotBugs' intraprocedural analysis can't see,
+         so it reports the null check as always-true. -->
+    <Match>
+        <Class name="com.davidconneely.bazlang.debug.DebugEngine" />
+        <Method name="driveUntilPause" />
+        <Bug pattern="RCN_REDUNDANT_NULLCHECK_OF_NULL_VALUE" />
+    </Match>
+
+    <!-- False positive: an unnamed record-pattern binding (`_`) for JsonNumber's unused `raw`
+         component still emits a bytecode local store that SpotBugs reports as dead. -->
+    <Match>
+        <Class name="com.davidconneely.bazlang.mcp.JsonValue$JsonObject" />
+        <Bug pattern="DLS_DEAD_LOCAL_STORE" />
+    </Match>
 </FindBugsFilter>

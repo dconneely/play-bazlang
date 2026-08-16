@@ -53,3 +53,11 @@ tasks.register<JavaExec>("runAgentDebugger") {
     args = listOf()
   }
 }
+
+tasks.register<JavaExec>("runMcpServer") {
+  group = "application"
+  description = "Runs the BazLang MCP (Model Context Protocol) server"
+  classpath = sourceSets["main"].runtimeClasspath
+  mainClass = "com.davidconneely.bazlang.mcp.McpServer"
+  standardInput = System.`in`
+}

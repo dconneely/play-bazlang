@@ -11,13 +11,14 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
- * The AgentDebugger's breakpoint store and evaluation engine: persistent and one-shot breakpoints,
- * optional location filters, and the {@code CSC}/{@code ELAPSE}/{@code ?expr}/{@code EVERY} break
- * conditions (see docs/language_debugger.md).
+ * The breakpoint store and evaluation engine shared by both debugger protocols: persistent and
+ * one-shot breakpoints, optional location filters, and the {@code CSC}/{@code ELAPSE}/{@code
+ * ?expr}/{@code EVERY} break conditions (see docs/language_debugger.md and docs/mcp_server.md).
+ * Public so it is reusable from the {@code com.davidconneely.bazlang.mcp} package.
  */
-final class BreakpointEngine {
+public final class BreakpointEngine {
 
-  enum ConditionType {
+  public enum ConditionType {
     NONE,
     VIEW,
     ELAPSE,
@@ -25,7 +26,7 @@ final class BreakpointEngine {
     EVERY
   }
 
-  record BreakCondition(
+  public record BreakCondition(
       int line,
       int stmt,
       ConditionType type,
@@ -44,7 +45,7 @@ final class BreakpointEngine {
   }
 
   /** Parses a condition string; returns null when it is not a valid condition. */
-  static BreakCondition parseCondition(int line, int stmt, String cond, boolean persistent) {
+  public static BreakCondition parseCondition(int line, int stmt, String cond, boolean persistent) {
     String upper = cond.toUpperCase();
     if (upper.startsWith("CSC")) {
       String quotedArg = cond.substring(3).trim();
@@ -92,15 +93,15 @@ final class BreakpointEngine {
     return null;
   }
 
-  void add(BreakCondition brk) {
+  public void add(BreakCondition brk) {
     activeBreaks.add(brk);
   }
 
-  void clearPersistent() {
+  public void clearPersistent() {
     activeBreaks.removeIf(BreakCondition::persistent);
   }
 
-  void clearAt(int line, int stmt) {
+  public void clearAt(int line, int stmt) {
     activeBreaks.removeIf(b -> b.line() == line && b.stmt() == stmt);
   }
 

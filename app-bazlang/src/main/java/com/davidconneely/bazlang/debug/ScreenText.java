@@ -4,9 +4,11 @@ import com.davidconneely.bazlang.io.MockScreen;
 
 /**
  * Read-only text views of a {@link MockScreen} buffer: substring search (the {@code CSC} break
- * condition) and the compressed grid dump used by {@code /RSC}.
+ * condition) and the compressed grid dump used by {@code /RSC} / {@code bazlang_screen}. {@link
+ * #buildScreenString} is public so it is reusable from the {@code com.davidconneely.bazlang.mcp}
+ * package.
  */
-final class ScreenText {
+public final class ScreenText {
 
   private ScreenText() {}
 
@@ -32,7 +34,7 @@ final class ScreenText {
    * separated by {@code \n}; runs of more than four spaces compress to <code>{N}</code>; {@code
    * showAttr} adds {@code [fg,bg]} annotations at attribute changes.
    */
-  static String buildScreenString(
+  public static String buildScreenString(
       MockScreen mockScreen, int rStart, int rEnd, int cStart, int cEnd, boolean showAttr) {
     int maxRows = mockScreen.printHeight();
     int maxCols = mockScreen.printWidth();
