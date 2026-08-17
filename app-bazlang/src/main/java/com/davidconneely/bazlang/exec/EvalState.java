@@ -233,6 +233,19 @@ public class EvalState {
     ref.array = arr;
   }
 
+  /**
+   * A read-only, name-sorted snapshot of every dimensioned numeric array, for debugger inspection.
+   */
+  public Map<String, NumArray> numArraysSnapshot() {
+    Map<String, NumArray> result = new TreeMap<>();
+    for (var entry : numArrays.entrySet()) {
+      if (entry.getValue().array != null) {
+        result.put(entry.getKey(), entry.getValue().array);
+      }
+    }
+    return result;
+  }
+
   // ===== String variables (Scalar and Array) =====
 
   public boolean hasStrVar(String name) {
@@ -270,6 +283,19 @@ public class EvalState {
     return result;
   }
 
+  /**
+   * A read-only, name-sorted snapshot of every dimensioned string array, for debugger inspection.
+   */
+  public Map<String, StrVar.Array> strArraysSnapshot() {
+    Map<String, StrVar.Array> result = new TreeMap<>();
+    for (var entry : strVars.entrySet()) {
+      if (entry.getValue().value instanceof StrVar.Array array) {
+        result.put(entry.getKey(), array);
+      }
+    }
+    return result;
+  }
+
   // ===== Functions =====
 
   public boolean hasFn(String name) {
@@ -285,6 +311,17 @@ public class EvalState {
   public void setFn(String name, FnDefinition def) {
     FnDefRef ref = getOrAddFnDef(name);
     ref.def = def;
+  }
+
+  /** A read-only, name-sorted snapshot of every defined {@code DEF FN}, for debugger inspection. */
+  public Map<String, FnDefinition> fnDefinitionsSnapshot() {
+    Map<String, FnDefinition> result = new TreeMap<>();
+    for (var entry : fnDefinitions.entrySet()) {
+      if (entry.getValue().def != null) {
+        result.put(entry.getKey(), entry.getValue().def);
+      }
+    }
+    return result;
   }
 
   public void removeNumVar(String name) {
@@ -324,6 +361,11 @@ public class EvalState {
 
   public boolean isReturnStackEmpty() {
     return returnStack.isEmpty();
+  }
+
+  /** The current GOSUB nesting depth, for {@code step over} to detect when a call has returned. */
+  public int returnStackDepth() {
+    return returnStack.size();
   }
 
   public void pushReturn(StatementAddress loc) {

@@ -455,6 +455,235 @@ class McpServerProtocolTest {
   }
 
   @Test
+  void bazlangEvalVarsListsArraysAndFunctions() throws Exception {
+    String source =
+        String.join(
+            "\n",
+            "10 DIM A(3)",
+            "20 LET A(1) = 9",
+            "30 DIM B$(2,4)",
+            "40 DEF FN F(X) = X * 2",
+            "50 STOP");
+    List<JsonValue.JsonObject> responses =
+        runSession(
+            toolCall(
+                1,
+                "bazlang_program",
+                JsonValue.objectOf("action", "load_source", "source", source)),
+            toolCall(2, "bazlang_step", JsonValue.objectOf("action", "run")),
+            toolCall(3, "bazlang_eval", JsonValue.objectOf("action", "vars")),
+            // Array metadata is name+dimensions only; a known element still reads directly.
+            toolCall(4, "bazlang_eval", JsonValue.objectOf("expression", "A(1)")));
+    assertEquals(4, responses.size());
+    JsonValue.JsonObject structured = result(responses.get(2)).getObject("structuredContent");
+
+    JsonValue.JsonArray dimsA = structured.getObject("numericArrays").getArray("A");
+    assertEquals(1, dimsA.size());
+    assertEquals(3, ((JsonValue.JsonNumber) dimsA.get(0)).intValue());
+
+    // DIM B$(2,4): the trailing dimension is the fixed string length, not an array dimension —
+    // arrayDimensions is [2] (one dimension) with stringLength 4, not [2,4].
+    JsonValue.JsonObject bMeta = structured.getObject("stringArrays").getObject("B$");
+    JsonValue.JsonArray dimsB = bMeta.getArray("dimensions");
+    assertEquals(1, dimsB.size());
+    assertEquals(2, ((JsonValue.JsonNumber) dimsB.get(0)).intValue());
+    assertEquals(4, bMeta.getInt("stringLength", -1));
+
+    JsonValue.JsonArray paramsF = structured.getObject("functions").getArray("F");
+    assertEquals(1, paramsF.size());
+
+    assertEquals(9, result(responses.get(3)).getObject("structuredContent").getInt("value", -1));
+  }
+
+  @Test
+  void bazlangEvalArrayReturnsFullContentsInRowMajorOrder() throws Exception {
+    String source =
+        String.join(
+            "\n",
+            "10 DIM A(2,2)",
+            "20 LET A(1,1) = 1",
+            "30 LET A(1,2) = 2",
+            "40 LET A(2,1) = 3",
+            "50 LET A(2,2) = 4",
+            "60 DIM B$(2,3)",
+            "70 LET B$(1) = \"X\"",
+            "80 LET B$(2) = \"YZ\"",
+            "90 STOP");
+    List<JsonValue.JsonObject> responses =
+        runSession(
+            toolCall(
+                1,
+                "bazlang_program",
+                JsonValue.objectOf("action", "load_source", "source", source)),
+            toolCall(2, "bazlang_step", JsonValue.objectOf("action", "run")),
+            toolCall(3, "bazlang_eval", JsonValue.objectOf("action", "array", "name", "A")),
+            toolCall(4, "bazlang_eval", JsonValue.objectOf("action", "array", "name", "B$")),
+            toolCall(5, "bazlang_eval", JsonValue.objectOf("action", "array", "name", "NOSUCH")));
+    assertEquals(5, responses.size());
+
+    JsonValue.JsonObject aResult = result(responses.get(2)).getObject("structuredContent");
+    JsonValue.JsonArray aValues = aResult.getArray("values");
+    assertEquals(4, aValues.size());
+    // Row-major, last dimension fastest: A(1,1),A(1,2),A(2,1),A(2,2).
+    for (int i = 0; i < 4; i++) {
+      assertEquals(i + 1, ((JsonValue.JsonNumber) aValues.get(i)).intValue());
+    }
+
+    JsonValue.JsonObject bResult = result(responses.get(3)).getObject("structuredContent");
+    JsonValue.JsonArray bValues = bResult.getArray("values");
+    assertEquals(2, bValues.size());
+    // Fixed-length, space-padded to stringLength 3 — padding is part of the value, not trimmed.
+    assertEquals("X  ", ((JsonValue.JsonString) bValues.get(0)).value());
+    assertEquals("YZ ", ((JsonValue.JsonString) bValues.get(1)).value());
+
+    assertTrue(result(responses.get(4)).getBoolean("isError", false));
+  }
+
+  @Test
+  void bazlangEvalExecRunsAnyImmediateStatementNotJustLet() throws Exception {
+    // DIM is not a LET statement, so action=eval's LET-detection cue could never reach it — exec
+    // is the only way to run it (or any other non-assignment statement) in the live context.
+    List<JsonValue.JsonObject> responses =
+        runSession(
+            toolCall(
+                1, "bazlang_eval", JsonValue.objectOf("action", "exec", "statement", "DIM Q(3)")),
+            toolCall(
+                2,
+                "bazlang_eval",
+                JsonValue.objectOf("action", "exec", "statement", "LET Q(2) = 42")),
+            toolCall(3, "bazlang_eval", JsonValue.objectOf("expression", "Q(2)")),
+            toolCall(
+                4,
+                "bazlang_eval",
+                JsonValue.objectOf("action", "exec", "statement", "NONSENSE HERE")));
+    assertEquals(4, responses.size());
+    assertFalse(result(responses.get(0)).getBoolean("isError", true));
+    assertFalse(result(responses.get(1)).getBoolean("isError", true));
+    assertEquals(42, result(responses.get(2)).getObject("structuredContent").getInt("value", -1));
+    assertTrue(result(responses.get(3)).getBoolean("isError", false));
+  }
+
+  @Test
+  void loadFileAndSaveFileEscapeEmbeddedQuotesRatherThanInjectingStatements() throws Exception {
+    // A path containing an unescaped '"' used to close the synthesized LOAD "..."/SAVE "..."
+    // literal early, letting the rest of the path be parsed as further ':'-separated BASIC
+    // statements — e.g. this exact path would execute NEW as a second statement if unescaped.
+    String maliciousPath = "nonexistent\" : NEW : REM ";
+    List<JsonValue.JsonObject> responses =
+        runSession(
+            toolCall(
+                1,
+                "bazlang_program",
+                JsonValue.objectOf("action", "load_source", "source", "10 LET X = 1")),
+            toolCall(
+                2,
+                "bazlang_program",
+                JsonValue.objectOf("action", "load_file", "path", maliciousPath)),
+            toolCall(3, "bazlang_program", JsonValue.objectOf("action", "list")));
+    assertEquals(3, responses.size());
+    // The whole malicious string is treated as one (nonexistent) filename, so this fails with a
+    // file-not-found error rather than succeeding and silently having run NEW.
+    assertTrue(result(responses.get(1)).getBoolean("isError", false));
+    // If NEW had actually executed, the programme would be empty here instead.
+    assertEquals(
+        "10 LET X = 1",
+        result(responses.get(2)).getObject("structuredContent").getString("listing"));
+  }
+
+  @Test
+  void loadFileAndSaveFileRejectPathsContainingALineBreak() throws Exception {
+    List<JsonValue.JsonObject> responses =
+        runSession(
+            toolCall(
+                1,
+                "bazlang_program",
+                JsonValue.objectOf("action", "load_file", "path", "foo\nbar")),
+            toolCall(
+                2,
+                "bazlang_program",
+                JsonValue.objectOf("action", "save_file", "path", "foo\nbar")));
+    assertEquals(2, responses.size());
+    assertTrue(result(responses.get(0)).getBoolean("isError", false));
+    assertTrue(result(responses.get(1)).getBoolean("isError", false));
+  }
+
+  @Test
+  void bazlangStepIntoAndStepOverWalkThroughAGosubCall() throws Exception {
+    String source = "10 GOSUB 100\n20 STOP\n100 LET X = 1\n110 RETURN";
+    List<JsonValue.JsonObject> responses =
+        runSession(
+            toolCall(
+                1,
+                "bazlang_program",
+                JsonValue.objectOf("action", "load_source", "source", source)),
+            toolCall(
+                2,
+                "bazlang_breakpoint",
+                JsonValue.objectOf("action", "set", "line", 10L, "statement", 1L)),
+            toolCall(3, "bazlang_step", JsonValue.objectOf("action", "run")),
+            // step_into follows the GOSUB rather than treating it as one atomic statement.
+            toolCall(4, "bazlang_step", JsonValue.objectOf("action", "step_into")));
+    assertEquals(4, responses.size());
+    JsonValue.JsonObject intoResult = result(responses.get(3)).getObject("structuredContent");
+    assertEquals("step", intoResult.getString("reason"));
+    assertEquals(100, intoResult.getInt("line", -1));
+    assertEquals(1, intoResult.getInt("stmt", -1));
+
+    // step_over, from the same starting breakpoint, treats the whole call as one step instead.
+    List<JsonValue.JsonObject> overResponses =
+        runSession(
+            toolCall(
+                1,
+                "bazlang_program",
+                JsonValue.objectOf("action", "load_source", "source", source)),
+            toolCall(
+                2,
+                "bazlang_breakpoint",
+                JsonValue.objectOf("action", "set", "line", 10L, "statement", 1L)),
+            toolCall(3, "bazlang_step", JsonValue.objectOf("action", "run")),
+            toolCall(4, "bazlang_step", JsonValue.objectOf("action", "step_over")),
+            toolCall(5, "bazlang_eval", JsonValue.objectOf("expression", "X")));
+    assertEquals(5, overResponses.size());
+    JsonValue.JsonObject overResult = result(overResponses.get(3)).getObject("structuredContent");
+    assertEquals("step", overResult.getString("reason"));
+    assertEquals(20, overResult.getInt("line", -1));
+    assertEquals(1, overResult.getInt("stmt", -1));
+    assertEquals(
+        1, result(overResponses.get(4)).getObject("structuredContent").getInt("value", -1));
+  }
+
+  @Test
+  void stepIntoAndStepOverRequireBeingPaused() throws Exception {
+    List<JsonValue.JsonObject> responses =
+        runSession(
+            toolCall(1, "bazlang_step", JsonValue.objectOf("action", "step_into")),
+            toolCall(2, "bazlang_step", JsonValue.objectOf("action", "step_over")));
+    assertEquals(2, responses.size());
+    assertTrue(result(responses.get(0)).getBoolean("isError", false));
+    assertTrue(result(responses.get(1)).getBoolean("isError", false));
+  }
+
+  @Test
+  void bazlangStepRunPausesWithLimitReasonForARunawayLoop() throws Exception {
+    // Regression/feature test: a programme with no breakpoint of its own must not be able to hang
+    // the call (and, for a real server, the whole single-threaded session) forever.
+    List<JsonValue.JsonObject> responses =
+        runSession(
+            toolCall(
+                1,
+                "bazlang_program",
+                JsonValue.objectOf("action", "load_source", "source", "10 GO TO 10")),
+            toolCall(2, "bazlang_step", JsonValue.objectOf("action", "run", "timeoutMs", 50L)));
+    assertEquals(2, responses.size());
+    JsonValue.JsonObject runResult = result(responses.get(1));
+    assertFalse(runResult.getBoolean("isError", true));
+    JsonValue.JsonObject structured = runResult.getObject("structuredContent");
+    assertEquals("limit", structured.getString("reason"));
+    assertEquals(10, structured.getInt("line", -1));
+    assertEquals(1, structured.getInt("stmt", -1));
+  }
+
+  @Test
   void bazlangStepStatusReportsPauseStateWithoutExecuting() throws Exception {
     String source = "10 LET X = 1\n20 STOP";
     List<JsonValue.JsonObject> responses =

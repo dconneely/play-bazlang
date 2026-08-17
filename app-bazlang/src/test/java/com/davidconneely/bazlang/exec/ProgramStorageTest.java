@@ -60,6 +60,28 @@ class ProgramStorageTest {
   }
 
   @Test
+  void testSaveRejectsASyntacticallyInvalidPathCleanly() {
+    final var state = new EvalState();
+    final var storage = new ProgramStorage(state, PARSER);
+    state.setProgram(PARSER.parseProgramLines("10 PRINT \"HELLO\""));
+
+    // A ':' anywhere but a Windows drive prefix makes Path.of(...) throw InvalidPathException —
+    // a RuntimeException, not an IOException, so it must be caught explicitly or it propagates
+    // uncaught past every caller instead of a clean report.
+    final var ex = assertThrows(ReportException.class, () -> storage.save("bad:name.bas"));
+    assertEquals(ReportCode.INVALID_FILE_NAME, ex.reportCode());
+  }
+
+  @Test
+  void testLoadRejectsASyntacticallyInvalidPathCleanly() {
+    final var state = new EvalState();
+    final var storage = new ProgramStorage(state, PARSER);
+
+    final var ex = assertThrows(ReportException.class, () -> storage.load("bad:name.bas"));
+    assertEquals(ReportCode.INVALID_FILE_NAME, ex.reportCode());
+  }
+
+  @Test
   void testMergeOverlaysWithoutClearing(@TempDir Path tempDir) throws IOException {
     final var state = new EvalState();
     final var storage = new ProgramStorage(state, PARSER);

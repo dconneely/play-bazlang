@@ -157,6 +157,14 @@ class DebugEngineTest {
   }
 
   @Test
+  void loadWithASyntacticallyInvalidPathFailsCleanlyRatherThanCrashing() {
+    // resolveBasPath's Path.of(inputPath) throws InvalidPathException (a RuntimeException, not a
+    // ReportException) for a ':' anywhere but a Windows drive prefix — must be treated as "not
+    // found" rather than propagating uncaught past applyReplCommand.
+    assertThrows(DebugEngineException.class, () -> engine.applyReplCommand("LOAD \"bad:name\""));
+  }
+
+  @Test
   void newFlushesQueuedInput() {
     // Found via live use: switching programmes on one long-lived engine left stale queued input
     // (queued for a program using one input primitive) to be silently consumed by the next
@@ -182,6 +190,123 @@ class DebugEngineTest {
     engine.screen().queueUinkey(BStr.fromJavaString("x"));
     engine.loadSource("10 LET X = 1");
     assertEquals(BStr.EMPTY, engine.screen().uinkey());
+  }
+
+  @Test
+  void limitPausesARunawayLoopWithNoBreakpoint() {
+    // Safety net: no breakpoint of the programme's own would ever fire here, so without the
+    // timeout this call would block forever — and, for the MCP server, hang the whole session
+    // (see docs/mcp_server.md "Known limitations": there is no cancel-while-running mechanism).
+    engine.loadSource("10 GO TO 10");
+    DebugEngine.PauseResult result = engine.run(50);
+    assertTrue(
+        result instanceof DebugEngine.PauseResult.Limit(int line, int stmt)
+            && line == 10
+            && stmt == 1);
+  }
+
+  @Test
+  void stepIntoRequiresBeingPaused() {
+    assertThrows(DebugEngineException.class, engine::stepInto);
+  }
+
+  @Test
+  void stepOverRequiresBeingPaused() {
+    assertThrows(DebugEngineException.class, engine::stepOver);
+  }
+
+  @Test
+  void stepIntoExecutesExactlyOneStatementAtATime() {
+    engine.loadSource("10 LET X = 1\n20 LET X = 2\n30 STOP");
+    engine
+        .breakpoints()
+        .add(
+            new BreakpointEngine.BreakCondition(
+                10, 1, BreakpointEngine.ConditionType.NONE, null, 0, true, 0, null));
+    DebugEngine.PauseResult atBreak = engine.run();
+    assertTrue(
+        atBreak instanceof DebugEngine.PauseResult.Break(int line, int stmt)
+            && line == 10
+            && stmt == 1);
+
+    DebugEngine.PauseResult afterFirst = engine.stepInto();
+    assertTrue(
+        afterFirst instanceof DebugEngine.PauseResult.Step(int line, int stmt)
+            && line == 20
+            && stmt == 1);
+    assertEquals(1.0, ((DebugEngine.EvalResult.Num) engine.evalExpression("X")).value(), 0.0001);
+
+    DebugEngine.PauseResult afterSecond = engine.stepInto();
+    assertTrue(
+        afterSecond instanceof DebugEngine.PauseResult.Step(int line, int stmt)
+            && line == 30
+            && stmt == 1);
+    assertEquals(2.0, ((DebugEngine.EvalResult.Num) engine.evalExpression("X")).value(), 0.0001);
+
+    DebugEngine.PauseResult afterStop = engine.stepInto();
+    assertTrue(afterStop instanceof DebugEngine.PauseResult.Stopped);
+  }
+
+  @Test
+  void stepIntoEntersAGosubCall() {
+    engine.loadSource("10 GOSUB 100\n20 STOP\n100 LET X = 1\n110 RETURN");
+    engine
+        .breakpoints()
+        .add(
+            new BreakpointEngine.BreakCondition(
+                10, 1, BreakpointEngine.ConditionType.NONE, null, 0, true, 0, null));
+    engine.run();
+
+    DebugEngine.PauseResult afterStep = engine.stepInto();
+    // stepInto follows the GOSUB rather than treating it as one atomic statement.
+    assertTrue(
+        afterStep instanceof DebugEngine.PauseResult.Step(int line, int stmt)
+            && line == 100
+            && stmt == 1);
+  }
+
+  @Test
+  void stepOverRunsAGosubCallToCompletionWithoutPausingInsideIt() {
+    engine.loadSource("10 GOSUB 100\n20 STOP\n100 LET X = 1\n110 RETURN");
+    engine
+        .breakpoints()
+        .add(
+            new BreakpointEngine.BreakCondition(
+                10, 1, BreakpointEngine.ConditionType.NONE, null, 0, true, 0, null));
+    engine.run();
+
+    DebugEngine.PauseResult afterStep = engine.stepOver();
+    // Unlike stepInto (see stepIntoEntersAGosubCall), stepOver treats the whole GOSUB call as one
+    // step and lands back on line 20, having run 100/110 to completion.
+    assertTrue(
+        afterStep instanceof DebugEngine.PauseResult.Step(int line, int stmt)
+            && line == 20
+            && stmt == 1);
+    assertEquals(1.0, ((DebugEngine.EvalResult.Num) engine.evalExpression("X")).value(), 0.0001);
+  }
+
+  @Test
+  void stepOverStillStopsForABreakpointInsideTheCalledSubroutine() {
+    // A breakpoint takes priority over "run the call to completion" — otherwise stepOver would be
+    // an easy way to accidentally skip straight past a breakpoint an agent placed inside a call.
+    engine.loadSource("10 GOSUB 100\n20 STOP\n100 LET X = 1\n110 RETURN");
+    engine
+        .breakpoints()
+        .add(
+            new BreakpointEngine.BreakCondition(
+                10, 1, BreakpointEngine.ConditionType.NONE, null, 0, true, 0, null));
+    engine.run();
+    engine
+        .breakpoints()
+        .add(
+            new BreakpointEngine.BreakCondition(
+                100, 1, BreakpointEngine.ConditionType.NONE, null, 0, true, 0, null));
+
+    DebugEngine.PauseResult afterStep = engine.stepOver();
+    assertTrue(
+        afterStep instanceof DebugEngine.PauseResult.Break(int line, int stmt)
+            && line == 100
+            && stmt == 1);
   }
 
   @Test

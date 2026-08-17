@@ -16,6 +16,7 @@ import com.davidconneely.bazlang.exec.ast.AstLowering;
 import com.davidconneely.bazlang.exec.ast.Stmt;
 import com.davidconneely.bazlang.io.MockScreen;
 import java.nio.file.Files;
+import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.util.List;
 
@@ -25,48 +26,76 @@ import java.util.List;
  * control, and live expression evaluation. The MCP server ({@code com.davidconneely.bazlang.mcp})
  * is a thin adapter over one shared {@code DebugEngine} instance.
  *
- * <p>Run control ({@link #run}, {@link #gotoLine}, {@link #go}) is synchronous: each call drives
- * execution until the programme next breaks, elapses, or stops, then returns — there is no blocking
- * wait for a "next command" inside the engine itself. A breakpoint pauses execution by having the
- * {@link Interpreter.ExecutionListener} set {@link EvalState#setRunning} to {@code false} before
- * the triggering statement executes, which unwinds {@link Interpreter#resume()} back to the caller;
- * a later {@link #go()} call resumes at the exact same location, guarded so the same breakpoint
- * does not immediately re-fire.
+ * <p>Run control ({@link #run}, {@link #gotoLine}, {@link #go}, {@link #stepInto}, {@link
+ * #stepOver}) is synchronous: each call drives execution until the programme next breaks, elapses,
+ * steps, hits its safety timeout, or stops, then returns — there is no blocking wait for a "next
+ * command" inside the engine itself. A breakpoint pauses execution by having the {@link
+ * Interpreter.ExecutionListener} set {@link EvalState#setRunning} to {@code false} before the
+ * triggering statement executes, which unwinds {@link Interpreter#resume()} back to the caller; a
+ * later {@link #go()} call resumes at the exact same location, guarded so the same breakpoint does
+ * not immediately re-fire. Every run-control call also arms a wall-clock deadline (default {@link
+ * #DEFAULT_STEP_TIMEOUT_MS}, overridable per call) as a safety net against a runaway programme with
+ * no breakpoint of its own — there is no cancel-while-running mechanism (see docs/mcp_server.md
+ * "Known limitations"), so an unconditionally blocking call would otherwise hang the caller (and,
+ * for the MCP server, the whole single-threaded session) forever.
  */
 public final class DebugEngine {
+
+  /**
+   * Default wall-clock safety cap for {@link #run}/{@link #gotoLine}/{@link #go}/{@link
+   * #stepInto}/{@link #stepOver} when the caller doesn't specify one: guards against a programme
+   * with an accidental infinite loop and no breakpoint of its own hanging the call forever.
+   */
+  public static final long DEFAULT_STEP_TIMEOUT_MS = 30_000;
 
   /**
    * Resolves a bare programme name or file path to an actual {@link Path}.
    *
    * <p>Tries the argument verbatim, then with {@code .bas} appended, then under the canonical
-   * example directory. Returns {@code null} when no existing file is found. Used by this class's
-   * own {@code LOAD} handling below, so {@code bazlang_program(load_file)} resolves bare names
-   * consistently.
+   * example directory. Returns {@code null} when no existing file is found, or when {@code
+   * inputPath} isn't a syntactically valid path on this platform at all ({@link Path#of} throws
+   * {@link InvalidPathException} for e.g. a bare {@code :} on Windows) — the caller already treats
+   * {@code null} as "not found", so an unparseable path is just another way not to find one. Used
+   * by this class's own {@code LOAD} handling below, so {@code bazlang_program(load_file)} resolves
+   * bare names consistently.
    */
   private static Path resolveBasPath(String inputPath) {
-    Path p = Path.of(inputPath);
-    if (Files.exists(p)) {
-      return p;
+    try {
+      Path p = Path.of(inputPath);
+      if (Files.exists(p)) {
+        return p;
+      }
+      String name = inputPath.endsWith(".bas") ? inputPath : inputPath + ".bas";
+      p = Path.of("src", "example", "bas", name);
+      if (Files.exists(p)) {
+        return p;
+      }
+      p = Path.of("app-bazlang", "src", "example", "bas", name);
+      if (Files.exists(p)) {
+        return p;
+      }
+      return null;
+    } catch (InvalidPathException e) {
+      return null;
     }
-    String name = inputPath.endsWith(".bas") ? inputPath : inputPath + ".bas";
-    p = Path.of("src", "example", "bas", name);
-    if (Files.exists(p)) {
-      return p;
-    }
-    p = Path.of("app-bazlang", "src", "example", "bas", name);
-    if (Files.exists(p)) {
-      return p;
-    }
-    return null;
   }
 
-  /** The outcome of {@link #run}, {@link #gotoLine}, or {@link #go}: where execution stopped. */
+  /**
+   * The outcome of {@link #run}, {@link #gotoLine}, {@link #go}, {@link #stepInto}, or {@link
+   * #stepOver}: where execution stopped.
+   */
   public sealed interface PauseResult {
     /** A location or condition breakpoint fired before executing this statement. */
     record Break(int line, int stmt) implements PauseResult {}
 
     /** An {@code ELAPSE} condition fired. */
     record Elapse() implements PauseResult {}
+
+    /** {@link #stepInto}/{@link #stepOver} completed one step; this is where it landed. */
+    record Step(int line, int stmt) implements PauseResult {}
+
+    /** The per-call wall-clock safety deadline was exceeded with no other pause reason. */
+    record Limit(int line, int stmt) implements PauseResult {}
 
     /** The programme ended: normally, via a {@code STOP} statement, or with a runtime error. */
     record Stopped(ReportException report) implements PauseResult {}
@@ -97,6 +126,10 @@ public final class DebugEngine {
   private String firedPauseReason;
   private int resumeGuardLine = -1;
   private int resumeGuardStmt = -1;
+  private long stepDeadlineMs = Long.MAX_VALUE;
+  private boolean stepArmed = false;
+  private boolean stepOver = false;
+  private int stepOverBaseDepth = -1;
 
   public DebugEngine(AntlrParser parser) {
     this.parser = parser;
@@ -142,9 +175,31 @@ public final class DebugEngine {
       return;
     }
     if (line == resumeGuardLine && stmt == resumeGuardStmt) {
-      // We just resumed exactly here after a previous pause: don't re-fire the same breakpoint.
+      // We just resumed exactly here after a previous pause: don't re-fire the same breakpoint, and
+      // let this statement execute even if a step is armed — stepInto/stepOver's "one step" starts
+      // counting from the statement *after* the one we resumed at, exactly like go()'s resume
+      // point.
       resumeGuardLine = -1;
       resumeGuardStmt = -1;
+      return;
+    }
+    if (stepArmed && !(stepOver && state.returnStackDepth() > stepOverBaseDepth)) {
+      // stepInto always pauses on the next statement; stepOver only pauses once the GOSUB depth is
+      // back down to (or shallower than) where stepping started — a statement inside a call it
+      // stepped over runs unimpeded (falling through to the breakpoint check below, so a breakpoint
+      // inside that call can still interrupt it; see the branch's condition).
+      firedPauseReason = "STEP";
+      state.setRunning(false);
+      disarmStep();
+      return;
+    }
+    if (System.currentTimeMillis() >= stepDeadlineMs) {
+      // Safety net: no breakpoint of the programme's own fired within the deadline. Without this, a
+      // runaway loop would block the calling tools/call — and, since the MCP server processes one
+      // request at a time with no cancel-while-running mechanism, the whole session — forever.
+      firedPauseReason = "LIMIT";
+      state.setRunning(false);
+      disarmStep();
       return;
     }
     BreakpointEngine.BreakCondition fired =
@@ -152,7 +207,13 @@ public final class DebugEngine {
     if (fired != null) {
       firedPauseReason = fired.type() == BreakpointEngine.ConditionType.ELAPSE ? "ELAPSE" : "BREAK";
       state.setRunning(false);
+      disarmStep();
     }
+  }
+
+  private void disarmStep() {
+    stepArmed = false;
+    stepOver = false;
   }
 
   // ---- accessors shared with both adapters ----
@@ -242,33 +303,94 @@ public final class DebugEngine {
 
   // ---- run control ----
 
-  /** Clears runtime state and runs the programme from its first line. */
+  /** Clears runtime state and runs the programme from its first line, with the default timeout. */
   public PauseResult run() {
+    return run(DEFAULT_STEP_TIMEOUT_MS);
+  }
+
+  /**
+   * Clears runtime state and runs the programme from its first line. Pauses with {@link
+   * PauseResult.Limit} if no other pause reason fires within {@code timeoutMs} (non-positive means
+   * "use the default", not "disable" — see {@link #DEFAULT_STEP_TIMEOUT_MS}).
+   */
+  public PauseResult run(long timeoutMs) {
     state.clear();
     if (state.program().isEmpty()) {
       throw new DebugEngineException("no programme loaded");
     }
     state.setPendingJumpLocation(state.program().firstKey(), 1);
+    disarmStep();
     breaks.resetTimer();
+    armDeadline(timeoutMs);
     return driveUntilPause();
   }
 
-  /** Runs from line {@code lineNumber} without clearing variables. */
+  /** Runs from line {@code lineNumber} without clearing variables, with the default timeout. */
   public PauseResult gotoLine(int lineNumber) {
+    return gotoLine(lineNumber, DEFAULT_STEP_TIMEOUT_MS);
+  }
+
+  /** Runs from line {@code lineNumber} without clearing variables. See {@link #run(long)}. */
+  public PauseResult gotoLine(int lineNumber, long timeoutMs) {
     state.setPendingJumpLocation(lineNumber, 1);
+    disarmStep();
     breaks.resetTimer();
+    armDeadline(timeoutMs);
     return driveUntilPause();
   }
 
-  /** Resumes execution from a breakpoint. Only valid when {@link #isPaused()}. */
+  /** Resumes execution from a breakpoint, with the default timeout. Only valid when paused. */
   public PauseResult go() {
-    if (!paused) {
-      throw new DebugEngineException("not paused at a breakpoint");
-    }
-    resumeGuardLine = state.currentLineLabel();
-    resumeGuardStmt = state.currentStatementIndex();
-    state.setPendingJumpLocation(resumeGuardLine, resumeGuardStmt);
+    return go(DEFAULT_STEP_TIMEOUT_MS);
+  }
+
+  /** Resumes execution from a breakpoint. See {@link #run(long)}. Only valid when paused. */
+  public PauseResult go(long timeoutMs) {
+    requirePaused();
+    resumeAtCurrentPosition();
+    disarmStep();
     breaks.resetTimer();
+    armDeadline(timeoutMs);
+    return driveUntilPause();
+  }
+
+  /**
+   * Executes exactly one statement and pauses, entering any {@code GOSUB} it calls. Only valid when
+   * paused. With the default timeout.
+   */
+  public PauseResult stepInto() {
+    return stepInto(DEFAULT_STEP_TIMEOUT_MS);
+  }
+
+  /** {@link #stepInto()} with an explicit timeout. See {@link #run(long)}. */
+  public PauseResult stepInto(long timeoutMs) {
+    requirePaused();
+    resumeAtCurrentPosition();
+    stepArmed = true;
+    stepOver = false;
+    breaks.resetTimer();
+    armDeadline(timeoutMs);
+    return driveUntilPause();
+  }
+
+  /**
+   * Executes exactly one statement and pauses, running any {@code GOSUB} it calls to completion
+   * instead of pausing inside it (a breakpoint inside the call can still interrupt it). Only valid
+   * when paused. With the default timeout.
+   */
+  public PauseResult stepOver() {
+    return stepOver(DEFAULT_STEP_TIMEOUT_MS);
+  }
+
+  /** {@link #stepOver()} with an explicit timeout. See {@link #run(long)}. */
+  public PauseResult stepOver(long timeoutMs) {
+    requirePaused();
+    resumeAtCurrentPosition();
+    stepArmed = true;
+    stepOver = true;
+    stepOverBaseDepth = state.returnStackDepth();
+    breaks.resetTimer();
+    armDeadline(timeoutMs);
     return driveUntilPause();
   }
 
@@ -276,6 +398,25 @@ public final class DebugEngine {
   public void stop() {
     paused = false;
     state.setRunning(false);
+    disarmStep();
+  }
+
+  private void requirePaused() {
+    if (!paused) {
+      throw new DebugEngineException("not paused at a breakpoint");
+    }
+  }
+
+  /** Arms the resume guard at the current pause location and re-targets execution there. */
+  private void resumeAtCurrentPosition() {
+    resumeGuardLine = state.currentLineLabel();
+    resumeGuardStmt = state.currentStatementIndex();
+    state.setPendingJumpLocation(resumeGuardLine, resumeGuardStmt);
+  }
+
+  private void armDeadline(long timeoutMs) {
+    long effectiveMs = timeoutMs > 0 ? timeoutMs : DEFAULT_STEP_TIMEOUT_MS;
+    stepDeadlineMs = System.currentTimeMillis() + effectiveMs;
   }
 
   private PauseResult driveUntilPause() {
@@ -284,15 +425,22 @@ public final class DebugEngine {
       interpreter.resume();
     } catch (ReportException e) {
       paused = false;
+      disarmStep();
       return new PauseResult.Stopped(e);
     }
     if (firedPauseReason != null) {
       paused = true;
-      return firedPauseReason.equals("ELAPSE")
-          ? new PauseResult.Elapse()
-          : new PauseResult.Break(state.currentLineLabel(), state.currentStatementIndex());
+      return switch (firedPauseReason) {
+        case "ELAPSE" -> new PauseResult.Elapse();
+        case "STEP" ->
+            new PauseResult.Step(state.currentLineLabel(), state.currentStatementIndex());
+        case "LIMIT" ->
+            new PauseResult.Limit(state.currentLineLabel(), state.currentStatementIndex());
+        default -> new PauseResult.Break(state.currentLineLabel(), state.currentStatementIndex());
+      };
     }
     paused = false;
+    disarmStep();
     return new PauseResult.Stopped(
         new ReportException(
             ReportCode.OK,

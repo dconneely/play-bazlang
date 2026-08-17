@@ -6,6 +6,7 @@ import com.davidconneely.bazlang.antlr.AntlrParser;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.util.Map;
 import java.util.NavigableMap;
@@ -80,7 +81,11 @@ public class ProgramStorage {
         writer.write(line.lineNumber() + " " + line.sourceText());
         writer.newLine();
       }
-    } catch (IOException e) {
+    } catch (IOException | InvalidPathException e) {
+      // InvalidPathException (e.g. a ':' in an illegal position on Windows) is a RuntimeException,
+      // not an IOException, but Path.of(filename) above is still inside this try's dynamic scope
+      // (JLS 14.20.3 covers the try-with-resources resource specification too) — without catching
+      // it here as well, a malformed filename would propagate uncaught past every caller.
       throw new ReportException(
           ReportCode.INVALID_FILE_NAME,
           state.currentLineLabel(),
@@ -107,7 +112,7 @@ public class ProgramStorage {
         source = Files.readString(Path.of(filename));
       }
       return parser.parseProgramLines(source);
-    } catch (IOException e) {
+    } catch (IOException | InvalidPathException e) {
       throw new ReportException(
           ReportCode.INVALID_FILE_NAME,
           state.currentLineLabel(),

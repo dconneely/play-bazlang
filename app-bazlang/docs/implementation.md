@@ -88,20 +88,27 @@ Under `com.davidconneely.bazlang`:
 
 ### Debugger architecture decision
 
-**Synchronous blocking execution, no reentrant command loop.** `DebugEngine.run`/`gotoLine`/`go`
-each drive `Interpreter.resume()` on the caller's own thread until the programme next breaks,
-elapses, or stops, then return — there is no blocking wait for a "next command" inside the engine
-itself. A breakpoint pauses execution by having `Interpreter.setExecutionListener`'s callback set
-`EvalState.setRunning(false)` before the triggering statement executes, which unwinds
-`Interpreter.resume()` straight back to the caller; a later `go()` call resumes at the exact same
-location, guarded so the same breakpoint does not immediately re-fire. This strictly synchronous
-design entirely avoids concurrency — a genuine simplification — but it is the least conventional
-part of the architecture. A command thread with a handoff queue is the standard alternative for
-debuggers, but the trade-off (introducing shared-state concurrency, lock management, and thread
-safety across the entire `EvalState`) is significant. The current single-threaded approach is a
-documented decision: it limits the debugger's ability to interrupt an infinite loop (since it only
-gains control at statement boundaries) but keeps the execution model simple and deterministically
-testable.
+**Synchronous blocking execution, no reentrant command loop.** `DebugEngine.run`/`gotoLine`/`go`/
+`stepInto`/`stepOver` each drive `Interpreter.resume()` on the caller's own thread until the
+programme next breaks, elapses, steps, hits its wall-clock safety timeout, or stops, then return —
+there is no blocking wait for a "next command" inside the engine itself. A breakpoint pauses
+execution by having `Interpreter.setExecutionListener`'s callback set `EvalState.setRunning(false)`
+before the triggering statement executes, which unwinds `Interpreter.resume()` straight back to the
+caller; a later `go()` call resumes at the exact same location, guarded so the same breakpoint does
+not immediately re-fire. `stepInto`/`stepOver` reuse that same resume guard to let the current
+statement execute, then either pause unconditionally on the next one (`stepInto`) or let a deeper
+`GOSUB` call run free — while still honouring a breakpoint inside it — until the return-stack depth
+is back at or below where stepping started (`stepOver`; see `EvalState.returnStackDepth()`). This
+strictly synchronous design entirely avoids concurrency — a genuine simplification — but it is the
+least conventional part of the architecture. A command thread with a handoff queue is the standard
+alternative for debuggers, but the trade-off (introducing shared-state concurrency, lock management,
+and thread safety across the entire `EvalState`) is significant. The current single-threaded
+approach is a documented decision: it limits the debugger's ability to interrupt an infinite loop
+mid-statement (since it only gains control at statement boundaries), but keeps the execution model
+simple and deterministically testable. Every run-control call also arms a per-call wall-clock safety
+timeout (default 30s, overridable), pausing with a `Limit` reason if nothing else fires first — a
+mitigation for the lack of true `tools/call` cancellation (see docs/mcp_server.md "Known
+limitations"), not a substitute for it.
 
 ### Class coupling notes
 

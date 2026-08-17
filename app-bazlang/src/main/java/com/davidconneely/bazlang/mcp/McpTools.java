@@ -108,21 +108,33 @@ final class McpTools {
             "action",
             enumProp(
                 "run: clear state and run from the first line. goto: jump to a line without "
-                    + "clearing state. go: resume from a breakpoint. stop: terminate the "
-                    + "running programme. status: report the current pause state without "
-                    + "executing anything.",
+                    + "clearing state. go: resume from a breakpoint. step_into: execute exactly "
+                    + "one statement, entering any GOSUB it calls. step_over: execute exactly "
+                    + "one statement, running any GOSUB it calls to completion instead of "
+                    + "pausing inside it. stop: terminate the running programme. status: report "
+                    + "the current pause state without executing anything.",
                 "run",
                 "goto",
                 "go",
+                "step_into",
+                "step_over",
                 "stop",
                 "status"),
             "line",
-            intProp("Target line number for action=goto."));
+            intProp("Target line number for action=goto."),
+            "timeoutMs",
+            intProp(
+                "Safety cap in milliseconds for run/goto/go/step_into/step_over: pauses with "
+                    + "reason=limit if no other pause reason fires first, so a programme with an "
+                    + "accidental infinite loop and no breakpoint of its own can't block the "
+                    + "call forever. Default 30000; not used by stop/status."));
     return tool(
         "bazlang_step",
-        "Drive programme execution. run/goto/go block until the programme next breaks, elapses, "
-            + "or stops, then return the pause reason; status returns the current pause state "
-            + "immediately without executing anything.",
+        "Drive programme execution. run/goto/go/step_into/step_over block until the programme "
+            + "next breaks, elapses, steps, hits its safety timeout, or stops, then return the "
+            + "pause reason; status returns the current pause state immediately without "
+            + "executing anything. step_into/step_over require the programme to already be "
+            + "paused (like go).",
         schema(properties, "action"));
   }
 
@@ -188,21 +200,38 @@ final class McpTools {
             "action",
             enumProp(
                 "eval (default): evaluate 'expression', or execute it as a LET assignment. "
-                    + "vars: list every currently-defined scalar variable and its value, "
-                    + "ignoring 'expression' — useful for exploring an unfamiliar or "
-                    + "already-paused programme without knowing variable names up front.",
+                    + "exec: execute any single immediate-mode statement ('statement'), not "
+                    + "just LET — e.g. GOSUB, PRINT, DIM, CLS, RESTORE. vars: list every "
+                    + "currently-defined variable, array, and DEF FN — useful for exploring an "
+                    + "unfamiliar or already-paused programme without knowing names up front. "
+                    + "array: return the full contents of array 'name'.",
                 "eval",
-                "vars"),
+                "exec",
+                "vars",
+                "array"),
             "expression",
             stringProp(
                 "A bare BazLang expression to evaluate (e.g. \"SCORE\"), or an assignment "
                     + "(e.g. \"SCORE=0\") to execute as a LET statement. Required for action=eval "
-                    + "(the default); ignored for action=vars."));
+                    + "(the default); ignored otherwise."),
+            "statement",
+            stringProp(
+                "Any single immediate-mode BASIC statement or REPL command line — the same "
+                    + "input the interactive REPL accepts. Required for action=exec; ignored "
+                    + "otherwise. Prefer bazlang_program's structured actions for programme "
+                    + "management (NEW/LOAD/edit_line/etc.) — exec supports them too, but "
+                    + "without the friendlier per-action argument shape."),
+            "name",
+            stringProp(
+                "Array name (e.g. \"A\" or \"B$\"). Required for action=array; ignored "
+                    + "otherwise."));
     return tool(
         "bazlang_eval",
-        "Evaluate an expression or execute a single assignment in the live programme context, or "
-            + "list all currently-defined scalar variables. action=vars does not cover arrays — "
-            + "read an array element directly instead, e.g. expression=\"A(3)\".",
+        "Evaluate an expression, execute a statement, list every currently-defined "
+            + "variable/array/function, or read a whole array's contents, in the live "
+            + "programme context. action=vars reports array names and dimensions only, not "
+            + "their full contents — use action=array (or read a known element directly, e.g. "
+            + "expression=\"A(3)\") for that.",
         schema(properties));
   }
 

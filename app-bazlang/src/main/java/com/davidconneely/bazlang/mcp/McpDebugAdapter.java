@@ -6,8 +6,10 @@ import com.davidconneely.bazlang.debug.BreakpointEngine;
 import com.davidconneely.bazlang.debug.DebugEngine;
 import com.davidconneely.bazlang.debug.DebugEngineException;
 import com.davidconneely.bazlang.debug.ScreenText;
+import com.davidconneely.bazlang.exec.EvalState;
 import com.davidconneely.bazlang.exec.ExpressionEvaluator;
 import java.nio.charset.StandardCharsets;
+import java.util.Locale;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -67,7 +69,11 @@ final class McpDebugAdapter {
         if (path == null || path.isBlank()) {
           yield error("action=load_file requires 'path'");
         }
-        engine.applyReplCommand("LOAD \"" + path + "\"");
+        String literal = toBasicStringLiteral(path);
+        if (literal == null) {
+          yield error("action=load_file 'path' must not contain a line break");
+        }
+        engine.applyReplCommand("LOAD " + literal);
         yield success("Loaded " + path, null);
       }
       case "load_source" -> {
@@ -83,7 +89,11 @@ final class McpDebugAdapter {
         if (path == null || path.isBlank()) {
           yield error("action=save_file requires 'path'");
         }
-        engine.applyReplCommand("SAVE \"" + path + "\"");
+        String literal = toBasicStringLiteral(path);
+        if (literal == null) {
+          yield error("action=save_file 'path' must not contain a line break");
+        }
+        engine.applyReplCommand("SAVE " + literal);
         yield success("Saved " + path, null);
       }
       case "edit_line" -> {
@@ -117,6 +127,24 @@ final class McpDebugAdapter {
     return count;
   }
 
+  /**
+   * Formats {@code raw} as a BazLang string literal (doubling embedded quotes, per the grammar's
+   * {@code STR_LITERAL} escape — see {@code AstLowering.parseStrLiteral}), for embedding a
+   * caller-supplied value into a synthesized immediate statement such as {@code LOAD "..."}.
+   * Without this, an unescaped {@code "} in {@code raw} would close the literal early and let the
+   * rest of {@code raw} be parsed as further {@code :}-separated BASIC statements (e.g. a path of
+   * {@code x" : NEW : REM } would silently wipe the loaded programme). Returns {@code null} if
+   * {@code raw} contains a line break, which a BazLang string literal cannot represent at all
+   * (STR_LITERAL excludes {@code \r}/{@code \n} outright, with no escape for them) — the caller
+   * must reject the value rather than embed it.
+   */
+  private static String toBasicStringLiteral(String raw) {
+    if (raw.indexOf('\n') >= 0 || raw.indexOf('\r') >= 0) {
+      return null;
+    }
+    return "\"" + raw.replace("\"", "\"\"") + "\"";
+  }
+
   // ---- bazlang_step ----
 
   private JsonValue.JsonObject callStep(JsonValue.JsonObject a) {
@@ -129,19 +157,31 @@ final class McpDebugAdapter {
         if (engine.state().program().isEmpty()) {
           yield error("no programme loaded");
         }
-        yield pauseResultResponse(engine.run());
+        yield pauseResultResponse(engine.run(timeoutMs(a)));
       }
       case "goto" -> {
         if (!a.has("line")) {
           yield error("action=goto requires 'line'");
         }
-        yield pauseResultResponse(engine.gotoLine(a.getInt("line", 0)));
+        yield pauseResultResponse(engine.gotoLine(a.getInt("line", 0), timeoutMs(a)));
       }
       case "go" -> {
         if (!engine.isPaused()) {
           yield error("not paused at a breakpoint; use action=run or action=goto");
         }
-        yield pauseResultResponse(engine.go());
+        yield pauseResultResponse(engine.go(timeoutMs(a)));
+      }
+      case "step_into" -> {
+        if (!engine.isPaused()) {
+          yield error("not paused at a breakpoint; step_into requires a paused programme");
+        }
+        yield pauseResultResponse(engine.stepInto(timeoutMs(a)));
+      }
+      case "step_over" -> {
+        if (!engine.isPaused()) {
+          yield error("not paused at a breakpoint; step_over requires a paused programme");
+        }
+        yield pauseResultResponse(engine.stepOver(timeoutMs(a)));
       }
       case "stop" -> {
         engine.stop();
@@ -158,6 +198,11 @@ final class McpDebugAdapter {
     };
   }
 
+  /** {@code timeoutMs}, defaulting to {@link DebugEngine#DEFAULT_STEP_TIMEOUT_MS} if omitted. */
+  private static long timeoutMs(JsonValue.JsonObject a) {
+    return a.getInt("timeoutMs", (int) DebugEngine.DEFAULT_STEP_TIMEOUT_MS);
+  }
+
   private JsonValue.JsonObject pauseResultResponse(DebugEngine.PauseResult result) {
     return switch (result) {
       case DebugEngine.PauseResult.Break(int line, int stmt) ->
@@ -166,6 +211,14 @@ final class McpDebugAdapter {
               JsonValue.objectOf("reason", "break", "line", line, "stmt", stmt));
       case DebugEngine.PauseResult.Elapse ignored ->
           success("ELAPSE", JsonValue.objectOf("reason", "elapse"));
+      case DebugEngine.PauseResult.Step(int line, int stmt) ->
+          success(
+              "STEP AT " + line + ":" + stmt,
+              JsonValue.objectOf("reason", "step", "line", line, "stmt", stmt));
+      case DebugEngine.PauseResult.Limit(int line, int stmt) ->
+          success(
+              "LIMIT AT " + line + ":" + stmt,
+              JsonValue.objectOf("reason", "limit", "line", line, "stmt", stmt));
       case DebugEngine.PauseResult.Stopped(ReportException report) ->
           success(
               "STOP " + report.format(),
@@ -309,9 +362,20 @@ final class McpDebugAdapter {
     String action = a.has("action") ? a.getString("action") : "eval";
     return switch (action == null ? "eval" : action) {
       case "eval" -> callEvalExpression(a);
+      case "exec" -> callEvalExec(a);
       case "vars" -> callEvalVars();
+      case "array" -> callEvalArray(a);
       default -> error("Unknown action for bazlang_eval: " + action);
     };
+  }
+
+  private JsonValue.JsonObject callEvalExec(JsonValue.JsonObject a) {
+    String statement = a.getString("statement");
+    if (statement == null || statement.isBlank()) {
+      return error("action=exec requires 'statement'");
+    }
+    engine.applyReplCommand(statement);
+    return success("OK", null);
   }
 
   private JsonValue.JsonObject callEvalExpression(JsonValue.JsonObject a) {
@@ -336,8 +400,13 @@ final class McpDebugAdapter {
   }
 
   private JsonValue.JsonObject callEvalVars() {
-    var numVars = engine.state().getVariablesSnapshot();
-    var strVars = engine.state().getStringVariablesSnapshot();
+    var state = engine.state();
+    var numVars = state.getVariablesSnapshot();
+    var strVars = state.getStringVariablesSnapshot();
+    var numArrays = state.numArraysSnapshot();
+    var strArrays = state.strArraysSnapshot();
+    var fns = state.fnDefinitionsSnapshot();
+
     JsonValue.JsonObject numeric = JsonValue.object();
     for (var e : numVars.entrySet()) {
       numeric.put(e.getKey(), e.getValue());
@@ -346,9 +415,91 @@ final class McpDebugAdapter {
     for (var e : strVars.entrySet()) {
       string.put(e.getKey(), e.getValue());
     }
-    int total = numVars.size() + strVars.size();
+    JsonValue.JsonObject numericArrays = JsonValue.object();
+    for (var e : numArrays.entrySet()) {
+      numericArrays.put(e.getKey(), dimensionsToJson(e.getValue().dimensions()));
+    }
+    JsonValue.JsonObject stringArrays = JsonValue.object();
+    for (var e : strArrays.entrySet()) {
+      stringArrays.put(
+          e.getKey(),
+          JsonValue.object()
+              .put("dimensions", dimensionsToJson(e.getValue().arrayDimensions()))
+              .put("stringLength", e.getValue().stringLength()));
+    }
+    JsonValue.JsonObject functions = JsonValue.object();
+    for (var e : fns.entrySet()) {
+      JsonValue.JsonArray params = JsonValue.array();
+      for (String p : e.getValue().params()) {
+        params.add(JsonValue.of(p));
+      }
+      functions.put(e.getKey(), params);
+    }
+
+    int total = numVars.size() + strVars.size() + numArrays.size() + strArrays.size() + fns.size();
     return success(
-        total + " variable(s)", JsonValue.objectOf("numeric", numeric, "string", string));
+        total + " variable(s)/array(s)/function(s)",
+        JsonValue.objectOf(
+            "numeric", numeric,
+            "string", string,
+            "numericArrays", numericArrays,
+            "stringArrays", stringArrays,
+            "functions", functions));
+  }
+
+  // Both call sites pass an existing int[] (NumArray.dimensions()/StrVar.Array.arrayDimensions()),
+  // never an ad-hoc literal list, so varargs would add an unnecessary array copy at each call site.
+  @SuppressWarnings("PMD.UseVarargs")
+  private static JsonValue.JsonArray dimensionsToJson(int[] dimensions) {
+    JsonValue.JsonArray arr = JsonValue.array();
+    for (int d : dimensions) {
+      arr.add(JsonValue.of((long) d));
+    }
+    return arr;
+  }
+
+  /**
+   * Returns the full contents of array {@code name} — avoids requiring one {@code eval} call per
+   * element to inspect a whole array. Flattened in row-major order (the last dimension varies
+   * fastest), matching {@code ExpressionEvaluator.calculateArrayIndex}; 1-based indices, as in
+   * BASIC subscripts, so element {@code i} (0-based, in {@code values}) is {@code A(i/dims[1]+1,
+   * i%dims[1]+1)} for a 2-D array, generalising the same way for more dimensions.
+   */
+  private JsonValue.JsonObject callEvalArray(JsonValue.JsonObject a) {
+    String name = a.getString("name");
+    if (name == null || name.isBlank()) {
+      return error("action=array requires 'name'");
+    }
+    String upperName = name.trim().toUpperCase(Locale.ROOT);
+    var state = engine.state();
+    if (state.hasNumArray(upperName)) {
+      EvalState.NumArray array = state.numArray(upperName);
+      JsonValue.JsonArray values = JsonValue.array();
+      for (double v : array.data()) {
+        values.add(JsonValue.of(v));
+      }
+      return success(
+          array.data().length + " element(s)",
+          JsonValue.objectOf("dimensions", dimensionsToJson(array.dimensions()), "values", values));
+    }
+    if (state.hasStrVar(upperName)
+        && state.strVar(upperName) instanceof EvalState.StrVar.Array array) {
+      int stringLength = array.stringLength();
+      int total = stringLength == 0 ? 0 : array.data().length / stringLength;
+      JsonValue.JsonArray values = JsonValue.array();
+      for (int i = 0; i < total; i++) {
+        values.add(
+            JsonValue.of(
+                BStr.fromBytes(array.data(), i * stringLength, stringLength).toJavaString()));
+      }
+      return success(
+          total + " element(s)",
+          JsonValue.objectOf(
+              "dimensions", dimensionsToJson(array.arrayDimensions()),
+              "stringLength", stringLength,
+              "values", values));
+    }
+    return error("No such array: " + name);
   }
 
   // ---- bazlang_screen ----

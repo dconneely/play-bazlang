@@ -89,6 +89,13 @@ example directory the way `load_file`'s bare names are (matching the plain `SAVE
 a full or relative path, and it does not flush queued input, since it doesn't touch the loaded
 programme.
 
+`load_file`/`save_file`'s `path` is embedded into a synthesized `LOAD "..."`/`SAVE "..."` statement,
+with embedded `"` characters escaped (doubled, matching the language's own string-literal escape) so
+a quote in `path` can't close the literal early and let the rest of `path` be parsed as further
+`:`-separated BASIC statements. A `path` containing a line break is rejected outright (`isError`),
+since a BazLang string literal can't represent one at all. A syntactically invalid path for the host
+platform (e.g. a bare `:` on Windows) is reported as a normal file-not-found error, not a crash.
+
 ```jsonc
 → {"name":"bazlang_program","arguments":{"action":"load_source","source":"10 LET X=0\n20 PRINT X"}}
 ← {"resultType":"complete","content":[{"type":"text","text":"Loaded programme (2 lines)"}],"isError":false}
@@ -96,27 +103,43 @@ programme.
 
 ### `bazlang_step`
 
-Drives programme execution. Blocks until the programme next breaks, elapses, or stops, then
-returns the pause reason — each MCP call is already one full request/response round trip, so there
-is no separate "wait for the next event" phase to model.
+Drives programme execution. `run`/`goto`/`go`/`step_into`/`step_over` block until the programme
+next breaks, elapses, steps, hits its safety timeout, or stops, then return the pause reason — each
+MCP call is already one full request/response round trip, so there is no separate "wait for the
+next event" phase to model.
 
 | `action` | Arguments | Effect |
 | --- | --- | --- |
-| `run` | — | Clears runtime state and runs from the first line. Error if no programme is loaded |
-| `goto` | `line` | Runs from `line` without clearing state |
-| `go` | — | Resumes from a breakpoint. Error if not currently paused |
+| `run` | `timeoutMs` (optional) | Clears runtime state and runs from the first line. Error if no programme is loaded |
+| `goto` | `line`, `timeoutMs` (optional) | Runs from `line` without clearing state |
+| `go` | `timeoutMs` (optional) | Resumes from a breakpoint. Error if not currently paused |
+| `step_into` | `timeoutMs` (optional) | Executes exactly one statement, entering any `GOSUB` it calls. Error if not currently paused |
+| `step_over` | `timeoutMs` (optional) | Executes exactly one statement, running any `GOSUB` it calls to completion instead of pausing inside it. Error if not currently paused |
 | `stop` | — | Terminates the running programme, without ending the server process |
 | `status` | — | Reports the current pause state immediately, without executing anything |
 
 `bazlang_step`'s `stop` action just resets run state so a later `run`/`goto` can start again — the
-server stays up until stdin closes. `status` never blocks, unlike the other four actions — use it
+server stays up until stdin closes. `status` never blocks, unlike the other five actions — use it
 to check whether the programme is currently paused (and where) without triggering execution, e.g.
 after a few `bazlang_eval`/`bazlang_stack` calls while paused.
 
-`structuredContent.reason` is one of `break` (with `line`/`stmt`), `elapse`, `stop` (with `code`,
-`message`, `line`, `stmt` — see `ReportCode` for the code table), or `stopped` (the `stop` action).
-`status`'s response instead carries `structuredContent.paused` (boolean) plus `line`/`stmt` for the
-current (or last) execution position, regardless of whether the programme is currently paused.
+`step_into`/`step_over` require the programme to already be paused, exactly like `go` — to start
+stepping from the very first line, set a breakpoint there and `run` first. A breakpoint inside a
+call `step_over` is running to completion still interrupts it, so stepping over never accidentally
+skips past a breakpoint an agent placed inside that call.
+
+Every blocking action arms a wall-clock safety cap — default 30 seconds, overridable per call via
+`timeoutMs` — so a programme with an accidental infinite loop and no breakpoint of its own can't
+block the call (and, since the server processes one request at a time, the whole session) forever.
+A `bazlang_step(go)` (or `step_into`/`step_over`) after hitting the cap simply keeps going, arming a
+fresh deadline.
+
+`structuredContent.reason` is one of `break` (with `line`/`stmt`), `elapse`, `step` (with
+`line`/`stmt` — `step_into`/`step_over`'s landing spot), `limit` (with `line`/`stmt` — the safety
+cap fired), `stop` (with `code`, `message`, `line`, `stmt` — see `ReportCode` for the code table),
+or `stopped` (the `stop` action). `status`'s response instead carries `structuredContent.paused`
+(boolean) plus `line`/`stmt` for the current (or last) execution position, regardless of whether the
+programme is currently paused.
 
 ```jsonc
 → {"name":"bazlang_step","arguments":{"action":"run"}}
@@ -163,17 +186,35 @@ one of:
 | `action` | Arguments | Effect |
 | --- | --- | --- |
 | `eval` (default) | `expression` | Evaluates `expression`, or executes it as a `LET` assignment |
-| `vars` | — | Lists every currently-defined scalar variable and its value |
+| `exec` | `statement` | Executes any single immediate-mode statement, not just `LET` |
+| `vars` | — | Lists every currently-defined variable, array, and `DEF FN` |
+| `array` | `name` | Returns the full contents of array `name` |
 
 `eval` covers both evaluation and assignment with one `expression` argument. A leading `LET` is the
 disambiguating cue for assignment — everything else is evaluated as an expression. This is
 deliberate, not a heuristic guess: bare `X=3` is a valid BazLang *expression* (an equality test), so
 only an explicit `LET X=3` can mean "assign" without ambiguity.
 
-`vars` returns `structuredContent.numeric`/`.string` objects (variable name → value), for exploring
-an unfamiliar or already-paused programme without knowing variable names up front — `eval` requires
-naming one. It covers scalars only, not arrays; read an array element directly instead, e.g.
-`expression: "A(3)"`.
+`exec` runs `statement` exactly as the interactive REPL would with any single immediate-mode input
+line — `GOSUB`, `PRINT`, `DIM`, `CLS`, `RESTORE`, `RANDOMIZE`, a bare numbered line, even `NEW`/
+`LOAD`/`DELETE`/`RENUM` — a strict superset of `eval`'s `LET`-only assignment handling. Prefer
+`bazlang_program`'s structured actions for programme management (`new`/`load_file`/`edit_line`/
+etc.) — `exec` supports them too, but without the friendlier per-action argument shape or
+`load_file`/`save_file`'s path-escaping (see above); it's meant for one-off statements like `GOSUB`
+that have no dedicated tool at all.
+
+`vars` returns `structuredContent.numeric`/`.string` (scalar name → value), `.numericArrays`/
+`.stringArrays` (array name → dimensions — a string array's entry also carries `stringLength`, the
+fixed per-element length from its trailing `DIM` dimension), and `.functions` (`DEF FN` name →
+parameter names), for exploring an unfamiliar or already-paused programme without knowing any names
+up front — `eval` requires naming one. Array entries are metadata only, not their full contents.
+
+`array` returns a whole array's data in one call instead of requiring one `eval` call per element —
+`structuredContent.dimensions` plus a flattened `structuredContent.values` (row-major, last
+dimension fastest, matching how `A(i,j)` itself is laid out; 1-based indices as in BASIC
+subscripts). A string array's response also carries `stringLength`; each returned value is
+space-padded to that fixed length, exactly as `A$(i)` itself would read (padding is part of the
+value, not trimmed).
 
 ```jsonc
 → {"name":"bazlang_eval","arguments":{"expression":"SCORE"}}
@@ -183,9 +224,18 @@ naming one. It covers scalars only, not arrays; read an array element directly i
 → {"name":"bazlang_eval","arguments":{"expression":"LET SCORE=0"}}
 ← {"resultType":"complete","content":[{"type":"text","text":"OK"}],"isError":false}
 
+→ {"name":"bazlang_eval","arguments":{"action":"exec","statement":"GOSUB 1000"}}
+← {"resultType":"complete","content":[{"type":"text","text":"OK"}],"isError":false}
+
 → {"name":"bazlang_eval","arguments":{"action":"vars"}}
-← {"resultType":"complete","content":[{"type":"text","text":"2 variable(s)"}],"isError":false,
-   "structuredContent":{"numeric":{"SCORE":0},"string":{"NAME$":"ADA"}}}
+← {"resultType":"complete","content":[{"type":"text","text":"3 variable(s)/array(s)/function(s)"}],
+   "isError":false,"structuredContent":{
+     "numeric":{"SCORE":0},"string":{"NAME$":"ADA"},
+     "numericArrays":{"HISCORES":[10]},"stringArrays":{},"functions":{"F":["X"]}}}
+
+→ {"name":"bazlang_eval","arguments":{"action":"array","name":"HISCORES"}}
+← {"resultType":"complete","content":[{"type":"text","text":"10 element(s)"}],"isError":false,
+   "structuredContent":{"dimensions":[10],"values":[100,90,80,70,60,50,40,30,20,10]}}
 ```
 
 ### `bazlang_screen`
@@ -281,7 +331,10 @@ errors and tool execution errors.
 - **Modern-only, no legacy fallback** (see above) — a real compatibility risk with MCP clients that
   haven't adopted 2026-07-28 yet.
 - **No true cancellation.** `notifications/cancelled` is accepted but has no effect — a `tools/call`
-  always runs to completion; there is no cancel-while-running mechanism.
+  always runs to completion; there is no cancel-while-running mechanism. `bazlang_step`'s
+  `timeoutMs` safety cap (see above) is a mitigation, not a substitute: it guarantees a runaway
+  programme with no breakpoint of its own can't block forever, but doesn't let an agent interrupt a
+  call early on demand.
 - **No `listChanged`.** The tool set is static, so `tools/list`'s long `ttlMs` is safe to cache.
 - **One implicit session per process.** There's no protocol-level session (2026-07-28 has none) and
   no explicit session handle — the whole server process *is* the session, one process per debugging
