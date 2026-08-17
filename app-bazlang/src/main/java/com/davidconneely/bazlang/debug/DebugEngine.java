@@ -187,6 +187,29 @@ public final class DebugEngine {
     if (state.lastReport().code() != ReportCode.OK) {
       throw new DebugEngineException(mockScreen.getStatus());
     }
+    if (replacesWholeProgram(cmd)) {
+      // NEW and LOAD replace the whole programme; a plain numbered-line edit does not. Flushing
+      // here — rather than requiring every caller to remember to — is what actually prevents input
+      // queued for one programme from being silently consumed by a different one that happens to
+      // read a different input primitive — INKEY$, UINKEY$, and INPUT all share one MockScreen for
+      // the lifetime of this engine, which can span many programme loads. See docs/mcp_server.md's
+      // "Input queue" section for the incident that motivated this — two different games' stale
+      // queued input each broke a later one.
+      mockScreen.clearInputQueues();
+    }
+  }
+
+  /**
+   * True for {@code NEW} and {@code LOAD "..."} — the two REPL commands that replace the whole
+   * programme, as opposed to editing a single line of the current one (or {@code MERGE}, which
+   * overlays lines onto the existing programme rather than replacing it).
+   */
+  private static boolean replacesWholeProgram(String cmd) {
+    String upper = cmd.trim().toUpperCase();
+    return upper.equals("NEW")
+        || upper.equals("LOAD")
+        || upper.startsWith("LOAD ")
+        || upper.startsWith("LOAD\t");
   }
 
   /**

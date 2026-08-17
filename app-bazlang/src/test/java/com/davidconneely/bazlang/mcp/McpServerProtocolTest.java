@@ -287,4 +287,49 @@ class McpServerProtocolTest {
     JsonValue.JsonObject listResult = result(responses.get(3));
     assertEquals("20 LET X = 2", listResult.getObject("structuredContent").getString("listing"));
   }
+
+  @Test
+  void loadingANewProgrammeFlushesQueuedInput() throws Exception {
+    // Found via live use: on one long-lived engine, input queued while one programme was loaded
+    // (or left over from a previous one) could be silently consumed by the next programme loaded,
+    // if that programme happened to read a different input primitive than the one the queued text
+    // was originally meant for — see docs/mcp_server.md "Input queue". bazlang_program's
+    // new/load_file/load_source actions now flush all queued input before the new programme runs.
+    List<JsonValue.JsonObject> responses =
+        runSession(
+            toolCall(1, "bazlang_input", JsonValue.objectOf("action", "queue", "text", "Z")),
+            toolCall(
+                2,
+                "bazlang_program",
+                JsonValue.objectOf(
+                    "action", "load_source", "source", "10 LET A$ = INKEY$\n20 STOP")),
+            toolCall(3, "bazlang_step", JsonValue.objectOf("action", "run")),
+            toolCall(4, "bazlang_eval", JsonValue.objectOf("expression", "A$")));
+    assertEquals(4, responses.size());
+    JsonValue.JsonObject evalResult = result(responses.get(3));
+    assertFalse(evalResult.getBoolean("isError", true));
+    assertEquals("", evalResult.getObject("structuredContent").getString("value"));
+  }
+
+  @Test
+  void inputClearActionDiscardsQueuedText() throws Exception {
+    // Load first, so the load itself has nothing queued to flush yet — isolates action=clear's own
+    // effect from the auto-flush-on-load behaviour covered by the test above.
+    List<JsonValue.JsonObject> responses =
+        runSession(
+            toolCall(
+                1,
+                "bazlang_program",
+                JsonValue.objectOf(
+                    "action", "load_source", "source", "10 LET A$ = INKEY$\n20 STOP")),
+            toolCall(2, "bazlang_input", JsonValue.objectOf("action", "queue", "text", "Z")),
+            toolCall(3, "bazlang_input", JsonValue.objectOf("action", "clear")),
+            toolCall(4, "bazlang_step", JsonValue.objectOf("action", "run")),
+            toolCall(5, "bazlang_eval", JsonValue.objectOf("expression", "A$")));
+    assertEquals(5, responses.size());
+    assertFalse(result(responses.get(2)).getBoolean("isError", true));
+    JsonValue.JsonObject evalResult = result(responses.get(4));
+    assertFalse(evalResult.getBoolean("isError", true));
+    assertEquals("", evalResult.getObject("structuredContent").getString("value"));
+  }
 }

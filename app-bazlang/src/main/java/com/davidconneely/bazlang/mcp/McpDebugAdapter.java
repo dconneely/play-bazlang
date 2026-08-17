@@ -313,10 +313,28 @@ final class McpDebugAdapter {
   // ---- bazlang_input ----
 
   private JsonValue.JsonObject callInput(JsonValue.JsonObject a) {
-    String text = a.getString("text");
-    if (text == null) {
-      return error("bazlang_input requires 'text'");
+    String action = a.getString("action");
+    if (action == null) {
+      return error("bazlang_input requires an 'action'");
     }
+    return switch (action) {
+      case "queue" -> {
+        String text = a.getString("text");
+        if (text == null) {
+          yield error("action=queue requires 'text'");
+        }
+        queueText(text);
+        yield success("OK", null);
+      }
+      case "clear" -> {
+        engine.screen().clearInputQueues();
+        yield success("cleared", null);
+      }
+      default -> error("Unknown action for bazlang_input: " + action);
+    };
+  }
+
+  private void queueText(String text) {
     byte[] bytes = text.getBytes(StandardCharsets.UTF_8);
     for (byte b : bytes) {
       engine.screen().queueInkey(BStr.fromByte(b & 0xFF));
@@ -328,7 +346,6 @@ final class McpDebugAdapter {
                     .screen()
                     .queueUinkey(BStr.fromJavaString(new String(Character.toChars(cp)))));
     engine.screen().queueInput(text);
-    return success("OK", null);
   }
 
   // ---- response envelope helpers ----

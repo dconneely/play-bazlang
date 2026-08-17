@@ -76,15 +76,16 @@ Consolidates `NEW`, `LOAD "path"`, single numbered-line edits, and `LIST`.
 
 | `action` | Arguments | Effect |
 | --- | --- | --- |
-| `new` | — | Clears the programme and all runtime state |
-| `load_file` | `path` | Loads a `.bas` file (bare names resolve against the example directory) |
-| `load_source` | `source` | Replaces the whole programme with inline multi-line source |
-| `edit_line` | `line`, `statement` | Adds/replaces line `line`; blank `statement` deletes it |
+| `new` | — | Clears the programme and all runtime state, and flushes queued input |
+| `load_file` | `path` | Loads a `.bas` file (bare names resolve against the example directory); flushes queued input |
+| `load_source` | `source` | Replaces the whole programme with inline multi-line source; flushes queued input |
+| `edit_line` | `line`, `statement` | Adds/replaces line `line`; blank `statement` deletes it. Does **not** flush queued input |
 | `list` | — | Returns the current programme text in `content` and `structuredContent.listing` |
 
 `load_file` resolves bare names the same way the text protocol's `>LOAD` does. `load_source` has
 no text-protocol equivalent — the old protocol could only build a programme one `>n stmt` line at
 a time; `load_source` loads a whole multi-line programme (one BASIC line per `\n`) in one call.
+See "Input queue" below for why `new`/`load_file`/`load_source` flush and `edit_line` doesn't.
 
 ```jsonc
 → {"name":"bazlang_program","arguments":{"action":"load_source","source":"10 LET X=0\n20 PRINT X"}}
@@ -174,8 +175,42 @@ Consolidates `RSC` and `SSD`.
 
 ### `bazlang_input`
 
-Consolidates `PIQ`. `text` is a plain JSON string (JSON's own escaping replaces the text
-protocol's `QuotedArg` format) queued for `INKEY$`/`UINKEY$`/`INPUT` to consume.
+Consolidates `PIQ`, plus a queue-flush action with no text-protocol equivalent.
+
+| `action` | Arguments | Effect |
+| --- | --- | --- |
+| `queue` | `text` | Queues `text` for `INKEY$`/`UINKEY$`/`INPUT` to consume |
+| `clear` | — | Discards all queued input without adding any |
+
+`text` is a plain JSON string (JSON's own escaping replaces the text protocol's `QuotedArg`
+format). `action=clear` is for cancelling a mis-queued value or resetting mid-session without
+reloading the programme — see "Input queue" below for the far more common case, which is handled
+automatically and needs no explicit call.
+
+## Input queue
+
+`bazlang_input(queue)` — like the text protocol's `/PIQ` before it — queues the same text for all
+three input primitives at once (`INKEY$` gets it byte-by-byte, `UINKEY$` codepoint-by-codepoint,
+`INPUT` as one line), because the queuer can't know in advance which one the programme will
+actually read. That's fine within one programme's lifetime, but `DebugEngine`'s queues live on one
+`MockScreen` for as long as the engine does — across many `bazlang_program` calls, not just one
+run — so **anything queued but never consumed by one programme is still sitting there, in all three
+queues, when the next programme loads.**
+
+This was found the hard way: a session that queued single-key guesses for a hangman-style
+programme (which only ever calls `INKEY$`) then loaded a real-time programme reading `UINKEY$`
+found its very first keypress was actually a stale hangman guess, several calls deep into the
+queue. A later session hit the same thing from the other side — a programme's first `INPUT` call
+consumed a stale value queued many calls earlier by a completely different programme, and (correctly)
+reported a parse error for it.
+
+`bazlang_program`'s `new`, `load_file`, and `load_source` actions now flush all three queues
+automatically whenever they replace the whole programme, so input queued for a programme you've
+moved on from can never leak into the next one. `edit_line` deliberately does **not** flush —
+editing one line of the *current* programme is a much smaller change than replacing it, and a
+workflow that's iterating on one programme in a loop plausibly wants queued input to survive a
+line tweak. Use `bazlang_input(clear)` directly if you need to flush without a reload (e.g. you
+queued the wrong key and want to cancel it before the programme consumes it).
 
 ## Error codes
 

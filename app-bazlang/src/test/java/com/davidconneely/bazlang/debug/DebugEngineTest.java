@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.davidconneely.bazlang.BStr;
 import com.davidconneely.bazlang.antlr.AntlrParser;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -153,5 +154,44 @@ class DebugEngineTest {
     engine.applyReplCommand("LOAD \"pong\"");
     assertFalse(engine.listProgram().isBlank());
     assertTrue(engine.listProgram().startsWith("1000 REM ### Classic Pong ###"));
+  }
+
+  @Test
+  void newFlushesQueuedInput() {
+    // Found via live use: switching programmes on one long-lived engine left stale queued input
+    // (queued for a program using one input primitive) to be silently consumed by the next
+    // programme if it happened to use a different one — see docs/mcp_server.md "Input queue".
+    engine.screen().queueInkey(BStr.fromJavaString("x"));
+    engine.screen().queueUinkey(BStr.fromJavaString("x"));
+    engine.screen().queueInput("x");
+    engine.applyReplCommand("NEW");
+    assertEquals(BStr.EMPTY, engine.screen().inkey());
+    assertEquals(BStr.EMPTY, engine.screen().uinkey());
+    assertEquals("", engine.screen().readln((String) null));
+  }
+
+  @Test
+  void loadFlushesQueuedInput() {
+    engine.screen().queueInkey(BStr.fromJavaString("x"));
+    engine.applyReplCommand("LOAD \"pong\"");
+    assertEquals(BStr.EMPTY, engine.screen().inkey());
+  }
+
+  @Test
+  void loadSourceFlushesQueuedInput() {
+    engine.screen().queueUinkey(BStr.fromJavaString("x"));
+    engine.loadSource("10 LET X = 1");
+    assertEquals(BStr.EMPTY, engine.screen().uinkey());
+  }
+
+  @Test
+  void editingALineDoesNotFlushQueuedInput() {
+    // Deliberately scoped: a plain numbered-line edit is a much smaller mutation than replacing
+    // the whole programme, and a workflow actively editing-and-testing one programme in a loop
+    // plausibly wants its queued input to survive a line tweak.
+    engine.applyReplCommand("10 LET X = 1");
+    engine.screen().queueInkey(BStr.fromJavaString("x"));
+    engine.applyReplCommand("20 LET X = 2");
+    assertEquals("x", engine.screen().inkey().toJavaString());
   }
 }

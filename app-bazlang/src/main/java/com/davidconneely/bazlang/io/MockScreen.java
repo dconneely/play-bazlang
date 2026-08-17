@@ -194,6 +194,17 @@ public class MockScreen extends AbstractCellBufferedScreen {
     uinkeyQueue.add(val);
   }
 
+  /**
+   * Discards all queued {@code INKEY$}/{@code UINKEY$}/{@code INPUT} text without consuming it.
+   * Used when switching to a different programme, so input queued for one programme can never be
+   * silently consumed by a different one that happens to read a different input primitive.
+   */
+  public void clearInputQueues() {
+    inkeyQueue.clear();
+    uinkeyQueue.clear();
+    inputQueue.clear();
+  }
+
   @Override
   public BStr inkey() {
     final var val = inkeyQueue.poll();

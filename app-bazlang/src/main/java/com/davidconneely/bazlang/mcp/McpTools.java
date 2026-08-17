@@ -215,11 +215,22 @@ final class McpTools {
 
   private static JsonValue.JsonObject inputTool() {
     JsonValue.JsonObject properties =
-        props("text", stringProp("Text to queue for INKEY$/UINKEY$/INPUT to consume."));
+        props(
+            "action",
+            enumProp(
+                "queue: append text for INKEY$/UINKEY$/INPUT to consume. clear: discard all "
+                    + "queued input without adding any.",
+                "queue",
+                "clear"),
+            "text",
+            stringProp("Text to queue (action=queue)."));
     return tool(
         "bazlang_input",
-        "Queue keyboard/INPUT text for the programme to consume. Consolidates the text "
-            + "protocol's PIQ.",
-        schema(properties, "text"));
+        "Queue keyboard/INPUT text for the programme to consume, or discard queued input. "
+            + "Consolidates the text protocol's PIQ. bazlang_program(new/load_file/load_source) "
+            + "already discards queued input automatically when it replaces the programme — see "
+            + "docs/mcp_server.md's \"Input queue\" section — so action=clear is for cancelling a "
+            + "mis-queued value or resetting mid-session without reloading.",
+        schema(properties, "action"));
   }
 }
