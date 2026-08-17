@@ -1,7 +1,6 @@
 package com.davidconneely.bazlang.debug;
 
 import com.davidconneely.bazlang.antlr.AntlrParser;
-import java.nio.file.Files;
 import java.nio.file.Path;
 
 /// Interactive debugger for BazLang programmes, designed for use by LLM agents over stdin/stdout
@@ -147,36 +146,13 @@ import java.nio.file.Path;
 /// | `\e` | ESC (chr 27) |
 public final class AgentDebugger {
 
-  /**
-   * Resolves a bare programme name or file path to an actual {@link Path}.
-   *
-   * <p>Tries the argument verbatim, then with {@code .bas} appended, then under the canonical
-   * example directory. Returns {@code null} when no existing file is found.
-   */
-  static Path resolveBasPath(String inputPath) {
-    Path p = Path.of(inputPath);
-    if (Files.exists(p)) {
-      return p;
-    }
-    String name = inputPath.endsWith(".bas") ? inputPath : inputPath + ".bas";
-    p = Path.of("src", "example", "bas", name);
-    if (Files.exists(p)) {
-      return p;
-    }
-    p = Path.of("app-bazlang", "src", "example", "bas", name);
-    if (Files.exists(p)) {
-      return p;
-    }
-    return null;
-  }
-
   private AgentDebugger() {}
 
   public static void main(String[] args) {
     Path initialPath = null;
     if (args.length > 0) {
       String inputPath = args[0];
-      initialPath = resolveBasPath(inputPath);
+      initialPath = DebugEngine.resolveBasPath(inputPath);
       if (initialPath == null) {
         System.err.printf("Could not find BASIC file '%s' — check the path or name%n", inputPath);
         return;

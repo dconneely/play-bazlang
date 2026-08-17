@@ -15,6 +15,7 @@ import com.davidconneely.bazlang.exec.StatementExecutor;
 import com.davidconneely.bazlang.exec.ast.AstLowering;
 import com.davidconneely.bazlang.exec.ast.Stmt;
 import com.davidconneely.bazlang.io.MockScreen;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 
@@ -34,6 +35,32 @@ import java.util.List;
  * does not immediately re-fire.
  */
 public final class DebugEngine {
+
+  /**
+   * Resolves a bare programme name or file path to an actual {@link Path}.
+   *
+   * <p>Tries the argument verbatim, then with {@code .bas} appended, then under the canonical
+   * example directory. Returns {@code null} when no existing file is found. Shared by both
+   * front-ends: {@link AgentDebugger#main} for its optional preload argument, and this class's own
+   * {@code LOAD} handling below (so {@code bazlang_program(load_file)} resolves bare names the same
+   * way).
+   */
+  static Path resolveBasPath(String inputPath) {
+    Path p = Path.of(inputPath);
+    if (Files.exists(p)) {
+      return p;
+    }
+    String name = inputPath.endsWith(".bas") ? inputPath : inputPath + ".bas";
+    p = Path.of("src", "example", "bas", name);
+    if (Files.exists(p)) {
+      return p;
+    }
+    p = Path.of("app-bazlang", "src", "example", "bas", name);
+    if (Files.exists(p)) {
+      return p;
+    }
+    return null;
+  }
 
   /** The outcome of {@link #run}, {@link #gotoLine}, or {@link #go}: where execution stopped. */
   public sealed interface PauseResult {
@@ -80,7 +107,7 @@ public final class DebugEngine {
         new ProgramStorage(state, parser) {
           @Override
           public void load(String filename) {
-            Path p = AgentDebugger.resolveBasPath(filename);
+            Path p = resolveBasPath(filename);
             if (p == null) {
               throw new ReportException(
                   ReportCode.INVALID_FILE_NAME,
@@ -103,6 +130,19 @@ public final class DebugEngine {
   }
 
   private void onBeforeStatement(int line, int stmt) {
+    if (line == 0) {
+      // Line 0 is the Interpreter.executeImmediate sentinel used for REPL/immediate-mode
+      // commands (LOAD, NEW, a numbered-line edit, an assignment via applyReplCommand /
+      // executeAssignment) — never a real programme line. Breakpoints must not intercept these:
+      // an unconditional persistent breakpoint (an ELAPSE one especially, since real wall-clock
+      // time keeps advancing between calls) would otherwise fire here, set running=false *before*
+      // Interpreter.resume() reaches executor.execute(stmt), and silently cancel the command —
+      // e.g. a `LOAD "x"` that never actually loads anything, while still reporting success,
+      // because the REPL handler has no way to distinguish "cancelled by a breakpoint" from
+      // "ran fine". See the 2026-08-16 entry in localonly-BAZLANG-IMPROVEMENTS.md for how this
+      // was found (both AgentDebugger and the MCP server share this engine, so both were affected).
+      return;
+    }
     if (line == resumeGuardLine && stmt == resumeGuardStmt) {
       // We just resumed exactly here after a previous pause: don't re-fire the same breakpoint.
       resumeGuardLine = -1;
@@ -188,12 +228,14 @@ public final class DebugEngine {
       throw new DebugEngineException("no programme loaded");
     }
     state.setPendingJumpLocation(state.program().firstKey(), 1);
+    breaks.resetTimer();
     return driveUntilPause();
   }
 
   /** Runs from line {@code lineNumber} without clearing variables. */
   public PauseResult gotoLine(int lineNumber) {
     state.setPendingJumpLocation(lineNumber, 1);
+    breaks.resetTimer();
     return driveUntilPause();
   }
 
