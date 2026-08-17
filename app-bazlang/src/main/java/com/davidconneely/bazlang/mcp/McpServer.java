@@ -61,8 +61,8 @@ public final class McpServer {
     }
     JsonValue id = obj.get("id"); // genuinely absent (Java null) => notification: never respond
     if (id == null) {
-      // e.g. notifications/cancelled: accepted, no-op. AgentDebugger has no cancel-while-running
-      // mechanism either, so this isn't a functional regression versus the text protocol.
+      // e.g. notifications/cancelled: accepted, no-op — there is no cancel-while-running
+      // mechanism.
       return;
     }
     String method = obj.getString("method");

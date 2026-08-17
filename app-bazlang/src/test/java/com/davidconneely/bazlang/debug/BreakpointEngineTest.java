@@ -1,6 +1,5 @@
 package com.davidconneely.bazlang.debug;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
@@ -10,6 +9,7 @@ import com.davidconneely.bazlang.debug.BreakpointEngine.ConditionType;
 import com.davidconneely.bazlang.exec.EvalState;
 import com.davidconneely.bazlang.exec.ExpressionEvaluator;
 import com.davidconneely.bazlang.io.MockScreen;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -29,22 +29,6 @@ class BreakpointEngineTest {
   }
 
   @Test
-  void testParseConditionVariants() {
-    assertEquals(
-        ConditionType.VIEW, BreakpointEngine.parseCondition(-1, -1, "CSC \"x\"", true).type());
-    assertEquals(
-        ConditionType.ELAPSE, BreakpointEngine.parseCondition(-1, -1, "ELAPSE 100", true).type());
-    assertEquals(ConditionType.EXPR, BreakpointEngine.parseCondition(-1, -1, "?a=1", true).type());
-    assertEquals(
-        ConditionType.EVERY, BreakpointEngine.parseCondition(-1, -1, "EVERY 3", true).type());
-    assertNull(BreakpointEngine.parseCondition(-1, -1, "CSC unquoted", true));
-    assertNull(BreakpointEngine.parseCondition(-1, -1, "ELAPSE", true));
-    assertNull(BreakpointEngine.parseCondition(-1, -1, "?", true));
-    assertNull(BreakpointEngine.parseCondition(-1, -1, "EVERY 0", true));
-    assertNull(BreakpointEngine.parseCondition(-1, -1, "nonsense", true));
-  }
-
-  @Test
   void testLocationMatchAndPersistence() {
     engine.add(new BreakCondition(10, 1, ConditionType.NONE, null, 0, true, 0, null));
     assertNull(engine.checkFired(20, 1, screen, eval), "wrong line must not fire");
@@ -61,7 +45,8 @@ class BreakpointEngineTest {
 
   @Test
   void testEveryCounter() {
-    engine.add(BreakpointEngine.parseCondition(-1, -1, "EVERY 3", true));
+    engine.add(
+        new BreakCondition(-1, -1, ConditionType.EVERY, null, 0, true, 3, new AtomicInteger()));
     assertNull(engine.checkFired(10, 1, screen, eval));
     assertNull(engine.checkFired(10, 1, screen, eval));
     assertNotNull(engine.checkFired(10, 1, screen, eval), "fires on the 3rd check");
@@ -74,7 +59,7 @@ class BreakpointEngineTest {
   void testExprCondition() {
     state.getOrAddNumVar("X").value = 0.0;
     state.getOrAddNumVar("X").initialised = true;
-    engine.add(BreakpointEngine.parseCondition(-1, -1, "?x=3", true));
+    engine.add(new BreakCondition(-1, -1, ConditionType.EXPR, "x=3", 0, true, 0, null));
     assertNull(engine.checkFired(10, 1, screen, eval));
     state.getOrAddNumVar("X").value = 3.0;
     assertNotNull(engine.checkFired(10, 1, screen, eval));
@@ -82,7 +67,7 @@ class BreakpointEngineTest {
 
   @Test
   void testViewCondition() {
-    engine.add(BreakpointEngine.parseCondition(-1, -1, "CSC \"target\"", true));
+    engine.add(new BreakCondition(-1, -1, ConditionType.VIEW, "target", 0, true, 0, null));
     assertNull(engine.checkFired(10, 1, screen, eval));
     screen.print("the TARGET text");
     assertNotNull(engine.checkFired(10, 1, screen, eval), "CSC is case-insensitive");

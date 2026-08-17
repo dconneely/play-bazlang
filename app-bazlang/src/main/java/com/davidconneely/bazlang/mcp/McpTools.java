@@ -3,9 +3,9 @@ package com.davidconneely.bazlang.mcp;
 import java.util.List;
 
 /**
- * The static catalog of MCP tools exposed by {@link McpServer}: a consolidated surface over the
- * {@code AgentDebugger} command set documented in docs/language_debugger.md — see
- * docs/mcp_server.md for the JSON-RPC shape of each tool.
+ * The static catalog of MCP tools exposed by {@link McpServer}: a consolidated surface over {@link
+ * com.davidconneely.bazlang.debug.DebugEngine} — see docs/mcp_server.md for the JSON-RPC shape of
+ * each tool.
  */
 final class McpTools {
 

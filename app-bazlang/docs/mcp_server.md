@@ -1,10 +1,9 @@
 # McpServer
 
 `McpServer` is a native MCP (Model Context Protocol) server exposing BazLang programme debugging
-as JSON-RPC tools, so any MCP client can attach directly instead of scraping the `AgentDebugger`
-text protocol (see [language_debugger.md](language_debugger.md)). Both front-ends share the same
-underlying [`DebugEngine`](implementation.md) — `McpServer` is a thin JSON-RPC adapter over it, just
-as `DebugSession` is a thin text-protocol adapter over it.
+as JSON-RPC tools, so any MCP client can attach directly and drive a running programme. `McpServer`
+is a thin JSON-RPC adapter over [`DebugEngine`](implementation.md), which owns the interpreter,
+breakpoints, and mock screen for the session.
 
 ## Running the server
 
@@ -29,8 +28,7 @@ only that revision. Two consequences worth knowing before integrating:
 - **No legacy fallback.** A client still speaking the pre-2026-07-28 `initialize`-handshake
   protocol cannot use this server — per the spec's own compatibility matrix, "modern server,
   legacy client" fails outright. This was a deliberate scope decision (see the project history) to
-  keep the implementation small; if your MCP client hasn't adopted 2026-07-28 yet, use
-  `AgentDebugger`'s text protocol instead.
+  keep the implementation small.
 - **Lenient version checking.** If a request omits `_meta`'s protocol version field entirely, the
   server proceeds anyway rather than rejecting it — some early modern clients may not yet send it
   on every request. If a version *is* present and doesn't match, the server responds with
@@ -38,11 +36,10 @@ only that revision. Two consequences worth knowing before integrating:
 
 ## Transport
 
-Newline-delimited JSON-RPC 2.0 over stdin/stdout — the same framing shape `AgentDebugger` already
-uses, just with JSON bodies instead of `+`/`-` text lines. Each request line produces exactly one
-response line, except JSON-RPC *notifications* (a message with no `id`), which never get a
-response — `notifications/cancelled` is accepted and silently ignored (there is no
-cancel-while-running mechanism, matching `AgentDebugger`, which has none either).
+Newline-delimited JSON-RPC 2.0 over stdin/stdout. Each request line produces exactly one response
+line, except JSON-RPC *notifications* (a message with no `id`), which never get a response —
+`notifications/cancelled` is accepted and silently ignored (there is no cancel-while-running
+mechanism).
 
 ## `server/discover`
 
@@ -72,7 +69,8 @@ same information in a programmatic shape where one is useful.
 
 ### `bazlang_program`
 
-Consolidates `NEW`, `LOAD "path"`, single numbered-line edits, and `LIST`.
+Manages the loaded programme: create a new empty programme, load one from a file or inline
+source, add/replace/delete a single numbered line, or list the current programme text.
 
 | `action` | Arguments | Effect |
 | --- | --- | --- |
@@ -82,10 +80,9 @@ Consolidates `NEW`, `LOAD "path"`, single numbered-line edits, and `LIST`.
 | `edit_line` | `line`, `statement` | Adds/replaces line `line`; blank `statement` deletes it. Does **not** flush queued input |
 | `list` | — | Returns the current programme text in `content` and `structuredContent.listing` |
 
-`load_file` resolves bare names the same way the text protocol's `>LOAD` does. `load_source` has
-no text-protocol equivalent — the old protocol could only build a programme one `>n stmt` line at
-a time; `load_source` loads a whole multi-line programme (one BASIC line per `\n`) in one call.
-See "Input queue" below for why `new`/`load_file`/`load_source` flush and `edit_line` doesn't.
+`load_source` loads a whole multi-line programme (one BASIC line per `\n`) in one call, rather than
+requiring one `edit_line` call per line. See "Input queue" below for why `new`/`load_file`/
+`load_source` flush and `edit_line` doesn't.
 
 ```jsonc
 → {"name":"bazlang_program","arguments":{"action":"load_source","source":"10 LET X=0\n20 PRINT X"}}
@@ -94,10 +91,9 @@ See "Input queue" below for why `new`/`load_file`/`load_source` flush and `edit_
 
 ### `bazlang_step`
 
-Consolidates `RUN`, `GOTO n`, `GO`, and `STOP`. Blocks until the programme next breaks, elapses, or
-stops, then returns the pause reason — there is no separate "wait for the next command" phase the
-way the text protocol's deferred responses work, because each MCP call is already one full
-request/response round trip.
+Drives programme execution. Blocks until the programme next breaks, elapses, or stops, then
+returns the pause reason — each MCP call is already one full request/response round trip, so there
+is no separate "wait for the next event" phase to model.
 
 | `action` | Arguments | Effect |
 | --- | --- | --- |
@@ -106,9 +102,8 @@ request/response round trip.
 | `go` | — | Resumes from a breakpoint. Error if not currently paused |
 | `stop` | — | Terminates the running programme, without ending the server process |
 
-Unlike the text protocol's `/STOP`, which ends the whole `AgentDebugger` session, `bazlang_step`'s
-`stop` action just resets run state so a later `run`/`goto` can start again — the server stays up
-until stdin closes.
+`bazlang_step`'s `stop` action just resets run state so a later `run`/`goto` can start again — the
+server stays up until stdin closes.
 
 `structuredContent.reason` is one of `break` (with `line`/`stmt`), `elapse`, `stop` (with `code`,
 `message`, `line`, `stmt` — see `ReportCode` for the code table), or `stopped` (the `stop` action).
@@ -121,7 +116,7 @@ until stdin closes.
 
 ### `bazlang_breakpoint`
 
-Consolidates `SPB`, `S1B`, and `CPB`.
+Sets or clears breakpoints, with optional conditions.
 
 | `action` | Arguments | Effect |
 | --- | --- | --- |
@@ -130,17 +125,17 @@ Consolidates `SPB`, `S1B`, and `CPB`.
 | `clear_all` | — | Removes every persistent breakpoint |
 
 Omit `line`/`statement` for a condition-only breakpoint checked on every statement.
-`persistent: false` is the text protocol's `S1B` — fires once, then removes itself.
+`persistent: false` fires the breakpoint once, then removes itself.
 
 `condition` is optional (omit it for an unconditional location breakpoint) and, when present, is
 one of:
 
-| `condition.type` | Fields | Matches the text protocol's |
+| `condition.type` | Fields | Fires when |
 | --- | --- | --- |
-| `csc` | `text` | `CSC "<text>"` — screen contains text (case-insensitive) |
-| `elapse` | `milliseconds` | `ELAPSE <ms>` — wall-clock time since the last resume |
-| `expr` | `expression` | `?<expr>` — a BazLang expression is truthy |
-| `every` | `everyN` | `EVERY <n>` — fires every nth check |
+| `csc` | `text` | The screen contains `text` (case-insensitive) |
+| `elapse` | `milliseconds` | At least `milliseconds` of wall-clock time have elapsed since the last resume |
+| `expr` | `expression` | The BazLang expression `expression` is truthy |
+| `every` | `everyN` | Every `everyN`th time the condition is checked |
 
 ```jsonc
 → {"name":"bazlang_breakpoint","arguments":{"action":"set","line":100,"statement":1,
@@ -150,10 +145,11 @@ one of:
 
 ### `bazlang_eval`
 
-Consolidates `?<expr>` and `!<assignment>` into one `expression` argument. A leading `LET` is the
-disambiguating cue for assignment — everything else is evaluated as an expression. This is
-deliberate, not a heuristic guess: bare `X=3` is a valid BazLang *expression* (an equality test,
-exactly as in `?X=3`), so only an explicit `LET X=3` can mean "assign" without ambiguity.
+Evaluates an expression, or executes a single assignment, in the live programme context — one
+`expression` argument covers both. A leading `LET` is the disambiguating cue for assignment —
+everything else is evaluated as an expression. This is deliberate, not a heuristic guess: bare
+`X=3` is a valid BazLang *expression* (an equality test), so only an explicit `LET X=3` can mean
+"assign" without ambiguity.
 
 ```jsonc
 → {"name":"bazlang_eval","arguments":{"expression":"SCORE"}}
@@ -166,33 +162,37 @@ exactly as in `?X=3`), so only an explicit `LET X=3` can mean "assign" without a
 
 ### `bazlang_screen`
 
-Consolidates `RSC` and `SSD`.
+Reads a rectangle of the virtual screen buffer, or resizes it.
 
 | `action` | Arguments | Effect |
 | --- | --- | --- |
-| `read` | `rowTop`, `colLeft`, `rowBottom`, `colRight`, `attr` (default `false`) | Dumps a screen rectangle into `content`/`structuredContent.grid`, in the same `{N}`-compressed, `[fg,bg]`-annotated text format as `/RSC` (see [language_debugger.md](language_debugger.md#quotedarg-format)) — plain JSON string, no `QuotedArg` escaping needed |
+| `read` | `rowTop`, `colLeft`, `rowBottom`, `colRight`, `attr` (default `false`) | Dumps a screen rectangle into `content`/`structuredContent.grid` |
 | `resize` | `rows`, `cols` | Resizes the virtual screen buffer |
+
+`read`'s grid is a plain JSON string, one row per `\n`-separated line, with runs of five or more
+spaces compressed to `{N}`. With `attr: true`, a `[fg,bg]` colour tag is prepended at the start of
+each run of cells that share a colour (omitted when unchanged from the previous cell); `{N}` then
+means N spaces sharing the current colour.
 
 ### `bazlang_input`
 
-Consolidates `PIQ`, plus a queue-flush action with no text-protocol equivalent.
+Queues keyboard/`INPUT` text for the programme to consume, or discards queued input.
 
 | `action` | Arguments | Effect |
 | --- | --- | --- |
 | `queue` | `text` | Queues `text` for `INKEY$`/`UINKEY$`/`INPUT` to consume |
 | `clear` | — | Discards all queued input without adding any |
 
-`text` is a plain JSON string (JSON's own escaping replaces the text protocol's `QuotedArg`
-format). `action=clear` is for cancelling a mis-queued value or resetting mid-session without
-reloading the programme — see "Input queue" below for the far more common case, which is handled
-automatically and needs no explicit call.
+`text` is a plain JSON string. `action=clear` is for cancelling a mis-queued value or resetting
+mid-session without reloading the programme — see "Input queue" below for the far more common
+case, which is handled automatically and needs no explicit call.
 
 ## Input queue
 
-`bazlang_input(queue)` — like the text protocol's `/PIQ` before it — queues the same text for all
-three input primitives at once (`INKEY$` gets it byte-by-byte, `UINKEY$` codepoint-by-codepoint,
-`INPUT` as one line), because the queuer can't know in advance which one the programme will
-actually read. That's fine within one programme's lifetime, but `DebugEngine`'s queues live on one
+`bazlang_input(queue)` queues the same text for all three input primitives at once (`INKEY$` gets
+it byte-by-byte, `UINKEY$` codepoint-by-codepoint, `INPUT` as one line), because the queuer can't
+know in advance which one the programme will actually read. That's fine within one programme's
+lifetime, but `DebugEngine`'s queues live on one
 `MockScreen` for as long as the engine does — across many `bazlang_program` calls, not just one
 run — so **anything queued but never consumed by one programme is still sitting there, in all three
 queues, when the next programme loads.**
@@ -233,9 +233,8 @@ errors and tool execution errors.
 - **Modern-only, no legacy fallback** (see above) — a real compatibility risk with MCP clients that
   haven't adopted 2026-07-28 yet.
 - **No true cancellation.** `notifications/cancelled` is accepted but has no effect — a `tools/call`
-  always runs to completion. Not a regression: `AgentDebugger` has no cancel-while-running
-  mechanism either.
+  always runs to completion; there is no cancel-while-running mechanism.
 - **No `listChanged`.** The tool set is static, so `tools/list`'s long `ttlMs` is safe to cache.
 - **One implicit session per process.** There's no protocol-level session (2026-07-28 has none) and
-  no explicit session handle — the whole server process *is* the session, exactly as one
-  `AgentDebugger` process is one debugging session today.
+  no explicit session handle — the whole server process *is* the session, one process per debugging
+  session.

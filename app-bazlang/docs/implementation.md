@@ -27,7 +27,8 @@ Under `com.davidconneely.bazlang`:
   on freshly parsed ANTLR trees or source text, not the AST; see "Parse tree vs. AST" below.
 - **`antlr`**: the parser facade (`AntlrParser`) and the generated lexer/parser.
 - **`io`**: screens and input (see the I/O section below).
-- **`debug`**: `AgentDebugger`, the agent-oriented debugger main class.
+- **`debug`**: `DebugEngine`, the protocol-agnostic debugging core used by the MCP server.
+- **`mcp`**: `McpServer`, the agent-oriented MCP (Model Context Protocol) debugger entry point.
 
 ### Main components
 
@@ -79,34 +80,35 @@ Under `com.davidconneely.bazlang`:
   `LOAD` (from a file, or from the classpath when the name starts with `resource:`).
 - **`ReportCode` / `ReportException` / `Limits`**: The ZX-style report codes (`0`–`R`), the carrier
   exception (code, line label, statement index, detail), and interpreter limits.
-- **`debug.AgentDebugger`**: A separate main class that runs the interpreter under a stdin/stdout
-  protocol for LLM agents (see [language_debugger.md](language_debugger.md)), using `MockScreen`. It
-  is split into `DebugSession` (the command loop and session wiring),
+- **`debug.DebugEngine`**: The protocol-agnostic debugging core — owns the interpreter,
   `BreakpointEngine` (breakpoint store and `CSC`/`ELAPSE`/`?expr`/`EVERY` condition evaluation),
-  `QuotedArg` (the protocol string codec), and `ScreenText` (screen search and the `/RSC` grid
-  dump); `AgentDebugger` itself is only the documented entry point. The protocol transcript is
-  pinned end-to-end by `AgentDebuggerProtocolTest` — a change to those transcripts is a protocol
-  change and must be reflected in `language_debugger.md`.
+  `ScreenText` (screen search and the `bazlang_screen` grid dump), and `MockScreen`. `McpServer`
+  (`com.davidconneely.bazlang.mcp`) is the sole adapter over it, translating JSON-RPC `tools/call`
+  requests into `DebugEngine` calls — see [mcp_server.md](mcp_server.md) for the tool reference.
 
 ### Debugger architecture decision
 
-**Synchronous blocking execution.** The debugger blocks inside the main execution thread.
-`DebugSession` runs its command loop (`blockAndListen`) reentrantly from within the statement
-`visit` override (via `Interpreter.setExecutionListener`), meaning the loop runs inside statement
-execution. This strictly synchronous design entirely avoids concurrency — a genuine simplification —
-but it is the least conventional part of the architecture. A command thread with a handoff queue is
-the standard alternative for debuggers, but the trade-off (introducing shared-state concurrency,
-lock management, and thread safety across the entire `EvalState`)
-is significant. The current single-threaded approach is a documented decision: it limits the
-debugger's ability to interrupt an infinite loop (since it only gains control at statement
-boundaries) but keeps the execution model simple and deterministically testable.
+**Synchronous blocking execution, no reentrant command loop.** `DebugEngine.run`/`gotoLine`/`go`
+each drive `Interpreter.resume()` on the caller's own thread until the programme next breaks,
+elapses, or stops, then return — there is no blocking wait for a "next command" inside the engine
+itself. A breakpoint pauses execution by having `Interpreter.setExecutionListener`'s callback set
+`EvalState.setRunning(false)` before the triggering statement executes, which unwinds
+`Interpreter.resume()` straight back to the caller; a later `go()` call resumes at the exact same
+location, guarded so the same breakpoint does not immediately re-fire. This strictly synchronous
+design entirely avoids concurrency — a genuine simplification — but it is the least conventional
+part of the architecture. A command thread with a handoff queue is the standard alternative for
+debuggers, but the trade-off (introducing shared-state concurrency, lock management, and thread
+safety across the entire `EvalState`) is significant. The current single-threaded approach is a
+documented decision: it limits the debugger's ability to interrupt an infinite loop (since it only
+gains control at statement boundaries) but keeps the execution model simple and deterministically
+testable.
 
 ### Class coupling notes
 
 Facts an implementer needs before restructuring anything:
 
 - `AntlrParser` is injected everywhere it is used at runtime; the global singleton
-  `AntlrParser.INSTANCE` is named only at composition roots (`MainClass`, `AgentDebugger`) and in
+  `AntlrParser.INSTANCE` is named only at composition roots (`MainClass`, `McpServer`) and in
   constructor defaults.
 - AST nodes carry per-`EvalState` reference caches (see below), so a `ProgramLine`'s cached `Stmt`
   list must never be shared between two interpreter instances.
@@ -126,7 +128,7 @@ Two representations of a line's source text coexist deliberately, for different 
 
 `ProgramEditor`'s other commands (`RENUM`, `DELETE`) work from source text and token streams
 directly, never touching either representation — see `ProgramEditor.updateLineTargets`.
-`BreakpointEngine`'s `?expr` condition and `DebugSession`'s `?`/`!LET` commands parse-and-lower a
+`BreakpointEngine`'s `?expr` condition and `DebugEngine`'s `bazlang_eval` tool parse-and-lower a
 fresh `NumExpr`/`StrExpr`/`Stmt` on every check/call (the same "parse fresh every time" shape `VAL`/
 `INPUT` use — see below), rather than reading any cached AST.
 
@@ -141,7 +143,7 @@ Every executable position is a pair **(line label, statement index)**, where the
 PRINT "B"` flattens to `[IfStmt, PrintStmt("A"), PrintStmt("B")]` with indices 1–3.
 
 Flat indices are the shared currency of the interpreter loop, `CONT`, `GOSUB` return addresses, the
-`DATA` pointer, the `FOR` skip-scan, and `AgentDebugger` breakpoints (`<line>:<stmt>`).
+`DATA` pointer, the `FOR` skip-scan, and `BreakpointEngine` breakpoints (`<line>:<stmt>`).
 
 ### The fetch–execute loop
 
@@ -197,7 +199,7 @@ interface, isolating the interpreter from the specific device.
   are no-ops. `MainClass` also falls back to this screen silently if `TerminalScreen` cannot be
   initialised (intentional — see [quirks.md](quirks.md)).
 - **`MockScreen`**: An in-memory screen with a scripted input queue, used by the program tests and
-  by `AgentDebugger`.
+  by `DebugEngine`.
 - **`AbstractCellBufferedScreen`**: The base class for screens backed by a lib-cell `CellBuffer`;
   tracks the cursor and the active attribute set.
 

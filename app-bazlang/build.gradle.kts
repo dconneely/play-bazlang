@@ -40,20 +40,6 @@ tasks.generateGrammarSource {
   arguments = arguments + listOf("-visitor")
 }
 
-tasks.register<JavaExec>("runAgentDebugger") {
-  group = "application"
-  description = "Runs the AgentDebugger"
-  classpath = sourceSets["main"].runtimeClasspath
-  mainClass = "com.davidconneely.bazlang.debug.AgentDebugger"
-  standardInput = System.`in`
-  val customArgs = project.findProperty("args") as? String
-  if (customArgs != null) {
-    args = customArgs.split(" ")
-  } else {
-    args = listOf()
-  }
-}
-
 tasks.register<JavaExec>("runMcpServer") {
   group = "application"
   description = "Runs the BazLang MCP (Model Context Protocol) server"

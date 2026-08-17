@@ -11,15 +11,15 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 /**
- * Component-level tests for {@link DebugEngine} — the protocol-agnostic core shared by both {@link
- * DebugSession} (the {@code AgentDebugger} text protocol) and the MCP server. Exercised directly,
- * with no subprocess and no protocol framing, so these cover the engine layer both front-ends
- * depend on rather than duplicating the same scenarios once per protocol encoding. See the
- * 2026-08-16/17 entries in localonly-BAZLANG-IMPROVEMENTS.md: two real bugs (the ELAPSE clock not
- * resetting on {@link DebugEngine#run}/{@link DebugEngine#gotoLine}, and breakpoints intercepting
- * immediate-mode REPL commands) lived at exactly this layer and were caught by neither protocol's
- * own test suite until live use surfaced them — {@link #breakpointsDoNotInterceptReplCommands} and
- * {@link #elapseBreakpointResetsOnRun} are the permanent regression guards for those.
+ * Component-level tests for {@link DebugEngine} — the debugging core the MCP server adapts.
+ * Exercised directly, with no subprocess and no protocol framing, so these cover the engine layer
+ * itself rather than duplicating the same scenarios via JSON-RPC framing. See the 2026-08-16/17
+ * entries in localonly-BAZLANG-IMPROVEMENTS.md: two real bugs (the ELAPSE clock not resetting on
+ * {@link DebugEngine#run}/{@link DebugEngine#gotoLine}, and breakpoints intercepting immediate-mode
+ * REPL commands) lived at exactly this layer and were caught by neither the engine's nor the MCP
+ * server's own test suite until live use surfaced them — {@link
+ * #breakpointsDoNotInterceptReplCommands} and {@link #elapseBreakpointResetsOnRun} are the
+ * permanent regression guards for those.
  */
 class DebugEngineTest {
 

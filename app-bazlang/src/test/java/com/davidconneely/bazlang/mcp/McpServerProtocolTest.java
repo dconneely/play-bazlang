@@ -17,7 +17,7 @@ import org.junit.jupiter.api.Test;
  * spawns {@link McpServer} in a fresh JVM, feeds it a scripted newline-delimited JSON-RPC session
  * (each line built with {@link JsonValue}/{@link JsonWriter} rather than hand-typed JSON text, so
  * nothing needs manual escaping), and asserts on the *parsed* structure of each response line — raw
- * string pinning is too fragile for JSON, unlike the plain-text AgentDebugger protocol.
+ * string pinning is too fragile for JSON key/whitespace layout to be worth pinning verbatim.
  */
 class McpServerProtocolTest {
 

@@ -10,7 +10,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 
 /**
  * A headless screen implementation used primarily for testing, but located in src/main/java because
- * it is also used as a load-bearing dependency by the headless AgentDebugger.
+ * it is also used as a load-bearing dependency by the headless MCP debugger ({@code DebugEngine}).
  */
 public class MockScreen extends AbstractCellBufferedScreen {
   private int rows;

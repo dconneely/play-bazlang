@@ -20,11 +20,10 @@ import java.nio.file.Path;
 import java.util.List;
 
 /**
- * Protocol-agnostic BazLang debugging engine: owns the interpreter, breakpoints, and mock screen
- * for one debugging session, and exposes plain Java methods (no I/O, no {@code println}) for
- * program management, run control, and live expression evaluation. Both {@link DebugSession} (the
- * {@code AgentDebugger} text protocol) and the MCP server ({@code com.davidconneely.bazlang.mcp})
- * are thin adapters over one shared {@code DebugEngine} instance.
+ * BazLang debugging engine: owns the interpreter, breakpoints, and mock screen for one debugging
+ * session, and exposes plain Java methods (no I/O, no {@code println}) for program management, run
+ * control, and live expression evaluation. The MCP server ({@code com.davidconneely.bazlang.mcp})
+ * is a thin adapter over one shared {@code DebugEngine} instance.
  *
  * <p>Run control ({@link #run}, {@link #gotoLine}, {@link #go}) is synchronous: each call drives
  * execution until the programme next breaks, elapses, or stops, then returns — there is no blocking
@@ -40,12 +39,11 @@ public final class DebugEngine {
    * Resolves a bare programme name or file path to an actual {@link Path}.
    *
    * <p>Tries the argument verbatim, then with {@code .bas} appended, then under the canonical
-   * example directory. Returns {@code null} when no existing file is found. Shared by both
-   * front-ends: {@link AgentDebugger#main} for its optional preload argument, and this class's own
-   * {@code LOAD} handling below (so {@code bazlang_program(load_file)} resolves bare names the same
-   * way).
+   * example directory. Returns {@code null} when no existing file is found. Used by this class's
+   * own {@code LOAD} handling below, so {@code bazlang_program(load_file)} resolves bare names
+   * consistently.
    */
-  static Path resolveBasPath(String inputPath) {
+  private static Path resolveBasPath(String inputPath) {
     Path p = Path.of(inputPath);
     if (Files.exists(p)) {
       return p;
@@ -140,7 +138,7 @@ public final class DebugEngine {
       // e.g. a `LOAD "x"` that never actually loads anything, while still reporting success,
       // because the REPL handler has no way to distinguish "cancelled by a breakpoint" from
       // "ran fine". See the 2026-08-16 entry in localonly-BAZLANG-IMPROVEMENTS.md for how this
-      // was found (both AgentDebugger and the MCP server share this engine, so both were affected).
+      // was found.
       return;
     }
     if (line == resumeGuardLine && stmt == resumeGuardStmt) {

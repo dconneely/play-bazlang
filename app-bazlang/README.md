@@ -17,8 +17,8 @@ Detailed language and architecture references are available in the `docs/` direc
   tracking, and performance notes (for implementers).
 - **[Quirks](docs/quirks.md)** - Deliberately preserved ZX BASIC eccentricities and intentional
   behaviours.
-- **[Agent debugger](docs/language_debugger.md)** - LLM-agent-friendly debugger protocol and
-  command reference.
+- **[MCP server](docs/mcp_server.md)** - Native MCP debugger protocol and tool reference for
+  LLM agents.
 
 ## Running the interpreter
 
@@ -40,16 +40,15 @@ Alternatively, you can run the built JAR directly (Gradle build required first):
 java --enable-native-access=ALL-UNNAMED -jar build/libs/bazlang-1.0.0-SNAPSHOT.jar [program.bas]
 ```
 
-## Running the agent debugger
+## Running the MCP server
 
-To run a programme under the LLM-agent-friendly debugger (stdin/stdout pipe protocol):
+To let an MCP client (e.g. Claude Code) debug a programme via the `bazlang_*` tools:
 
 ```bash
-./gradlew :app-bazlang:runAgentDebugger -Pargs=path/to/programme.bas
+./gradlew :app-bazlang:runMcpServer
 ```
 
-See [docs/language_debugger.md](docs/language_debugger.md) for the full command and protocol
-reference.
+See [docs/mcp_server.md](docs/mcp_server.md) for the full tool and protocol reference.
 
 ## Example programs
 

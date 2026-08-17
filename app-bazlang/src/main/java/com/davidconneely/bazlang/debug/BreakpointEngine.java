@@ -11,10 +11,10 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
- * The breakpoint store and evaluation engine shared by both debugger protocols: persistent and
- * one-shot breakpoints, optional location filters, and the {@code CSC}/{@code ELAPSE}/{@code
- * ?expr}/{@code EVERY} break conditions (see docs/language_debugger.md and docs/mcp_server.md).
- * Public so it is reusable from the {@code com.davidconneely.bazlang.mcp} package.
+ * The breakpoint store and evaluation engine used by the MCP server: persistent and one-shot
+ * breakpoints, optional location filters, and the {@code CSC}/{@code ELAPSE}/{@code ?expr}/{@code
+ * EVERY} break conditions (see docs/mcp_server.md). Public so it is reusable from the {@code
+ * com.davidconneely.bazlang.mcp} package.
  */
 public final class BreakpointEngine {
 
@@ -42,55 +42,6 @@ public final class BreakpointEngine {
 
   BreakpointEngine(AntlrParser parser) {
     this.parser = parser;
-  }
-
-  /** Parses a condition string; returns null when it is not a valid condition. */
-  public static BreakCondition parseCondition(int line, int stmt, String cond, boolean persistent) {
-    String upper = cond.toUpperCase();
-    if (upper.startsWith("CSC")) {
-      String quotedArg = cond.substring(3).trim();
-      String text = QuotedArg.parse(quotedArg);
-      if (text == null) {
-        return null;
-      }
-      return new BreakCondition(line, stmt, ConditionType.VIEW, text, 0, persistent, 0, null);
-    }
-    if (upper.startsWith("ELAPSE")) {
-      String rest = cond.substring(6).trim();
-      if (rest.isEmpty()) {
-        return null;
-      }
-      try {
-        long ms = Long.parseLong(rest);
-        return new BreakCondition(line, stmt, ConditionType.ELAPSE, null, ms, persistent, 0, null);
-      } catch (NumberFormatException e) {
-        return null;
-      }
-    }
-    if (cond.startsWith("?")) {
-      String exprSource = cond.substring(1).trim();
-      if (exprSource.isEmpty()) {
-        return null;
-      }
-      return new BreakCondition(line, stmt, ConditionType.EXPR, exprSource, 0, persistent, 0, null);
-    }
-    if (upper.startsWith("EVERY")) {
-      String rest = cond.substring(5).trim();
-      if (rest.isEmpty()) {
-        return null;
-      }
-      try {
-        int n = Integer.parseInt(rest);
-        if (n <= 0) {
-          return null;
-        }
-        return new BreakCondition(
-            line, stmt, ConditionType.EVERY, null, 0, persistent, n, new AtomicInteger());
-      } catch (NumberFormatException e) {
-        return null;
-      }
-    }
-    return null;
   }
 
   public void add(BreakCondition brk) {
