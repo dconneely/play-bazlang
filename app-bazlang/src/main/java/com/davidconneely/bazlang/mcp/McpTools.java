@@ -12,7 +12,14 @@ final class McpTools {
   private McpTools() {}
 
   static final List<JsonValue.JsonObject> ALL =
-      List.of(programTool(), stepTool(), breakpointTool(), evalTool(), screenTool(), inputTool());
+      List.of(
+          programTool(),
+          stepTool(),
+          breakpointTool(),
+          evalTool(),
+          screenTool(),
+          inputTool(),
+          stackTool());
 
   private static JsonValue.JsonObject tool(
       String name, String description, JsonValue.JsonObject inputSchema) {
@@ -70,12 +77,15 @@ final class McpTools {
                 "new",
                 "load_file",
                 "load_source",
+                "save_file",
                 "edit_line",
                 "list"),
             "path",
             stringProp(
-                "Bare filename or path for action=load_file (resolved against the example "
-                    + "directory if bare)."),
+                "For action=load_file: bare filename or path (resolved against the example "
+                    + "directory if bare). For action=save_file: the file path to write — bare "
+                    + "names are NOT resolved against the example directory (matching the plain "
+                    + "SAVE statement), so use a full/relative path."),
             "source",
             stringProp(
                 "Whole multi-line BASIC source (one statement line per \\n) for "
@@ -87,9 +97,8 @@ final class McpTools {
     return tool(
         "bazlang_program",
         "Manage the loaded BazLang programme: create a new empty programme, load one from a file "
-            + "or inline source, add/replace/delete a single numbered line, or list the current "
-            + "programme text. Consolidates the text protocol's NEW, LOAD, numbered-line edits, "
-            + "and LIST.",
+            + "or inline source, save the current programme to a file, add/replace/delete a "
+            + "single numbered line, or list the current programme text.",
         schema(properties, "action"));
   }
 
@@ -100,18 +109,20 @@ final class McpTools {
             enumProp(
                 "run: clear state and run from the first line. goto: jump to a line without "
                     + "clearing state. go: resume from a breakpoint. stop: terminate the "
-                    + "running programme.",
+                    + "running programme. status: report the current pause state without "
+                    + "executing anything.",
                 "run",
                 "goto",
                 "go",
-                "stop"),
+                "stop",
+                "status"),
             "line",
             intProp("Target line number for action=goto."));
     return tool(
         "bazlang_step",
-        "Drive programme execution. Blocks until the programme next breaks, elapses, or stops, "
-            + "then returns the pause reason. Consolidates the text protocol's RUN, GOTO, GO, "
-            + "and STOP.",
+        "Drive programme execution. run/goto/go block until the programme next breaks, elapses, "
+            + "or stops, then return the pause reason; status returns the current pause state "
+            + "immediately without executing anything.",
         schema(properties, "action"));
   }
 
@@ -147,10 +158,12 @@ final class McpTools {
             "action",
             enumProp(
                 "set: add a breakpoint. clear: remove breakpoints at a location. clear_all: "
-                    + "remove every persistent breakpoint.",
+                    + "remove every persistent breakpoint. list: report every currently-active "
+                    + "breakpoint.",
                 "set",
                 "clear",
-                "clear_all"),
+                "clear_all",
+                "list"),
             "persistent",
             boolProp(
                 "action=set only: true keeps firing until cleared, false fires once then "
@@ -165,23 +178,32 @@ final class McpTools {
             condition);
     return tool(
         "bazlang_breakpoint",
-        "Set or clear breakpoints, with optional CSC/ELAPSE/expression/EVERY conditions. "
-            + "Consolidates the text protocol's SPB, S1B, and CPB.",
+        "Set, clear, or list breakpoints, with optional CSC/ELAPSE/expression/EVERY conditions.",
         schema(properties, "action"));
   }
 
   private static JsonValue.JsonObject evalTool() {
     JsonValue.JsonObject properties =
         props(
+            "action",
+            enumProp(
+                "eval (default): evaluate 'expression', or execute it as a LET assignment. "
+                    + "vars: list every currently-defined scalar variable and its value, "
+                    + "ignoring 'expression' — useful for exploring an unfamiliar or "
+                    + "already-paused programme without knowing variable names up front.",
+                "eval",
+                "vars"),
             "expression",
             stringProp(
                 "A bare BazLang expression to evaluate (e.g. \"SCORE\"), or an assignment "
-                    + "(e.g. \"SCORE=0\") to execute as a LET statement."));
+                    + "(e.g. \"SCORE=0\") to execute as a LET statement. Required for action=eval "
+                    + "(the default); ignored for action=vars."));
     return tool(
         "bazlang_eval",
-        "Evaluate an expression or execute a single assignment in the live programme context. "
-            + "Consolidates the text protocol's ? and !.",
-        schema(properties, "expression"));
+        "Evaluate an expression or execute a single assignment in the live programme context, or "
+            + "list all currently-defined scalar variables. action=vars does not cover arrays — "
+            + "read an array element directly instead, e.g. expression=\"A(3)\".",
+        schema(properties));
   }
 
   private static JsonValue.JsonObject screenTool() {
@@ -208,8 +230,7 @@ final class McpTools {
             intProp("New column count (action=resize)."));
     return tool(
         "bazlang_screen",
-        "Read a rectangle of the virtual screen buffer, or resize it. Consolidates the text "
-            + "protocol's RSC and SSD.",
+        "Read a rectangle of the virtual screen buffer, or resize it.",
         schema(properties, "action"));
   }
 
@@ -227,10 +248,19 @@ final class McpTools {
     return tool(
         "bazlang_input",
         "Queue keyboard/INPUT text for the programme to consume, or discard queued input. "
-            + "Consolidates the text protocol's PIQ. bazlang_program(new/load_file/load_source) "
-            + "already discards queued input automatically when it replaces the programme — see "
-            + "docs/mcp_server.md's \"Input queue\" section — so action=clear is for cancelling a "
-            + "mis-queued value or resetting mid-session without reloading.",
+            + "bazlang_program(new/load_file/load_source) already discards queued input "
+            + "automatically when it replaces the programme — see docs/mcp_server.md's \"Input "
+            + "queue\" section — so action=clear is for cancelling a mis-queued value or "
+            + "resetting mid-session without reloading.",
         schema(properties, "action"));
+  }
+
+  private static JsonValue.JsonObject stackTool() {
+    return tool(
+        "bazlang_stack",
+        "Inspect interpreter call-stack state that no BazLang expression can reach: active "
+            + "GOSUB return frames (innermost/most-recently-called first) and active FOR loops "
+            + "(each with its current value, limit, step, and loop-back location).",
+        schema(props()));
   }
 }

@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -133,7 +134,7 @@ class McpServerProtocolTest {
 
     // tools/list
     JsonValue.JsonObject toolsList = result(responses.get(1));
-    assertEquals(6, toolsList.getArray("tools").size());
+    assertEquals(7, toolsList.getArray("tools").size());
 
     // bazlang_program load_source
     assertFalse(result(responses.get(2)).getBoolean("isError", true));
@@ -309,6 +310,183 @@ class McpServerProtocolTest {
     JsonValue.JsonObject evalResult = result(responses.get(3));
     assertFalse(evalResult.getBoolean("isError", true));
     assertEquals("", evalResult.getObject("structuredContent").getString("value"));
+  }
+
+  @Test
+  void bazlangProgramSaveFileWritesAndRoundTrips() throws Exception {
+    Path tempFile = Files.createTempFile("bazlang-mcp-test-", ".bas");
+    try {
+      String source = "10 LET X = 1\n20 PRINT X";
+      List<JsonValue.JsonObject> responses =
+          runSession(
+              toolCall(
+                  1,
+                  "bazlang_program",
+                  JsonValue.objectOf("action", "load_source", "source", source)),
+              toolCall(
+                  2,
+                  "bazlang_program",
+                  JsonValue.objectOf("action", "save_file", "path", tempFile.toString())),
+              toolCall(3, "bazlang_program", JsonValue.objectOf("action", "new")),
+              toolCall(
+                  4,
+                  "bazlang_program",
+                  JsonValue.objectOf("action", "load_file", "path", tempFile.toString())),
+              toolCall(5, "bazlang_program", JsonValue.objectOf("action", "list")));
+      assertEquals(5, responses.size());
+      assertFalse(result(responses.get(1)).getBoolean("isError", true));
+      JsonValue.JsonObject listResult = result(responses.get(4));
+      assertFalse(listResult.getBoolean("isError", true));
+      assertEquals(source, listResult.getObject("structuredContent").getString("listing"));
+    } finally {
+      Files.deleteIfExists(tempFile);
+    }
+  }
+
+  @Test
+  void bazlangStackReportsGosubFramesAndForLoops() throws Exception {
+    // GOSUB return frames have no BASIC-expression equivalent (unlike variables, which ?X can
+    // always reach), so bazlang_stack is the only way to see them.
+    String source =
+        String.join(
+            "\n",
+            "10 FOR I=1 TO 3",
+            "20 GOSUB 100",
+            "30 NEXT I",
+            "40 STOP",
+            "100 LET X=1",
+            "110 RETURN");
+    List<JsonValue.JsonObject> responses =
+        runSession(
+            toolCall(
+                1,
+                "bazlang_program",
+                JsonValue.objectOf("action", "load_source", "source", source)),
+            toolCall(
+                2,
+                "bazlang_breakpoint",
+                JsonValue.objectOf("action", "set", "line", 100L, "statement", 1L)),
+            toolCall(3, "bazlang_step", JsonValue.objectOf("action", "run")),
+            toolCall(4, "bazlang_stack", JsonValue.object()));
+    assertEquals(4, responses.size());
+    JsonValue.JsonObject runResult = result(responses.get(2));
+    assertEquals("break", runResult.getObject("structuredContent").getString("reason"));
+
+    JsonValue.JsonObject stack = result(responses.get(3)).getObject("structuredContent");
+    JsonValue.JsonArray gosub = stack.getArray("gosub");
+    assertEquals(1, gosub.size());
+    JsonValue.JsonObject frame = (JsonValue.JsonObject) gosub.get(0);
+    // GOSUB 100 is the sole statement on line 20, so the pushed return address is line 20,
+    // statement 2 (StatementExecutor.executeGosubStmt: currentStatementIndex() + 1) — line 20 has
+    // no statement 2, so execution actually resumes on line 30 once RETURN restores this address.
+    assertEquals(20, frame.getInt("line", -1));
+    assertEquals(2, frame.getInt("statement", -1));
+
+    JsonValue.JsonArray forLoops = stack.getArray("forLoops");
+    assertEquals(1, forLoops.size());
+    JsonValue.JsonObject loop = (JsonValue.JsonObject) forLoops.get(0);
+    assertEquals("I", loop.getString("variable"));
+    assertEquals(1, loop.getInt("current", -1)); // paused before line 100's body runs
+    assertEquals(3, loop.getInt("limit", -1));
+    assertEquals(1, loop.getInt("step", -1));
+    assertEquals(10, loop.getInt("loopLine", -1));
+    assertEquals(1, loop.getInt("loopStatement", -1));
+  }
+
+  @Test
+  void bazlangBreakpointListReportsActiveBreakpoints() throws Exception {
+    List<JsonValue.JsonObject> responses =
+        runSession(
+            toolCall(
+                1,
+                "bazlang_breakpoint",
+                JsonValue.objectOf(
+                    "action",
+                    "set",
+                    "line",
+                    100L,
+                    "statement",
+                    1L,
+                    "condition",
+                    JsonValue.objectOf("type", "csc", "text", "Game Over"))),
+            toolCall(
+                2, "bazlang_breakpoint", JsonValue.objectOf("action", "set", "persistent", false)),
+            toolCall(3, "bazlang_breakpoint", JsonValue.objectOf("action", "list")),
+            toolCall(4, "bazlang_breakpoint", JsonValue.objectOf("action", "clear_all")),
+            toolCall(5, "bazlang_breakpoint", JsonValue.objectOf("action", "list")));
+    assertEquals(5, responses.size());
+
+    JsonValue.JsonArray first =
+        result(responses.get(2)).getObject("structuredContent").getArray("breakpoints");
+    assertEquals(2, first.size());
+    JsonValue.JsonObject located = (JsonValue.JsonObject) first.get(0);
+    assertEquals(100, located.getInt("line", -1));
+    assertEquals(1, located.getInt("statement", -1));
+    assertTrue(located.getBoolean("persistent", false));
+    assertEquals("csc", located.getObject("condition").getString("type"));
+    assertEquals("Game Over", located.getObject("condition").getString("text"));
+    JsonValue.JsonObject oneShot = (JsonValue.JsonObject) first.get(1);
+    assertFalse(oneShot.has("line"));
+    assertFalse(oneShot.getBoolean("persistent", true));
+    assertNull(oneShot.get("condition"));
+
+    // clear_all only removes persistent breakpoints, so the one-shot one survives.
+    JsonValue.JsonArray second =
+        result(responses.get(4)).getObject("structuredContent").getArray("breakpoints");
+    assertEquals(1, second.size());
+    assertFalse(((JsonValue.JsonObject) second.get(0)).getBoolean("persistent", true));
+  }
+
+  @Test
+  void bazlangEvalVarsListsScalarVariables() throws Exception {
+    String source = "10 LET X = 42\n20 LET A$ = \"hi\"\n30 STOP";
+    List<JsonValue.JsonObject> responses =
+        runSession(
+            toolCall(
+                1,
+                "bazlang_program",
+                JsonValue.objectOf("action", "load_source", "source", source)),
+            toolCall(2, "bazlang_step", JsonValue.objectOf("action", "run")),
+            toolCall(3, "bazlang_eval", JsonValue.objectOf("action", "vars")));
+    assertEquals(3, responses.size());
+    JsonValue.JsonObject structured = result(responses.get(2)).getObject("structuredContent");
+    assertEquals(42, structured.getObject("numeric").getInt("X", -1));
+    assertEquals("hi", structured.getObject("string").getString("A$"));
+  }
+
+  @Test
+  void bazlangStepStatusReportsPauseStateWithoutExecuting() throws Exception {
+    String source = "10 LET X = 1\n20 STOP";
+    List<JsonValue.JsonObject> responses =
+        runSession(
+            toolCall(1, "bazlang_step", JsonValue.objectOf("action", "status")),
+            toolCall(
+                2,
+                "bazlang_program",
+                JsonValue.objectOf("action", "load_source", "source", source)),
+            toolCall(
+                3,
+                "bazlang_breakpoint",
+                JsonValue.objectOf("action", "set", "line", 20L, "statement", 1L)),
+            toolCall(4, "bazlang_step", JsonValue.objectOf("action", "run")),
+            toolCall(5, "bazlang_step", JsonValue.objectOf("action", "status")),
+            toolCall(6, "bazlang_step", JsonValue.objectOf("action", "go")),
+            toolCall(7, "bazlang_step", JsonValue.objectOf("action", "status")));
+    assertEquals(7, responses.size());
+
+    // Before anything is loaded: not paused.
+    JsonValue.JsonObject beforeLoad = result(responses.get(0)).getObject("structuredContent");
+    assertFalse(beforeLoad.getBoolean("paused", true));
+
+    // Paused at the breakpoint: status reflects it without needing another run/go call.
+    JsonValue.JsonObject whilePaused = result(responses.get(4)).getObject("structuredContent");
+    assertTrue(whilePaused.getBoolean("paused", false));
+    assertEquals(20, whilePaused.getInt("line", -1));
+    assertEquals(1, whilePaused.getInt("stmt", -1));
+
+    // After go() runs the programme to completion (STOP): not paused any more.
+    JsonValue.JsonObject afterStop = result(responses.get(6)).getObject("structuredContent");
+    assertFalse(afterStop.getBoolean("paused", true));
   }
 
   @Test

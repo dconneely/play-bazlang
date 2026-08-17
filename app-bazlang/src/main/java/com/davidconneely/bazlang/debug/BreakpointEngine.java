@@ -56,6 +56,11 @@ public final class BreakpointEngine {
     activeBreaks.removeIf(b -> b.line() == line && b.stmt() == stmt);
   }
 
+  /** A read-only snapshot of every currently-active breakpoint, in registration order. */
+  public List<BreakCondition> list() {
+    return List.copyOf(activeBreaks);
+  }
+
   /** Restarts the {@code ELAPSE} clock (called when execution resumes). */
   void resetTimer() {
     continueStartMs.set(System.currentTimeMillis());

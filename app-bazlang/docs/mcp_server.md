@@ -57,7 +57,7 @@ identity — call it first if you want to confirm compatibility before anything 
 
 ## `tools/list`
 
-Returns the six tools below (static — `listChanged` is `false`, and the list carries a long
+Returns the seven tools below (static — `listChanged` is `false`, and the list carries a long
 `ttlMs`/`cacheScope: "public"` since it never changes).
 
 ## `tools/call`
@@ -70,19 +70,24 @@ same information in a programmatic shape where one is useful.
 ### `bazlang_program`
 
 Manages the loaded programme: create a new empty programme, load one from a file or inline
-source, add/replace/delete a single numbered line, or list the current programme text.
+source, save the current programme to a file, add/replace/delete a single numbered line, or list
+the current programme text.
 
 | `action` | Arguments | Effect |
 | --- | --- | --- |
 | `new` | — | Clears the programme and all runtime state, and flushes queued input |
 | `load_file` | `path` | Loads a `.bas` file (bare names resolve against the example directory); flushes queued input |
 | `load_source` | `source` | Replaces the whole programme with inline multi-line source; flushes queued input |
+| `save_file` | `path` | Writes the current programme to `path`, one numbered line per file line |
 | `edit_line` | `line`, `statement` | Adds/replaces line `line`; blank `statement` deletes it. Does **not** flush queued input |
 | `list` | — | Returns the current programme text in `content` and `structuredContent.listing` |
 
 `load_source` loads a whole multi-line programme (one BASIC line per `\n`) in one call, rather than
 requiring one `edit_line` call per line. See "Input queue" below for why `new`/`load_file`/
-`load_source` flush and `edit_line` doesn't.
+`load_source` flush and `edit_line` doesn't. `save_file`'s `path` is **not** resolved against the
+example directory the way `load_file`'s bare names are (matching the plain `SAVE` statement) — pass
+a full or relative path, and it does not flush queued input, since it doesn't touch the loaded
+programme.
 
 ```jsonc
 → {"name":"bazlang_program","arguments":{"action":"load_source","source":"10 LET X=0\n20 PRINT X"}}
@@ -101,12 +106,17 @@ is no separate "wait for the next event" phase to model.
 | `goto` | `line` | Runs from `line` without clearing state |
 | `go` | — | Resumes from a breakpoint. Error if not currently paused |
 | `stop` | — | Terminates the running programme, without ending the server process |
+| `status` | — | Reports the current pause state immediately, without executing anything |
 
 `bazlang_step`'s `stop` action just resets run state so a later `run`/`goto` can start again — the
-server stays up until stdin closes.
+server stays up until stdin closes. `status` never blocks, unlike the other four actions — use it
+to check whether the programme is currently paused (and where) without triggering execution, e.g.
+after a few `bazlang_eval`/`bazlang_stack` calls while paused.
 
 `structuredContent.reason` is one of `break` (with `line`/`stmt`), `elapse`, `stop` (with `code`,
 `message`, `line`, `stmt` — see `ReportCode` for the code table), or `stopped` (the `stop` action).
+`status`'s response instead carries `structuredContent.paused` (boolean) plus `line`/`stmt` for the
+current (or last) execution position, regardless of whether the programme is currently paused.
 
 ```jsonc
 → {"name":"bazlang_step","arguments":{"action":"run"}}
@@ -123,9 +133,14 @@ Sets or clears breakpoints, with optional conditions.
 | `set` | `persistent` (default `true`), `line`, `statement`, `condition` | Adds a breakpoint |
 | `clear` | `line`, `statement` | Removes breakpoints registered at that exact location |
 | `clear_all` | — | Removes every persistent breakpoint |
+| `list` | — | Reports every currently-active breakpoint in `structuredContent.breakpoints` |
 
 Omit `line`/`statement` for a condition-only breakpoint checked on every statement.
-`persistent: false` fires the breakpoint once, then removes itself.
+`persistent: false` fires the breakpoint once, then removes itself. `list` is the only way to
+recover what's currently armed — there's no other query for it, so an agent that sets several
+breakpoints across a session and loses track needs `list` rather than remembering its own calls.
+Each entry has `line`/`statement` (omitted for a condition-only breakpoint), `persistent`, and
+`condition` (omitted for an unconditional one) in the same shape `set` accepts.
 
 `condition` is optional (omit it for an unconditional location breakpoint) and, when present, is
 one of:
@@ -145,11 +160,20 @@ one of:
 
 ### `bazlang_eval`
 
-Evaluates an expression, or executes a single assignment, in the live programme context — one
-`expression` argument covers both. A leading `LET` is the disambiguating cue for assignment —
-everything else is evaluated as an expression. This is deliberate, not a heuristic guess: bare
-`X=3` is a valid BazLang *expression* (an equality test), so only an explicit `LET X=3` can mean
-"assign" without ambiguity.
+| `action` | Arguments | Effect |
+| --- | --- | --- |
+| `eval` (default) | `expression` | Evaluates `expression`, or executes it as a `LET` assignment |
+| `vars` | — | Lists every currently-defined scalar variable and its value |
+
+`eval` covers both evaluation and assignment with one `expression` argument. A leading `LET` is the
+disambiguating cue for assignment — everything else is evaluated as an expression. This is
+deliberate, not a heuristic guess: bare `X=3` is a valid BazLang *expression* (an equality test), so
+only an explicit `LET X=3` can mean "assign" without ambiguity.
+
+`vars` returns `structuredContent.numeric`/`.string` objects (variable name → value), for exploring
+an unfamiliar or already-paused programme without knowing variable names up front — `eval` requires
+naming one. It covers scalars only, not arrays; read an array element directly instead, e.g.
+`expression: "A(3)"`.
 
 ```jsonc
 → {"name":"bazlang_eval","arguments":{"expression":"SCORE"}}
@@ -158,6 +182,10 @@ everything else is evaluated as an expression. This is deliberate, not a heurist
 
 → {"name":"bazlang_eval","arguments":{"expression":"LET SCORE=0"}}
 ← {"resultType":"complete","content":[{"type":"text","text":"OK"}],"isError":false}
+
+→ {"name":"bazlang_eval","arguments":{"action":"vars"}}
+← {"resultType":"complete","content":[{"type":"text","text":"2 variable(s)"}],"isError":false,
+   "structuredContent":{"numeric":{"SCORE":0},"string":{"NAME$":"ADA"}}}
 ```
 
 ### `bazlang_screen`
@@ -186,6 +214,26 @@ Queues keyboard/`INPUT` text for the programme to consume, or discards queued in
 `text` is a plain JSON string. `action=clear` is for cancelling a mis-queued value or resetting
 mid-session without reloading the programme — see "Input queue" below for the far more common
 case, which is handled automatically and needs no explicit call.
+
+### `bazlang_stack`
+
+Inspects interpreter call-stack state that no BazLang expression can reach — unlike variables,
+which `bazlang_eval` can always read via `?X`, there's no BASIC syntax that exposes the GOSUB
+return stack or FOR-loop bookkeeping. Takes no arguments.
+
+```jsonc
+→ {"name":"bazlang_stack","arguments":{}}
+← {"resultType":"complete","content":[{"type":"text","text":"1 GOSUB frame(s), 1 active FOR loop(s)"}],
+   "isError":false,"structuredContent":{
+     "gosub":[{"line":20,"statement":2}],
+     "forLoops":[{"variable":"I","current":1,"limit":3,"step":1,"loopLine":10,"loopStatement":1}]}}
+```
+
+`structuredContent.gosub` is the return-address stack, innermost (most recently called) frame
+first — each entry is where `RETURN` will resume execution, not where `GOSUB` was called from.
+`structuredContent.forLoops` is every currently-active `FOR` loop, keyed by loop variable: `current`
+is the loop variable's live value, `limit`/`step` are the `TO`/`STEP` bounds, and `loopLine`/
+`loopStatement` is the `FOR` statement's own location (where `NEXT` jumps back to).
 
 ## Input queue
 

@@ -44,6 +44,15 @@ class EvalStateTest {
   }
 
   @Test
+  void testForLoopsSnapshotIsSortedAndReadOnly() {
+    state.setForLoop("J", new EvalState.ForLoopData(5.0, 1.0, 50, 1));
+    state.setForLoop("I", new EvalState.ForLoopData(10.0, 1.0, 100, 2));
+    var snapshot = state.forLoopsSnapshot();
+    assertEquals(List.of("I", "J"), List.copyOf(snapshot.keySet()));
+    assertThrows(UnsupportedOperationException.class, () -> snapshot.put("K", null));
+  }
+
+  @Test
   void testFunctionDefinitions() {
     assertFalse(state.hasFn("FNA"));
     final var def = new EvalState.FnDefinition("FNA", List.of("X"), null);
@@ -108,6 +117,19 @@ class EvalStateTest {
     assertEquals(loc2, state.popReturn());
     assertEquals(loc1, state.popReturn());
     assertTrue(state.isReturnStackEmpty());
+  }
+
+  @Test
+  void testReturnStackSnapshotIsInnermostFirstAndReadOnly() {
+    final var loc1 = new EvalState.StatementAddress(10, 1);
+    final var loc2 = new EvalState.StatementAddress(20, 2);
+    state.pushReturn(loc1);
+    state.pushReturn(loc2);
+    // Innermost (most recently called) frame first: loc2 was pushed last, so it comes first.
+    assertEquals(List.of(loc2, loc1), state.returnStackSnapshot());
+    assertThrows(UnsupportedOperationException.class, () -> state.returnStackSnapshot().add(loc1));
+    // Popping is unaffected by having taken a snapshot.
+    assertEquals(loc2, state.popReturn());
   }
 
   @Test

@@ -4,6 +4,7 @@ import com.davidconneely.bazlang.BStr;
 import com.davidconneely.bazlang.ReportCode;
 import com.davidconneely.bazlang.exec.ast.Expr;
 import java.util.ArrayDeque;
+import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.List;
@@ -314,6 +315,11 @@ public class EvalState {
     forLoops.put(name, data);
   }
 
+  /** A read-only, name-sorted snapshot of every active FOR loop, for debugger inspection. */
+  public Map<String, ForLoopData> forLoopsSnapshot() {
+    return Collections.unmodifiableSortedMap(new TreeMap<>(forLoops));
+  }
+
   // ===== GOSUB return stack =====
 
   public boolean isReturnStackEmpty() {
@@ -326,6 +332,14 @@ public class EvalState {
 
   public StatementAddress popReturn() {
     return returnStack.pop();
+  }
+
+  /**
+   * A read-only snapshot of the GOSUB return stack, innermost (most recently called) frame first,
+   * for debugger inspection.
+   */
+  public List<StatementAddress> returnStackSnapshot() {
+    return List.copyOf(returnStack);
   }
 
   // ===== Randomness =====

@@ -13,8 +13,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 /**
  * Thin adapter from MCP {@code tools/call} arguments onto one shared {@link DebugEngine} instance
  * (one implicit debugging session per server subprocess — see docs/mcp_server.md). Converts each of
- * the six {@link McpTools} tools into the corresponding engine call, and converts the result (or a
- * thrown {@link DebugEngineException}/{@link ReportException}) into the {@code resultType}/{@code
+ * the seven {@link McpTools} tools into the corresponding engine call, and converts the result (or
+ * a thrown {@link DebugEngineException}/{@link ReportException}) into the {@code resultType}/{@code
  * content}/{@code structuredContent}/{@code isError} envelope.
  */
 final class McpDebugAdapter {
@@ -42,6 +42,7 @@ final class McpDebugAdapter {
         case "bazlang_eval" -> callEval(a);
         case "bazlang_screen" -> callScreen(a);
         case "bazlang_input" -> callInput(a);
+        case "bazlang_stack" -> callStack();
         default -> throw new UnknownToolException(name);
       };
     } catch (DebugEngineException | ReportException e) {
@@ -76,6 +77,14 @@ final class McpDebugAdapter {
         }
         engine.loadSource(source);
         yield success("Loaded programme (" + countLines(source) + " lines)", null);
+      }
+      case "save_file" -> {
+        String path = a.getString("path");
+        if (path == null || path.isBlank()) {
+          yield error("action=save_file requires 'path'");
+        }
+        engine.applyReplCommand("SAVE \"" + path + "\"");
+        yield success("Saved " + path, null);
       }
       case "edit_line" -> {
         if (!a.has("line")) {
@@ -138,6 +147,13 @@ final class McpDebugAdapter {
         engine.stop();
         yield success("stopped", JsonValue.objectOf("reason", "stopped"));
       }
+      case "status" -> {
+        boolean paused = engine.isPaused();
+        int line = engine.state().currentLineLabel();
+        int stmt = engine.state().currentStatementIndex();
+        String text = paused ? "PAUSED AT " + line + ":" + stmt : "not paused";
+        yield success(text, JsonValue.objectOf("paused", paused, "line", line, "stmt", stmt));
+      }
       default -> error("Unknown action for bazlang_step: " + action);
     };
   }
@@ -198,7 +214,41 @@ final class McpDebugAdapter {
         engine.breakpoints().clearPersistent();
         yield success("OK", null);
       }
+      case "list" -> {
+        var breaks = engine.breakpoints().list();
+        JsonValue.JsonArray arr = JsonValue.array();
+        for (var b : breaks) {
+          arr.add(breakpointToJson(b));
+        }
+        yield success(breaks.size() + " breakpoint(s)", JsonValue.objectOf("breakpoints", arr));
+      }
       default -> error("Unknown action for bazlang_breakpoint: " + action);
+    };
+  }
+
+  private static JsonValue.JsonObject breakpointToJson(BreakpointEngine.BreakCondition b) {
+    JsonValue.JsonObject obj = JsonValue.object();
+    if (b.line() >= 0) {
+      obj.put("line", b.line());
+    }
+    if (b.stmt() >= 0) {
+      obj.put("statement", b.stmt());
+    }
+    obj.put("persistent", b.persistent());
+    JsonValue.JsonObject condition = conditionToJson(b);
+    if (condition != null) {
+      obj.put("condition", condition);
+    }
+    return obj;
+  }
+
+  private static JsonValue.JsonObject conditionToJson(BreakpointEngine.BreakCondition b) {
+    return switch (b.type()) {
+      case NONE -> null;
+      case VIEW -> JsonValue.objectOf("type", "csc", "text", b.seeText());
+      case ELAPSE -> JsonValue.objectOf("type", "elapse", "milliseconds", b.timeoutMs());
+      case EXPR -> JsonValue.objectOf("type", "expr", "expression", b.seeText());
+      case EVERY -> JsonValue.objectOf("type", "every", "everyN", b.everyN());
     };
   }
 
@@ -256,9 +306,18 @@ final class McpDebugAdapter {
   // ---- bazlang_eval ----
 
   private JsonValue.JsonObject callEval(JsonValue.JsonObject a) {
+    String action = a.has("action") ? a.getString("action") : "eval";
+    return switch (action == null ? "eval" : action) {
+      case "eval" -> callEvalExpression(a);
+      case "vars" -> callEvalVars();
+      default -> error("Unknown action for bazlang_eval: " + action);
+    };
+  }
+
+  private JsonValue.JsonObject callEvalExpression(JsonValue.JsonObject a) {
     String expr = a.getString("expression");
     if (expr == null || expr.isBlank()) {
-      return error("bazlang_eval requires 'expression'");
+      return error("action=eval requires 'expression'");
     }
     String trimmed = expr.trim();
     // A leading LET is the unambiguous assignment cue: bare "x=3" is equality (a valid BazLang
@@ -274,6 +333,22 @@ final class McpDebugAdapter {
       case DebugEngine.EvalResult.Str(String value) ->
           success(value, JsonValue.objectOf("value", value));
     };
+  }
+
+  private JsonValue.JsonObject callEvalVars() {
+    var numVars = engine.state().getVariablesSnapshot();
+    var strVars = engine.state().getStringVariablesSnapshot();
+    JsonValue.JsonObject numeric = JsonValue.object();
+    for (var e : numVars.entrySet()) {
+      numeric.put(e.getKey(), e.getValue());
+    }
+    JsonValue.JsonObject string = JsonValue.object();
+    for (var e : strVars.entrySet()) {
+      string.put(e.getKey(), e.getValue());
+    }
+    int total = numVars.size() + strVars.size();
+    return success(
+        total + " variable(s)", JsonValue.objectOf("numeric", numeric, "string", string));
   }
 
   // ---- bazlang_screen ----
@@ -346,6 +421,32 @@ final class McpDebugAdapter {
                     .screen()
                     .queueUinkey(BStr.fromJavaString(new String(Character.toChars(cp)))));
     engine.screen().queueInput(text);
+  }
+
+  // ---- bazlang_stack ----
+
+  private JsonValue.JsonObject callStack() {
+    var state = engine.state();
+    JsonValue.JsonArray gosub = JsonValue.array();
+    for (var frame : state.returnStackSnapshot()) {
+      gosub.add(JsonValue.objectOf("line", frame.lineLabel(), "statement", frame.statementIndex()));
+    }
+    JsonValue.JsonArray forLoops = JsonValue.array();
+    for (var entry : state.forLoopsSnapshot().entrySet()) {
+      String var = entry.getKey();
+      var data = entry.getValue();
+      JsonValue.JsonObject obj = JsonValue.object().put("variable", var);
+      if (state.hasNumVar(var)) {
+        obj.put("current", state.numVar(var));
+      }
+      obj.put("limit", data.limit())
+          .put("step", data.step())
+          .put("loopLine", data.loopPcLabel())
+          .put("loopStatement", data.loopPcStatementIndex());
+      forLoops.add(obj);
+    }
+    String text = gosub.size() + " GOSUB frame(s), " + forLoops.size() + " active FOR loop(s)";
+    return success(text, JsonValue.objectOf("gosub", gosub, "forLoops", forLoops));
   }
 
   // ---- response envelope helpers ----

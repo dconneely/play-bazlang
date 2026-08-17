@@ -1,5 +1,6 @@
 package com.davidconneely.bazlang.debug;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
@@ -9,6 +10,7 @@ import com.davidconneely.bazlang.debug.BreakpointEngine.ConditionType;
 import com.davidconneely.bazlang.exec.EvalState;
 import com.davidconneely.bazlang.exec.ExpressionEvaluator;
 import com.davidconneely.bazlang.io.MockScreen;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -71,6 +73,18 @@ class BreakpointEngineTest {
     assertNull(engine.checkFired(10, 1, screen, eval));
     screen.print("the TARGET text");
     assertNotNull(engine.checkFired(10, 1, screen, eval), "CSC is case-insensitive");
+  }
+
+  @Test
+  void testList() {
+    assertEquals(List.of(), engine.list());
+    var b1 = new BreakCondition(10, 1, ConditionType.NONE, null, 0, true, 0, null);
+    var b2 = new BreakCondition(20, 1, ConditionType.NONE, null, 0, false, 0, null);
+    engine.add(b1);
+    engine.add(b2);
+    assertEquals(List.of(b1, b2), engine.list());
+    engine.clearAt(10, 1);
+    assertEquals(List.of(b2), engine.list());
   }
 
   @Test
