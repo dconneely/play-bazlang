@@ -119,6 +119,58 @@ Returns `1` for True, `0` for False.
   visible effect in non-interactive (piped) or headless modes.
 - **`SLOW`**: Re-enable terminal re-rendering (the default). Also immediately flushes any pending
   screen changes that accumulated during `FAST` mode.
+- **`BEEP duration, pitch`**: Play a tone for `duration` seconds at `pitch` semitones above (or, if
+  negative, below) middle C — e.g. `BEEP 1, 0` plays middle C for one second, `BEEP 0.5, 12` plays
+  one octave higher for half a second. Blocks execution for `duration`, interruptible by BREAK
+  exactly like `PAUSE`. Negative `duration` is a no-op (matching `PAUSE`'s own negative-frame
+  clamping). Silent — not an error — in non-interactive/headless modes, since there is no speaker
+  to play to. See `PLAY`/`APLAY` below for multi-channel tune playback.
+- **`PLAY string1 [, string2 [, string3]]`**: Play up to 3 simultaneous channels of music (the
+  AY-chip-style tone/noise/envelope model, one shared noise generator and one shared envelope
+  generator across all 3 channels — not per-channel), described by a small note-string DSL per
+  channel. Blocks execution until every channel finishes (or forever, for a deliberately looping
+  tune — see `)` below), interruptible by BREAK exactly like `BEEP`/`PAUSE`. Silent in
+  non-interactive/headless modes, same as `BEEP`. DSL syntax, in one channel string:
+  - Notes `a`-`g` (current octave) / `A`-`G` (one octave up), `#`/`$` sharp/flat prefixes
+    (stackable, e.g. `##c`), `&` rest.
+  - Duration digits `1`-`9` immediately before a note (e.g. `9c`), persisting until changed:
+    `1`=semi-quaver, `2`=dotted semi-quaver, `3`=quaver, `4`=dotted quaver, `5`=crotchet (the
+    default), `6`=dotted crotchet, `7`=minim, `8`=dotted minim, `9`=semi-breve. A bare duration
+    digit with nothing following it just changes the persisted duration.
+  - `O0`-`O8`: sets the octave (persists).
+  - `T60`-`T240`: sets the tempo in bpm (default 120) — only honoured from the first channel
+    string.
+  - `V0`-`V15`: sets the current channel's volume (default 15).
+  - `U`: switches the current channel's volume source to the shared envelope generator.
+  - `W0`-`W7`: sets the shared envelope's shape (`W0`/`W1`=single decay/attack then off,
+    `W2`/`W3`=single decay/attack then hold, `W4`=repeated decay, `W5`=repeated attack,
+    `W6`=repeated attack-decay, `W7`=repeated decay-attack). `X0`-`65535`: sets the shared
+    envelope's period.
+  - `M0`-`M63`: sets the shared tone/noise mixer bitmask (tone A/B/C=1/2/4, noise A/B/C=8/16/32,
+    additive — e.g. `M9`=tone A + noise A).
+  - `(...)`: repeats the enclosed phrase twice; nestable up to 4 levels. A lone `)` with no
+    matching `(` repeats the whole string from the start, forever.
+  - `!...!`: a comment. `H`: halts this channel. `N`: a no-op separator, useful between two
+    numeric commands that would otherwise run together (e.g. `T240N1c`, not `T2401c`).
+  - Not yet implemented: tied notes (`_`) and triplet duration codes (`10`-`12`) — using either is
+    a parse error, not silent misbehaviour. MIDI (`Y`/`Z`) is permanently out of scope.
+- **`APLAY string1 [, string2 [, string3]]`**: Identical DSL to `PLAY`, but non-blocking — starts
+  the tune playing in the background and returns immediately, so the rest of the program keeps
+  running (e.g. sound effects via `BEEP` layered over `APLAY` background music). Has no real
+  Spectrum equivalent — a deliberate BazLang-only addition, since real `PLAY` blocks (see
+  `docs/quirks.md`). A fresh `PLAY`/`APLAY` call replaces whatever tune is currently sounding.
+  BREAK (Ctrl+C) stops background `APLAY` audio even though nothing is "waiting" on it — another
+  deliberate divergence from real hardware, where BREAK does not reliably interrupt `PLAY` at all.
+  **`"-"` (trimmed) as a channel string is a reserved placeholder meaning "leave this channel's
+  currently-playing state alone"** — only meaningful against an already-running `APLAY`; with
+  nothing running yet it falls back to meaning silent, same as omitting the channel. This lets one
+  channel be updated without disturbing the others' in-progress notes (including an in-progress
+  infinite repeat) — e.g. `APLAY musicA$, musicB$` for background music on channels A/B, then later
+  `APLAY "-", "-", effect$` to play a one-shot sound effect on channel C alone. Trailing channels
+  genuinely omitted from the call (as opposed to given as `"-"`) are still silenced, matching a
+  plain call's existing behaviour. `APLAY "H", "H", effect$` is the idiom for stopping background
+  music outright (e.g. at game end) — `H` (halt) takes effect within one tick, not after whatever
+  note was already in progress finishes.
 - **`PLOT [modifiers;] x, y`**: Draw a block at coordinates `(x, y)`. Updates the current plot
   position. Accepts colour/style modifiers before coordinates (e.g. `PLOT INK 2; x, y`).
 - **`DRAW [modifiers;] x, y`**: Draw a line from the current plot position to relative offset
@@ -351,6 +403,10 @@ an exhaustive list):
 | GOTO target     | Rounds to nearest line               | Truncates to integer             |
 | PAUSE >= 32767  | Waits that many frames               | Waits forever until keypress     |
 | PAUSE 0         | Immediate no-op                      | Waits forever until keypress     |
+| BEEP (headless) | Silent no-op                         | N/A (always has a real speaker)  |
+| PLAY blocking   | Confirmed: blocks until tune ends    | Blocks (real-hardware-confirmed) |
+| PLAY BREAK      | Interrupts PLAY/APLAY (deliberate)   | Does not reliably interrupt PLAY |
+| APLAY           | Non-blocking (deliberate addition)   | No equivalent command exists     |
 | FRAMES epoch    | Fractional, epoch-relative           | Integer interrupts from power-on |
 | File I/O        | File system                          | Tape                             |
 | RND algorithm   | Java Random                          | Linear feedback shift register   |

@@ -17,6 +17,10 @@ class ReformatVisitorTest {
 
   @Test
   void testFormatting() {
+    assertFormatsTo("beep 1, 0", "BEEP 1, 0");
+    assertFormatsTo("play \"1c\"", "PLAY \"1c\"");
+    assertFormatsTo("play \"1c\", \"1e\"", "PLAY \"1c\", \"1e\"");
+    assertFormatsTo("aplay \"1c\"", "APLAY \"1c\"");
     assertFormatsTo("circle 10, 20, 5", "CIRCLE 10, 20, 5");
     assertFormatsTo("circle ink 2; 10, 20, 5", "CIRCLE INK 2; 10, 20, 5");
     assertFormatsTo("clear", "CLEAR");

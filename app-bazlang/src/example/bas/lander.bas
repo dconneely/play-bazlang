@@ -138,11 +138,11 @@
 5260 PRINT AT 12, tbl_col; INK -1; "Landing Zone"; AT 12, tbl_col + 22; "| "; zone$; AT 12, tbl_col + 37; "| Pad (Seg 4)"; AT 12, tbl_col + 52; "| "; INK c_ink; stat$
 5270 PRINT AT 13, tbl_col; INK -1; "------------------------------------------------------------"
 5280 IF landing_ok = 0 THEN GO TO 5340
-5290 PRINT AT 15, tbl_col + 10; INK 4; "SUCCESSFUL LANDING! BONUS SCORE +100"
+5290 PRINT AT 15, tbl_col + 10; INK 4; "SUCCESSFUL LANDING! BONUS SCORE +100" : APLAY "T240N2c2e3g"
 5300 LET score = score + 100 : LET level = level + 1
 5310 LET np$ = "VICTORY" : IF level <= 8 THEN RESTORE 8000 + level * 10 : READ np$
 5330 GO TO 5360
-5340 PRINT AT 15, tbl_col + 10; INK 2; "CRASHED! MODULE EXPLODED! SCORE RESET!"
+5340 PRINT AT 15, tbl_col + 10; INK 2; "CRASHED! MODULE EXPLODED! SCORE RESET!" : APLAY "T240N3cO3N4g"
 5350 LET score = (level - 1) * 100
 5360 LET p_len = 33 + LEN (p$) : IF landing_ok = 1 THEN LET p_len = 32 + LEN (np$)
 5370 LET p_col = tbl_col + INT ((60 - p_len) / 2) : IF p_col < 0 THEN LET p_col = 0
@@ -155,14 +155,14 @@
 6000 REM ### Out of bounds crash ###
 6010 SLOW
 6020 CLS
-6030 PRINT AT 5, 5; INK 2; "MODULE LOST IN DEEP SPACE!"
+6030 PRINT AT 5, 5; INK 2; "MODULE LOST IN DEEP SPACE!" : APLAY "T240N3cO3N4g"
 6040 PRINT AT 7, 5; INK -1; "Score Reset!"
 6050 LET score = (level - 1) * 100 : LET landing_ok = 0
 6060 GO TO 5360
 6500 REM ### Grand Campaign Complete ###
 6510 SLOW
 6520 CLS
-6530 PRINT AT 4, 5; INK 4; "GRAND CONQUEST COMPLETE!"
+6530 PRINT AT 4, 5; INK 4; "GRAND CONQUEST COMPLETE!" : APLAY "T240N2c2e2g4C"
 6540 PRINT AT 6, 5; INK -1; "Congratulations, Commander!"
 6550 PRINT AT 8, 5; INK -1; "You have successfully landed on"
 6560 PRINT AT 9, 5; INK -1; "all 8 major moons of our solar system!"

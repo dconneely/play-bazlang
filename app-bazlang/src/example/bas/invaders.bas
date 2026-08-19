@@ -101,14 +101,14 @@
 4080 NEXT c : NEXT r
 4090 RETURN
 4100 REM Alien Hit!
-4110 LET a(r, c) = 0 : LET aliens_left = aliens_left - 1
+4110 LET a(r, c) = 0 : LET aliens_left = aliens_left - 1 : APLAY "T240N1e"
 4120 REM squid 30 pts, crab 20 pts, octopus 10 pts
 4130 LET points = 10 : IF r = 1 THEN LET points = 30
 4140 IF r = 2 OR r = 3 THEN LET points = 20
 4150 LET score = score + points
 4160 LET by = 0
 4170 LET tick_max = INT (aliens_left / 3) + 2 - wave : IF tick_max < 1 THEN LET tick_max = 1
-4180 IF aliens_left = 0 THEN LET wave = wave + 1 : GO TO 2000
+4180 IF aliens_left = 0 THEN LET wave = wave + 1 : APLAY "T240N2c2e3g" : GO TO 2000
 4190 RETURN
 4200 REM ### Alien Bullet Collision Handler ###
 4210 REM check shields dynamically using s(x) and b(x)
@@ -118,7 +118,7 @@
 4250 IF ay >= 6 AND ay <= 14 AND ax >= px - 6 AND ax <= px + 6 THEN GO TO 4270
 4260 RETURN
 4270 REM Player Hit!
-4280 LET lives = lives - 1
+4280 LET lives = lives - 1 : APLAY "T240N3cO3N4g"
 4290 LET aby(i) = 0
 4300 IF lives = 0 THEN GO TO 6000
 4310 FOR f = 1 TO 6
@@ -160,7 +160,7 @@
 5220 RETURN
 6000 REM ### Game Over Screen ###
 6010 CLS
-6020 PRINT AT 10 + toy, 10 + tox; "GAME OVER"
+6020 PRINT AT 10 + toy, 10 + tox; "GAME OVER" : APLAY "T240N3cO3N4g"
 6030 PRINT AT 12 + toy, 10 + tox; "FINAL SCORE: "; score
 6040 IF score > high THEN LET high = score
 6050 PRINT AT 14 + toy, 10 + tox; "PLAY AGAIN? (Y/N)"
@@ -170,7 +170,7 @@
 6090 GO TO 6060
 6100 REM ### Invaders Landed Game Over ###
 6110 CLS
-6120 PRINT AT 10 + toy, 10 + tox; "THE INVADERS LANDED!"
+6120 PRINT AT 10 + toy, 10 + tox; "THE INVADERS LANDED!" : APLAY "T240N3cO3N4g"
 6130 GO TO 6030
 7000 REM ### Draw Player Ship ###
 7010 INK 4 : REM Green player ship
@@ -224,7 +224,7 @@
 9110 IF uval > 0.25 THEN LET pts = 100
 9120 IF uval > 0.50 THEN LET pts = 150
 9130 IF uval > 0.75 THEN LET pts = 300
-9140 LET score = score + pts
+9140 LET score = score + pts : APLAY "T240N1C1E2G"
 9150 LET by = 0 : LET ux = -20
 9160 RETURN
 11000 REM ### Plot Digit d at x, y ###

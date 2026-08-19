@@ -12,8 +12,8 @@
 2000 REM ### Start of round ###
 2010 CLS
 2020 PRINT AT oy, ox; "Player: £"; money; "   Dealer: £"; dealer_money; "        "
-2030 IF money <= 0 THEN PRINT AT oy + 10, ox + 10; "Game over! You went broke." : STOP
-2040 IF dealer_money <= 0 THEN PRINT AT oy + 10, ox + 10; "Game over! You broke the bank!" : STOP
+2030 IF money <= 0 THEN PRINT AT oy + 10, ox + 10; "Game over! You went broke." : APLAY "T240N3cO3N4g" : STOP
+2040 IF dealer_money <= 0 THEN PRINT AT oy + 10, ox + 10; "Game over! You broke the bank!" : APLAY "T240N2c2e3g" : STOP
 2050 PRINT AT oy + 1, ox; "Choose bet: (1) £10  (2) £50  (3) £100  (4) All in!  (5) Custom"
 2500 LET k$ = INKEY$
 2510 IF k$ = "1" THEN LET bet = 10 : GO TO 3000
@@ -76,7 +76,7 @@
 5050 LET draw_y = oy + 10
 5060 GO SUB 9000
 5070 GO SUB 8500
-5080 IF player_score > 21 THEN PRINT AT oy + 15, ox; "Bust! You lose.           " : LET money = money - bet : LET dealer_money = dealer_money + bet : GO TO 7000
+5080 IF player_score > 21 THEN PRINT AT oy + 15, ox; "Bust! You lose.           " : LET money = money - bet : LET dealer_money = dealer_money + bet : APLAY "T240N3cO3N4g" : GO TO 7000
 5090 IF player_cards = 5 THEN PRINT AT oy + 15, ox; "Five-Card Trick!          " : PAUSE 20 : GO TO 5500
 5100 GO TO 4500
 5500 REM ### Dealer turn ###
@@ -120,13 +120,13 @@
 6580 IF player_wins = 1 THEN GO TO 6650
 6590 REM ### Dealer wins ###
 6600 IF dealer_type = 5 OR dealer_type = 4 THEN LET f = 2
-6610 PRINT AT oy + 16, ox; "Dealer wins £"; f * bet; "."
+6610 PRINT AT oy + 16, ox; "Dealer wins £"; f * bet; "." : APLAY "T240N3cO3N4g"
 6620 LET money = money - f * bet
 6630 LET dealer_money = dealer_money + f * bet
 6640 GO TO 7000
 6650 REM ### Player wins ###
 6660 IF player_type = 5 OR player_type = 4 THEN LET f = 2
-6670 PRINT AT oy + 16, ox; "You win £"; f * bet; "!"
+6670 PRINT AT oy + 16, ox; "You win £"; f * bet; "!" : APLAY "T240N2c2e3g"
 6680 LET money = money + f * bet
 6690 LET dealer_money = dealer_money - f * bet
 7000 PRINT AT oy + 17, ox; "Press any key"

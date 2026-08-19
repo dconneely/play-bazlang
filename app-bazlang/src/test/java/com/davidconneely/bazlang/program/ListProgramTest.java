@@ -23,7 +23,7 @@ class ListProgramTest extends BaseProgramTest {
   void setUp() {
     final var state = new EvalState();
     screen = new MockScreen();
-    executor = new StatementExecutor(state, screen, screen);
+    executor = new StatementExecutor(state, screen, screen, screen);
     parser = AntlrParser.INSTANCE;
     // Set up a simple program
     state.program().put(10, new ProgramLine(10, "PRINT \"HELLO\""));

@@ -72,6 +72,12 @@ public class Interpreter {
 
       if (executor.input().pollForBreak()) {
         state.setRunning(false);
+        // Silences any background APLAY music (and, for consistency, a BEEP) even though nothing
+        // is "inside" a wait loop here to catch it — this is the one place every BREAK passes
+        // through regardless of what statement is currently executing, so Ctrl+C reliably stops
+        // background audio no matter what's running when it's pressed. A deliberate divergence
+        // from real hardware: see the PLAY/APLAY entry in localonly-BAZLANG-ROADMAP.md.
+        executor.stopBackgroundAudio();
         throw new ReportException(
             ReportCode.BREAK_INTO_PROGRAM,
             state.currentLineLabel(),

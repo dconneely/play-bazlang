@@ -25,7 +25,7 @@ class BaseProgramTest {
     final var program = PARSER.parseProgramLines(source);
     final var state = new EvalState();
     final var screen = new MockScreen(inputs);
-    final var executor = new StatementExecutor(state, screen, screen);
+    final var executor = new StatementExecutor(state, screen, screen, screen);
     final var interpreter = new Interpreter(state, executor);
     try {
       interpreter.execute(program);
@@ -47,7 +47,7 @@ class BaseProgramTest {
     for (var k : uinkey) {
       screen.queueUinkey(k);
     }
-    final var executor = new StatementExecutor(state, screen, screen);
+    final var executor = new StatementExecutor(state, screen, screen, screen);
     final var interpreter = new Interpreter(state, executor);
     try {
       interpreter.execute(program);

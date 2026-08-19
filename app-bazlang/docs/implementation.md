@@ -27,6 +27,8 @@ Under `com.davidconneely.bazlang`:
   on freshly parsed ANTLR trees or source text, not the AST; see "Parse tree vs. AST" below.
 - **`antlr`**: the parser facade (`AntlrParser`) and the generated lexer/parser.
 - **`io`**: screens and input (see the I/O section below).
+- **`play`**: `PLAY`/`APLAY`'s note-string DSL parser and multi-channel scheduler (`PlayParser`,
+  `PlayToken`, `PlayChannelState`, `SharedRegisters`, `PlaySequencer`) — see the I/O section below.
 - **`debug`**: `DebugEngine`, the protocol-agnostic debugging core used by the MCP server.
 - **`mcp`**: `McpServer`, the agent-oriented MCP (Model Context Protocol) debugger entry point.
 
@@ -193,14 +195,55 @@ reset it.
 ## I/O system (the `io` package)
 
 Input and output are handled by a set of classes that share a common `VirtualScreen` interface
-(which extends the base `ReplReader` and `AutoCloseable` interfaces) plus a `VirtualInput`
-interface, isolating the interpreter from the specific device.
+(which extends the base `ReplReader` and `AutoCloseable` interfaces), a `VirtualInput` interface,
+and a `VirtualSpeaker` interface (for `BEEP`/`PLAY`/`APLAY`), isolating the interpreter from the
+specific device. `VirtualSpeaker` is deliberately its own interface rather than another
+`VirtualScreen` method — audio isn't a screen concern at all, and `VirtualScreen` is already large
+(~30 methods); see its own class doc for the reasoning. Every `VirtualSpeaker` method defaults to a
+no-op, so every implementation except `TerminalScreen` gets silent `BEEP`/`PLAY`/`APLAY` for free,
+the same way `setFastMode` already works.
+
+`PLAY`/`APLAY`'s DSL parsing and multi-channel scheduling live entirely in their own
+`com.davidconneely.bazlang.play` package (`PlayParser`, `PlayToken`, `PlayChannelState`,
+`SharedRegisters`, `PlaySequencer`), not in `io` — `VirtualSpeaker.playFrame` only ever sees
+already-resolved `VoiceFrame`s (frequency/amplitude/tone-or-noise), never a "note" or a "channel
+string". `StatementExecutor` pulls from the `play` package's `PlaySequencer` (via `PlaySource`) in
+~20ms slices and hands each resolved slice to `speaker.playFrame`, which renders exactly that much
+audio and no more — this keeps all DSL/BREAK logic on the `StatementExecutor` side, so
+`PLAY`/`APLAY` are headless-testable for free, just like `BEEP`.
+
+**Nothing ever queues idle silence, and this is load-bearing rather than incidental.** An audio
+line is a FIFO whose `write` blocks only once the buffer is full, so any component that keeps
+writing silence while nothing is playing runs a whole buffer ahead of the speaker permanently, and
+every later-triggered note lands *behind* that backlog — constant latency equal to the buffer
+depth. An earlier design did exactly that (a persistent render thread continuously synthesising
+whatever voices were last pushed to it) and produced a real, user-visible bug: game sound effects
+arriving noticeably late or seeming to go missing entirely, with short notes clipped by the fixed
+sampling granularity such a loop requires. Writing only real, requested audio also means the
+line's own backpressure paces playback for free, so the pull loops need no cadence mechanism of
+their own beyond a fallback sleep for the no-device (headless) case.
+`PLAY` blocks until every channel finishes (real-hardware-confirmed; see `docs/quirks.md`); `APLAY`
+runs the same pull loop on its own background thread and returns immediately — a BazLang-only
+addition with no real Spectrum equivalent, since real `PLAY` always blocks.
 
 - **`TerminalScreen`**: The standard version for interactive use. It provides a TUI (Text User
   Interface) with distinct window regions: an interpreter output area at the top, an input area with
   prompt, and a status bar. Uses the `TerminalEngine` class (which wraps JLine) for terminal
   control, escape sequences, and raw input. Supports command history, cursor movement, and handles
-  terminal window resizes gracefully.
+  terminal window resizes gracefully. The only `VirtualSpeaker` implementation that plays real
+  audio. `beep()` starts a square-wave `SourceDataLine` write on its own daemon thread and returns
+  immediately, so the interpreter thread stays free to run `PAUSE`-style chunked BREAK-polling
+  (`StatementExecutor.executeBeepStmt`) instead of blocking inside the audio write for the tone's
+  whole duration; `stopBeep()` cuts a tone short on BREAK. `playFrame()` synthesises exactly the
+  requested duration of up to 3 mixed voices and writes it straight to a second, entirely
+  independent persistent `SourceDataLine` (opened lazily, reused for the session) on whichever
+  thread called it — no render thread of its own, per the no-idle-silence rule above; `stopPlay()`
+  flushes audio already queued but not yet heard, so a note cut short by BREAK or a replacement
+  stops promptly. Keeping `PLAY`/`APLAY` on their own line means a `BEEP` sound effect can layer
+  over music without either interfering with the other, matching real hardware's independent
+  beeper/AY circuits. `LineUnavailableException` (no audio device — e.g. a headless/SSH session) is
+  caught and silently swallowed for both, matching the no-op fallback the interface already
+  provides elsewhere.
 - **`StreamScreen`**: A simpler version used for pipes or non-interactive environments. It uses
   standard Java `System.in` and `System.out`. Graphics (`PLOT` and related draw calls)
   are no-ops. `MainClass` also falls back to this screen silently if `TerminalScreen` cannot be

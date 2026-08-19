@@ -44,14 +44,15 @@
 2320 FOR i = 1 TO word_len
 2330 IF clean_word$(i) = user_guess$ THEN LET guess_word$(i) = user_guess$ : LET found = 1
 2340 NEXT i
-2350 IF found <> 0 THEN GO TO 2100
-2360 LET misses = misses + 1
+2350 IF found <> 0 THEN APLAY "T240N1e" : GO TO 2100
+2360 LET misses = misses + 1 : APLAY "T240O3N1#g"
 2370 LET letters$ = letters$ + user_guess$ + " "
 2380 GO TO 2100
 2390 REM ### Win ###
-2400 PRINT AT oy + eh - 4, ox; INK 6; "You guessed it: "; INK 5; clean_word$ : PRINT AT oy + eh - 3, ox; INK 4; "You win!" : GO TO 5000
+2400 PRINT AT oy + eh - 4, ox; INK 6; "You guessed it: "; INK 5; clean_word$ : PRINT AT oy + eh - 3, ox; INK 4; "You win!" : APLAY "T240N2c2d2e2f2g2a2b6C" : GO TO 5000
 2410 REM ### Lose ###
-2420 PRINT AT oy + eh - 4, ox; INK 2; "You died! It was: "; INK 5; clean_word$ : GO TO 5000
+2420 PRINT AT oy + eh - 4, ox; INK 2; "You died! It was: "; INK 5; clean_word$ : REM ### Chopin, Marche Funebre (Sonata No. 2, 3rd mvt), 3 voices: melody / fifth / bass ###
+2425 APLAY "T120O4N6$b3$b5$b5$bO5N6$d3c5cO4N7$b", "V11O4N6f3f5f5f6f3a5a7f", "V11O2N6$b3$b5$b5$b6$b3f5f7$b" : GO TO 5000
 3000 REM ### Subroutine: Render gallows ###
 3010 LET cx = INT (PLOTW / 2) : LET cy = INT (PLOTH / 2) : INK 6
 3020 PLOT cx - 30, cy - 20 : DRAW 60, 0
@@ -72,6 +73,7 @@
 5010 PRINT AT oy + eh - 1, ox; INK 4; "Play again (Y/N)? "; INK 5;
 5020 LET r$ = INKEY$
 5030 IF LEN (r$) <> 1 THEN GO TO 5020
+5035 IF (r$ <> "Y") AND (r$ <> "y") AND (r$ <> "N") AND (r$ <> "n") THEN GO TO 5020 : REM ### Ignore any other key, incl. the just-guessed letter INKEY$ still reports. Parens are required: see AND misparse note in localonly-BAZLANG-IMPROVEMENTS.md ###
 5040 PRINT r$
 5050 IF r$ = "Y" OR r$ = "y" THEN GO TO 1080
 5060 PRINT AT oy + eh - 1, ox + 18; INK 6; "Thanks for playing!"

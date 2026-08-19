@@ -15,6 +15,9 @@ import com.davidconneely.bazlang.exec.ast.StrExpr;
 import com.davidconneely.bazlang.exec.ast.StyleItem;
 import com.davidconneely.bazlang.io.VirtualInput;
 import com.davidconneely.bazlang.io.VirtualScreen;
+import com.davidconneely.bazlang.io.VirtualSpeaker;
+import com.davidconneely.bazlang.play.PlayParser;
+import com.davidconneely.bazlang.play.PlaySource;
 import com.davidconneely.cell.BrailleMode;
 import com.davidconneely.cell.CellMode;
 import com.davidconneely.cell.HalfCellMode;
@@ -22,8 +25,8 @@ import com.davidconneely.cell.QuadrantMode;
 import com.davidconneely.cell.SextantMode;
 import com.davidconneely.repl.BreakException;
 import java.util.Arrays;
-import java.util.HashSet;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.IntConsumer;
 import java.util.function.Supplier;
 
@@ -39,15 +42,18 @@ public class StatementExecutor {
   private final EvalState state;
   private final VirtualScreen screen;
   private final VirtualInput input;
+  private final VirtualSpeaker speaker;
   private final ProgramStorage storage;
   private final ExpressionEvaluator exprEvaluator;
   private final AntlrParser parser;
 
-  public StatementExecutor(EvalState state, VirtualScreen screen, VirtualInput input) {
+  public StatementExecutor(
+      EvalState state, VirtualScreen screen, VirtualInput input, VirtualSpeaker speaker) {
     this(
         state,
         screen,
         input,
+        speaker,
         new ProgramStorage(state, AntlrParser.INSTANCE),
         new ExpressionEvaluator(state, screen, input, AntlrParser.INSTANCE),
         AntlrParser.INSTANCE);
@@ -57,12 +63,14 @@ public class StatementExecutor {
       EvalState state,
       VirtualScreen screen,
       VirtualInput input,
+      VirtualSpeaker speaker,
       ProgramStorage storage,
       ExpressionEvaluator exprEvaluator,
       AntlrParser parser) {
     this.state = state;
     this.screen = screen;
     this.input = input;
+    this.speaker = speaker;
     this.storage = storage;
     this.exprEvaluator = exprEvaluator;
     this.parser = parser;
@@ -74,6 +82,10 @@ public class StatementExecutor {
 
   public VirtualInput input() {
     return input;
+  }
+
+  public VirtualSpeaker speaker() {
+    return speaker;
   }
 
   public ExpressionEvaluator getExprEvaluator() {
@@ -138,6 +150,9 @@ public class StatementExecutor {
       case Stmt.PrintStmt s -> executePrintStmt(s);
       case Stmt.InputStmt s -> executeInputStmt(s);
       case Stmt.PauseStmt s -> executePauseStmt(s);
+      case Stmt.BeepStmt s -> executeBeepStmt(s);
+      case Stmt.PlayStmt s -> executePlayStmt(s);
+      case Stmt.AplayStmt s -> executeAplayStmt(s);
       case Stmt.RandStmt s -> executeRandStmt(s);
       case Stmt.ListStmt s -> executeListStmt(s);
       case Stmt.LoadStmt s -> storage.load(exprEvaluator.evalStr(s.fileName()).toJavaString());
@@ -426,11 +441,8 @@ public class StatementExecutor {
             ReportCode.NONSENSE_IN_BASIC, "Type mismatch: expected numeric expression");
       }
     }
-    final var paramSet = new HashSet<String>();
-    for (final var p : stmt.params()) {
-      if (!paramSet.add(p)) {
-        throw codedException(ReportCode.NONSENSE_IN_BASIC, "Duplicate parameter name: " + p);
-      }
+    if (stmt.params().stream().distinct().count() != stmt.params().size()) {
+      throw codedException(ReportCode.NONSENSE_IN_BASIC, "Duplicate parameter name");
     }
     state.setFn(name, new EvalState.FnDefinition(name, stmt.params(), stmt.body()));
   }
@@ -747,6 +759,222 @@ public class StatementExecutor {
             ReportCode.BREAK_INTO_PROGRAM, ReportCode.BREAK_INTO_PROGRAM.getMessage());
       }
     }
+  }
+
+  // ===== BEEP =====
+
+  private void executeBeepStmt(Stmt.BeepStmt stmt) {
+    final double duration = exprEvaluator.evalNum(stmt.duration());
+    final double pitch = exprEvaluator.evalNum(stmt.pitch());
+    final long totalMs = Math.max(0L, Math.round(duration * 1000.0));
+    if (totalMs == 0L) {
+      return;
+    }
+    // speaker.beep() is expected to start playback and return promptly (see VirtualSpeaker's
+    // class doc) rather than block for the tone's duration, so this thread stays free to run the
+    // same chunked wait/BREAK-poll loop PAUSE uses, rather than being stuck inside a blocking
+    // audio write for the full duration with no chance to notice BREAK.
+    speaker.beep(duration, pitch);
+    long remaining = totalMs;
+    while (remaining > 0) {
+      final long chunk = Math.min(remaining, 20L);
+      try {
+        Thread.sleep(chunk);
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+        break;
+      }
+      remaining -= chunk;
+      if (input.pollForBreak()) {
+        speaker.stopBeep();
+        state.setRunning(false);
+        // Mirrors PAUSE: pressing BREAK mid-tone gives report code L (BREAK into program); CONT
+        // then advances past the BEEP to the next statement.
+        throw codedException(
+            ReportCode.BREAK_INTO_PROGRAM, ReportCode.BREAK_INTO_PROGRAM.getMessage());
+      }
+    }
+  }
+
+  // ===== PLAY / APLAY =====
+
+  // Seconds requested per pull from the PlaySource, matching BEEP/PAUSE's own 20ms chunk cadence.
+  private static final double PLAY_CHUNK_SECONDS = 0.02;
+  private static final long PLAY_CHUNK_MS = Math.round(PLAY_CHUNK_SECONDS * 1000.0);
+
+  // A running background APLAY, bundled with enough to both target a per-channel update at it
+  // (source) and stop it (stop/thread). null when no APLAY has ever run, or the last one already
+  // fully replaced by a fresh PLAY/APLAY. isAlive() -- not just "was a stop requested" -- is what
+  // executeAplayStmt checks before attempting a partial update: a session whose thread already
+  // exited on its own (tune finished, or a prior stop already took effect) has nothing left
+  // pulling from `source`, so replaceChannel-ing it would silently have no audible effect at all.
+  private record AplaySession(Thread thread, PlaySource source, AtomicBoolean stop) {
+    boolean isAlive() {
+      return thread.isAlive();
+    }
+  }
+
+  private volatile AplaySession activeAplay;
+
+  /**
+   * Whether a background APLAY session's thread is still alive. Package-visible purely as a test
+   * hook: it's otherwise unobservable from outside that the thread deliberately never exits just
+   * because it ran out of notes (see the comment where {@code frame.finished()} is handled in
+   * {@link #startNewAplaySession}) — exiting there would race {@link #executeAplayStmt}'s own
+   * {@code isAlive()} check and could silently drop a channel update targeted at this session.
+   */
+  boolean aplaySessionIsAlive() {
+    final AplaySession current = activeAplay;
+    return current != null && current.isAlive();
+  }
+
+  private List<String> playChannelStrings(List<StrExpr> channels) {
+    return channels.stream().map(e -> exprEvaluator.evalStr(e).toJavaString()).toList();
+  }
+
+  /** Stops any background APLAY and silences whatever PLAY/APLAY audio is currently sounding. */
+  public void stopBackgroundAudio() {
+    final AplaySession current = activeAplay;
+    if (current != null) {
+      current.stop().set(true);
+      current.thread().interrupt(); // wake it immediately rather than waiting out its own sleep
+    }
+    speaker.stopBeep();
+    speaker.stopPlay();
+  }
+
+  // Swallows InterruptedException rather than propagating it: both updateLiveAplaySession and
+  // stopBackgroundAudio use Thread.interrupt() purely as a "wake up now" signal (a replaced
+  // channel should be heard promptly, not wait out whatever sleep this thread happens to already
+  // be in; a stop should take effect promptly too) -- `stop` is the sole authoritative exit
+  // signal for the loop this drives, checked every iteration regardless of why a sleep ended.
+  private static void sleepIgnoringInterrupt(long millis) {
+    try {
+      Thread.sleep(millis);
+    } catch (InterruptedException e) {
+      // Intentionally ignored -- see method doc.
+    }
+  }
+
+  /**
+   * Pulls the next frame from {@code source} and renders it, taking roughly its own duration to do
+   * so; returns {@code false} once the source has finished. With a real audio device that pacing
+   * comes for free from the output line's backpressure (see {@code VirtualSpeaker.playFrame}); the
+   * top-up sleep only does real work when there is no device -- a headless/no-op speaker returns
+   * instantly, and without it these loops would spin flat out rather than advance the tune in
+   * anything like real time. (Takes the {@code PlaySource} rather than an already-pulled frame so
+   * the frame type itself is only ever a local {@code var} here -- see the ExcessiveImports note on
+   * this class.)
+   */
+  private boolean renderNextFramePaced(PlaySource source) {
+    final var frame = source.next(PLAY_CHUNK_SECONDS);
+    if (frame.finished()) {
+      return false;
+    }
+    final long targetMs = Math.max(0L, Math.round(frame.durationSeconds() * 1000.0));
+    final long startNanos = System.nanoTime();
+    speaker.playFrame(frame.a(), frame.b(), frame.c(), frame.durationSeconds());
+    final long elapsedMs = (System.nanoTime() - startNanos) / 1_000_000L;
+    if (elapsedMs < targetMs) {
+      sleepIgnoringInterrupt(targetMs - elapsedMs);
+    }
+    return true;
+  }
+
+  private void executePlayStmt(Stmt.PlayStmt stmt) {
+    stopBackgroundAudio(); // a blocking PLAY takes over from any currently-running background APLAY
+    final var source =
+        PlayParser.buildSequencer(playChannelStrings(stmt.channels()), state.currentLineLabel());
+    while (renderNextFramePaced(source)) {
+      if (input.pollForBreak()) {
+        speaker.stopPlay(); // cut short: discard whatever is still queued
+        state.setRunning(false);
+        // Mirrors BEEP/PAUSE: pressing BREAK mid-tune gives report code L (BREAK into program);
+        // CONT then advances past the PLAY to the next statement.
+        throw codedException(
+            ReportCode.BREAK_INTO_PROGRAM, ReportCode.BREAK_INTO_PROGRAM.getMessage());
+      }
+    }
+    // Reached the end naturally, so let the queued tail play out rather than flushing it -- an
+    // unconditional stopPlay() here used to clip the final note of every completed PLAY.
+    speaker.drainPlay();
+  }
+
+  private void executeAplayStmt(Stmt.AplayStmt stmt) {
+    final List<String> given = playChannelStrings(stmt.channels());
+    final AplaySession current = activeAplay;
+    if (current != null && current.isAlive()) {
+      updateLiveAplaySession(current, given);
+      return;
+    }
+    startNewAplaySession(given);
+  }
+
+  /**
+   * Targets a partial update at an already-running APLAY: {@code "-"} (trimmed) leaves that
+   * channel's in-progress state — including an in-progress infinite repeat — completely untouched;
+   * anything else replaces it. Any trailing channel not given at all is silenced, matching a fresh
+   * call's own "omission silences" rule even against a live session.
+   */
+  private void updateLiveAplaySession(AplaySession session, List<String> given) {
+    for (int i = 0; i < given.size(); i++) {
+      final String channelDsl = given.get(i);
+      if (!"-".equals(channelDsl.trim())) {
+        session.source().replaceChannel(i, channelDsl, state.currentLineLabel());
+      }
+    }
+    for (int i = given.size(); i < 3; i++) {
+      session.source().replaceChannel(i, "", state.currentLineLabel());
+    }
+    // Wakes the background thread immediately rather than leaving it to discover the replaced
+    // channel(s) whenever its current sleep happens to end (up to one PLAY_CHUNK_MS away, or
+    // longer if it's mid-note) -- see startNewAplaySession's sleepIgnoringInterrupt for why this
+    // is safe: every wait in that loop treats an interrupt as "wake early", never "stop". Without
+    // this, two updates to the same channel landing within one chunk of each other could silently
+    // drop the first one entirely (it's overwritten before the thread ever delivers it to the
+    // speaker) -- observed as pong's paddle-touch click intermittently not playing at all.
+    session.thread().interrupt();
+  }
+
+  private void startNewAplaySession(List<String> given) {
+    final var source = PlayParser.buildSequencer(given, state.currentLineLabel());
+    final AtomicBoolean stop = new AtomicBoolean(false);
+    // Unlike PLAY, returns immediately — the rest of the BASIC program keeps running while this
+    // background thread advances the tune, exactly the point of APLAY existing at all.
+    final Thread player =
+        new Thread(
+            () -> {
+              try {
+                boolean wasSounding = false;
+                while (!stop.get()) {
+                  if (renderNextFramePaced(source)) {
+                    wasSounding = true;
+                  } else {
+                    if (wasSounding) {
+                      // Just reached the natural end of a sound: let its tail play, then park the
+                      // output rather than leaving it running empty until the next trigger.
+                      speaker.drainPlay();
+                      wasSounding = false;
+                    }
+                    // Nothing playing right now, but this session stays alive rather than exiting
+                    // -- exiting here would race executeAplayStmt's isAlive() check: a channel
+                    // replace targeted at this (still nominally "live") session could land after
+                    // the thread has already decided to exit but before it actually terminates,
+                    // silently dropping that update since no thread is left to ever consume it
+                    // (this was a real, intermittent "the click sometimes doesn't play" bug).
+                    // Idle-polls at the same cadence rather than a longer sleep: fillPendingNotes()
+                    // is O(1) once every channel is done, so this costs nothing while idle.
+                    sleepIgnoringInterrupt(PLAY_CHUNK_MS);
+                  }
+                }
+              } finally {
+                speaker.stopPlay();
+              }
+            });
+    player.setDaemon(true);
+    player.setName("bazlang-aplay");
+    activeAplay = new AplaySession(player, source, stop);
+    player.start();
   }
 
   // ===== Program management =====

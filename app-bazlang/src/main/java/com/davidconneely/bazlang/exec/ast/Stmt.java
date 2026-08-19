@@ -20,6 +20,10 @@ import java.util.List;
  * re-walking the ANTLR tree.
  */
 public sealed interface Stmt {
+  record AplayStmt(List<StrExpr> channels) implements Stmt {}
+
+  record BeepStmt(NumExpr duration, NumExpr pitch) implements Stmt {}
+
   record BrightStmt(NumExpr value) implements Stmt {}
 
   record CircleStmt(List<StyleItem> styles, NumExpr cx, NumExpr cy, NumExpr radius)
@@ -83,6 +87,8 @@ public sealed interface Stmt {
   record PaperStmt(NumExpr value) implements Stmt {}
 
   record PauseStmt(NumExpr frames) implements Stmt {}
+
+  record PlayStmt(List<StrExpr> channels) implements Stmt {}
 
   record PlotStmt(List<StyleItem> styles, NumExpr x, NumExpr y) implements Stmt {}
 

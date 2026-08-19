@@ -95,7 +95,7 @@ class ForNextProgramTest extends BaseProgramTest {
     // REPL statements are executed via immediate mode (label 0).
     final var state = new EvalState();
     final var screen = new MockScreen(List.of());
-    final var executor = new StatementExecutor(state, screen, screen);
+    final var executor = new StatementExecutor(state, screen, screen, screen);
     final var interpreter = new Interpreter(state, executor);
     final var editor = new ProgramEditor(state, screen, PARSER, executor::evalNum);
     final var handler =

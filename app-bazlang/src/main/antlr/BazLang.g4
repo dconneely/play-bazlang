@@ -53,7 +53,9 @@ replCommand
 
 // Statements
 statement
-    : BRIGHT numExpr                                       # BrightStmt
+    : APLAY strExpr (',' strExpr (',' strExpr)?)?          # AplayStmt
+    | BEEP numExpr ',' numExpr                             # BeepStmt
+    | BRIGHT numExpr                                       # BrightStmt
     | CIRCLE styleList numExpr ',' numExpr ',' numExpr     # CircleStmt
     | CLEAR                                                # ClearStmt
     | CLS                                                  # ClsStmt
@@ -80,6 +82,7 @@ statement
     | OVER numExpr                                         # OverStmt
     | PAPER numExpr                                        # PaperStmt
     | PAUSE numExpr                                        # PauseStmt
+    | PLAY strExpr (',' strExpr (',' strExpr)?)?           # PlayStmt
     | PLOT styleList numExpr ',' numExpr                   # PlotStmt
     | PLOTMODE numExpr                                     # PlotmodeStmt
     | PRINT printList?                                     # PrintStmt
@@ -284,6 +287,8 @@ strAtom
 // ===== Lexer Rules =====
 
 // Keywords - Statements
+APLAY    : 'APLAY';
+BEEP     : 'BEEP';
 BRIGHT   : 'BRIGHT';
 CIRCLE   : 'CIRCLE';
 CLEAR    : 'CLEAR';
@@ -316,6 +321,7 @@ NEXT     : 'NEXT';
 OVER     : 'OVER';
 PAPER    : 'PAPER';
 PAUSE    : 'PAUSE';
+PLAY     : 'PLAY';
 PLOT     : 'PLOT';
 PLOTMODE : 'PLOTMODE';
 POINT    : 'POINT';

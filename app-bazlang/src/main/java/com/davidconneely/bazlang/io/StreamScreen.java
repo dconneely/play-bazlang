@@ -8,7 +8,7 @@ import java.io.InputStreamReader;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 
-public class StreamScreen implements VirtualScreen, VirtualInput {
+public class StreamScreen implements VirtualScreen, VirtualInput, VirtualSpeaker {
   private final InputStream in;
   private final PrintStream out;
   private BufferedReader reader;

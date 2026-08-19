@@ -33,7 +33,7 @@ class DeleteEditProgramTest extends BaseProgramTest {
   void setUp() {
     state = new EvalState();
     screen = new MockScreen();
-    executor = new StatementExecutor(state, screen, screen);
+    executor = new StatementExecutor(state, screen, screen, screen);
     parser = AntlrParser.INSTANCE;
     editor = new ProgramEditor(state, screen, parser, executor::evalNum);
     state.program().put(10, new ProgramLine(10, "PRINT \"HELLO\""));

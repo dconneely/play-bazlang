@@ -119,7 +119,7 @@ class TerminalScreenGraphicsTest {
     engine.setKeysToRead(mockKeys);
     TerminalScreen screen = new TerminalScreen(engine);
 
-    StatementExecutor executor = new StatementExecutor(state, screen, screen);
+    StatementExecutor executor = new StatementExecutor(state, screen, screen, screen);
     Interpreter interpreter = new Interpreter(state, executor);
     try {
       interpreter.execute(program);

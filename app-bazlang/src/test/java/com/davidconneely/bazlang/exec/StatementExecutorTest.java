@@ -15,11 +15,17 @@ import com.davidconneely.bazlang.exec.ast.AstLowering;
 import com.davidconneely.bazlang.exec.ast.NumExpr;
 import com.davidconneely.bazlang.exec.ast.Stmt;
 import com.davidconneely.bazlang.io.MockScreen;
+import com.davidconneely.bazlang.io.Pitch;
+import com.davidconneely.bazlang.io.VirtualSpeaker;
+import com.davidconneely.bazlang.io.VoiceFrame;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Set;
 import java.util.TreeMap;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -39,7 +45,7 @@ class StatementExecutorTest {
     state = new EvalState();
     state.setCurrentLineLabel(10);
     screen = new MockScreen();
-    executor = new StatementExecutor(state, screen, screen);
+    executor = new StatementExecutor(state, screen, screen, screen);
   }
 
   private Stmt firstStmt(String source) {
@@ -463,6 +469,228 @@ class StatementExecutorTest {
     void breakDuringPauseThrows() {
       screen.triggerBreak();
       assertThrows(ReportException.class, () -> exec("PAUSE 1"));
+    }
+  }
+
+  @Nested
+  class Beep {
+    // MockScreen inherits VirtualSpeaker's no-op default (see AbstractCellBufferedScreen), so
+    // these exercise executeBeepStmt's own timing/BREAK-poll loop without any real audio device —
+    // exactly the "headless fallback for free" VirtualSpeaker was designed around.
+
+    @Test
+    void zeroDurationReturnsImmediately() {
+      exec("BEEP 0, 0");
+    }
+
+    @Test
+    void negativeDurationIsClampedToZero() {
+      exec("BEEP -1, 0");
+    }
+
+    @Test
+    void breakDuringBeepThrows() {
+      screen.triggerBreak();
+      assertThrows(ReportException.class, () -> exec("BEEP 1, 0"));
+    }
+  }
+
+  @Nested
+  class Play {
+    // MockScreen inherits VirtualSpeaker's no-op default for playFrame()/stopPlay(), so these
+    // exercise executePlayStmt's own timing/BREAK-poll loop without any real audio device — the
+    // loop's timing/BREAK logic lives entirely in StatementExecutor (unlike a naive design keyed
+    // off the speaker's own "am I playing" state), so it works identically headless.
+
+    @Test
+    void singleNoteDoesNotCrash() {
+      // Duration digit 1 (semiquaver, the shortest) keeps this test's real wall-clock cost small.
+      exec("PLAY \"1c\"");
+    }
+
+    @Test
+    void breakDuringPlayThrows() {
+      screen.triggerBreak();
+      assertThrows(ReportException.class, () -> exec("PLAY \"1c\""));
+    }
+
+    @Test
+    void invalidNoteNameThrowsBeforePlaybackStarts() {
+      assertThrows(ReportException.class, () -> exec("PLAY \"z\""));
+    }
+
+    @Test
+    void upToThreeChannelsAreAccepted() {
+      exec("PLAY \"1c\", \"1e\", \"1g\"");
+    }
+  }
+
+  @Nested
+  class Aplay {
+    @Test
+    void doesNotBlock() {
+      // Returns immediately (the whole point of APLAY) rather than waiting for the tune --
+      // measured,
+      // not just "eventually completes": a 9c note is 2 real seconds long, so if executeAplayStmt
+      // were actually waiting on it, this would take ~2000ms instead of a few.
+      final long start = System.nanoTime();
+      exec("APLAY \"9c\"");
+      final long elapsedMs = (System.nanoTime() - start) / 1_000_000;
+      assertTrue(elapsedMs < 100, "executeAplayStmt took " + elapsedMs + "ms, expected < 100ms");
+    }
+
+    @Test
+    void invalidNoteNameThrowsBeforePlaybackStarts() {
+      assertThrows(ReportException.class, () -> exec("APLAY \"z\""));
+    }
+
+    @Test
+    void aSecondAplayReplacesTheFirstWithoutThrowing() {
+      exec("APLAY \"9c\"");
+      exec("APLAY \"9d\"");
+    }
+
+    @Test
+    void dashPlaceholdersTargetAPartialUpdateWithoutThrowing() {
+      exec("APLAY \"9c\", \"9d\"");
+      exec("APLAY \"-\", \"-\", \"1c\""); // touches channel C only, leaving A/B running
+    }
+
+    @Test
+    void dashHaltIdiomStopsBackgroundMusicWithoutThrowing() {
+      exec("APLAY \"9c\", \"9d\"");
+      exec("APLAY \"H\", \"H\", \"1c\""); // the "game over" idiom: stop A/B, play one last effect
+    }
+
+    @Test
+    void backgroundThreadStaysAliveAfterItsContentFinishesSoALaterUpdateIsNotLost()
+        throws InterruptedException {
+      // Regression test for a real intermittent bug: the background thread used to exit as soon as
+      // it ran out of notes, racing executeAplayStmt's isAlive() check and silently dropping a
+      // channel update that landed in the (narrow) window between "decided to exit" and "actually
+      // terminated" -- observed as pong's paddle-touch click sometimes not playing at all. "1c" is
+      // the shortest available note (0.125s at the default tempo); sleeping well past that proves
+      // the thread doesn't self-terminate just because its content finished.
+      exec("APLAY \"1c\"");
+      Thread.sleep(400);
+      assertTrue(
+          executor.aplaySessionIsAlive(),
+          "background APLAY thread exited after its content finished -- a later update could be "
+              + "silently dropped");
+    }
+
+    /** Counts total audio pushed to the speaker, and how much of it was actually sounding. */
+    private static final class RecordingSpeaker implements VirtualSpeaker {
+      private final AtomicLong totalCalls = new AtomicLong();
+      private final AtomicLong soundingCalls = new AtomicLong();
+
+      @Override
+      public void playFrame(VoiceFrame a, VoiceFrame b, VoiceFrame c, double durationSeconds) {
+        totalCalls.incrementAndGet();
+        if (a.toneOn() || a.noiseOn() || b.toneOn() || b.noiseOn() || c.toneOn() || c.noiseOn()) {
+          soundingCalls.incrementAndGet();
+        }
+      }
+    }
+
+    private static long liveAplayThreads() {
+      return Thread.getAllStackTraces().keySet().stream()
+          .filter(t -> "bazlang-aplay".equals(t.getName()) && t.isAlive())
+          .count();
+    }
+
+    @Test
+    void repeatedTriggersReuseOneBackgroundThreadRatherThanAccumulating()
+        throws InterruptedException {
+      // A game like pong fires APLAY on every paddle hit, for the whole session. Each trigger must
+      // reuse the one live background session, never leave another thread behind: accumulated
+      // threads would each keep polling and pushing their own audio, so sounds would pile up and
+      // fire when nothing had triggered them.
+      final long before = liveAplayThreads();
+      for (int i = 0; i < 40; i++) {
+        exec("APLAY \"T240V11O6N1e\"");
+        Thread.sleep(5);
+      }
+      Thread.sleep(200);
+      assertEquals(
+          before + 1,
+          liveAplayThreads(),
+          "background APLAY threads accumulated across repeated triggers");
+    }
+
+    @Test
+    void anIdleAplaySessionStopsPushingAudioEntirelyRatherThanStreamingSilence()
+        throws InterruptedException {
+      // The invariant that makes low-latency playback possible at all, and the direct regression
+      // test for the root cause of the reported "sounds are late / sometimes missing" bug: an
+      // audio line is a FIFO whose write() only blocks once full, so anything that keeps pushing
+      // idle silence stays a whole buffer ahead of the speaker and every later note lands behind
+      // that backlog. An idle APLAY session must therefore push *nothing at all*, not silence.
+      final var recordingSpeaker = new RecordingSpeaker();
+      final var recordingExecutor = new StatementExecutor(state, screen, screen, recordingSpeaker);
+      for (final var stmt :
+          AstLowering.lowerStatements(PARSER.parseStatementsContext("APLAY \"1c\""), 10)) {
+        recordingExecutor.execute(stmt);
+      }
+      Thread.sleep(300); // well past "1c"'s 0.125s duration -- the session is now idle
+      final long callsOnceIdle = recordingSpeaker.totalCalls.get();
+      assertTrue(recordingSpeaker.soundingCalls.get() > 0, "the note never sounded at all");
+      Thread.sleep(300); // idle the whole time
+      assertEquals(
+          callsOnceIdle,
+          recordingSpeaker.totalCalls.get(),
+          "an idle APLAY session kept pushing audio (silence) to the speaker -- that backlog is "
+              + "exactly what delays and swallows later notes");
+    }
+
+    /** Records every distinct frequency (rounded) ever seen sounding on channel A. */
+    private static final class FrequencyRecordingSpeaker implements VirtualSpeaker {
+      private final Set<Long> frequenciesSeen = ConcurrentHashMap.newKeySet();
+
+      @Override
+      public void playFrame(VoiceFrame a, VoiceFrame b, VoiceFrame c, double durationSeconds) {
+        if (a.toneOn()) {
+          frequenciesSeen.add(Math.round(a.frequencyHz()));
+        }
+      }
+
+      boolean saw(double frequencyHz) {
+        return frequenciesSeen.contains(Math.round(frequencyHz));
+      }
+    }
+
+    @Test
+    void aChannelReplaceWakesTheBackgroundThreadPromptlyRatherThanWaitingOutItsCurrentSleep()
+        throws InterruptedException {
+      // What's directly, deterministically testable here is latency, not loss: the background
+      // thread already polls at least every PLAY_CHUNK_SECONDS (~20ms) regardless, since
+      // PlaySequencer.next() caps every pull at that value even for a long note -- so a *single*
+      // replace would eventually be discovered within ~20ms even without this fix, and a test
+      // that waits substantially longer than that before checking can't tell the two apart (an
+      // earlier version of this test made exactly that mistake). What interrupt() provably does
+      // is deliver a replaced channel near-instantly instead of waiting out that ~20ms window --
+      // tested here directly by checking well *inside* that window, which only a prompt wake can
+      // satisfy. (A true zero-gap back-to-back replace racing the interrupt itself is a separate,
+      // harder-to-eliminate scenario a unit test can't reliably force either way; see the
+      // response given alongside this fix for what a fully race-proof design would need instead.)
+      final var recordingSpeaker = new FrequencyRecordingSpeaker();
+      final var recordingExecutor = new StatementExecutor(state, screen, screen, recordingSpeaker);
+      for (final var stmt :
+          AstLowering.lowerStatements(PARSER.parseStatementsContext("APLAY \"9c\""), 10)) {
+        recordingExecutor.execute(stmt);
+      }
+      Thread.sleep(5); // background thread is now mid-way through its first ~20ms sleep
+      for (final var stmt :
+          AstLowering.lowerStatements(PARSER.parseStatementsContext("APLAY \"9d\""), 10)) {
+        recordingExecutor.execute(stmt);
+      }
+      // Checking at ~10ms total, well before that first sleep would naturally complete at ~20ms:
+      // only a prompt interrupt-driven wake -- not the natural polling cadence -- can satisfy this.
+      Thread.sleep(5);
+      assertTrue(
+          recordingSpeaker.saw(Pitch.hzFromSemitonesAboveMiddleC(2)),
+          "replaced note 'd' wasn't delivered promptly -- the background thread waited out its "
+              + "current sleep instead of waking immediately");
     }
   }
 

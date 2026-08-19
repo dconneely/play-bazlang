@@ -151,7 +151,8 @@ public final class DebugEngine {
     ExpressionEvaluator exprEvaluator =
         new ExpressionEvaluator(state, mockScreen, mockScreen, parser);
     this.executor =
-        new StatementExecutor(state, mockScreen, mockScreen, storage, exprEvaluator, parser);
+        new StatementExecutor(
+            state, mockScreen, mockScreen, mockScreen, storage, exprEvaluator, parser);
     this.interpreter = new Interpreter(state, executor);
     ProgramEditor programEditor = new ProgramEditor(state, mockScreen, parser, executor::evalNum);
     this.replHandler =

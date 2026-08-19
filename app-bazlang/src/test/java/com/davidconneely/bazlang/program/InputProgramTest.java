@@ -69,7 +69,7 @@ class InputProgramTest extends BaseProgramTest {
     final var screen = new com.davidconneely.bazlang.io.MockScreen(List.of("(1"));
     screen.setInteractive(false);
     final var executor =
-        new com.davidconneely.bazlang.exec.StatementExecutor(state, screen, screen);
+        new com.davidconneely.bazlang.exec.StatementExecutor(state, screen, screen, screen);
     final var interpreter = new com.davidconneely.bazlang.exec.Interpreter(state, executor);
 
     final ReportException ex =

@@ -34,12 +34,12 @@
 3130 IF by <= 2 THEN LET by = 2 : LET vy = -vy
 3140 IF by >= 96 THEN LET by = 96 : LET vy = -vy
 3150 REM --- Paddle 1 Collision Check ---
-3160 IF bx <= 8 THEN IF bx >= 4 THEN IF by >= p1 - 1 AND by <= p1 + 11 THEN LET bx = 8 : LET vx = -vx : LET vy = vy + (RND * 1.2 - 0.6)
+3160 IF bx <= 8 THEN IF bx >= 4 THEN IF by >= p1 - 1 AND by <= p1 + 11 THEN LET bx = 8 : LET vx = -vx : LET vy = vy + (RND * 1.2 - 0.6) : APLAY "T240V11O6N1e"
 3170 REM --- Paddle 2 Collision Check ---
-3180 IF bx >= 151 THEN IF bx <= 155 THEN IF by >= p2 - 1 AND by <= p2 + 11 THEN LET bx = 151 : LET vx = -vx : LET vy = vy + (RND * 1.2 - 0.6)
+3180 IF bx >= 151 THEN IF bx <= 155 THEN IF by >= p2 - 1 AND by <= p2 + 11 THEN LET bx = 151 : LET vx = -vx : LET vy = vy + (RND * 1.2 - 0.6) : APLAY "T240V11O6N1e"
 3190 REM --- Out of Bounds Checks (Scoring) ---
-3200 IF bx < 2 THEN LET s2 = s2 + 1 : GO TO 6000
-3210 IF bx > 158 THEN LET s1 = s1 + 1 : GO TO 6000
+3200 IF bx < 2 THEN LET s2 = s2 + 1 : APLAY "T240N3cO3N4g" : GO TO 6000
+3210 IF bx > 158 THEN LET s1 = s1 + 1 : APLAY "T240N2c2e3g" : GO TO 6000
 3300 REM --- Render Board ---
 3310 FAST : CLS
 3320 REM --- Draw Center Court Net ---
@@ -63,7 +63,7 @@
 3500 SLOW
 3510 PAUSE 0.5
 3515 GO TO 3000
-6000 REM ### Point Scored / Win Check ###
+6000 REM ### Point Scored / Win Check (the per-side point sounds play at 3200/3210) ###
 6010 IF s1 >= 9 OR s2 >= 9 THEN GO TO 7000
 6020 PAUSE 25 : REM Short delay
 6030 GO TO 2000

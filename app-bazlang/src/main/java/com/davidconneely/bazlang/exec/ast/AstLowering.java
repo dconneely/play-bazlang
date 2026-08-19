@@ -381,6 +381,10 @@ public final class AstLowering {
 
   private static Stmt lowerStatement(StatementContext ctx, int lineNumber) {
     return switch (ctx) {
+      case AplayStmtContext c ->
+          new Stmt.AplayStmt(c.strExpr().stream().map(e -> lowerStr(e, lineNumber)).toList());
+      case BeepStmtContext c ->
+          new Stmt.BeepStmt(lowerNum(c.numExpr(0), lineNumber), lowerNum(c.numExpr(1), lineNumber));
       case BrightStmtContext c -> new Stmt.BrightStmt(lowerNum(c.numExpr(), lineNumber));
       case CircleStmtContext c ->
           new Stmt.CircleStmt(
@@ -425,6 +429,8 @@ public final class AstLowering {
       case OverStmtContext c -> new Stmt.OverStmt(lowerNum(c.numExpr(), lineNumber));
       case PaperStmtContext c -> new Stmt.PaperStmt(lowerNum(c.numExpr(), lineNumber));
       case PauseStmtContext c -> new Stmt.PauseStmt(lowerNum(c.numExpr(), lineNumber));
+      case PlayStmtContext c ->
+          new Stmt.PlayStmt(c.strExpr().stream().map(e -> lowerStr(e, lineNumber)).toList());
       case PlotStmtContext c ->
           new Stmt.PlotStmt(
               lowerStyleList(c.styleList(), lineNumber),

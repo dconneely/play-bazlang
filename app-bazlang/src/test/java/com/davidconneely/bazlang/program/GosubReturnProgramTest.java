@@ -69,7 +69,7 @@ class GosubReturnProgramTest extends BaseProgramTest {
     // REPL
     final var state = new EvalState();
     final var screen = new MockScreen(List.of());
-    final var executor = new StatementExecutor(state, screen, screen);
+    final var executor = new StatementExecutor(state, screen, screen, screen);
     final var interpreter = new Interpreter(state, executor);
     final var editor = new ProgramEditor(state, screen, PARSER, executor::evalNum);
     final var handler =
@@ -100,7 +100,7 @@ class GosubReturnProgramTest extends BaseProgramTest {
 
     final var state = new EvalState();
     final var screen = new MockScreen(List.of());
-    final var executor = new StatementExecutor(state, screen, screen);
+    final var executor = new StatementExecutor(state, screen, screen, screen);
     final var interpreter = new Interpreter(state, executor);
 
     // Run GOSUB 30 -> stops at line 30 STOP

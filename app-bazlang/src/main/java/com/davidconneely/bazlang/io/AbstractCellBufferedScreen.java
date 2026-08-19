@@ -6,9 +6,11 @@ import com.davidconneely.cell.PixelMode;
 
 /**
  * Abstract base class for {@link VirtualScreen} / {@link VirtualInput} implementations that use a
- * {@link CellBuffer} to manage text and pixel attributes.
+ * {@link CellBuffer} to manage text and pixel attributes. Also implements {@link VirtualSpeaker}
+ * (inherited as a no-op by every subclass except {@link TerminalScreen}, which overrides it).
  */
-public abstract class AbstractCellBufferedScreen implements VirtualScreen, VirtualInput {
+public abstract class AbstractCellBufferedScreen
+    implements VirtualScreen, VirtualInput, VirtualSpeaker {
   protected final CellBuffer cellBuffer;
   protected int cursorRow = 0;
   protected int cursorCol = 0;

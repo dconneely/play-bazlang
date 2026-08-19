@@ -178,6 +178,21 @@ public class ReformatVisitor extends BazLangBaseVisitor<String> {
   }
 
   @Override
+  public String visitBeepStmt(BeepStmtContext ctx) {
+    return "BEEP " + visit(ctx.numExpr(0)) + ", " + visit(ctx.numExpr(1));
+  }
+
+  @Override
+  public String visitPlayStmt(PlayStmtContext ctx) {
+    return "PLAY " + ctx.strExpr().stream().map(this::visit).collect(Collectors.joining(", "));
+  }
+
+  @Override
+  public String visitAplayStmt(AplayStmtContext ctx) {
+    return "APLAY " + ctx.strExpr().stream().map(this::visit).collect(Collectors.joining(", "));
+  }
+
+  @Override
   public String visitPlotStmt(PlotStmtContext ctx) {
     return formatCommandWithStyles("PLOT", ctx.styleList())
         + " "
