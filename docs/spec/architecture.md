@@ -387,7 +387,9 @@ their own beyond a fallback sleep for the no-device (headless) case.
   independent persistent `SourceDataLine` (opened lazily, reused for the session) on whichever
   thread called it — no render thread of its own, per the no-idle-silence rule above; `stopPlay()`
   flushes audio already queued but not yet heard, so a note cut short by BREAK or a replacement
-  stops promptly. Keeping `PLAY`/`APLAY` on their own line means a `BEEP` sound effect can layer
+  stops promptly, while `drainPlay()` instead lets a naturally-finished note's queued tail play out
+  before parking the line, called only when a sound reaches its natural end rather than being cut
+  short. Keeping `PLAY`/`APLAY` on their own line means a `BEEP` sound effect can layer
   over music without either interfering with the other, matching real hardware's independent
   beeper/AY circuits. `LineUnavailableException` (no audio device — e.g. a headless/SSH session) is
   caught and silently swallowed for both, matching the no-op fallback the interface already
