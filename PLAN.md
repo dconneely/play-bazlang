@@ -132,6 +132,25 @@ source snippets and feeding the resulting contexts to the component under test �
 `ExpressionEvaluatorTest`/`StatementExecutorTest` already use this approach, but cover only a
 handful of cases against a much larger statement and expression surface. Ongoing, not a one-shot.
 
+## CI test flakiness from wall-clock timing assertions
+
+**Type:** debt — **Importance:** medium — **Effort:** medium
+
+Confirmed 2026-08-22: two consecutive GitHub Actions `Build` runs against the same pushed commits
+each failed exactly one test, on a different OS each time, neither reproducing locally
+(`./gradlew test` passes cleanly on this machine). `ubuntu-latest` passed both times.
+`StatementExecutorTest.Aplay.anIdleAplaySessionStopsPushingAudioEntirelyRatherThanStreamingSilence`
+(`StatementExecutorTest.java:622`) is the clearest culprit: it asserts a call count is unchanged
+across a bare `Thread.sleep(300)` window, which a loaded/shared CI runner can violate with a single
+GC pause or scheduling hiccup landing one extra idle-poll inside it — inherent to testing
+`StatementExecutor`'s `sleepIgnoringInterrupt`/`PLAY_CHUNK_MS`-based background polling with wall-clock
+sleeps rather than a controllable clock. `TerminalScreenGraphicsTest.testInverseOverRendering`
+(`TerminalScreenGraphicsTest.java:184`) failed once too, on `windows-latest` only, cause not yet
+diagnosed. Worth an audit of every test using `Thread.sleep` for synchronization rather than a
+deterministic wait/fake clock, now that CI can actually run these to completion (see
+[ADR-0007](docs/adr/0007-synchronous-per-call-play-rendering.md) and the Actions permission fix that
+unblocked `Build` from `startup_failure`).
+
 ## MCP: true `tools/call` cancellation
 
 **Type:** feature — **Importance:** medium — **Effort:** large
