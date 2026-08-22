@@ -11,3 +11,6 @@ gradlew text eol=lf
 
 # Binary files: never normalise line endings or diff as text.
 *.jar binary
+
+# Markdown: put the enclosing heading in diff hunk headers.
+*.md diff=markdown
