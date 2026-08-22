@@ -1,6 +1,7 @@
 ---
-status: "proposed"
+status: "accepted"
 date: 2026-08-22
+decision-makers: David Conneely
 ---
 
 # 7. Render `PLAY`/`APLAY` audio synchronously per call; no persistent render thread
