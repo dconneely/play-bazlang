@@ -14,7 +14,7 @@ import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.Test;
 
 /**
- * End-to-end tests for the MCP JSON-RPC stdio protocol documented in docs/mcp_server.md. Each test
+ * End-to-end tests for the MCP JSON-RPC stdio protocol documented in docs/spec/mcp.md. Each test
  * spawns {@link McpServer} in a fresh JVM, feeds it a scripted newline-delimited JSON-RPC session
  * (each line built with {@link JsonValue}/{@link JsonWriter} rather than hand-typed JSON text, so
  * nothing needs manual escaping), and asserts on the *parsed* structure of each response line — raw
@@ -294,7 +294,7 @@ class McpServerProtocolTest {
     // Found via live use: on one long-lived engine, input queued while one programme was loaded
     // (or left over from a previous one) could be silently consumed by the next programme loaded,
     // if that programme happened to read a different input primitive than the one the queued text
-    // was originally meant for — see docs/mcp_server.md "Input queue". bazlang_program's
+    // was originally meant for — see docs/spec/mcp.md "Input queue". bazlang_program's
     // new/load_file/load_source actions now flush all queued input before the new programme runs.
     List<JsonValue.JsonObject> responses =
         runSession(

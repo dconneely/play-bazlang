@@ -43,7 +43,7 @@ Spectrum BASIC). This file lists the available commands, functions, and syntax r
   literals and input from `INPUT` are stored as UTF-8 bytes. When printed, bytes are decoded
   normally; lone invalid bytes 0xNN are displayed as the utf8-c8 synthetic `?xNN`. For behaviour of
   fixed-length string arrays with UTF-8 characters, see
-  [quirks.md](quirks.md#input--output-quirks).
+  [quirks.md](../quirks.md#input--output-quirks).
 
 ### Namespaces
 
@@ -63,6 +63,9 @@ However, the names of strings and character arrays would clash. So there cannot 
 | `+`, `-`    | Add, Subtract    | 4           |
 
 **Note**: `-2^2` means `-(2^2)`, which is `-4`.
+
+See [architecture.md](architecture.md#expression-precedence) for how this order falls out of the
+grammar itself (and for `^`/`**`'s right-associativity, not shown in this table).
 
 ### Comparisons
 
@@ -92,7 +95,7 @@ Returns `1` for True, `0` for False.
 - **`FOR varname = start TO end STEP step` ... `NEXT varname`**: Loop.
     - Note: While the Spectrum only allows single-character loop variables (`A` to `Z`), BazLang
       supports multi-character loop variables. See
-      [quirks.md](quirks.md#flow-control-quirks) for loop execution quirks.
+      [quirks.md](../quirks.md#flow-control-quirks) for loop execution quirks.
 - **`STOP`**: Stop the program.
 - **`CONTINUE`** (alias **`CONT`**): Continue after a `STOP`.
 - **`PAUSE n`**: Wait for `n` frames (each frame is 1/50 second = 20ms). Fractional values are
@@ -111,7 +114,7 @@ Returns `1` for True, `0` for False.
       modifiers for the print statement.
 - **`INPUT varname`**: Ask user for input. For numeric variables, the input is evaluated as an
   expression. If the expression is invalid, the user is prompted with "Syntax error? " and can edit
-  their input.
+  their input. Typing `STOP` raises `H STOP in INPUT`.
 - **`CLS`**: Clear screen.
 - **`SCROLL`**: Scroll screen up.
 - **`FAST`**: Suppress terminal re-rendering after each output operation. Use before a block of
@@ -182,7 +185,7 @@ Returns `1` for True, `0` for False.
   (e.g. `CIRCLE INK 2; x, y, r`).
     - Coordinates start at `(0,0)` (bottom-left) and extend dynamically based on terminal size. For
       negative coordinate behaviours, see
-      [quirks.md](quirks.md#input--output-quirks).
+      [quirks.md](../quirks.md#input--output-quirks).
     - Uses Unicode block characters; the resolution depends on the current pixel mode (see
       `PLOTMODE`).
 - **`PLOTMODE n`**: Sets the pixel mode for graphics (`PLOT` and `DRAW`):
@@ -192,6 +195,21 @@ Returns `1` for True, `0` for False.
     - `6` = sextant blocks (2×3)
     - `8` = braille patterns (2×4)
     - Does not clear the screen. Other values give an error.
+
+#### Erasing graphics (no `UNPLOT`/`UNDRAW`)
+
+Unlike ZX81 BASIC, which had a dedicated `UNPLOT` statement, BazLang adheres to the original ZX
+Spectrum philosophy for erasing graphics: there are no explicit `UNPLOT` or `UNDRAW` statements.
+Instead, redraw lines or pixels using style modifiers:
+
+- **`OVER 1`**: Redrawing the same line using `PLOT OVER 1; x, y` or `DRAW OVER 1; dx, dy` XORs the
+  pixels against the screen, perfectly restoring the background state without leaving holes in
+  intersecting lines (provided the lines were also drawn using `OVER 1`).
+- **`INVERSE 1`**: You can also manually draw over a pixel using the background colour, via
+  `PLOT INVERSE 1; x, y`.
+
+When plotting, `INVERSE` means clear pixels rather than set them, and `OVER` means invert the
+current pixel state (which is slightly confusing, but consistent with the Sinclair ZX Spectrum).
 
 ### Colour / style attributes
 
@@ -390,6 +408,15 @@ Numbers are displayed in Sinclair ZX BASIC style:
 - Integers display without a decimal point
 
 Examples: `42`, `3.14159`, `1.23E+15`, `-5E-8`
+
+## Errors
+
+When something goes wrong (e.g. dividing by zero), the interpreter stops execution and reports a
+Sinclair ZX BASIC-style code: `<Code> <Message>, <Line>:<Statement> (Optional details)` — for
+example, `6 Number too big, 100:1 (Arithmetic overflow)`. The report code and `<line>:<statement>`
+location are the part you can rely on; the exact wording of the message is not (`SPECIFICATION.md`
+"Deliberately unspecified"). Immediate-mode statements report against line 0 — see
+[quirks.md](../quirks.md#interpreter--application-behaviours).
 
 ## Divergences
 

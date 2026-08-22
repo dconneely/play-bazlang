@@ -11,7 +11,7 @@ import java.nio.charset.StandardCharsets;
  * MCP (Model Context Protocol) server entrypoint: a newline-delimited JSON-RPC 2.0 stdio server
  * exposing the {@link McpTools} catalog over one shared {@link DebugEngine} instance — one implicit
  * debugging session per server subprocess. Targets the stateless 2026-07-28 protocol revision only:
- * there is no {@code initialize} handshake and no legacy-protocol fallback. See docs/mcp_server.md
+ * there is no {@code initialize} handshake and no legacy-protocol fallback. See docs/spec/mcp.md
  * for the full protocol surface, tool catalog, and known limitations.
  */
 public final class McpServer {

@@ -31,6 +31,10 @@ Build the entire project (application and libraries) using the Gradle wrapper in
 For instructions on running the REPL, executing programs, or reading language and architecture
 documentation, see the application README in [app-bazlang/README.md](app-bazlang/README.md).
 
+## Documentation
+
+See [`DOC-MAP.md`](DOC-MAP.md) for what each document is for and where a given fact belongs.
+
 ## Licence
 
 This project is licensed under the [MIT License](LICENCE).

@@ -7,7 +7,7 @@ those behaviours. It serves two audiences:
 - **BazLang programmers**: these are observable language behaviours you can rely on.
 - **Interpreter implementers**: these are **intentional**. Do not "fix" anything listed here; any
   refactoring must preserve every behaviour on this page. See
-  [implementation.md](implementation.md) for how the interpreter is built.
+  [architecture.md](spec/architecture.md) for how the interpreter is built.
 
 ## Flow control quirks
 
@@ -82,3 +82,26 @@ they equally look like bugs at first sight:
   construction throws `IOException`), `MainClass` silently falls back to the plain stdin/stdout
   `StreamScreen`. This is intentional graceful degradation for environments without a usable
   terminal, not an ignored error.
+
+## Accepted-wrong behaviour
+
+Known defects, knowingly left unfixed for now. Unlike the sections above, these are **not**
+deliberate — do not point to this section to justify keeping the behaviour; each entry names what
+would make it go away.
+
+### `AND` misparses when its left operand is a string comparison
+
+**Kind:** accepted-wrong
+**Where:** `BazLang.g4`'s `StrAndExpr` (`strExpr AND numExpr`) rule; evaluated in
+`ExpressionEvaluator`/`AstLowering`.
+**Expected:** `IF r$ <> "Y" AND r$ <> "n" THEN ...` parses as `(r$ <> "Y") AND (r$ <> "n")`.
+**Actual:** the right-hand `strExpr` of a string comparison greedily extends across the `AND`, so it
+parses as `r$ <> ("Y" AND (r$ <> "n"))` instead. The two readings coincide often enough to hide the
+bug — they only diverge on some inputs. Parenthesising each comparison, or nesting `IF`s, both give
+the right answer and are the workarounds today.
+**Why:** grammar ambiguity between `StrAndExpr` and the ordinary numeric/string comparison rules;
+see `PLAN.md` for the fix this is blocking.
+**Pinned by:** `PlayAgainProgramTest.chainedAndOverStringComparisonsMisparses`.
+**Expires when:** `BazLang.g4`'s `StrAndExpr` is narrowed so it cannot absorb an `AND` whose left
+context is already a complete comparison — see the matching `PLAN.md` entry, which this is also
+tracked in, since (per `DOC-MAP.md`) an accepted-wrong entry with a real fix pending is debt too.

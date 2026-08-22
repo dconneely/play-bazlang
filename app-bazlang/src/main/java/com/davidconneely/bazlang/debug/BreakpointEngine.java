@@ -13,7 +13,7 @@ import java.util.concurrent.atomic.AtomicLong;
 /**
  * The breakpoint store and evaluation engine used by the MCP server: persistent and one-shot
  * breakpoints, optional location filters, and the {@code CSC}/{@code ELAPSE}/{@code ?expr}/{@code
- * EVERY} break conditions (see docs/mcp_server.md). Public so it is reusable from the {@code
+ * EVERY} break conditions (see docs/spec/mcp.md). Public so it is reusable from the {@code
  * com.davidconneely.bazlang.mcp} package.
  */
 public final class BreakpointEngine {

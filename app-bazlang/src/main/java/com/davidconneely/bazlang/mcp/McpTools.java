@@ -4,7 +4,7 @@ import java.util.List;
 
 /**
  * The static catalog of MCP tools exposed by {@link McpServer}: a consolidated surface over {@link
- * com.davidconneely.bazlang.debug.DebugEngine} — see docs/mcp_server.md for the JSON-RPC shape of
+ * com.davidconneely.bazlang.debug.DebugEngine} — see docs/spec/mcp.md for the JSON-RPC shape of
  * each tool.
  */
 final class McpTools {
@@ -278,7 +278,7 @@ final class McpTools {
         "bazlang_input",
         "Queue keyboard/INPUT text for the programme to consume, or discard queued input. "
             + "bazlang_program(new/load_file/load_source) already discards queued input "
-            + "automatically when it replaces the programme — see docs/mcp_server.md's \"Input "
+            + "automatically when it replaces the programme — see docs/spec/mcp.md's \"Input "
             + "queue\" section — so action=clear is for cancelling a mis-queued value or "
             + "resetting mid-session without reloading.",
         schema(properties, "action"));

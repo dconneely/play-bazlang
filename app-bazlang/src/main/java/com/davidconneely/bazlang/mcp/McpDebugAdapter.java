@@ -14,7 +14,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Thin adapter from MCP {@code tools/call} arguments onto one shared {@link DebugEngine} instance
- * (one implicit debugging session per server subprocess — see docs/mcp_server.md). Converts each of
+ * (one implicit debugging session per server subprocess — see docs/spec/mcp.md). Converts each of
  * the seven {@link McpTools} tools into the corresponding engine call, and converts the result (or
  * a thrown {@link DebugEngineException}/{@link ReportException}) into the {@code resultType}/{@code
  * content}/{@code structuredContent}/{@code isError} envelope.

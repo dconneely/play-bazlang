@@ -168,7 +168,7 @@ class DebugEngineTest {
   void newFlushesQueuedInput() {
     // Found via live use: switching programmes on one long-lived engine left stale queued input
     // (queued for a program using one input primitive) to be silently consumed by the next
-    // programme if it happened to use a different one — see docs/mcp_server.md "Input queue".
+    // programme if it happened to use a different one — see docs/spec/mcp.md "Input queue".
     engine.screen().queueInkey(BStr.fromJavaString("x"));
     engine.screen().queueUinkey(BStr.fromJavaString("x"));
     engine.screen().queueInput("x");
@@ -196,7 +196,7 @@ class DebugEngineTest {
   void limitPausesARunawayLoopWithNoBreakpoint() {
     // Safety net: no breakpoint of the programme's own would ever fire here, so without the
     // timeout this call would block forever — and, for the MCP server, hang the whole session
-    // (see docs/mcp_server.md "Known limitations": there is no cancel-while-running mechanism).
+    // (see docs/spec/mcp.md "Known limitations": there is no cancel-while-running mechanism).
     engine.loadSource("10 GO TO 10");
     DebugEngine.PauseResult result = engine.run(50);
     assertTrue(

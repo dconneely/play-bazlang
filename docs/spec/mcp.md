@@ -2,7 +2,7 @@
 
 `McpServer` is a native MCP (Model Context Protocol) server exposing BazLang programme debugging
 as JSON-RPC tools, so any MCP client can attach directly and drive a running programme. `McpServer`
-is a thin JSON-RPC adapter over [`DebugEngine`](implementation.md), which owns the interpreter,
+is a thin JSON-RPC adapter over [`DebugEngine`](architecture.md), which owns the interpreter,
 breakpoints, and mock screen for the session.
 
 ## Running the server
@@ -27,8 +27,8 @@ only that revision. Two consequences worth knowing before integrating:
   session without needing one.
 - **No legacy fallback.** A client still speaking the pre-2026-07-28 `initialize`-handshake
   protocol cannot use this server — per the spec's own compatibility matrix, "modern server,
-  legacy client" fails outright. This was a deliberate scope decision (see the project history) to
-  keep the implementation small.
+  legacy client" fails outright. This was a deliberate scope decision — see
+  [ADR-0004](../adr/0004-mcp-modern-only-protocol.md) for why, including what it replaced.
 - **Lenient version checking.** If a request omits `_meta`'s protocol version field entirely, the
   server proceeds anyway rather than rejecting it — some early modern clients may not yet send it
   on every request. If a version *is* present and doesn't match, the server responds with

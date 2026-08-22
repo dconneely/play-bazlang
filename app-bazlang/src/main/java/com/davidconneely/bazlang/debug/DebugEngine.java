@@ -35,7 +35,7 @@ import java.util.List;
  * later {@link #go()} call resumes at the exact same location, guarded so the same breakpoint does
  * not immediately re-fire. Every run-control call also arms a wall-clock deadline (default {@link
  * #DEFAULT_STEP_TIMEOUT_MS}, overridable per call) as a safety net against a runaway programme with
- * no breakpoint of its own — there is no cancel-while-running mechanism (see docs/mcp_server.md
+ * no breakpoint of its own — there is no cancel-while-running mechanism (see docs/spec/mcp.md
  * "Known limitations"), so an unconditionally blocking call would otherwise hang the caller (and,
  * for the MCP server, the whole single-threaded session) forever.
  */
@@ -252,7 +252,7 @@ public final class DebugEngine {
       // here — rather than requiring every caller to remember to — is what actually prevents input
       // queued for one programme from being silently consumed by a different one that happens to
       // read a different input primitive — INKEY$, UINKEY$, and INPUT all share one MockScreen for
-      // the lifetime of this engine, which can span many programme loads. See docs/mcp_server.md's
+      // the lifetime of this engine, which can span many programme loads. See docs/spec/mcp.md's
       // "Input queue" section for the incident that motivated this — two different games' stale
       // queued input each broke a later one.
       mockScreen.clearInputQueues();

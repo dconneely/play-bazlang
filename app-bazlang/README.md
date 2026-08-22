@@ -9,16 +9,15 @@ characters), and UTF-8 string encoding.
 
 ## Documentation
 
-Detailed language and architecture references are available in the `docs/` directory:
+[`../SPECIFICATION.md`](../SPECIFICATION.md) is the index over the behaviour contract below; the
+detailed language and architecture references live in the repository-level `docs/` directory:
 
-- **[Language features](docs/language_features.md)** - Guide to variables, commands, and REPL operations.
-- **[Grammar](docs/grammar.md)** - The ANTLR grammar specification for BazLang.
-- **[Implementation](docs/implementation.md)** - AST architecture, execution model, state
-  tracking, and performance notes (for implementers).
-- **[Quirks](docs/quirks.md)** - Deliberately preserved ZX BASIC eccentricities and intentional
+- **[Language](../docs/spec/language.md)** - Guide to variables, commands, and REPL operations.
+- **[Architecture](../docs/spec/architecture.md)** - Grammar, AST architecture, execution model,
+  state tracking, and performance notes (for implementers).
+- **[Quirks](../docs/quirks.md)** - Deliberately preserved ZX BASIC eccentricities and intentional
   behaviours.
-- **[MCP server](docs/mcp_server.md)** - Native MCP debugger protocol and tool reference for
-  LLM agents.
+- **[MCP](../docs/spec/mcp.md)** - Native MCP debugger protocol and tool reference for LLM agents.
 
 ## Running the interpreter
 
@@ -48,7 +47,7 @@ To let an MCP client (e.g. Claude Code) debug a programme via the `bazlang_*` to
 ./gradlew :app-bazlang:runMcpServer
 ```
 
-See [docs/mcp_server.md](docs/mcp_server.md) for the full tool and protocol reference.
+See [../docs/spec/mcp.md](../docs/spec/mcp.md) for the full tool and protocol reference.
 
 ## Example programs
 
