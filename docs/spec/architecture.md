@@ -385,7 +385,8 @@ their own beyond a fallback sleep for the no-device (headless) case.
   whole duration; `stopBeep()` cuts a tone short on BREAK. `playFrame()` synthesises exactly the
   requested duration of up to 3 mixed voices and writes it straight to a second, entirely
   independent persistent `SourceDataLine` (opened lazily, reused for the session) on whichever
-  thread called it — no render thread of its own, per the no-idle-silence rule above; `stopPlay()`
+  thread called it — no render thread of its own, per the no-idle-silence rule above (see
+  [ADR-0007](../adr/0007-synchronous-per-call-play-rendering.md)); `stopPlay()`
   flushes audio already queued but not yet heard, so a note cut short by BREAK or a replacement
   stops promptly, while `drainPlay()` instead lets a naturally-finished note's queued tail play out
   before parking the line, called only when a sound reaches its natural end rather than being cut
