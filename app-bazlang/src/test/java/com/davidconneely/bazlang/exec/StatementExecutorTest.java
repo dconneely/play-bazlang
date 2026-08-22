@@ -579,10 +579,16 @@ class StatementExecutorTest {
               + "silently dropped");
     }
 
-    /** Counts total audio pushed to the speaker, and how much of it was actually sounding. */
+    /**
+     * Counts total audio pushed to the speaker, how much of it was actually sounding, and how many
+     * times {@code drainPlay()} fired -- the background loop's own authoritative "a sounding
+     * session just went idle" signal (see {@code StatementExecutor.startNewAplaySession}), fired
+     * exactly once per session and never spuriously mid-note.
+     */
     private static final class RecordingSpeaker implements VirtualSpeaker {
       private final AtomicLong totalCalls = new AtomicLong();
       private final AtomicLong soundingCalls = new AtomicLong();
+      private final AtomicLong drainCalls = new AtomicLong();
 
       @Override
       public void playFrame(VoiceFrame a, VoiceFrame b, VoiceFrame c, double durationSeconds) {
@@ -590,6 +596,11 @@ class StatementExecutorTest {
         if (a.toneOn() || a.noiseOn() || b.toneOn() || b.noiseOn() || c.toneOn() || c.noiseOn()) {
           soundingCalls.incrementAndGet();
         }
+      }
+
+      @Override
+      public void drainPlay() {
+        drainCalls.incrementAndGet();
       }
     }
 
@@ -618,41 +629,22 @@ class StatementExecutorTest {
           "background APLAY threads accumulated across repeated triggers");
     }
 
-    // Polls `counter` until it has stopped changing for `quietMillis` of continuous wall-clock
-    // time, rather than assuming a fixed sleep is a long enough margin -- a loaded CI runner can
-    // take arbitrarily (if boundedly) longer than a quiet dev machine to finish a short note, and
-    // a fixed margin either flakes under load or wastes time everywhere else. Fails the test
-    // outright if `counter` is still changing after `timeoutMillis`, so a genuine regression
-    // (still pushing audio) is reported rather than hanging.
-    // Takes java.util.function.LongSupplier by full name rather than importing it -- this file
-    // already sits at PMD's ExcessiveImports threshold (30).
-    private static long waitUntilSettled(
-        java.util.function.LongSupplier counter, long quietMillis, long timeoutMillis)
+    // Polls `condition` until it is true, or fails the test outright once `timeoutMillis` has
+    // elapsed without that happening -- so a genuine regression is reported (eventually) rather
+    // than hanging. Takes java.util.function.BooleanSupplier by full name rather than importing
+    // it -- this file already sits at PMD's ExcessiveImports threshold (30).
+    private static void waitUntilTrue(
+        java.util.function.BooleanSupplier condition, long timeoutMillis)
         throws InterruptedException {
-      final long pollMillis = 10L;
-      final long overallDeadlineNanos = System.nanoTime() + timeoutMillis * 1_000_000L;
-      long lastValue = counter.getAsLong();
-      long settledSinceNanos = System.nanoTime();
-      while (true) {
-        Thread.sleep(pollMillis);
-        final long value = counter.getAsLong();
-        final long nowNanos = System.nanoTime();
-        if (value != lastValue) {
-          lastValue = value;
-          settledSinceNanos = nowNanos;
-        } else if (nowNanos - settledSinceNanos >= quietMillis * 1_000_000L) {
-          return lastValue;
-        }
-        if (nowNanos > overallDeadlineNanos) {
+      final long deadlineNanos = System.nanoTime() + timeoutMillis * 1_000_000L;
+      while (!condition.getAsBoolean()) {
+        if (System.nanoTime() > deadlineNanos) {
           // org.junit.jupiter.api.Assertions.fail by full name rather than importing it -- this
           // file already sits at PMD's ExcessiveImports threshold (30).
           org.junit.jupiter.api.Assertions.fail(
-              "value kept changing for over "
-                  + timeoutMillis
-                  + "ms without settling (last seen: "
-                  + lastValue
-                  + ")");
+              "condition still false after " + timeoutMillis + "ms");
         }
+        Thread.sleep(10L);
       }
     }
 
@@ -670,15 +662,23 @@ class StatementExecutorTest {
           AstLowering.lowerStatements(PARSER.parseStatementsContext("APLAY \"1c\""), 10)) {
         recordingExecutor.execute(stmt);
       }
-      // Settles rather than a fixed sleep: waits only as long as this run actually needs to finish
-      // "1c" and go idle, instead of guessing a margin a loaded CI runner can blow through.
-      final long callsOnceIdle = waitUntilSettled(recordingSpeaker.totalCalls::get, 100, 5_000);
+      // Waits for drainPlay() -- the background loop's own authoritative "just went idle" signal,
+      // fired exactly once when a sounding session finishes (see ADR-0007) -- rather than
+      // inferring idleness from a quiet gap in playFrame calls. A quiet-gap heuristic is unsound
+      // here: each real chunk is already paced ~20ms apart, so a single GC pause on a loaded CI
+      // runner can space two still-legitimate mid-note chunks further apart than a short "gone
+      // idle" threshold would assume, making it declare idle before the note actually finished
+      // (this is exactly what an earlier version of this test did, and it was still flaky).
+      waitUntilTrue(() -> recordingSpeaker.drainCalls.get() > 0, 5_000);
+      final long callsOnceIdle = recordingSpeaker.totalCalls.get();
       assertTrue(recordingSpeaker.soundingCalls.get() > 0, "the note never sounded at all");
-      // If idle-silence were still being pushed, totalCalls would keep climbing here instead of
-      // ever settling, and waitUntilSettled would time out and fail the test itself.
+      // A generous fixed margin is safe to use here, unlike above: it is only ever used to catch a
+      // regression (more calls arriving), never to prove idleness, so CI slowness cannot make it
+      // flake -- it can only make a genuine regression take longer to report.
+      Thread.sleep(500);
       assertEquals(
           callsOnceIdle,
-          waitUntilSettled(recordingSpeaker.totalCalls::get, 300, 5_000),
+          recordingSpeaker.totalCalls.get(),
           "an idle APLAY session kept pushing audio (silence) to the speaker -- that backlog is "
               + "exactly what delays and swallows later notes");
     }
