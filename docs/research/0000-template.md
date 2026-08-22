@@ -6,7 +6,7 @@ Confidence levels and what counts as research are in ../../../DOC-MAP.md.
 Delete this comment in the copy.
 -->
 
-**Confidence: high | medium | low**
+**Confidence:** high | medium | low
 
 ## Finding
 

@@ -4,14 +4,5 @@ MD013:
   tables: false
   code_blocks: false
   headings: false
-MD005: false
-MD007: false
-MD024: false
-MD031: false
-MD032: false
-# Disabled provisionally, not as settled policy. PLAN.md entries and research notes carry an
-# emphasised metadata line (Type/Importance/Effort, Confidence) directly under their heading; it is
-# a badge, not a heading, but MD036 cannot tell. Re-enable once the upstream documentation
-# templates express that metadata in a form the rule accepts. Tracked in PLAN.md.
-MD036: false
-MD040: false
+MD024:
+  siblings_only: true

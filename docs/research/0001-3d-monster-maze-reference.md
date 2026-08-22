@@ -1,6 +1,6 @@
 # How did the original ZX81 *3D Monster Maze* generate its maze, drive Rex, and render its view?
 
-**Confidence: medium**
+**Confidence:** medium
 
 Multiple secondary sources agree with each other on the mechanics below, several citing the original
 Z80 disassembly directly, but this project has not verified any of it against that disassembly
@@ -73,7 +73,7 @@ Status messages, exact wording from the disassembly, keyed on Rex's distance and
 (suppressed once Rex is visible on screen):
 
 | Message | Condition |
-|---|---|
+| --- | --- |
 | "REX LIES IN WAIT" | not visible, could not move |
 | "HE IS HUNTING YOU" | > 8 positions from player |
 | "FOOTSTEPS APPROACHING" | 7–8 positions from player |
@@ -101,7 +101,7 @@ passages show chequerboard instead of solid wall. Walls draw first, passages dra
 Character mapping (from the Jupiter Ace port's `3dmm_viewer.asm`):
 
 | Role | Character |
-|---|---|
+| --- | --- |
 | Left wall top diagonal | `▙` (U+2599) |
 | Left wall bottom diagonal | `▛` (U+259B) |
 | Right wall top diagonal | `▟` (U+259F) |

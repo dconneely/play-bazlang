@@ -37,8 +37,8 @@ design keeps all DSL parsing, timing, and BREAK-handling logic inside `Statement
   (started lazily, decoupled from the push cadence) rather than simply blocking inside `play()`.
 * Neutral: this decision is about who *initiates* each audio frame, not about buffering — the
   separate "nothing ever queues idle silence" rule in
-  [`docs/spec/architecture.md`](../spec/architecture.md) ("I/O system") governs buffering and still holds
-  under the push model.
+  [`docs/spec/architecture.md`](../spec/architecture.md) ("I/O system") governs buffering and still
+  holds under the push model.
 
 <!-- Extracted from the gitignored localonly-BAZLANG-IMPROVEMENTS.md (2026-08-19 pass) during the
      doc-kit migration (see docs/tasks/adopt-doc-kit.md). -->

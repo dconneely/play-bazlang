@@ -5,7 +5,7 @@ a plan that accumulates completed items stops being read.
 
 ## Fix `AND` misparsing when its left operand is a string comparison
 
-*Type: bug — Importance: high — Effort: medium*
+**Type:** bug — **Importance:** high — **Effort:** medium
 
 `IF r$ <> "Y" AND r$ <> "n" THEN ...` does not parse as `(r$ <> "Y") AND (r$ <> "n")`: the grammar's
 `StrAndExpr` (`strExpr AND numExpr`) lets the right-hand `strExpr` of a string comparison greedily
@@ -21,7 +21,7 @@ position. Any change here needs the full example-game suite re-run, since `AND` 
 
 ## Fix `monster.bas`'s maze-view rendering
 
-*Type: bug — Importance: high — Effort: medium*
+**Type:** bug — **Importance:** high — **Effort:** medium
 
 The 3D Monster Maze example (`app-bazlang/src/example/bas/monster.bas`, 446 lines) is incomplete and
 has a rendering bug in the maze view — confirmed 2026-08-22, not just a stale status note. See
@@ -33,7 +33,7 @@ exact `DISTCOL`/`DISTWALL` segment tables.
 
 ## Baseline output tests for the interactive example games
 
-*Type: debt — Importance: high — Effort: medium*
+**Type:** debt — **Importance:** high — **Effort:** medium
 
 No automated comparison exists between a scripted playthrough's final screen state and a stored
 snapshot, for games like `lander.bas` or `monster.bas` (see `docs/testing.md` "What is deliberately
@@ -43,7 +43,7 @@ of the machinery.
 
 ## `WHILE...WEND` / `REPEAT...UNTIL`
 
-*Type: feature — Importance: high — Effort: medium*
+**Type:** feature — **Importance:** high — **Effort:** medium
 
 Structured loops for variable-length iteration, avoiding line-number-dependent loop structures. The
 `FOR`/`NEXT` skip-scan (a flat linear pass over flattened statements) is the proven pattern for
@@ -51,7 +51,8 @@ locating matching terminators, so this fits the current execution model without 
 
 ## `IF...THEN...ELSE`
 
-*Type: feature — Importance: high — Effort: medium (single-line `ELSE`), large (multi-line blocks)*
+**Type:** feature — **Importance:** high — **Effort:** medium (single-line `ELSE`), large
+(multi-line blocks)
 
 Single-line `ELSE` first — it fits the existing statement model. Multi-line block `IF` is a larger
 step: execution flow is line-label based, so block terminators need the same flat-scan treatment as
@@ -59,7 +60,7 @@ loops, and unterminated blocks need well-defined runtime errors.
 
 ## `DEF PROC` & local scoping
 
-*Type: feature — Importance: high — Effort: large*
+**Type:** feature — **Importance:** high — **Effort:** large
 
 Multi-line procedures with parameters passed by value or reference, and local variable namespaces
 (using `LOCAL`). Shifts BazLang from a flat line-number-based execution flow toward a modern,
@@ -69,7 +70,7 @@ reference caching described in `docs/spec/architecture.md`.
 
 ## Consistent error attribution in `ExpressionEvaluator`
 
-*Type: bug — Importance: medium — Effort: small*
+**Type:** bug — **Importance:** medium — **Effort:** small
 
 `StatementExecutor.codedException` records `(code, currentLineLabel, currentStatementIndex, msg)`,
 but `ExpressionEvaluator.codedException` records only `(code, currentLineLabel, msg)` — every
@@ -78,14 +79,14 @@ expression-level error loses the statement index and reports an incomplete locat
 
 ## `TL$` / `UTL$` (string tail)
 
-*Type: feature — Importance: medium — Effort: small*
+**Type:** feature — **Importance:** medium — **Effort:** small
 
 Native support for substring operations that return everything except the first byte/character,
 simplifying recursive string manipulation. Small, self-contained grammar and evaluator change.
 
 ## Unify read/write subscript-and-slice resolution
 
-*Type: debt — Importance: medium — Effort: medium*
+**Type:** debt — **Importance:** medium — **Effort:** medium
 
 Both sides now read the same `StrSubscript`/`StrSlice` AST type, but the bounds-resolution
 *algorithm* is still duplicated: `ExpressionEvaluator.evalStrSubscriptCore` versus
@@ -95,7 +96,7 @@ a shared resolver so the read and write paths cannot drift apart.
 
 ## Model control flow as returned signals
 
-*Type: debt — Importance: medium — Effort: medium*
+**Type:** debt — **Importance:** medium — **Effort:** medium
 
 Statements currently signal `GO TO`/`GO SUB`/`RETURN`/`NEXT` and the `IF`-skip by mutating
 `EvalState.pendingJump`/`running`, which `Interpreter.resume()` reads after each `execute`; `STOP`
@@ -110,7 +111,7 @@ sequenced alongside decomposing `EvalState` below, since both touch the same exe
 
 ## Decompose `EvalState`
 
-*Type: debt — Importance: medium — Effort: medium*
+**Type:** debt — **Importance:** medium — **Effort:** medium
 
 `EvalState` (~420 lines) is a single mutable blackboard: the program, four variable namespaces, FOR
 loops, the return stack, the RNG, the DATA pointer, the program counter, the pending jump, the last
@@ -122,7 +123,7 @@ drive against.
 
 ## Programmatic component tests
 
-*Type: debt — Importance: medium — Effort: medium*
+**Type:** debt — **Importance:** medium — **Effort:** medium
 
 Tests that drive `ExpressionEvaluator.evalNum()` and `StatementExecutor.visit()` directly with
 parsed fragments, rather than executing complete programs through the interpreter. ANTLR has no
@@ -133,7 +134,7 @@ handful of cases against a much larger statement and expression surface. Ongoing
 
 ## MCP: true `tools/call` cancellation
 
-*Type: feature — Importance: medium — Effort: large*
+**Type:** feature — **Importance:** medium — **Effort:** large
 
 `bazlang_step(run/goto/go/step_into/step_over)` blocks the calling thread until the programme next
 pauses; `notifications/cancelled` is accepted but has no effect (see `docs/spec/mcp.md` "Known
@@ -146,7 +147,7 @@ safety cap turns out to be insufficient in practice.
 
 ## External render sidecars
 
-*Type: feature — Importance: medium — Effort: large*
+**Type:** feature — **Importance:** medium — **Effort:** large
 
 Execute the interpreter headless while routing a streaming frame buffer (via TCP or WebSockets) to a
 graphical display sidecar (e.g. a native canvas using OpenGL or WebAssembly). The `VirtualScreen`/
@@ -155,7 +156,7 @@ cell-buffer diffs over WebSocket to a browser canvas is the most practical first
 
 ## `RAND` entropy source is unreliable
 
-*Type: bug — Importance: low — Effort: small*
+**Type:** bug — **Importance:** low — **Effort:** small
 
 `visitRandStmt` seeds the no-argument/zero case from
 `System.nanoTime() ^ ((long) new Object().hashCode() << 32 | new Object().hashCode())`. Identity hash
@@ -166,7 +167,7 @@ follows.
 
 ## Accessor naming consistency
 
-*Type: debt — Importance: low — Effort: small*
+**Type:** debt — **Importance:** low — **Effort:** small
 
 Accessors mix bare and `get`-prefixed styles: `screen()`, `program()`, `input()` versus
 `getExprEvaluator()`, `getVariablesSnapshot()`, `getStringVariablesSnapshot()`. Settle on the bare
@@ -174,7 +175,7 @@ record-style convention already dominant in `exec` and rename the `get`-prefixed
 
 ## Resolve the threading model; remove the `DecimalFormat` `ThreadLocal`s if single-threaded
 
-*Type: debt — Importance: low — Effort: small*
+**Type:** debt — **Importance:** low — **Effort:** small
 
 `ExpressionEvaluator` still holds `ThreadLocal<DecimalFormat> SCI_FORMAT`/`DEC_FORMAT` for number
 formatting, implying concurrent execution is supported — but the AST's mutable ref-cache fields
@@ -184,27 +185,15 @@ those two `ThreadLocal`s.
 
 ## `VirtualScreen` is still wide (~30 methods)
 
-*Type: debt — Importance: low — Effort: small*
+**Type:** debt — **Importance:** low — **Effort:** small
 
 Default methods keep individual implementations small, so this isn't urgent. If the external render
 sidecar item above proceeds, consider splitting the graphics surface (`plot`, `point`,
 `setPlotMode`) from text output at that point — not before.
 
-## Re-enable markdownlint MD036
-
-*Type: debt — Importance: low — Effort: small*
-
-`.markdownlint.yaml` disables MD036 (no-emphasis-as-heading) provisionally. `PLAN.md` entries and
-research notes put an emphasised metadata line (`*Type: … — Importance: … — Effort: …*`,
-`**Confidence: …**`) directly under their heading; MD036 cannot distinguish that badge from a
-heading written as bold text, and it fired 22 times. Suppressing the rule was preferred to
-restructuring every entry, because the pattern comes from the upstream documentation templates and
-so would recur in each new document. Re-enable once those templates express the metadata in a form
-the rule accepts.
-
 ## Immediate mode mutates the program
 
-*Type: debt — Importance: low — Effort: medium*
+**Type:** debt — **Importance:** low — **Effort:** medium
 
 `Interpreter.executeImmediate` inserts the statement at line 0, resumes, then removes line 0. The
 line-0 attribution itself is intentional ZX BASIC fidelity (see `docs/quirks.md`) and correct as-is;
@@ -214,7 +203,7 @@ the current approach is well-contained. Optional.
 
 ## 64-bit explicit integers (`%` suffix)
 
-*Type: feature — Importance: low — Effort: large*
+**Type:** feature — **Importance:** low — **Effort:** large
 
 Support for variables (e.g. `count%`, `grid%(10)`) with exact 64-bit semantics and fast bitwise
 operations. The value is semantic correctness (exact integer arithmetic, well-defined bit ops), not
@@ -225,7 +214,7 @@ and `DEF FN`.
 
 ## Virtual machine / bytecode tier
 
-*Type: feature — Importance: low — Effort: large (the largest item on this list)*
+**Type:** feature — **Importance:** low — **Effort:** large (the largest item on this list)
 
 Transition the interpreter from AST-`switch` execution to compiling into a custom, compact bytecode
 run on a lightweight VM stack. The most speculative item: AST execution is already comfortably fast

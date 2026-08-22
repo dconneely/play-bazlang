@@ -49,7 +49,7 @@ Pick by **audience** — who actually needs to know this, and does that populati
 else here to make sense of it:
 
 | The fact you're writing... | Goes in |
-|---|---|
+| --- | --- |
 | "BazLang does/means/returns X" — what a programmer relying on the language (not Java, not MCP) can depend on | `language.md` |
 | "the interpreter's grammar/Java code is built like X" — no consumer outside this codebase's own implementers needs it | `architecture.md` |
 | "the MCP tool/protocol accepts/returns X" — the wire contract an external MCP client depends on | `mcp.md` |

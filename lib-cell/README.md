@@ -21,5 +21,5 @@ terminal user interfaces (TUIs).
   - `2x2` (Quadrant mode - four sub-pixels per cell)
   - `2x3` (Sextant mode - six sub-pixels per cell)
   - `2x4` (Braille pattern mode - eight sub-pixels per cell using Unicode Braille Patterns)
- - **Logical plot space:** Automatically scales coordinates between character cell space (rows and
-   columns) and virtual pixel space depending on the active `PixelMode`.
+- **Logical plot space:** Automatically scales coordinates between character cell space (rows and
+  columns) and virtual pixel space depending on the active `PixelMode`.

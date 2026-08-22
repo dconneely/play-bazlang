@@ -22,6 +22,7 @@ those behaviours. It serves two audiences:
   all statements in source code order to find the first `NEXT i`. This scan is unconditional: it
   includes statements nested inside `IF ... THEN` bodies, even if the condition is false. For
   example:
+
   ```bas
   10 FOR i=1 TO 0
   20 IF 0 THEN NEXT i
@@ -29,6 +30,7 @@ those behaviours. It serves two audiences:
   40 NEXT i
   50 PRINT "B"
   ```
+
   This prints `A` then `B`. The skip scan on line 10 finds the `NEXT i` on line 20 (inside the
   always-false `IF`), causing execution to resume at line 30. (Covered by `ForNextProgramTest`.)
 
@@ -71,11 +73,13 @@ they equally look like bugs at first sight:
   synthetic "line 0" (mirroring the Spectrum's edit line), and any error they raise reports with
   line 0. In particular, a false `IF` condition in an immediate statement reports
   `N Statement lost, 0:1`:
-  ```
+
+  ```text
   ❯ PRINT "a": IF 0 THEN PRINT "b"
   a
   N Statement lost, 0:1
   ```
+
   This is authentic ZX BASIC behaviour: when a false `IF` skips "to the next line" there is no next
   line for the edit line to continue on.
 - **Silent terminal fallback**: If the interactive `TerminalScreen` cannot be initialised (its

@@ -93,9 +93,9 @@ Returns `1` for True, `0` for False.
 - **`GO SUB n`** (alias **`GOSUB n`**) ... `RETURN`: Call a subroutine.
 - **`IF condition THEN statement`**: Run statement if true. No `ELSE`.
 - **`FOR varname = start TO end STEP step` ... `NEXT varname`**: Loop.
-    - Note: While the Spectrum only allows single-character loop variables (`A` to `Z`), BazLang
-      supports multi-character loop variables. See
-      [quirks.md](../quirks.md#flow-control-quirks) for loop execution quirks.
+  - Note: While the Spectrum only allows single-character loop variables (`A` to `Z`), BazLang
+    supports multi-character loop variables. See
+    [quirks.md](../quirks.md#flow-control-quirks) for loop execution quirks.
 - **`STOP`**: Stop the program.
 - **`CONTINUE`** (alias **`CONT`**): Continue after a `STOP`.
 - **`PAUSE n`**: Wait for `n` frames (each frame is 1/50 second = 20ms). Fractional values are
@@ -105,13 +105,13 @@ Returns `1` for True, `0` for False.
 ### Input / output
 
 - **`PRINT`**: Print to screen.
-    - `;`: Join items.
-    - `,`: Tab to next zone.
-    - `'`: Advance print position to start of next line.
-    - `AT y, x`: Move cursor.
-    - `TAB n`: Move to column `n`.
-    - `INK n` / `PAPER n` / `FLASH n` / `BRIGHT n` / `INVERSE n` / `OVER n`: Temporary colour/style
-      modifiers for the print statement.
+  - `;`: Join items.
+  - `,`: Tab to next zone.
+  - `'`: Advance print position to start of next line.
+  - `AT y, x`: Move cursor.
+  - `TAB n`: Move to column `n`.
+  - `INK n` / `PAPER n` / `FLASH n` / `BRIGHT n` / `INVERSE n` / `OVER n`: Temporary colour/style
+    modifiers for the print statement.
 - **`INPUT varname`**: Ask user for input. For numeric variables, the input is evaluated as an
   expression. If the expression is invalid, the user is prompted with "Syntax error? " and can edit
   their input. Typing `STOP` raises `H STOP in INPUT`.
@@ -183,18 +183,18 @@ Returns `1` for True, `0` for False.
   the midpoint circle algorithm. Leaves the plot position at the centre `(x, y)`. A radius of `0`
   (or less) plots a single point at the centre. Accepts colour/style modifiers before coordinates
   (e.g. `CIRCLE INK 2; x, y, r`).
-    - Coordinates start at `(0,0)` (bottom-left) and extend dynamically based on terminal size. For
-      negative coordinate behaviours, see
-      [quirks.md](../quirks.md#input--output-quirks).
-    - Uses Unicode block characters; the resolution depends on the current pixel mode (see
-      `PLOTMODE`).
+  - Coordinates start at `(0,0)` (bottom-left) and extend dynamically based on terminal size. For
+    negative coordinate behaviours, see
+    [quirks.md](../quirks.md#input--output-quirks).
+  - Uses Unicode block characters; the resolution depends on the current pixel mode (see
+    `PLOTMODE`).
 - **`PLOTMODE n`**: Sets the pixel mode for graphics (`PLOT` and `DRAW`):
-    - `1` = full cell (1×1, each cell is blank or `█`)
-    - `2` = half cell — upper `▀` / lower `▄` (1×2)
-    - `4` = quadrant blocks (2×2, default)
-    - `6` = sextant blocks (2×3)
-    - `8` = braille patterns (2×4)
-    - Does not clear the screen. Other values give an error.
+  - `1` = full cell (1×1, each cell is blank or `█`)
+  - `2` = half cell — upper `▀` / lower `▄` (1×2)
+  - `4` = quadrant blocks (2×2, default)
+  - `6` = sextant blocks (2×3)
+  - `8` = braille patterns (2×4)
+  - Does not clear the screen. Other values give an error.
 
 #### Erasing graphics (no `UNPLOT`/`UNDRAW`)
 
@@ -296,7 +296,8 @@ current pixel state (which is slightly confusing, but consistent with the Sincla
 - **`UCNEXT(s$, i)`**: Returns the 1-based byte position of the codepoint that starts immediately
   after position `i`. Consistent with utf8-c8: each invalid byte counts as one codepoint of width
     1. Use for codepoint-by-codepoint iteration:
-  ```
+
+  ```bas
   10 LET i = 1
   20 IF i > LEN(s$) THEN GOTO 60
   30 LET cp = UCODE(s$(i TO LEN(s$)))
@@ -304,6 +305,7 @@ current pixel state (which is slightly confusing, but consistent with the Sincla
   50 GOTO 20
   60 REM ...
   ```
+
 - **`UCODE s$`**: Unicode codepoint value of the first character (UTF-8 decoded). If the string does
   not start with a valid UTF-8 byte sequence (e.g. trailing bytes are missing, or it contains an
   invalid lead byte), it falls back to returning the raw value of the first byte (128–255).
@@ -342,27 +344,27 @@ sequences can consist of multiple bytes, BazLang provides parallel sets of funct
 between raw bytes and decoded Unicode characters:
 
 - **`CHR$` vs `UCHR$`**:
-    - `CHR$ x` returns a single-byte string containing the raw byte value `x` (0–255).
-    - `UCHR$ x` returns a string containing the multibyte UTF-8 encoding of the Unicode codepoint
-      `x` (e.g. `UCHR$ 9608` yields the 3-byte sequence for `█`).
+  - `CHR$ x` returns a single-byte string containing the raw byte value `x` (0–255).
+  - `UCHR$ x` returns a string containing the multibyte UTF-8 encoding of the Unicode codepoint
+    `x` (e.g. `UCHR$ 9608` yields the 3-byte sequence for `█`).
 - **`CODE` vs `UCODE`**:
-    - `CODE s$` returns the numeric value of the first raw *byte* of `s$` (0–255).
-    - `UCODE s$` decodes the first character of `s$` as UTF-8 and returns its Unicode codepoint
-      value. If the sequence is invalid or incomplete, it falls back to the raw value of the first
-      byte (128–255).
+  - `CODE s$` returns the numeric value of the first raw *byte* of `s$` (0–255).
+  - `UCODE s$` decodes the first character of `s$` as UTF-8 and returns its Unicode codepoint
+    value. If the sequence is invalid or incomplete, it falls back to the raw value of the first
+    byte (128–255).
 - **`LEN` vs `ULEN`**:
-    - `LEN s$` returns the raw byte length of `s$`.
-    - `ULEN s$` returns the number of Unicode characters (codepoints) in `s$`. Each invalid or lone
-      byte (at the start, middle, or end of the string) counts as exactly 1 character.
+  - `LEN s$` returns the raw byte length of `s$`.
+  - `ULEN s$` returns the number of Unicode characters (codepoints) in `s$`. Each invalid or lone
+    byte (at the start, middle, or end of the string) counts as exactly 1 character.
 - **`SCREEN$` vs `USCREEN$`**:
-    - `SCREEN$(row, col)` reads the character cell at the specified coordinates and returns it as a
-      single-byte string. Returns `""` if the cell contains a character outside the ASCII range.
-    - `USCREEN$(row, col)` reads the cell and returns it as a UTF-8 string, supporting multibyte
-      Unicode characters (such as Braille or quadrant blocks).
+  - `SCREEN$(row, col)` reads the character cell at the specified coordinates and returns it as a
+    single-byte string. Returns `""` if the cell contains a character outside the ASCII range.
+  - `USCREEN$(row, col)` reads the cell and returns it as a UTF-8 string, supporting multibyte
+    Unicode characters (such as Braille or quadrant blocks).
 - **`INKEY$` vs `UINKEY$`**:
-    - `INKEY$` polls for a single raw byte from the input queue and returns it as a `BStr`.
-    - `UINKEY$` polls for input, reading and returning a complete UTF-8 multibyte sequence or a
-      terminal ANSI CSI escape sequence (e.g. cursor or function keys) as a single `BStr`.
+  - `INKEY$` polls for a single raw byte from the input queue and returns it as a `BStr`.
+  - `UINKEY$` polls for input, reading and returning a complete UTF-8 multibyte sequence or a
+    terminal ANSI CSI escape sequence (e.g. cursor or function keys) as a single `BStr`.
 
 ## Slicing
 
@@ -380,7 +382,7 @@ When `a$` is declared as a 2D string array (e.g. `DIM a$(rows, cols)`), a single
 refers to the entire `i`-th row as a string of length `cols`. This can be used for reading,
 comparison, and assignment:
 
-```
+```bas
 DIM board$(8, 8)
 LET board$(1) = board$(8)   : REM copy row 8 to row 1
 IF board$(3) = board$(4) THEN ...  : REM compare two rows
@@ -392,7 +394,7 @@ String arrays (both fixed-length scalars and 2D arrays) are initialised to all s
 This is consistent with ZX Spectrum BASIC. Simple (variable-length) string variables are initialised
 to the empty string `""`.
 
-```
+```bas
 DIM grid$(25, 80)   : REM all 2000 bytes are spaces
 PRINT grid$(1, 1)   : REM prints " "
 PRINT CODE grid$(1, 1)  : REM prints 32
@@ -448,7 +450,7 @@ part of a program.
 
 - **`DELETE [lines]`**: Delete program lines.
 
-  ```
+  ```bas
   DELETE 100
   DELETE 10 TO 50
   DELETE TO 100
@@ -463,7 +465,7 @@ part of a program.
 
 - **`EDIT [line]`**: Edit an existing line.
 
-  ```
+  ```bas
   EDIT 100
   ```
 
@@ -472,7 +474,7 @@ part of a program.
 
 - **`REFORMAT [lines]`**: Normalise program formatting.
 
-  ```
+  ```bas
   REFORMAT
   REFORMAT 100
   REFORMAT 10 TO 50
@@ -486,7 +488,7 @@ part of a program.
 
 - **`RENUM [numbering], [lines]`**: Renumber program lines.
 
-  ```
+  ```bas
   RENUM
   RENUM 100
   RENUM 100 STEP 5

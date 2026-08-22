@@ -10,7 +10,7 @@ Start here when you have something to write down and are not sure which file it 
 The tense of the sentence you are writing usually settles it:
 
 | If you are writing… | It belongs in |
-|---|---|
+| --- | --- |
 | "BazLang does X" / "the interpreter does X" | the specification |
 | "we chose X because Y" | an ADR |
 | "X used to be Y, now it is Z" | the changelog |
@@ -65,7 +65,7 @@ description of one. See "Machine-readable and generated parts" below.
 ## Artifacts
 
 | Artifact | Purpose — and the standard it follows, if any | Tense | Durability | Audience |
-|---|---|---|---|---|
+| --- | --- | --- | --- | --- |
 | `DOC-MAP.md` | This map: what each document is for, and where a fact belongs. **No standard**; nearest practice is a `docs/README.md` index, with [Diátaxis](https://diataxis.fr) supplying the rationale for splitting docs at all | present | rewritten in place | anyone adding documentation |
 | `README.md` | Orient a newcomer fast at the repository root. Loose convention; [Standard Readme](https://github.com/RichardLitt/standard-readme) is the nearest written spec | present | rewritten in place | anyone |
 | `app-bazlang/README.md` | **Alias** of `README.md` — same purpose, scoped to the interpreter module | present | rewritten in place | anyone |
@@ -88,7 +88,7 @@ description of one. See "Machine-readable and generated parts" below.
 ## Lifecycle
 
 | Artifact | Created when | Removed / closed when |
-|---|---|---|
+| --- | --- | --- |
 | `DOC-MAP.md` | the structure is first agreed | never — revised when an artifact is added, removed or repurposed |
 | `README.md` | project starts | never |
 | `app-bazlang/README.md` | the module is created | never |
@@ -150,8 +150,8 @@ effects — new statements, functions, MCP tools, REPL commands — not internal
 Entries are deleted when done, never annotated.
 
 ```markdown
-### Short title, imperative
-*Type: bug — Importance: high — Effort: medium*
+## Short title, imperative
+**Type:** bug — **Importance:** high — **Effort:** medium
 ```
 
 - **Type** — `bug`, `debt`, `feature` or `docs`. Debt is a tag here, not a separate file: the
@@ -174,7 +174,7 @@ so nobody "fixes" it, and states what would have to change for the entry to go.
 Three kinds of thing get confused with each other, and the rules differ:
 
 | Kind | Rule |
-|---|---|
+| --- | --- |
 | **Source of truth** — `app-bazlang/src/main/antlr/BazLang.g4` | versioned and reviewed like code; it *is* BazLang's syntax, not a description of one |
 | **Generated view** — the ANTLR-generated `BazLangLexer`/`BazLangParser` classes | never hand-edited; regenerating from `BazLang.g4` must produce no meaningful diff |
 | **Prose that cannot be derived** — `docs/spec/architecture.md`'s "Grammar" section, the rest of `docs/spec/architecture.md`, rationale, invariants | the only part that belongs in `docs/` as writing |

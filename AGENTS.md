@@ -53,6 +53,6 @@ Before you edit:
 - The specification follows the work. Change it because behaviour changed, not because it would
   read better. Its purpose and scope are not yours to revise.
 - Never change an ADR's `status`, and never edit one that says `accepted`. Drafting a record is
-  yours; deciding one is not.
+  yours; deciding one is not — leave `decision-makers` as the template's placeholder too.
 - Delete completed `PLAN.md` entries rather than marking them done.
 - Adding a document means updating `DOC-MAP.md` in the same commit.
