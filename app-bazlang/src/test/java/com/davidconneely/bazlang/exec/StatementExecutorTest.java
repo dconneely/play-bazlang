@@ -618,6 +618,44 @@ class StatementExecutorTest {
           "background APLAY threads accumulated across repeated triggers");
     }
 
+    // Polls `counter` until it has stopped changing for `quietMillis` of continuous wall-clock
+    // time, rather than assuming a fixed sleep is a long enough margin -- a loaded CI runner can
+    // take arbitrarily (if boundedly) longer than a quiet dev machine to finish a short note, and
+    // a fixed margin either flakes under load or wastes time everywhere else. Fails the test
+    // outright if `counter` is still changing after `timeoutMillis`, so a genuine regression
+    // (still pushing audio) is reported rather than hanging.
+    // Takes java.util.function.LongSupplier by full name rather than importing it -- this file
+    // already sits at PMD's ExcessiveImports threshold (30).
+    private static long waitUntilSettled(
+        java.util.function.LongSupplier counter, long quietMillis, long timeoutMillis)
+        throws InterruptedException {
+      final long pollMillis = 10L;
+      final long overallDeadlineNanos = System.nanoTime() + timeoutMillis * 1_000_000L;
+      long lastValue = counter.getAsLong();
+      long settledSinceNanos = System.nanoTime();
+      while (true) {
+        Thread.sleep(pollMillis);
+        final long value = counter.getAsLong();
+        final long nowNanos = System.nanoTime();
+        if (value != lastValue) {
+          lastValue = value;
+          settledSinceNanos = nowNanos;
+        } else if (nowNanos - settledSinceNanos >= quietMillis * 1_000_000L) {
+          return lastValue;
+        }
+        if (nowNanos > overallDeadlineNanos) {
+          // org.junit.jupiter.api.Assertions.fail by full name rather than importing it -- this
+          // file already sits at PMD's ExcessiveImports threshold (30).
+          org.junit.jupiter.api.Assertions.fail(
+              "value kept changing for over "
+                  + timeoutMillis
+                  + "ms without settling (last seen: "
+                  + lastValue
+                  + ")");
+        }
+      }
+    }
+
     @Test
     void anIdleAplaySessionStopsPushingAudioEntirelyRatherThanStreamingSilence()
         throws InterruptedException {
@@ -632,13 +670,15 @@ class StatementExecutorTest {
           AstLowering.lowerStatements(PARSER.parseStatementsContext("APLAY \"1c\""), 10)) {
         recordingExecutor.execute(stmt);
       }
-      Thread.sleep(300); // well past "1c"'s 0.125s duration -- the session is now idle
-      final long callsOnceIdle = recordingSpeaker.totalCalls.get();
+      // Settles rather than a fixed sleep: waits only as long as this run actually needs to finish
+      // "1c" and go idle, instead of guessing a margin a loaded CI runner can blow through.
+      final long callsOnceIdle = waitUntilSettled(recordingSpeaker.totalCalls::get, 100, 5_000);
       assertTrue(recordingSpeaker.soundingCalls.get() > 0, "the note never sounded at all");
-      Thread.sleep(300); // idle the whole time
+      // If idle-silence were still being pushed, totalCalls would keep climbing here instead of
+      // ever settling, and waitUntilSettled would time out and fail the test itself.
       assertEquals(
           callsOnceIdle,
-          recordingSpeaker.totalCalls.get(),
+          waitUntilSettled(recordingSpeaker.totalCalls::get, 300, 5_000),
           "an idle APLAY session kept pushing audio (silence) to the speaker -- that backlog is "
               + "exactly what delays and swallows later notes");
     }
