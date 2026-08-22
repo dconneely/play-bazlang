@@ -139,11 +139,14 @@ handful of cases against a much larger statement and expression surface. Ongoing
 Confirmed 2026-08-22, one GitHub Actions `Build` run: `TerminalScreenGraphicsTest.java:184` failed
 on `windows-latest` only (ubuntu/macos passed); did not reproduce locally. Cause not yet diagnosed —
 `StatementExecutorTest.Aplay.anIdleAplaySessionStopsPushingAudioEntirelyRatherThanStreamingSilence`
-failed the same way on `macos-latest` in a separate run and turned out to be a genuine flake (a bare
-`Thread.sleep(300)` window a loaded CI runner could violate); fixed by polling until the recorded
-call count settles instead of assuming a fixed margin (`StatementExecutorTest.java`'s
-`waitUntilSettled`). Worth auditing any other test using `Thread.sleep` for synchronization the same
-way, but confirm this one actually recurs before spending more effort on it.
+failed the same way on `macos-latest` twice, in two separate runs, and needed two attempts to fix
+properly: a first pass (polling until the recorded call count went quiet) was still flaky, because a
+GC pause on a loaded runner can space two still-legitimate mid-note chunks further apart than a short
+quiet-window would assume. The working fix waits for `drainPlay()` instead — `StatementExecutor`'s
+own single-fire, unambiguous "just went idle" signal (see
+[ADR-0007](docs/adr/0007-synchronous-per-call-play-rendering.md)) — rather than inferring idleness
+from any timing heuristic. Worth auditing any other test using `Thread.sleep` for synchronization the
+same way, but confirm this Windows failure actually recurs before spending more effort on it.
 
 ## MCP: true `tools/call` cancellation
 
