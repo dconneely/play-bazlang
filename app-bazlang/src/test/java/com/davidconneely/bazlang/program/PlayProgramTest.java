@@ -8,7 +8,7 @@ class PlayProgramTest extends BaseProgramTest {
   @Test
   void testPlaySingleChannelDoesNotCrash() {
     // PLAY is silent in tests (MockScreen inherits VirtualSpeaker's no-op default), matching how
-    // BEEP is already tested (see BeepProgramTest) — but StatementExecutor's own timing/BREAK-poll
+    // BEEP is already tested (see BeepProgramTest) - but StatementExecutor's own timing/BREAK-poll
     // loop still runs for real, so this exercises the full DSL parse + playback-loop pipeline.
     runProgram("10 PLAY \"1c1d1e\" : PRINT \"OK\"", "OK\n");
   }

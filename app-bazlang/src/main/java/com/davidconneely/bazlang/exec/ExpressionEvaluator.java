@@ -19,7 +19,7 @@ import java.util.List;
 
 /**
  * Walks the typed {@link NumExpr}/{@link StrExpr} AST directly via {@code switch} pattern matching
- * and returns {@code double}/{@link BStr} directly from {@link #evalNum}/{@link #evalStr} — no
+ * and returns {@code double}/{@link BStr} directly from {@link #evalNum}/{@link #evalStr} - no
  * {@code numResult}/{@code strResult} side fields, unlike the original ANTLR-visitor-based
  * evaluator this replaced at the Phase 4 cutover (see {@code localonly-plan-CUSTOM-AST.md}).
  */
@@ -582,8 +582,8 @@ public class ExpressionEvaluator {
 
   /**
    * Evaluates a string as a numeric expression. Used by VAL and numeric INPUT. Per Sinclair ZX
-   * BASIC, this parses and evaluates the full expression, fresh every call — see the
-   * IMPROVEMENTS.md note "VAL / VAL$ / INPUT parse at runtime — intentional" for why this must not
+   * BASIC, this parses and evaluates the full expression, fresh every call - see the
+   * IMPROVEMENTS.md note "VAL / VAL$ / INPUT parse at runtime - intentional" for why this must not
    * be memoized on the AST node the way literals are.
    *
    * @param exprStr the expression string to evaluate

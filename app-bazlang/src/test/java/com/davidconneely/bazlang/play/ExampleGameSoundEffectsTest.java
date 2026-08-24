@@ -13,7 +13,7 @@ import org.junit.jupiter.api.Test;
  * original blocking {@code BEEP} sound effects) reproduce the intended pitch sequence exactly.
  * Durations are deliberately only approximated to the nearest achievable duration code at {@code
  * T240} (the DSL's coarser, quantized durations can't reproduce arbitrary BEEP-second values
- * exactly) — but pitch fidelity is verified precisely here rather than trusted from hand
+ * exactly) - but pitch fidelity is verified precisely here rather than trusted from hand
  * arithmetic, since a wrong semitone would be an audible, silent-until-heard regression (most
  * notably hangman's losing sting, which quotes a real piece and would simply be wrong, rather than
  * merely different, if a note were off).
@@ -21,7 +21,7 @@ import org.junit.jupiter.api.Test;
  * <p>Every game sound is deliberately pure tone: the noise generator was tried for the "bad event"
  * sounds and sounded harsh rather than percussive, so no game string enables it. {@link
  * #assertPitchSequence} asserts that for every note it checks, so noise can't quietly creep back in
- * — which matters more than it looks, because the mixer is a *shared* register and several games
+ * - which matters more than it looks, because the mixer is a *shared* register and several games
  * reuse one live {@code APLAY} session, so a single noisy string would contaminate every later
  * sound in that game too.
  */

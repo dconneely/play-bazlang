@@ -13,7 +13,7 @@ import org.antlr.v4.runtime.Token;
 /**
  * Lowers ANTLR expression parse trees ({@code numExpr}/{@code numAtom}/{@code strExpr}/{@code
  * strAtom}) to the typed {@link NumExpr}/{@link StrExpr} AST. Pure functions: no {@code EvalState},
- * so lowering never resolves a variable/array reference — those stay lazily resolved on first
+ * so lowering never resolves a variable/array reference - those stay lazily resolved on first
  * evaluation (see {@link NumExpr} class Javadoc), which keeps this class usable both ahead-of-time
  * (at {@code ProgramLine} parse time) and for one-off runtime parses ({@code VAL}, {@code INPUT})
  * without needing an {@code EvalState} to exist yet.
@@ -87,7 +87,7 @@ public final class AstLowering {
 
   /**
    * Lowers a {@code numAtom} (a function argument without parens) to the same node types as {@link
-   * #lowerNum(NumExprContext, int)} — the atom/expr split is syntax-only.
+   * #lowerNum(NumExprContext, int)} - the atom/expr split is syntax-only.
    */
   public static NumExpr lowerNum(NumAtomContext ctx, int lineNumber) {
     if (ctx.NUM_LITERAL() != null) {
@@ -273,7 +273,7 @@ public final class AstLowering {
 
   /**
    * Lowers a {@code strAtom} (a function argument without parens) to the same node types as {@link
-   * #lowerStr(StrExprContext, int)} — the atom/expr split is syntax-only.
+   * #lowerStr(StrExprContext, int)} - the atom/expr split is syntax-only.
    */
   public static StrExpr lowerStr(StrAtomContext ctx, int lineNumber) {
     if (ctx.STR_LITERAL() != null) {
@@ -353,7 +353,7 @@ public final class AstLowering {
   /**
    * Lowers a {@code statements} rule to a single <em>flat</em> {@code List<Stmt>}: {@code IfStmt}
    * bodies are recursively inlined right after the {@code IfStmt} itself, exactly as {@code
-   * ProgramLine.flatten()} does today (the "flat skip-scan" quirk — see {@link Stmt}'s class
+   * ProgramLine.flatten()} does today (the "flat skip-scan" quirk - see {@link Stmt}'s class
    * Javadoc). This is the list a {@code ProgramLine}/{@code Interpreter} walks for execution;
    * {@link Stmt.IfStmt#body()} itself holds the un-flattened nested form.
    */
@@ -505,7 +505,7 @@ public final class AstLowering {
 
   /**
    * Lowers a {@code lineRange}. Disambiguates the single-bound-with-{@code TO} case ("{@code n TO}"
-   * vs. "{@code TO n}") from tree child order rather than {@code ctx.getText()} sniffing — see
+   * vs. "{@code TO n}") from tree child order rather than {@code ctx.getText()} sniffing - see
    * {@link LineRange}'s class Javadoc.
    */
   private static LineRange lowerLineRange(LineRangeContext ctx, int lineNumber) {

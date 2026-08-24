@@ -18,12 +18,12 @@ import org.jline.utils.AttributedStringBuilder;
  * within 100 ms, the OS {@code read(2)} call returns 0 bytes. Java's {@code FileInputStream.read()}
  * treats a 0-byte result as EOF and returns -1. The {@code NonBlockingInputStream} background
  * thread then propagates -1 upward: {@code readCharacter()} returns -1, {@code readBinding()}
- * returns {@code null}, and {@code LineReaderImpl.readLine()} throws {@code EndOfFileException} —
+ * returns {@code null}, and {@code LineReaderImpl.readLine()} throws {@code EndOfFileException} -
  * which in BazLang's executor retry loop manifests as a continuous "Syntax error in expression"
  * storm.
  *
  * <p>This override retries {@code doReadBinding()} whenever it returns {@code null} (transient
- * VTIME expiry). Genuine EOF — when the underlying reader is actually closed — propagates as {@code
+ * VTIME expiry). Genuine EOF - when the underlying reader is actually closed - propagates as {@code
  * EndOfFileException} via the {@code ClosedException} path in {@code BindingReader.readCharacter()}
  * and is not caught here, so real terminal-closed scenarios still terminate correctly.
  */

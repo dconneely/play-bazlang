@@ -92,8 +92,8 @@ class StringFunctionsProgramTest extends BaseProgramTest {
         20 LET A = UCNEXT(S$, 1)
         30 LET B = UCNEXT(S$, 2)
         """);
-    assertEquals(2.0, state.numVar("A")); // 0xC2 invalid → next at 2
-    assertEquals(3.0, state.numVar("B")); // 0x20 ASCII → next at 3
+    assertEquals(2.0, state.numVar("A")); // 0xC2 invalid -> next at 2
+    assertEquals(3.0, state.numVar("B")); // 0x20 ASCII -> next at 3
   }
 
   @Test

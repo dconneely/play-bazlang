@@ -9,8 +9,8 @@ decision-makers: David Conneely
 ## Context and Problem Statement
 
 BazLang needed a lexer and parser from the project's first commit. A BASIC dialect's grammar is
-small but has real structure to get right — operator precedence, function-argument binding, the
-split between program statements and REPL-only commands — and that structure would need revisiting
+small but has real structure to get right - operator precedence, function-argument binding, the
+split between program statements and REPL-only commands - and that structure would need revisiting
 repeatedly as the language grew.
 
 ## Considered Options
@@ -30,14 +30,14 @@ argument-binding tightness, and the statement/REPL-command split are all readabl
 ### Consequences
 
 * Good, because adding an operator or statement is a grammar-rule change plus an `AstLowering`/
-  `ExpressionEvaluator`/`StatementExecutor` case, not a parser rewrite — see
+  `ExpressionEvaluator`/`StatementExecutor` case, not a parser rewrite - see
   `docs/spec/architecture.md` "Adding new features".
 * Good, because precedence and associativity (`<assoc=right>` for `**`/`^`) are declared, not
-  implemented — there is no separate precedence-climbing function to keep in sync with the grammar.
+  implemented - there is no separate precedence-climbing function to keep in sync with the grammar.
 * Bad, because a contributor needs to learn ANTLR's grammar syntax and generated-parser model, not
   just Java, to touch the parser.
-* Neutral: the generated `BazLangLexer`/`BazLangParser` classes are build output, never hand-edited
-  — see `DOC-MAP.md` "Machine-readable and generated parts".
+* Neutral: the generated `BazLangLexer`/`BazLangParser` classes are build output, never hand-edited -
+  see `DOC-MAP.md` "Machine-readable and generated parts".
 
 <!-- Extracted from the former docs/grammar.md ("Why ANTLR?") during a doc-kit restructuring pass;
      the rest of that file folded into docs/spec/architecture.md's "Grammar" section. -->

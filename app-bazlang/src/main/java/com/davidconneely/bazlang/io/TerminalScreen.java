@@ -545,11 +545,11 @@ public class TerminalScreen extends AbstractCellBufferedScreen {
 
   // Opened lazily on the first BEEP and then kept open for the rest of the session (closed in
   // close()), rather than opened/closed fresh per call. Opening a line has real device/driver
-  // startup latency — commonly tens of milliseconds — which is negligible against a 300ms+ jingle
+  // startup latency - commonly tens of milliseconds - which is negligible against a 300ms+ jingle
   // note but can dominate (or exceed) a short ~50ms feedback blip's *nominal* duration, making it
   // barely audible. Reuse removes that latency from every call after the first, and also closes
   // the gap between chained notes in a jingle. Guarded by beepLock since beep() calls run on their
-  // own short-lived thread (see beep()) and could otherwise race to open it concurrently — in
+  // own short-lived thread (see beep()) and could otherwise race to open it concurrently - in
   // practice this can't happen from normal BASIC execution (StatementExecutor blocks for one
   // BEEP's duration before the interpreter can issue another), but the lock costs nothing and
   // keeps the field access correct regardless.
@@ -594,12 +594,12 @@ public class TerminalScreen extends AbstractCellBufferedScreen {
     if (line != null) {
       try {
         // flush(), not stop(): the line stays started for the rest of the session (see the field
-        // doc above), so this only discards whatever's still queued from the interrupted tone —
+        // doc above), so this only discards whatever's still queued from the interrupted tone -
         // it doesn't pause the line itself, which would otherwise need restarting before the next
         // beep() could write anything audible.
         line.flush();
       } catch (IllegalStateException e) {
-        // Not open, or closing concurrently — fine, that's the goal anyway.
+        // Not open, or closing concurrently - fine, that's the goal anyway.
       }
     }
   }
@@ -639,7 +639,7 @@ public class TerminalScreen extends AbstractCellBufferedScreen {
         line.drain();
       }
     } catch (LineUnavailableException | IllegalStateException e) {
-      // No audio device available (e.g. a headless/SSH session) — BEEP is silent, not fatal.
+      // No audio device available (e.g. a headless/SSH session) - BEEP is silent, not fatal.
     }
   }
 
@@ -719,7 +719,7 @@ public class TerminalScreen extends AbstractCellBufferedScreen {
       playRenderState.sampleIndex += totalSamples;
       line.write(buffer, 0, buffer.length);
     } catch (LineUnavailableException | IllegalStateException e) {
-      // No audio device available (e.g. a headless/SSH session) — PLAY/APLAY is silent, not fatal.
+      // No audio device available (e.g. a headless/SSH session) - PLAY/APLAY is silent, not fatal.
     } finally {
       playLock.unlock();
     }
@@ -741,7 +741,7 @@ public class TerminalScreen extends AbstractCellBufferedScreen {
         line.stop();
         line.flush();
       } catch (IllegalStateException e) {
-        // Not open, or closing concurrently — fine, that's the goal anyway.
+        // Not open, or closing concurrently - fine, that's the goal anyway.
       }
     }
   }
@@ -761,7 +761,7 @@ public class TerminalScreen extends AbstractCellBufferedScreen {
         line.stop();
         line.flush(); // leave no stale samples a starved line could otherwise replay
       } catch (IllegalStateException e) {
-        // Not open, or closing concurrently — fine, that's the goal anyway.
+        // Not open, or closing concurrently - fine, that's the goal anyway.
       }
     }
   }

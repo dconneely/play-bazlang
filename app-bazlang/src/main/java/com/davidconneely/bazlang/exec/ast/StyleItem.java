@@ -8,7 +8,7 @@ package com.davidconneely.bazlang.exec.ast;
  * localonly-plan-CUSTOM-AST.md}).
  *
  * <p>Not used for the six top-level style <em>statements</em> ({@code INK n}, {@code PAPER n}, ...)
- * — those are distinct {@link Stmt} cases, since (unlike a styleList/print-item setting) they also
+ * - those are distinct {@link Stmt} cases, since (unlike a styleList/print-item setting) they also
  * update {@code EvalState}'s persistent default styles, not just the screen's active ones for the
  * current call.
  */

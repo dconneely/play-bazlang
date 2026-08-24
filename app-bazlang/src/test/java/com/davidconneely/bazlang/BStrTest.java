@@ -83,9 +83,9 @@ class BStrTest {
 
   @Test
   void testInvalidLeadingByte() {
-    // 0xC0 0x80 is overlong encoding of NUL — should NOT be decoded as U+0000
+    // 0xC0 0x80 is overlong encoding of NUL - should NOT be decoded as U+0000
     // 0xC0 is < 0xC2 so it is not a valid 2-byte lead; falls through to lone-byte Latin-1 fallback
-    // → U+00C0, then 0x80 → U+0080
+    // -> U+00C0, then 0x80 -> U+0080
     final var s = BStr.fromBytes(new byte[] {(byte) 0xC0, (byte) 0x80});
     // 0xC0 < 0xC2 so not a valid 2-byte lead; utf8-c8 synthetic for each lone byte
     assertEquals(c8(0xC0) + c8(0x80), s.toJavaString());
@@ -93,19 +93,19 @@ class BStrTest {
 
   @Test
   void testSurrogateRangeNotDecoded() {
-    // 0xED 0xA0 0x80 would encode U+D800 (surrogate) — must be rejected
+    // 0xED 0xA0 0x80 would encode U+D800 (surrogate) - must be rejected
     final var s = BStr.fromBytes(new byte[] {(byte) 0xED, (byte) 0xA0, (byte) 0x80});
     // Surrogate range 0xD800-0xDFFF: leading byte emitted as utf8-c8 synthetic, then each
-    // subsequent byte is a lone continuation byte → also synthetic
+    // subsequent byte is a lone continuation byte -> also synthetic
     assertEquals(c8(0xED) + c8(0xA0) + c8(0x80), s.toJavaString());
   }
 
   @Test
   void testOverlongThreeByteNotDecoded() {
-    // 0xE0 0x80 0xAF would be overlong encoding of U+002F — cp < 0x800, must be rejected
+    // 0xE0 0x80 0xAF would be overlong encoding of U+002F - cp < 0x800, must be rejected
     final var s = BStr.fromBytes(new byte[] {(byte) 0xE0, (byte) 0x80, (byte) 0xAF});
     // isContByte checks (b & 0xC0) == 0x80, so 0x80 IS a continuation byte.
-    // Decoded cp = (0 << 12) | (0 << 6) | 0x2F = 0x2F which is < 0x800 → overlong.
+    // Decoded cp = (0 << 12) | (0 << 6) | 0x2F = 0x2F which is < 0x800 -> overlong.
     // Leading byte emitted as utf8-c8 synthetic; remaining bytes reprocessed as lone bytes.
     assertEquals(c8(0xE0) + c8(0x80) + c8(0xAF), s.toJavaString());
   }
@@ -185,7 +185,7 @@ class BStrTest {
     // █ = U+2588 = [E2, 96, 88], 3 bytes
     final var s = BStr.fromJavaString("█");
     assertEquals(3, s.nextCodepointStart(0));
-    assertEquals(3, s.nextCodepointStart(3)); // at end → stays at length
+    assertEquals(3, s.nextCodepointStart(3)); // at end -> stays at length
   }
 
   @Test
@@ -204,16 +204,16 @@ class BStrTest {
 
   @Test
   void testNextCodepointStartBrokenLead() {
-    // [0xC2, 0x20]: 0xC2 has no valid continuation → advances by 1
+    // [0xC2, 0x20]: 0xC2 has no valid continuation -> advances by 1
     final var s = BStr.fromBytes(new byte[] {(byte) 0xC2, (byte) 0x20});
-    assertEquals(1, s.nextCodepointStart(0)); // 0xC2 invalid → 1 byte
-    assertEquals(2, s.nextCodepointStart(1)); // 0x20 ASCII → 1 byte
+    assertEquals(1, s.nextCodepointStart(0)); // 0xC2 invalid -> 1 byte
+    assertEquals(2, s.nextCodepointStart(1)); // 0x20 ASCII -> 1 byte
   }
 
   @Test
   void testNextCodepointStartAtEnd() {
     final var s = BStr.fromJavaString("A");
-    assertEquals(1, s.nextCodepointStart(1)); // at end → returns length
+    assertEquals(1, s.nextCodepointStart(1)); // at end -> returns length
   }
 
   // --- slice ---
@@ -304,7 +304,7 @@ class BStrTest {
 
   @Test
   void testToJavaStringFourByteOutOfRange() {
-    // [F4, 90, 80, 80] decodes cp = 0x110000 > 0x10FFFF → lead emitted as synthetic,
+    // [F4, 90, 80, 80] decodes cp = 0x110000 > 0x10FFFF -> lead emitted as synthetic,
     // then remaining continuation bytes each emitted as synthetic
     final var s = BStr.fromBytes(new byte[] {(byte) 0xF4, (byte) 0x90, (byte) 0x80, (byte) 0x80});
     assertEquals(c8(0xF4) + c8(0x90) + c8(0x80) + c8(0x80), s.toJavaString());
@@ -320,14 +320,14 @@ class BStrTest {
 
   @Test
   void testFirstCodepointOverlongThreeByte() {
-    // [E0, 80, AF] decodes cp = 0x2F < 0x800 → overlong; falls back to raw byte 0xE0
+    // [E0, 80, AF] decodes cp = 0x2F < 0x800 -> overlong; falls back to raw byte 0xE0
     final var s = BStr.fromBytes(new byte[] {(byte) 0xE0, (byte) 0x80, (byte) 0xAF});
     assertEquals(0xE0, s.firstCodepoint());
   }
 
   @Test
   void testFirstCodepointSurrogateThreeByte() {
-    // [ED, A0, 80] decodes U+D800 (surrogate) → rejected; falls back to raw byte 0xED
+    // [ED, A0, 80] decodes U+D800 (surrogate) -> rejected; falls back to raw byte 0xED
     final var s = BStr.fromBytes(new byte[] {(byte) 0xED, (byte) 0xA0, (byte) 0x80});
     assertEquals(0xED, s.firstCodepoint());
   }
@@ -346,15 +346,15 @@ class BStrTest {
 
   @Test
   void testNextCodepointStartTruncatedThreeByte() {
-    // [E2, 96] — 3-byte lead but only 1 continuation byte, truncated at end → advances by 1
+    // [E2, 96] - 3-byte lead but only 1 continuation byte, truncated at end -> advances by 1
     final var s = BStr.fromBytes(new byte[] {(byte) 0xE2, (byte) 0x96});
     assertEquals(1, s.nextCodepointStart(0));
-    assertEquals(2, s.nextCodepointStart(1)); // 0x96 is a lone continuation byte → +1
+    assertEquals(2, s.nextCodepointStart(1)); // 0x96 is a lone continuation byte -> +1
   }
 
   @Test
   void testNextCodepointStartTruncatedFourByte() {
-    // [F0, 9F, 98] — 4-byte lead with only 2 continuation bytes → advances by 1
+    // [F0, 9F, 98] - 4-byte lead with only 2 continuation bytes -> advances by 1
     final var s = BStr.fromBytes(new byte[] {(byte) 0xF0, (byte) 0x9F, (byte) 0x98});
     assertEquals(1, s.nextCodepointStart(0));
   }
@@ -363,14 +363,14 @@ class BStrTest {
 
   @Test
   void testNextCodepointStartOverlongThreeByte() {
-    // [E0, 80, AF] decodes cp = 0x2F < 0x800 → overlong; lead byte advances by 1 only
+    // [E0, 80, AF] decodes cp = 0x2F < 0x800 -> overlong; lead byte advances by 1 only
     final var s = BStr.fromBytes(new byte[] {(byte) 0xE0, (byte) 0x80, (byte) 0xAF});
     assertEquals(1, s.nextCodepointStart(0));
   }
 
   @Test
   void testNextCodepointStartSurrogateThreeByte() {
-    // [ED, A0, 80] decodes U+D800 → surrogate; lead byte advances by 1 only
+    // [ED, A0, 80] decodes U+D800 -> surrogate; lead byte advances by 1 only
     final var s = BStr.fromBytes(new byte[] {(byte) 0xED, (byte) 0xA0, (byte) 0x80});
     assertEquals(1, s.nextCodepointStart(0));
   }

@@ -15,7 +15,7 @@ import org.junit.jupiter.api.Test;
  * Component tests for {@link AstLowering}'s statement-lowering half (Phase 2 of {@code
  * localonly-plan-CUSTOM-AST.md}): the flat-list/{@code IfStmt} inlining quirk, the disambiguated
  * {@link LineRange} lowering, {@code printList} interleaving, and representative structural checks
- * across statement kinds. Not behaviour tests — see {@code AstStatementExecutorTest} for those.
+ * across statement kinds. Not behaviour tests - see {@code AstStatementExecutorTest} for those.
  */
 class AstLoweringStatementTest {
 

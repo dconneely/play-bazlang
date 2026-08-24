@@ -7,11 +7,11 @@ import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * The top-level {@code PLAY}/{@code APLAY} scheduler: owns exactly 3 {@link PlayChannelState}s
- * (channels not given content by the caller are simply empty/silent — see {@link
+ * (channels not given content by the caller are simply empty/silent - see {@link
  * PlayParser#buildSequencer}) plus the chip-wide {@link SharedRegisters}, and implements {@link
  * PlaySource}'s pull interface. Mirrors the ROM's own scheduling loop (find the channel with the
  * least remaining time, advance every channel by that much, refill whichever just hit zero) but
- * measured in real seconds rather than the ROM's raw duration ticks — durations convert via {@code
+ * measured in real seconds rather than the ROM's raw duration ticks - durations convert via {@code
  * secondsPerTick = 60 / (tempo * 24)} (a crotchet is 24 ticks, so this is exactly "1 beat at {@code
  * tempo} bpm, divided into 24"), a clean musical formula chosen deliberately over replicating the
  * ROM's literal T-state busy-wait arithmetic, since cycle-exact timing isn't a goal here (see
@@ -20,15 +20,15 @@ import java.util.concurrent.locks.ReentrantLock;
  * <p>The shared envelope generator is modelled functionally rather than at the AY chip's literal
  * 16-step register resolution: amplitude is a continuous ramp/triangle per {@code W} shape over a
  * period derived from {@code X} (an undocumented raw-value-to-seconds mapping in every source
- * consulted; {@code X} is treated as milliseconds, and an unset/zero {@code X} — "maximum duration"
- * per the ROM — as a fixed 2 second default), consistent with this project's existing choice to
+ * consulted; {@code X} is treated as milliseconds, and an unset/zero {@code X} - "maximum duration"
+ * per the ROM - as a fixed 2 second default), consistent with this project's existing choice to
  * exceed rather than replicate hardware register-precision limits elsewhere (e.g. BEEP's pitch, or
  * the octave 0-1 note-precision item in the roadmap).
  *
  * <p>Long-lived and mutable: {@code APLAY} keeps one {@code PlaySequencer} instance alive across
  * calls (as long as its background thread is still running) so a follow-up {@code APLAY} call can
- * target {@link #replaceChannel} at just one index, leaving the other channels' state — including
- * an in-progress infinite repeat — completely untouched. {@link #lock} guards every method's whole
+ * target {@link #replaceChannel} at just one index, leaving the other channels' state - including
+ * an in-progress infinite repeat - completely untouched. {@link #lock} guards every method's whole
  * body against the background thread's concurrent {@link #next} calls; contention is negligible
  * since {@code replaceChannel} calls are rare and {@code next}'s own critical section is just array
  * arithmetic, no I/O.
@@ -40,7 +40,7 @@ final class PlaySequencer implements PlaySource {
   /**
    * Silence inserted at the end of every note, so consecutive notes are articulated rather than
    * running together. Without it, repeated notes at the same pitch merge into one continuous tone
-   * and the rhythm simply disappears — which is exactly what happened to hangman's funeral march
+   * and the rhythm simply disappears - which is exactly what happened to hangman's funeral march
    * (four repeated B-flats rendering as a single drone).
    *
    * <p>One tick is 1/96th of a whole note, matching the real ROM, whose own bug list records that
@@ -53,7 +53,7 @@ final class PlaySequencer implements PlaySource {
   /**
    * Ceiling on that gap. A tick is only a short moment at a brisk tempo, but at a slow one it
    * becomes long enough to hear as the sound stopping rather than as one note ending and the next
-   * beginning — and when several voices move together, as in a chordal arrangement, the whole
+   * beginning - and when several voices move together, as in a chordal arrangement, the whole
    * texture drops out at once and the result stutters. A few milliseconds is all the ear needs to
    * register a note boundary, so cap it there and let faster tempos keep the ROM's exact figure.
    */

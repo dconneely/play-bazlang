@@ -12,21 +12,21 @@ import java.util.function.IntFunction;
  * Parses one {@code PLAY}/{@code APLAY} channel string into a flat {@link PlayToken} list. The DSL
  * here is exactly what was confirmed from the Spectrum 128 ROM 0 disassembly and cross-checked
  * against real 128K/+2/+3 hardware (see {@code localonly-BAZLANG-ROADMAP.md}'s {@code PLAY} entry)
- * — with one deliberate simplification: a duration-digit sequence and the note/rest it modifies are
+ * - with one deliberate simplification: a duration-digit sequence and the note/rest it modifies are
  * folded into one parse step here, rather than the ROM's own two separate per-character dispatch
  * cycles. The observable musical result is identical either way, and every prose description of
  * this DSL (both primary manual sources) documents duration-then-note as one conceptual unit, so
  * this keeps the token stream simpler without changing behaviour.
  *
- * <p>Bracket repeats are resolved structurally here — {@code (}/{@code )} nesting up to 4 levels
+ * <p>Bracket repeats are resolved structurally here - {@code (}/{@code )} nesting up to 4 levels
  * (the ROM's own limit) and a trailing unmatched {@code )} marked {@link
- * PlayToken.RepeatEnd#infinite} — rather than replicating the ROM's low-level position-revisit
+ * PlayToken.RepeatEnd#infinite} - rather than replicating the ROM's low-level position-revisit
  * bookkeeping; {@link PlayChannelState} interprets these as simple runtime loop counters, which
  * matches the ROM's documented *behaviour* ("the whole string up until that point is repeated
  * indefinitely") exactly.
  *
  * <p>Tied notes ({@code _}) and triplet duration codes ({@code 10}-{@code 12}) are Phase 2, not yet
- * implemented — encountering either is a parse error, not silent misbehaviour. MIDI ({@code
+ * implemented - encountering either is a parse error, not silent misbehaviour. MIDI ({@code
  * Y}/{@code Z}) is permanently out of scope per the project's own hard constraint.
  */
 public final class PlayParser {
@@ -39,14 +39,14 @@ public final class PlayParser {
 
   /**
    * Parses 1-3 channel strings and builds the {@link PlaySource} {@code StatementExecutor} hands to
-   * {@code VirtualSpeaker.playFrame}. Always builds exactly {@value #CHANNEL_COUNT} channels — any
+   * {@code VirtualSpeaker.playFrame}. Always builds exactly {@value #CHANNEL_COUNT} channels - any
    * position not given (fewer than {@value #CHANNEL_COUNT} strings) or given as {@code "-"}
    * (trimmed) is padded with an empty channel, silent by construction (an empty token list's {@code
    * PlayChannelState.nextNote} immediately returns {@code null}). {@code "-"} only means "leave
    * this channel alone" against an already-live {@code APLAY} session, via {@link
-   * PlaySource#replaceChannel} — that check happens in {@code StatementExecutor} before this method
+   * PlaySource#replaceChannel} - that check happens in {@code StatementExecutor} before this method
    * is ever reached, so a fresh build has nothing to "leave alone" and {@code "-"} falls back to
-   * meaning silent, same as omitting it. The sole public entry point into this package — {@link
+   * meaning silent, same as omitting it. The sole public entry point into this package - {@link
    * PlayToken}, {@link PlayChannelState}, and {@link PlaySequencer} all stay package-private.
    */
   public static PlaySource buildSequencer(List<String> channelStrings, int lineLabel) {
@@ -173,7 +173,7 @@ public final class PlayParser {
 
   /**
    * Parses an optional duration-digit sequence, optional {@code #}/{@code $} accidentals, and a
-   * terminating note letter or {@code &} rest — emitting a {@code SetDuration} token first if a
+   * terminating note letter or {@code &} rest - emitting a {@code SetDuration} token first if a
    * duration was given, then the {@code Note}/{@code Rest} token. A bare duration (nothing follows
    * it) emits just {@code SetDuration}, updating the persisted duration for future notes.
    */

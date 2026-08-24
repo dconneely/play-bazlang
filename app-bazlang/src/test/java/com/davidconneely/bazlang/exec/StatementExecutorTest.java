@@ -475,7 +475,7 @@ class StatementExecutorTest {
   @Nested
   class Beep {
     // MockScreen inherits VirtualSpeaker's no-op default (see AbstractCellBufferedScreen), so
-    // these exercise executeBeepStmt's own timing/BREAK-poll loop without any real audio device —
+    // these exercise executeBeepStmt's own timing/BREAK-poll loop without any real audio device -
     // exactly the "headless fallback for free" VirtualSpeaker was designed around.
 
     @Test
@@ -498,7 +498,7 @@ class StatementExecutorTest {
   @Nested
   class Play {
     // MockScreen inherits VirtualSpeaker's no-op default for playFrame()/stopPlay(), so these
-    // exercise executePlayStmt's own timing/BREAK-poll loop without any real audio device — the
+    // exercise executePlayStmt's own timing/BREAK-poll loop without any real audio device - the
     // loop's timing/BREAK logic lives entirely in StatementExecutor (unlike a naive design keyed
     // off the speaker's own "am I playing" state), so it works identically headless.
 

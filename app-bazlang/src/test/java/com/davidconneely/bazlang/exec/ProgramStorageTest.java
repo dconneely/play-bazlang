@@ -26,7 +26,7 @@ class ProgramStorageTest {
    * <p>This deliberately does not use {@code "bad:name.bas"}, which is invalid only on Windows: on
    * Linux and macOS {@code :} is an ordinary filename character, so {@code save} silently succeeded
    * (leaving a stray file behind in the working directory) and {@code load} merely hit
-   * file-not-found — passing for the wrong reason. That version passed on Windows and failed CI on
+   * file-not-found - passing for the wrong reason. That version passed on Windows and failed CI on
    * the other two platforms.
    */
   private static final String INVALID_PATH_ON_EVERY_PLATFORM = "bad" + (char) 0 + "name.bas";
@@ -91,7 +91,7 @@ class ProgramStorageTest {
     final var storage = new ProgramStorage(state, PARSER);
     state.setProgram(PARSER.parseProgramLines("10 PRINT \"HELLO\""));
 
-    // Path.of(...) throws InvalidPathException for a syntactically invalid path — a
+    // Path.of(...) throws InvalidPathException for a syntactically invalid path - a
     // RuntimeException, not an IOException, so it must be caught explicitly or it propagates
     // uncaught past every caller instead of producing a clean report.
     final var ex =

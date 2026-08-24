@@ -76,9 +76,9 @@ Returns `1` for True, `0` for False.
 ### Logic
 
 - `NOT` - Returns `1` if operand is `0`, else `0`
-- `AND` - `a AND b` returns `a` if `b≠0`, else `0` for numeric `a`; `a$ AND b` returns `a$` if
-  `b≠0`, else `""` for string `a$` (Sinclair ZX BASIC style)
-- `OR` - `a OR b` returns `1` if `b≠0`, else `a` (Sinclair ZX BASIC style, numeric operands only)
+- `AND` - `a AND b` returns `a` if `b!=0`, else `0` for numeric `a`; `a$ AND b` returns `a$` if
+  `b!=0`, else `""` for string `a$` (Sinclair ZX BASIC style)
+- `OR` - `a OR b` returns `1` if `b!=0`, else `a` (Sinclair ZX BASIC style, numeric operands only)
 
 ### Strings
 
@@ -123,16 +123,16 @@ Returns `1` for True, `0` for False.
 - **`SLOW`**: Re-enable terminal re-rendering (the default). Also immediately flushes any pending
   screen changes that accumulated during `FAST` mode.
 - **`BEEP duration, pitch`**: Play a tone for `duration` seconds at `pitch` semitones above (or, if
-  negative, below) middle C — e.g. `BEEP 1, 0` plays middle C for one second, `BEEP 0.5, 12` plays
+  negative, below) middle C - e.g. `BEEP 1, 0` plays middle C for one second, `BEEP 0.5, 12` plays
   one octave higher for half a second. Blocks execution for `duration`, interruptible by BREAK
   exactly like `PAUSE`. Negative `duration` is a no-op (matching `PAUSE`'s own negative-frame
-  clamping). Silent — not an error — in non-interactive/headless modes, since there is no speaker
+  clamping). Silent - not an error - in non-interactive/headless modes, since there is no speaker
   to play to. See `PLAY`/`APLAY` below for multi-channel tune playback.
 - **`PLAY string1 [, string2 [, string3]]`**: Play up to 3 simultaneous channels of music (the
   AY-chip-style tone/noise/envelope model, one shared noise generator and one shared envelope
-  generator across all 3 channels — not per-channel), described by a small note-string DSL per
+  generator across all 3 channels - not per-channel), described by a small note-string DSL per
   channel. Blocks execution until every channel finishes (or forever, for a deliberately looping
-  tune — see `)` below), interruptible by BREAK exactly like `BEEP`/`PAUSE`. Silent in
+  tune - see `)` below), interruptible by BREAK exactly like `BEEP`/`PAUSE`. Silent in
   non-interactive/headless modes, same as `BEEP`. DSL syntax, in one channel string:
   - Notes `a`-`g` (current octave) / `A`-`G` (one octave up), `#`/`$` sharp/flat prefixes
     (stackable, e.g. `##c`), `&` rest.
@@ -141,7 +141,7 @@ Returns `1` for True, `0` for False.
     default), `6`=dotted crotchet, `7`=minim, `8`=dotted minim, `9`=semi-breve. A bare duration
     digit with nothing following it just changes the persisted duration.
   - `O0`-`O8`: sets the octave (persists).
-  - `T60`-`T240`: sets the tempo in bpm (default 120) — only honoured from the first channel
+  - `T60`-`T240`: sets the tempo in bpm (default 120) - only honoured from the first channel
     string.
   - `V0`-`V15`: sets the current channel's volume (default 15).
   - `U`: switches the current channel's volume source to the shared envelope generator.
@@ -150,29 +150,29 @@ Returns `1` for True, `0` for False.
     `W6`=repeated attack-decay, `W7`=repeated decay-attack). `X0`-`65535`: sets the shared
     envelope's period.
   - `M0`-`M63`: sets the shared tone/noise mixer bitmask (tone A/B/C=1/2/4, noise A/B/C=8/16/32,
-    additive — e.g. `M9`=tone A + noise A).
+    additive - e.g. `M9`=tone A + noise A).
   - `(...)`: repeats the enclosed phrase twice; nestable up to 4 levels. A lone `)` with no
     matching `(` repeats the whole string from the start, forever.
   - `!...!`: a comment. `H`: halts this channel. `N`: a no-op separator, useful between two
     numeric commands that would otherwise run together (e.g. `T240N1c`, not `T2401c`).
-  - Not yet implemented: tied notes (`_`) and triplet duration codes (`10`-`12`) — using either is
+  - Not yet implemented: tied notes (`_`) and triplet duration codes (`10`-`12`) - using either is
     a parse error, not silent misbehaviour. MIDI (`Y`/`Z`) is permanently out of scope.
-- **`APLAY string1 [, string2 [, string3]]`**: Identical DSL to `PLAY`, but non-blocking — starts
+- **`APLAY string1 [, string2 [, string3]]`**: Identical DSL to `PLAY`, but non-blocking - starts
   the tune playing in the background and returns immediately, so the rest of the program keeps
   running (e.g. sound effects via `BEEP` layered over `APLAY` background music). Has no real
-  Spectrum equivalent — a deliberate BazLang-only addition, since real `PLAY` blocks (see
+  Spectrum equivalent - a deliberate BazLang-only addition, since real `PLAY` blocks (see
   `docs/quirks.md`). A fresh `PLAY`/`APLAY` call replaces whatever tune is currently sounding.
-  BREAK (Ctrl+C) stops background `APLAY` audio even though nothing is "waiting" on it — another
+  BREAK (Ctrl+C) stops background `APLAY` audio even though nothing is "waiting" on it - another
   deliberate divergence from real hardware, where BREAK does not reliably interrupt `PLAY` at all.
   **`"-"` (trimmed) as a channel string is a reserved placeholder meaning "leave this channel's
-  currently-playing state alone"** — only meaningful against an already-running `APLAY`; with
+  currently-playing state alone"** - only meaningful against an already-running `APLAY`; with
   nothing running yet it falls back to meaning silent, same as omitting the channel. This lets one
   channel be updated without disturbing the others' in-progress notes (including an in-progress
-  infinite repeat) — e.g. `APLAY musicA$, musicB$` for background music on channels A/B, then later
+  infinite repeat) - e.g. `APLAY musicA$, musicB$` for background music on channels A/B, then later
   `APLAY "-", "-", effect$` to play a one-shot sound effect on channel C alone. Trailing channels
   genuinely omitted from the call (as opposed to given as `"-"`) are still silenced, matching a
   plain call's existing behaviour. `APLAY "H", "H", effect$` is the idiom for stopping background
-  music outright (e.g. at game end) — `H` (halt) takes effect within one tick, not after whatever
+  music outright (e.g. at game end) - `H` (halt) takes effect within one tick, not after whatever
   note was already in progress finishes.
 - **`PLOT [modifiers;] x, y`**: Draw a block at coordinates `(x, y)`. Updates the current plot
   position. Accepts colour/style modifiers before coordinates (e.g. `PLOT INK 2; x, y`).
@@ -189,11 +189,11 @@ Returns `1` for True, `0` for False.
   - Uses Unicode block characters; the resolution depends on the current pixel mode (see
     `PLOTMODE`).
 - **`PLOTMODE n`**: Sets the pixel mode for graphics (`PLOT` and `DRAW`):
-  - `1` = full cell (1×1, each cell is blank or `█`)
-  - `2` = half cell — upper `▀` / lower `▄` (1×2)
-  - `4` = quadrant blocks (2×2, default)
-  - `6` = sextant blocks (2×3)
-  - `8` = braille patterns (2×4)
+  - `1` = full cell (1x1, each cell is blank or `█`)
+  - `2` = half cell - upper `▀` / lower `▄` (1x2)
+  - `4` = quadrant blocks (2x2, default)
+  - `6` = sextant blocks (2x3)
+  - `8` = braille patterns (2x4)
   - Does not clear the screen. Other values give an error.
 
 #### Erasing graphics (no `UNPLOT`/`UNDRAW`)
@@ -213,21 +213,21 @@ current pixel state (which is slightly confusing, but consistent with the Sincla
 
 ### Colour / style attributes
 
-- **`BRIGHT n`**: Set active brightness style (`0` = normal, `1` = bright, `8` = transparent — each
+- **`BRIGHT n`**: Set active brightness style (`0` = normal, `1` = bright, `8` = transparent - each
   printed cell preserves its existing bright/bold state).
-- **`FLASH n`**: Set active flashing style (`0` = normal, `1` = flashing, `8` = transparent — each
+- **`FLASH n`**: Set active flashing style (`0` = normal, `1` = flashing, `8` = transparent - each
   printed cell preserves its existing flash/blink state).
-- **`INK n`**: Set active foreground text/pixel ink colour (0–7 ZX Spectrum colours, `-1` = default
-  terminal foreground, `8` = transparent — each printed cell preserves its existing foreground
-  colour, `9` = contrast — automatically selects black or white to contrast against the current
+- **`INK n`**: Set active foreground text/pixel ink colour (0-7 ZX Spectrum colours, `-1` = default
+  terminal foreground, `8` = transparent - each printed cell preserves its existing foreground
+  colour, `9` = contrast - automatically selects black or white to contrast against the current
   paper colour).
 - **`INVERSE n`**: Set active inverse style (`0` = normal, `1` = inverse colour). Only accepts `0`
   or `1`; `INVERSE` is not persisted as a cell attribute so transparency is not meaningful.
 - **`OVER n`**: Set active overlay style for graphics (`0` = overwrite, `1` = XOR/overlay). Only
   accepts `0` or `1`; `OVER` is not persisted as a cell attribute so transparency is not meaningful.
-- **`PAPER n`**: Set active background paper colour (0–7 ZX Spectrum colours, `-1` = default
-  terminal background, `8` = transparent — each printed cell preserves its existing background
-  colour, `9` = contrast — automatically selects black or white to contrast against the current ink
+- **`PAPER n`**: Set active background paper colour (0-7 ZX Spectrum colours, `-1` = default
+  terminal background, `8` = transparent - each printed cell preserves its existing background
+  colour, `9` = contrast - automatically selects black or white to contrast against the current ink
   colour).
 
 ### Program management
@@ -308,7 +308,7 @@ current pixel state (which is slightly confusing, but consistent with the Sincla
 
 - **`UCODE s$`**: Unicode codepoint value of the first character (UTF-8 decoded). If the string does
   not start with a valid UTF-8 byte sequence (e.g. trailing bytes are missing, or it contains an
-  invalid lead byte), it falls back to returning the raw value of the first byte (128–255).
+  invalid lead byte), it falls back to returning the raw value of the first byte (128-255).
 - **`ULEN s$`**: Unicode character length (codepoint count) of the string. Consistent with the UTF-8
   iteration logic: each invalid or lone byte (whether at the start, middle, or end of the string)
   counts as exactly 1.
@@ -344,14 +344,14 @@ sequences can consist of multiple bytes, BazLang provides parallel sets of funct
 between raw bytes and decoded Unicode characters:
 
 - **`CHR$` vs `UCHR$`**:
-  - `CHR$ x` returns a single-byte string containing the raw byte value `x` (0–255).
+  - `CHR$ x` returns a single-byte string containing the raw byte value `x` (0-255).
   - `UCHR$ x` returns a string containing the multibyte UTF-8 encoding of the Unicode codepoint
     `x` (e.g. `UCHR$ 9608` yields the 3-byte sequence for `█`).
 - **`CODE` vs `UCODE`**:
-  - `CODE s$` returns the numeric value of the first raw *byte* of `s$` (0–255).
+  - `CODE s$` returns the numeric value of the first raw *byte* of `s$` (0-255).
   - `UCODE s$` decodes the first character of `s$` as UTF-8 and returns its Unicode codepoint
     value. If the sequence is invalid or incomplete, it falls back to the raw value of the first
-    byte (128–255).
+    byte (128-255).
 - **`LEN` vs `ULEN`**:
   - `LEN s$` returns the raw byte length of `s$`.
   - `ULEN s$` returns the number of Unicode characters (codepoints) in `s$`. Each invalid or lone
@@ -414,10 +414,10 @@ Examples: `42`, `3.14159`, `1.23E+15`, `-5E-8`
 ## Errors
 
 When something goes wrong (e.g. dividing by zero), the interpreter stops execution and reports a
-Sinclair ZX BASIC-style code: `<Code> <Message>, <Line>:<Statement> (Optional details)` — for
+Sinclair ZX BASIC-style code: `<Code> <Message>, <Line>:<Statement> (Optional details)` - for
 example, `6 Number too big, 100:1 (Arithmetic overflow)`. The report code and `<line>:<statement>`
 location are the part you can rely on; the exact wording of the message is not (`SPECIFICATION.md`
-"Deliberately unspecified"). Immediate-mode statements report against line 0 — see
+"Deliberately unspecified"). Immediate-mode statements report against line 0 - see
 [quirks.md](../quirks.md#interpreter--application-behaviours).
 
 ## Divergences

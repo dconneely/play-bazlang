@@ -17,7 +17,7 @@ import org.junit.jupiter.api.Test;
  * End-to-end tests for the MCP JSON-RPC stdio protocol documented in docs/spec/mcp.md. Each test
  * spawns {@link McpServer} in a fresh JVM, feeds it a scripted newline-delimited JSON-RPC session
  * (each line built with {@link JsonValue}/{@link JsonWriter} rather than hand-typed JSON text, so
- * nothing needs manual escaping), and asserts on the *parsed* structure of each response line — raw
+ * nothing needs manual escaping), and asserts on the *parsed* structure of each response line - raw
  * string pinning is too fragile for JSON key/whitespace layout to be worth pinning verbatim.
  */
 class McpServerProtocolTest {
@@ -66,7 +66,7 @@ class McpServerProtocolTest {
 
   /**
    * Spawns {@link McpServer} in a fresh JVM, optionally waits {@code startupDelayMs} after it
-   * starts (simulating a server that has been alive for a while — e.g. proving an {@code ELAPSE}
+   * starts (simulating a server that has been alive for a while - e.g. proving an {@code ELAPSE}
    * breakpoint measures from run-start, not from server/BreakpointEngine construction), writes
    * {@code scriptLines} (one JSON-RPC message per line), and returns the parsed response lines.
    */
@@ -267,7 +267,7 @@ class McpServerProtocolTest {
     // ExecutionListener as real programme execution, using line 0 as a sentinel. An unconditional
     // breakpoint (condition type NONE, matched via checkFired's "true" case) used to fire on that
     // dispatch too, setting running=false *before* Interpreter.resume() reached
-    // executor.execute(stmt) — silently cancelling the REPL command while InterpreterReplHandler
+    // executor.execute(stmt) - silently cancelling the REPL command while InterpreterReplHandler
     // still reported success, since it has no way to distinguish "cancelled by a breakpoint" from
     // "ran fine". A location/condition breakpoint isn't needed to trigger it: an unconditional one
     // (no line, no statement, no condition) always fires, making this fully deterministic.
@@ -294,7 +294,7 @@ class McpServerProtocolTest {
     // Found via live use: on one long-lived engine, input queued while one programme was loaded
     // (or left over from a previous one) could be silently consumed by the next programme loaded,
     // if that programme happened to read a different input primitive than the one the queued text
-    // was originally meant for — see docs/spec/mcp.md "Input queue". bazlang_program's
+    // was originally meant for - see docs/spec/mcp.md "Input queue". bazlang_program's
     // new/load_file/load_source actions now flush all queued input before the new programme runs.
     List<JsonValue.JsonObject> responses =
         runSession(
@@ -377,7 +377,7 @@ class McpServerProtocolTest {
     assertEquals(1, gosub.size());
     JsonValue.JsonObject frame = (JsonValue.JsonObject) gosub.get(0);
     // GOSUB 100 is the sole statement on line 20, so the pushed return address is line 20,
-    // statement 2 (StatementExecutor.executeGosubStmt: currentStatementIndex() + 1) — line 20 has
+    // statement 2 (StatementExecutor.executeGosubStmt: currentStatementIndex() + 1) - line 20 has
     // no statement 2, so execution actually resumes on line 30 once RETURN restores this address.
     assertEquals(20, frame.getInt("line", -1));
     assertEquals(2, frame.getInt("statement", -1));
@@ -481,7 +481,7 @@ class McpServerProtocolTest {
     assertEquals(1, dimsA.size());
     assertEquals(3, ((JsonValue.JsonNumber) dimsA.get(0)).intValue());
 
-    // DIM B$(2,4): the trailing dimension is the fixed string length, not an array dimension —
+    // DIM B$(2,4): the trailing dimension is the fixed string length, not an array dimension -
     // arrayDimensions is [2] (one dimension) with stringLength 4, not [2,4].
     JsonValue.JsonObject bMeta = structured.getObject("stringArrays").getObject("B$");
     JsonValue.JsonArray dimsB = bMeta.getArray("dimensions");
@@ -532,7 +532,7 @@ class McpServerProtocolTest {
     JsonValue.JsonObject bResult = result(responses.get(3)).getObject("structuredContent");
     JsonValue.JsonArray bValues = bResult.getArray("values");
     assertEquals(2, bValues.size());
-    // Fixed-length, space-padded to stringLength 3 — padding is part of the value, not trimmed.
+    // Fixed-length, space-padded to stringLength 3 - padding is part of the value, not trimmed.
     assertEquals("X  ", ((JsonValue.JsonString) bValues.get(0)).value());
     assertEquals("YZ ", ((JsonValue.JsonString) bValues.get(1)).value());
 
@@ -541,7 +541,7 @@ class McpServerProtocolTest {
 
   @Test
   void bazlangEvalExecRunsAnyImmediateStatementNotJustLet() throws Exception {
-    // DIM is not a LET statement, so action=eval's LET-detection cue could never reach it — exec
+    // DIM is not a LET statement, so action=eval's LET-detection cue could never reach it - exec
     // is the only way to run it (or any other non-assignment statement) in the live context.
     List<JsonValue.JsonObject> responses =
         runSession(
@@ -567,7 +567,7 @@ class McpServerProtocolTest {
   void loadFileAndSaveFileEscapeEmbeddedQuotesRatherThanInjectingStatements() throws Exception {
     // A path containing an unescaped '"' used to close the synthesized LOAD "..."/SAVE "..."
     // literal early, letting the rest of the path be parsed as further ':'-separated BASIC
-    // statements — e.g. this exact path would execute NEW as a second statement if unescaped.
+    // statements - e.g. this exact path would execute NEW as a second statement if unescaped.
     String maliciousPath = "nonexistent\" : NEW : REM ";
     List<JsonValue.JsonObject> responses =
         runSession(
@@ -720,7 +720,7 @@ class McpServerProtocolTest {
 
   @Test
   void inputClearActionDiscardsQueuedText() throws Exception {
-    // Load first, so the load itself has nothing queued to flush yet — isolates action=clear's own
+    // Load first, so the load itself has nothing queued to flush yet - isolates action=clear's own
     // effect from the auto-flush-on-load behaviour covered by the test above.
     List<JsonValue.JsonObject> responses =
         runSession(

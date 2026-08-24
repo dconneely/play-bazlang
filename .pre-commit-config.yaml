@@ -29,7 +29,7 @@ repos:
         pass_filenames: false
         types: [java]
 
-      # spotbugsMain/spotbugsTest and test are omitted — too slow for pre-commit; run via CI.
+      # spotbugsMain/spotbugsTest and test are omitted - too slow for pre-commit; run via CI.
 
   - repo: https://github.com/gitleaks/gitleaks
     rev: v8.21.2

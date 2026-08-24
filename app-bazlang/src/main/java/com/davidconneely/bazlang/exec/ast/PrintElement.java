@@ -1,10 +1,10 @@
 package com.davidconneely.bazlang.exec.ast;
 
 /**
- * One element of a lowered {@code printList}, in source order — a value, an {@code AT}/{@code TAB}
+ * One element of a lowered {@code printList}, in source order - a value, an {@code AT}/{@code TAB}
  * positioning item, an inline style setting, or a separator. Preserves the grammar's {@code
  * printSep}-driven interleaving (separators carry tab-stop/newline meaning in {@code
- * visitPrintStmt}, so they're modelled as elements in the sequence, not discarded structure) — see
+ * visitPrintStmt}, so they're modelled as elements in the sequence, not discarded structure) - see
  * {@code AstLowering}'s statement Javadoc.
  */
 public sealed interface PrintElement {

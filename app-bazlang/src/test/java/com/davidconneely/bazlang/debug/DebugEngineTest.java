@@ -11,13 +11,13 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 /**
- * Component-level tests for {@link DebugEngine} — the debugging core the MCP server adapts.
+ * Component-level tests for {@link DebugEngine} - the debugging core the MCP server adapts.
  * Exercised directly, with no subprocess and no protocol framing, so these cover the engine layer
  * itself rather than duplicating the same scenarios via JSON-RPC framing. See the 2026-08-16/17
  * entries in localonly-BAZLANG-IMPROVEMENTS.md: two real bugs (the ELAPSE clock not resetting on
  * {@link DebugEngine#run}/{@link DebugEngine#gotoLine}, and breakpoints intercepting immediate-mode
  * REPL commands) lived at exactly this layer and were caught by neither the engine's nor the MCP
- * server's own test suite until live use surfaced them — {@link
+ * server's own test suite until live use surfaced them - {@link
  * #breakpointsDoNotInterceptReplCommands} and {@link #elapseBreakpointResetsOnRun} are the
  * permanent regression guards for those.
  */
@@ -85,7 +85,7 @@ class DebugEngineTest {
         first instanceof DebugEngine.PauseResult.Break(int line, int stmt)
             && line == 20
             && stmt == 1);
-    // Paused *before* line 20 executes, so N is still 0 — proves go() below isn't a no-op re-fire.
+    // Paused *before* line 20 executes, so N is still 0 - proves go() below isn't a no-op re-fire.
     assertEquals(0.0, ((DebugEngine.EvalResult.Num) engine.evalExpression("N")).value(), 0.0001);
 
     DebugEngine.PauseResult second = engine.go();
@@ -94,7 +94,7 @@ class DebugEngineTest {
             && line == 20
             && stmt == 1);
     // N incremented once (20 executed, looped back via 30, and 20 was visited again) before this
-    // second pause — proves go() actually resumed execution rather than re-firing immediately.
+    // second pause - proves go() actually resumed execution rather than re-firing immediately.
     assertEquals(1.0, ((DebugEngine.EvalResult.Num) engine.evalExpression("N")).value(), 0.0001);
   }
 
@@ -111,7 +111,7 @@ class DebugEngineTest {
   void breakpointsDoNotInterceptReplCommands() {
     // Regression test (see class Javadoc): an unconditional breakpoint (ConditionType.NONE, always
     // "fires") used to intercept Interpreter.executeImmediate's line-0 dispatch too, silently
-    // cancelling any REPL command — LOAD, NEW, a numbered-line edit, an assignment — issued while
+    // cancelling any REPL command - LOAD, NEW, a numbered-line edit, an assignment - issued while
     // it was armed, without any error, since InterpreterReplHandler still reported success.
     engine.loadSource("10 LET X = 1");
     engine
@@ -159,7 +159,7 @@ class DebugEngineTest {
   @Test
   void loadWithASyntacticallyInvalidPathFailsCleanlyRatherThanCrashing() {
     // resolveBasPath's Path.of(inputPath) throws InvalidPathException (a RuntimeException, not a
-    // ReportException) for a ':' anywhere but a Windows drive prefix — must be treated as "not
+    // ReportException) for a ':' anywhere but a Windows drive prefix - must be treated as "not
     // found" rather than propagating uncaught past applyReplCommand.
     assertThrows(DebugEngineException.class, () -> engine.applyReplCommand("LOAD \"bad:name\""));
   }
@@ -168,7 +168,7 @@ class DebugEngineTest {
   void newFlushesQueuedInput() {
     // Found via live use: switching programmes on one long-lived engine left stale queued input
     // (queued for a program using one input primitive) to be silently consumed by the next
-    // programme if it happened to use a different one — see docs/spec/mcp.md "Input queue".
+    // programme if it happened to use a different one - see docs/spec/mcp.md "Input queue".
     engine.screen().queueInkey(BStr.fromJavaString("x"));
     engine.screen().queueUinkey(BStr.fromJavaString("x"));
     engine.screen().queueInput("x");
@@ -195,7 +195,7 @@ class DebugEngineTest {
   @Test
   void limitPausesARunawayLoopWithNoBreakpoint() {
     // Safety net: no breakpoint of the programme's own would ever fire here, so without the
-    // timeout this call would block forever — and, for the MCP server, hang the whole session
+    // timeout this call would block forever - and, for the MCP server, hang the whole session
     // (see docs/spec/mcp.md "Known limitations": there is no cancel-while-running mechanism).
     engine.loadSource("10 GO TO 10");
     DebugEngine.PauseResult result = engine.run(50);
@@ -287,7 +287,7 @@ class DebugEngineTest {
 
   @Test
   void stepOverStillStopsForABreakpointInsideTheCalledSubroutine() {
-    // A breakpoint takes priority over "run the call to completion" — otherwise stepOver would be
+    // A breakpoint takes priority over "run the call to completion" - otherwise stepOver would be
     // an easy way to accidentally skip straight past a breakpoint an agent placed inside a call.
     engine.loadSource("10 GOSUB 100\n20 STOP\n100 LET X = 1\n110 RETURN");
     engine

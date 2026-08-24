@@ -38,7 +38,7 @@ class ValFunctionsProgramTest extends BaseProgramTest {
 
   @Test
   void testValRejectsPartialExpression() {
-    // VAL("1 2") must throw — "1" is a complete expression but trailing "2" is not valid
+    // VAL("1 2") must throw - "1" is a complete expression but trailing "2" is not valid
     assertThrows(ReportException.class, () -> runProgram("10 LET A = VAL(\"1 2\")"));
   }
 

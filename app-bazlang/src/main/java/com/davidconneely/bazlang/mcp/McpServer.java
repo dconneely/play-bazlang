@@ -9,7 +9,7 @@ import java.nio.charset.StandardCharsets;
 
 /**
  * MCP (Model Context Protocol) server entrypoint: a newline-delimited JSON-RPC 2.0 stdio server
- * exposing the {@link McpTools} catalog over one shared {@link DebugEngine} instance — one implicit
+ * exposing the {@link McpTools} catalog over one shared {@link DebugEngine} instance - one implicit
  * debugging session per server subprocess. Targets the stateless 2026-07-28 protocol revision only:
  * there is no {@code initialize} handshake and no legacy-protocol fallback. See docs/spec/mcp.md
  * for the full protocol surface, tool catalog, and known limitations.
@@ -61,7 +61,7 @@ public final class McpServer {
     }
     JsonValue id = obj.get("id"); // genuinely absent (Java null) => notification: never respond
     if (id == null) {
-      // e.g. notifications/cancelled: accepted, no-op — there is no cancel-while-running
+      // e.g. notifications/cancelled: accepted, no-op - there is no cancel-while-running
       // mechanism.
       return;
     }
@@ -97,7 +97,7 @@ public final class McpServer {
   }
 
   /**
-   * Returns {@code true} when the request is missing a protocol version (lenient — some early
+   * Returns {@code true} when the request is missing a protocol version (lenient - some early
    * modern clients may not yet send {@code _meta} on every request) or matches ours. Writes an
    * {@code UnsupportedProtocolVersionError} and returns {@code false} otherwise.
    */

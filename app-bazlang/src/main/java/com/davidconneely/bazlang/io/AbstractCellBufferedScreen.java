@@ -213,12 +213,12 @@ public abstract class AbstractCellBufferedScreen
    * <p>BazLang colour codes:
    *
    * <ul>
-   *   <li>0–7: ZX Spectrum colour index (black, blue, red, magenta, green, cyan, yellow, white)
+   *   <li>0-7: ZX Spectrum colour index (black, blue, red, magenta, green, cyan, yellow, white)
    *   <li>8: transparent (preserve existing cell colour)
    *   <li>9: contrast (auto-select black or white against the opposing colour)
-   *   <li>256 – 511: terminal 256-colour index (value minus 256 is the ANSI index)
-   *   <li>16,777,216 – 33,554,431: 24-bit RGB (value minus 16,777,216 is the RGB24 component)
-   *   <li>−1 / anything else: terminal default colour
+   *   <li>256 - 511: terminal 256-colour index (value minus 256 is the ANSI index)
+   *   <li>16,777,216 - 33,554,431: 24-bit RGB (value minus 16,777,216 is the RGB24 component)
+   *   <li>-1 / anything else: terminal default colour
    * </ul>
    *
    * @param colourCode the BazLang ink or paper value
@@ -268,12 +268,12 @@ public abstract class AbstractCellBufferedScreen
   }
 
   /**
-   * Maps a {@link CellAttributes}-encoded colour back to a ZX Spectrum colour index (0–7).
+   * Maps a {@link CellAttributes}-encoded colour back to a ZX Spectrum colour index (0-7).
    *
    * @param cellColour a {@link CellAttributes}-encoded colour
    * @param isInk {@code true} when resolving an ink (foreground) colour; used to pick the fallback
    *     (7 = white for ink, 0 = black for paper)
-   * @return a ZX Spectrum colour index in the range 0–7
+   * @return a ZX Spectrum colour index in the range 0-7
    */
   private int resolveZxColour(int cellColour, boolean isInk) {
     if (CellAttributes.isRgb(cellColour)) {
@@ -294,7 +294,7 @@ public abstract class AbstractCellBufferedScreen
         return mapping[idx & 7];
       }
       if (idx >= 16 && idx <= 231) {
-        // 6×6×6 colour cube
+        // 6x6x6 colour cube
         int code = idx - 16;
         int rVal = code / 36;
         int gVal = (code % 36) / 6;
@@ -305,7 +305,7 @@ public abstract class AbstractCellBufferedScreen
         return (bitG << 2) | (bitR << 1) | bitB;
       }
       if (idx >= 232 && idx <= 255) {
-        // Grayscale ramp: indices 232–243 are dark (→ black), 244–255 are light (→ white)
+        // Grayscale ramp: indices 232-243 are dark (-> black), 244-255 are light (-> white)
         return idx < 244 ? 0 : 7;
       }
     }

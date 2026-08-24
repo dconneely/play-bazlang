@@ -15,7 +15,7 @@ What is true, stated plainly. Lead with the answer.
 ## Evidence
 
 Each source, what it says, and what it was checked against. Where sources disagree, say so and say
-which won and why — that reconciliation is the part nobody can reconstruct later.
+which won and why - that reconciliation is the part nobody can reconstruct later.
 
 ## Dead ends
 

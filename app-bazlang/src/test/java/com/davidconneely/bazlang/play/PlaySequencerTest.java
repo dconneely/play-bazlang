@@ -10,7 +10,7 @@ import org.junit.jupiter.api.Test;
 
 /**
  * Tests {@link PlaySequencer} (via {@link PlayParser#buildSequencer}), the scheduling/timing/mix
- * logic behind {@code PLAY}/{@code APLAY} — independent of any real audio device.
+ * logic behind {@code PLAY}/{@code APLAY} - independent of any real audio device.
  */
 class PlaySequencerTest {
 
@@ -22,7 +22,7 @@ class PlaySequencerTest {
   /**
    * Every note ends with a short silence so consecutive notes are articulated rather than running
    * together. Nominally one tick, but capped so it stays a note boundary rather than an audible
-   * hole — at the default tempo a tick exceeds that cap, so the cap is what applies here. See
+   * hole - at the default tempo a tick exceeds that cap, so the cap is what applies here. See
    * {@code PlaySequencer.MAX_ARTICULATION_GAP_SECONDS}.
    */
   private static final double GAP = 0.010;

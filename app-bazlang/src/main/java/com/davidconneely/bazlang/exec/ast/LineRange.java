@@ -3,7 +3,7 @@ package com.davidconneely.bazlang.exec.ast;
 /**
  * A lowered {@code lineRange}, used by the {@code LIST} statement. Either bound may be {@code
  * null}, meaning "use the default" ({@code Limits.MIN_TARGET_LABEL} / {@code
- * Limits.MAX_TARGET_LABEL} at evaluation time) — a {@code null} {@link Stmt.ListStmt#range} means
+ * Limits.MAX_TARGET_LABEL} at evaluation time) - a {@code null} {@link Stmt.ListStmt#range} means
  * no range was given at all (list everything).
  *
  * <p>Unlike the grammar rule (which has no alt labels for {@code start}/{@code end}, forcing {@code

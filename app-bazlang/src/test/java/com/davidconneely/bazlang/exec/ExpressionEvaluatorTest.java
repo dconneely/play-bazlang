@@ -19,7 +19,7 @@ import org.junit.jupiter.api.Test;
 
 /**
  * Component tests for {@link ExpressionEvaluator}: parses source text with the existing {@link
- * AntlrParser}, lowers it via {@code AstLowering}, evaluates it, and asserts the result — covering
+ * AntlrParser}, lowers it via {@code AstLowering}, evaluates it, and asserts the result - covering
  * every operator, every numeric/string function, variable/array access, slicing, and DEF FN
  * shadowing.
  */

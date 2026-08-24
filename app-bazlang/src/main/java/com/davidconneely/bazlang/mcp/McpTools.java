@@ -4,7 +4,7 @@ import java.util.List;
 
 /**
  * The static catalog of MCP tools exposed by {@link McpServer}: a consolidated surface over {@link
- * com.davidconneely.bazlang.debug.DebugEngine} — see docs/spec/mcp.md for the JSON-RPC shape of
+ * com.davidconneely.bazlang.debug.DebugEngine} - see docs/spec/mcp.md for the JSON-RPC shape of
  * each tool.
  */
 final class McpTools {
@@ -83,7 +83,7 @@ final class McpTools {
             "path",
             stringProp(
                 "For action=load_file: bare filename or path (resolved against the example "
-                    + "directory if bare). For action=save_file: the file path to write — bare "
+                    + "directory if bare). For action=save_file: the file path to write - bare "
                     + "names are NOT resolved against the example directory (matching the plain "
                     + "SAVE statement), so use a full/relative path."),
             "source",
@@ -201,8 +201,8 @@ final class McpTools {
             enumProp(
                 "eval (default): evaluate 'expression', or execute it as a LET assignment. "
                     + "exec: execute any single immediate-mode statement ('statement'), not "
-                    + "just LET — e.g. GOSUB, PRINT, DIM, CLS, RESTORE. vars: list every "
-                    + "currently-defined variable, array, and DEF FN — useful for exploring an "
+                    + "just LET - e.g. GOSUB, PRINT, DIM, CLS, RESTORE. vars: list every "
+                    + "currently-defined variable, array, and DEF FN - useful for exploring an "
                     + "unfamiliar or already-paused programme without knowing names up front. "
                     + "array: return the full contents of array 'name'.",
                 "eval",
@@ -216,10 +216,10 @@ final class McpTools {
                     + "(the default); ignored otherwise."),
             "statement",
             stringProp(
-                "Any single immediate-mode BASIC statement or REPL command line — the same "
+                "Any single immediate-mode BASIC statement or REPL command line - the same "
                     + "input the interactive REPL accepts. Required for action=exec; ignored "
                     + "otherwise. Prefer bazlang_program's structured actions for programme "
-                    + "management (NEW/LOAD/edit_line/etc.) — exec supports them too, but "
+                    + "management (NEW/LOAD/edit_line/etc.) - exec supports them too, but "
                     + "without the friendlier per-action argument shape."),
             "name",
             stringProp(
@@ -230,7 +230,7 @@ final class McpTools {
         "Evaluate an expression, execute a statement, list every currently-defined "
             + "variable/array/function, or read a whole array's contents, in the live "
             + "programme context. action=vars reports array names and dimensions only, not "
-            + "their full contents — use action=array (or read a known element directly, e.g. "
+            + "their full contents - use action=array (or read a known element directly, e.g. "
             + "expression=\"A(3)\") for that.",
         schema(properties));
   }
@@ -278,8 +278,8 @@ final class McpTools {
         "bazlang_input",
         "Queue keyboard/INPUT text for the programme to consume, or discard queued input. "
             + "bazlang_program(new/load_file/load_source) already discards queued input "
-            + "automatically when it replaces the programme — see docs/spec/mcp.md's \"Input "
-            + "queue\" section — so action=clear is for cancelling a mis-queued value or "
+            + "automatically when it replaces the programme - see docs/spec/mcp.md's \"Input "
+            + "queue\" section - so action=clear is for cancelling a mis-queued value or "
             + "resetting mid-session without reloading.",
         schema(properties, "action"));
   }

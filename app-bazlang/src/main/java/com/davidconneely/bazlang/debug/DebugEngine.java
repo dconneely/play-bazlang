@@ -28,14 +28,14 @@ import java.util.List;
  *
  * <p>Run control ({@link #run}, {@link #gotoLine}, {@link #go}, {@link #stepInto}, {@link
  * #stepOver}) is synchronous: each call drives execution until the programme next breaks, elapses,
- * steps, hits its safety timeout, or stops, then returns — there is no blocking wait for a "next
+ * steps, hits its safety timeout, or stops, then returns - there is no blocking wait for a "next
  * command" inside the engine itself. A breakpoint pauses execution by having the {@link
  * Interpreter.ExecutionListener} set {@link EvalState#setRunning} to {@code false} before the
  * triggering statement executes, which unwinds {@link Interpreter#resume()} back to the caller; a
  * later {@link #go()} call resumes at the exact same location, guarded so the same breakpoint does
  * not immediately re-fire. Every run-control call also arms a wall-clock deadline (default {@link
  * #DEFAULT_STEP_TIMEOUT_MS}, overridable per call) as a safety net against a runaway programme with
- * no breakpoint of its own — there is no cancel-while-running mechanism (see docs/spec/mcp.md
+ * no breakpoint of its own - there is no cancel-while-running mechanism (see docs/spec/mcp.md
  * "Known limitations"), so an unconditionally blocking call would otherwise hang the caller (and,
  * for the MCP server, the whole single-threaded session) forever.
  */
@@ -54,7 +54,7 @@ public final class DebugEngine {
    * <p>Tries the argument verbatim, then with {@code .bas} appended, then under the canonical
    * example directory. Returns {@code null} when no existing file is found, or when {@code
    * inputPath} isn't a syntactically valid path on this platform at all ({@link Path#of} throws
-   * {@link InvalidPathException} for e.g. a bare {@code :} on Windows) — the caller already treats
+   * {@link InvalidPathException} for e.g. a bare {@code :} on Windows) - the caller already treats
    * {@code null} as "not found", so an unparseable path is just another way not to find one. Used
    * by this class's own {@code LOAD} handling below, so {@code bazlang_program(load_file)} resolves
    * bare names consistently.
@@ -165,10 +165,10 @@ public final class DebugEngine {
     if (line == 0) {
       // Line 0 is the Interpreter.executeImmediate sentinel used for REPL/immediate-mode
       // commands (LOAD, NEW, a numbered-line edit, an assignment via applyReplCommand /
-      // executeAssignment) — never a real programme line. Breakpoints must not intercept these:
+      // executeAssignment) - never a real programme line. Breakpoints must not intercept these:
       // an unconditional persistent breakpoint (an ELAPSE one especially, since real wall-clock
       // time keeps advancing between calls) would otherwise fire here, set running=false *before*
-      // Interpreter.resume() reaches executor.execute(stmt), and silently cancel the command —
+      // Interpreter.resume() reaches executor.execute(stmt), and silently cancel the command -
       // e.g. a `LOAD "x"` that never actually loads anything, while still reporting success,
       // because the REPL handler has no way to distinguish "cancelled by a breakpoint" from
       // "ran fine". See the 2026-08-16 entry in localonly-BAZLANG-IMPROVEMENTS.md for how this
@@ -177,7 +177,7 @@ public final class DebugEngine {
     }
     if (line == resumeGuardLine && stmt == resumeGuardStmt) {
       // We just resumed exactly here after a previous pause: don't re-fire the same breakpoint, and
-      // let this statement execute even if a step is armed — stepInto/stepOver's "one step" starts
+      // let this statement execute even if a step is armed - stepInto/stepOver's "one step" starts
       // counting from the statement *after* the one we resumed at, exactly like go()'s resume
       // point.
       resumeGuardLine = -1;
@@ -186,7 +186,7 @@ public final class DebugEngine {
     }
     if (stepArmed && !(stepOver && state.returnStackDepth() > stepOverBaseDepth)) {
       // stepInto always pauses on the next statement; stepOver only pauses once the GOSUB depth is
-      // back down to (or shallower than) where stepping started — a statement inside a call it
+      // back down to (or shallower than) where stepping started - a statement inside a call it
       // stepped over runs unimpeded (falling through to the breakpoint check below, so a breakpoint
       // inside that call can still interrupt it; see the branch's condition).
       firedPauseReason = "STEP";
@@ -196,8 +196,8 @@ public final class DebugEngine {
     }
     if (System.currentTimeMillis() >= stepDeadlineMs) {
       // Safety net: no breakpoint of the programme's own fired within the deadline. Without this, a
-      // runaway loop would block the calling tools/call — and, since the MCP server processes one
-      // request at a time with no cancel-while-running mechanism, the whole session — forever.
+      // runaway loop would block the calling tools/call - and, since the MCP server processes one
+      // request at a time with no cancel-while-running mechanism, the whole session - forever.
       firedPauseReason = "LIMIT";
       state.setRunning(false);
       disarmStep();
@@ -249,18 +249,18 @@ public final class DebugEngine {
     }
     if (replacesWholeProgram(cmd)) {
       // NEW and LOAD replace the whole programme; a plain numbered-line edit does not. Flushing
-      // here — rather than requiring every caller to remember to — is what actually prevents input
+      // here - rather than requiring every caller to remember to - is what actually prevents input
       // queued for one programme from being silently consumed by a different one that happens to
-      // read a different input primitive — INKEY$, UINKEY$, and INPUT all share one MockScreen for
+      // read a different input primitive - INKEY$, UINKEY$, and INPUT all share one MockScreen for
       // the lifetime of this engine, which can span many programme loads. See docs/spec/mcp.md's
-      // "Input queue" section for the incident that motivated this — two different games' stale
+      // "Input queue" section for the incident that motivated this - two different games' stale
       // queued input each broke a later one.
       mockScreen.clearInputQueues();
     }
   }
 
   /**
-   * True for {@code NEW} and {@code LOAD "..."} — the two REPL commands that replace the whole
+   * True for {@code NEW} and {@code LOAD "..."} - the two REPL commands that replace the whole
    * programme, as opposed to editing a single line of the current one (or {@code MERGE}, which
    * overlays lines onto the existing programme rather than replacing it).
    */
@@ -312,7 +312,7 @@ public final class DebugEngine {
   /**
    * Clears runtime state and runs the programme from its first line. Pauses with {@link
    * PauseResult.Limit} if no other pause reason fires within {@code timeoutMs} (non-positive means
-   * "use the default", not "disable" — see {@link #DEFAULT_STEP_TIMEOUT_MS}).
+   * "use the default", not "disable" - see {@link #DEFAULT_STEP_TIMEOUT_MS}).
    */
   public PauseResult run(long timeoutMs) {
     state.clear();
@@ -459,7 +459,7 @@ public final class DebugEngine {
     try {
       numCtx = parser.parseNumExpr(expr);
     } catch (ReportException ignored) {
-      // numeric parse failed — fall through to a string-expression attempt below
+      // numeric parse failed - fall through to a string-expression attempt below
     }
     if (numCtx != null) {
       return new EvalResult.Num(eval.evalNum(AstLowering.lowerNum(numCtx, 0)));

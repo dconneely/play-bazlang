@@ -6,7 +6,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * A minimal, hand-rolled JSON value model — no external dependency. Covers exactly what the MCP
+ * A minimal, hand-rolled JSON value model - no external dependency. Covers exactly what the MCP
  * JSON-RPC layer needs: objects (insertion-ordered, for deterministic output), arrays, strings,
  * numbers, booleans, and null. Parsed with {@link JsonParser}, serialized with {@link JsonWriter}.
  */

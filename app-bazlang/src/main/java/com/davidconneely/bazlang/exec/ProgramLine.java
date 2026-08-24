@@ -31,7 +31,7 @@ public class ProgramLine {
 
   /**
    * Returns the flattened, lowered statement list for this line, parsing and lowering lazily on
-   * first access. {@code IfStmt} bodies are inlined into the flat list — see {@link
+   * first access. {@code IfStmt} bodies are inlined into the flat list - see {@link
    * AstLowering#lowerStatements} and {@link Stmt}'s class Javadoc for the "flat skip-scan" quirk
    * this preserves.
    */
@@ -48,7 +48,7 @@ public class ProgramLine {
   }
 
   /**
-   * Returns a freshly parsed, independent ANTLR parse tree for this line — used by text-preserving
+   * Returns a freshly parsed, independent ANTLR parse tree for this line - used by text-preserving
    * operations ({@code REFORMAT} and various parser/grammar tests) that need the raw parse tree,
    * not the lowered AST used for execution. Always re-parses; shares no state with {@link
    * #getFlattenedStatements}, so callers never observe (or mutate) the cached execution form.

@@ -15,7 +15,7 @@ import java.util.Arrays;
  * <p>Conversion to {@code java.lang.String} uses UTF-8 Clean-8 (utf8-c8): valid UTF-8 sequences are
  * decoded to their natural Unicode codepoints; any invalid or lone byte 0xNN is represented as the
  * 4-codepoint synthetic {@code [U+10FFFD, 'x', upper-hex-nibble, lower-hex-nibble]}, e.g. byte 0xFF
- * → {@code ?xFF}. {@code fromJavaString} is standard UTF-8 encoding only (synthetics are not
+ * -> {@code ?xFF}. {@code fromJavaString} is standard UTF-8 encoding only (synthetics are not
  * decoded back to raw bytes, as this path is only used for string literals and input).
  */
 public final class BStr implements Comparable<BStr> {
@@ -62,7 +62,7 @@ public final class BStr implements Comparable<BStr> {
   }
 
   /**
-   * Wraps a range of {@code bytes} without copying — the caller must not mutate the array range
+   * Wraps a range of {@code bytes} without copying - the caller must not mutate the array range
    * afterwards. Used on hot paths (string-array slicing) to avoid allocation.
    */
   public static BStr fromBytes(byte[] bytes, int offset, int length) {

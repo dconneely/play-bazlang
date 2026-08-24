@@ -90,7 +90,7 @@ they equally look like bugs at first sight:
 ## Accepted-wrong behaviour
 
 Known defects, knowingly left unfixed for now. Unlike the sections above, these are **not**
-deliberate — do not point to this section to justify keeping the behaviour; each entry names what
+deliberate - do not point to this section to justify keeping the behaviour; each entry names what
 would make it go away.
 
 ### `AND` misparses when its left operand is a string comparison
@@ -101,11 +101,11 @@ would make it go away.
 **Expected:** `IF r$ <> "Y" AND r$ <> "n" THEN ...` parses as `(r$ <> "Y") AND (r$ <> "n")`.
 **Actual:** the right-hand `strExpr` of a string comparison greedily extends across the `AND`, so it
 parses as `r$ <> ("Y" AND (r$ <> "n"))` instead. The two readings coincide often enough to hide the
-bug — they only diverge on some inputs. Parenthesising each comparison, or nesting `IF`s, both give
+bug - they only diverge on some inputs. Parenthesising each comparison, or nesting `IF`s, both give
 the right answer and are the workarounds today.
 **Why:** grammar ambiguity between `StrAndExpr` and the ordinary numeric/string comparison rules;
 see `PLAN.md` for the fix this is blocking.
 **Pinned by:** `PlayAgainProgramTest.chainedAndOverStringComparisonsMisparses`.
 **Expires when:** `BazLang.g4`'s `StrAndExpr` is narrowed so it cannot absorb an `AND` whose left
-context is already a complete comparison — see the matching `PLAN.md` entry, which this is also
+context is already a complete comparison - see the matching `PLAN.md` entry, which this is also
 tracked in, since (per `DOC-MAP.md`) an accepted-wrong entry with a real fix pending is debt too.

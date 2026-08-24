@@ -8,7 +8,7 @@ import java.util.Map;
 
 /**
  * Walks one channel's token list, tracking that channel's own persistent state (octave, duration,
- * volume, envelope-in-use — mirroring the ROM's per-channel data block) and applying every non-note
+ * volume, envelope-in-use - mirroring the ROM's per-channel data block) and applying every non-note
  * token as a side effect (on either its own state, or {@link SharedRegisters} for the chip-wide
  * ones) until it reaches a note or rest, mirroring the ROM's "process characters until a note is
  * found" loop.

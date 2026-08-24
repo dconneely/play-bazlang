@@ -5,7 +5,7 @@ import java.util.List;
 
 /**
  * A lowered numeric expression node. Collapses the grammar's {@code numExpr}/{@code numAtom} split
- * (a syntax-level precedence rule, not a runtime one — see {@code numFunc}'s comment on why {@code
+ * (a syntax-level precedence rule, not a runtime one - see {@code numFunc}'s comment on why {@code
  * SIN PI/2} parses as {@code SIN(PI)/2}): lowering either context type for the same underlying
  * expression produces the same node type here.
  *
@@ -13,7 +13,7 @@ import java.util.List;
  * classes instead: they carry a nullable, typed, lazily-populated variable-reference cache
  * (replacing the pre-AST grammar's untyped {@code ctx.varRef}, now removed) that avoids a hash-map
  * lookup per access in tight loops. The cache is resolved on first evaluation, not at lowering time
- * — see {@code AstLowering}'s class Javadoc for why.
+ * - see {@code AstLowering}'s class Javadoc for why.
  */
 public sealed interface NumExpr extends Expr {
   /**

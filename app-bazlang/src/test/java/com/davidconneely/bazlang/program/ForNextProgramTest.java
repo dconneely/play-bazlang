@@ -148,7 +148,7 @@ class ForNextProgramTest extends BaseProgramTest {
   @Test
   void testForSkipFindsNextInsideIfBodyFullTrace() {
     // Full program verified on a Sinclair ZX Spectrum, by `FOR i=1 TO 0`. Expected output: 40, 60,
-    // 130, 2, 3, 4 — confirming the skip lands after the `IF i=1 THEN NEXT i` on line 30 (not at
+    // 130, 2, 3, 4 - confirming the skip lands after the `IF i=1 THEN NEXT i` on line 30 (not at
     // the standalone `NEXT i` on line 120).
     runProgram(
         """

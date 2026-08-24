@@ -1,27 +1,27 @@
 # Architecture
 
-This document explains how the BazLang interpreter is built — its grammar, Java structure, execution
+This document explains how the BazLang interpreter is built - its grammar, Java structure, execution
 model, and performance-load-bearing patterns. It is one of the three members
 [`SPECIFICATION.md`](../../SPECIFICATION.md) indexes, and the only one of the three actually about
-the Java code — `SPECIFICATION.md` itself holds none of this directly. It is written for
+the Java code - `SPECIFICATION.md` itself holds none of this directly. It is written for
 **interpreter implementers** (including LLM agents modifying the code). Language-level behaviour is
 documented in [language.md](language.md) and the deliberately-preserved eccentric behaviours in
-[quirks.md](../quirks.md) — nothing listed there may be changed by a refactoring.
+[quirks.md](../quirks.md) - nothing listed there may be changed by a refactoring.
 
 ## Grammar
 
 BazLang uses ANTLR 4 to generate its lexer and parser from a declarative grammar file
-(`app-bazlang/src/main/antlr/BazLang.g4`) — why ANTLR over a hand-written parser is
+(`app-bazlang/src/main/antlr/BazLang.g4`) - why ANTLR over a hand-written parser is
 [ADR-0006](../adr/0006-use-antlr-for-the-grammar.md). This section covers the grammar's key patterns;
-the grammar file itself is the machine-readable source of truth for syntax — see `DOC-MAP.md`
-"Machine-readable and generated parts" — so nothing here may restate a production, only explain it.
+the grammar file itself is the machine-readable source of truth for syntax - see `DOC-MAP.md`
+"Machine-readable and generated parts" - so nothing here may restate a production, only explain it.
 
 ### Key grammar patterns
 
 #### Expression precedence
 
 The resulting precedence order, as a plain reference table for BazLang programmers, is in
-[language.md](language.md#math) — this section covers the mechanism, not the outcome; don't let the
+[language.md](language.md#math) - this section covers the mechanism, not the outcome; don't let the
 two drift apart.
 
 ANTLR handles operator precedence by ordering - earlier alternatives bind tighter:
@@ -160,7 +160,7 @@ The grammar serves as both the implementation and the documentation of the langu
 
 ## Code structure
 
-The interpreter executes from a typed AST — `Stmt`/`NumExpr`/`StrExpr` — walked via Java `switch`
+The interpreter executes from a typed AST - `Stmt`/`NumExpr`/`StrExpr` - walked via Java `switch`
 pattern matching, not from the ANTLR parse tree directly. Each `ProgramLine`'s source text is parsed
 once and lowered once, lazily, on first execution.
 
@@ -170,18 +170,18 @@ Under `com.davidconneely.bazlang`:
 
 - **root**: entry point and REPL wiring (`MainClass`, `InterpreterReplHandler`) plus the shared
   primitives used by every package (`BStr`, `Limits`, `ReportCode`, `ReportException`).
-- **`exec`**: the execution engine — `Interpreter`, `StatementExecutor`, `ExpressionEvaluator`,
+- **`exec`**: the execution engine - `Interpreter`, `StatementExecutor`, `ExpressionEvaluator`,
   `EvalState`, `Program`, `ProgramLine`, `ProgramStorage`, and the small value types `SliceBounds`,
   `StyleState`.
-- **`exec.ast`**: the typed AST and the lowering pass — `Stmt`, `Expr`/`NumExpr`/`StrExpr`, `Op`,
+- **`exec.ast`**: the typed AST and the lowering pass - `Stmt`, `Expr`/`NumExpr`/`StrExpr`, `Op`,
   `NumFuncKind`/`StrFuncKind`, `AssignTarget`, `StyleItem`, `PrintElement`, `LineRange`,
   `StrSubscript`, and `AstLowering` (the ANTLR-parse-tree-to-AST lowering pass).
-- **`edit`**: program-editing commands (`ProgramEditor`, `ReformatVisitor`) — these operate directly
+- **`edit`**: program-editing commands (`ProgramEditor`, `ReformatVisitor`) - these operate directly
   on freshly parsed ANTLR trees or source text, not the AST; see "Parse tree vs. AST" below.
 - **`antlr`**: the parser facade (`AntlrParser`) and the generated lexer/parser.
 - **`io`**: screens and input (see the I/O section below).
 - **`play`**: `PLAY`/`APLAY`'s note-string DSL parser and multi-channel scheduler (`PlayParser`,
-  `PlayToken`, `PlayChannelState`, `SharedRegisters`, `PlaySequencer`) — see the I/O section below.
+  `PlayToken`, `PlayChannelState`, `SharedRegisters`, `PlaySequencer`) - see the I/O section below.
 - **`debug`**: `DebugEngine`, the protocol-agnostic debugging core used by the MCP server.
 - **`mcp`**: `McpServer`, the agent-oriented MCP (Model Context Protocol) debugger entry point.
 
@@ -197,14 +197,14 @@ Under `com.davidconneely.bazlang`:
   (`StatementsContext`/`NumExprContext`/`StrExprContext`/...) to the typed AST. Resolves literals
   and operators once, at lowering time; variable/array references stay unresolved until first
   evaluation (see "Variable reference caching" below). `AstLowering.lowerStatements` also performs
-  the flattening described in "Statement addressing and flattening" — folding what used to be a
+  the flattening described in "Statement addressing and flattening" - folding what used to be a
   separate `ProgramLine.flatten()` pass into the same walk that produces the AST.
 - **`ExpressionEvaluator`**: Walks the typed `NumExpr`/`StrExpr` AST via `switch` pattern matching
   and returns `double`/`BStr` directly from `evalNum`/`evalStr`.
 - **`StatementExecutor`**: Walks the typed `Stmt` AST via `switch` pattern matching, executing
   variable assignment, I/O operations, state mutation, and the flow-control statements (`CONT`,
   `FOR`, `GO SUB`, `GO TO`, `NEXT`, `RETURN`, `RUN`). The `switch` in `execute(Stmt)` has no
-  `default` arm — it is exhaustive over the sealed `Stmt`, so a new statement kind is a compile
+  `default` arm - it is exhaustive over the sealed `Stmt`, so a new statement kind is a compile
   error here until handled, not a silent gap. A 3-argument convenience constructor builds the
   default `ProgramStorage`/`ExpressionEvaluator` collaborators; the full constructor takes them
   (and the `AntlrParser`) injected.
@@ -222,24 +222,24 @@ Under `com.davidconneely.bazlang`:
 - **`ProgramLine`**: Stores the source text of each line and lazily lowers it to a flat `Stmt` list
   on first execution, caching that list to avoid re-lowering on subsequent calls.
   `getStatements(parser)` is a separate accessor that always re-parses the source text fresh into a
-  raw ANTLR tree — used only by `ProgramEditor`/`ReformatVisitor` and parser-level tests, never
+  raw ANTLR tree - used only by `ProgramEditor`/`ReformatVisitor` and parser-level tests, never
   execution, and deliberately shares no state with the cached AST (see "Parse tree vs. AST" below).
 - **`BStr`**: The immutable byte-string value type used for all BazLang string values (see
   [language.md](language.md) for its byte semantics).
-- **`InterpreterReplHandler`**: Routes each REPL line — numbered entry (store/delete), REPL-only
+- **`InterpreterReplHandler`**: Routes each REPL line - numbered entry (store/delete), REPL-only
   command (`DELETE`/`EDIT`/`RENUM`/`REFORMAT`, delegated to `ProgramEditor`), or immediate
-  execution — and records the last-report state consumed by `CONT` and shown in the status bar.
+  execution - and records the last-report state consumed by `CONT` and shown in the status bar.
 - **`ProgramEditor` / `ReformatVisitor`**: Program-editing commands; `RENUM` also rewrites
   `GO TO`/`GO SUB`/`RESTORE`/`RUN` targets.
 - **`ProgramStorage`**: `SAVE` (plain text, one numbered line per file line, line 0 skipped) and
   `LOAD` (from a file, or from the classpath when the name starts with `resource:`).
-- **`ReportCode` / `ReportException` / `Limits`**: The ZX-style report codes (`0`–`R`), the carrier
+- **`ReportCode` / `ReportException` / `Limits`**: The ZX-style report codes (`0`-`R`), the carrier
   exception (code, line label, statement index, detail), and interpreter limits.
-- **`debug.DebugEngine`**: The protocol-agnostic debugging core — owns the interpreter,
+- **`debug.DebugEngine`**: The protocol-agnostic debugging core - owns the interpreter,
   `BreakpointEngine` (breakpoint store and `CSC`/`ELAPSE`/`?expr`/`EVERY` condition evaluation),
   `ScreenText` (screen search and the `bazlang_screen` grid dump), and `MockScreen`. `McpServer`
   (`com.davidconneely.bazlang.mcp`) is the sole adapter over it, translating JSON-RPC `tools/call`
-  requests into `DebugEngine` calls — see [mcp.md](mcp.md) for the tool reference.
+  requests into `DebugEngine` calls - see [mcp.md](mcp.md) for the tool reference.
 
 ### Debugger execution model
 
@@ -248,17 +248,17 @@ Why this is synchronous rather than a command-thread design is recorded in
 
 **Synchronous blocking execution, no reentrant command loop.** `DebugEngine.run`/`gotoLine`/`go`/
 `stepInto`/`stepOver` each drive `Interpreter.resume()` on the caller's own thread until the
-programme next breaks, elapses, steps, hits its wall-clock safety timeout, or stops, then return —
+programme next breaks, elapses, steps, hits its wall-clock safety timeout, or stops, then return -
 there is no blocking wait for a "next command" inside the engine itself. A breakpoint pauses
 execution by having `Interpreter.setExecutionListener`'s callback set `EvalState.setRunning(false)`
 before the triggering statement executes, which unwinds `Interpreter.resume()` straight back to the
 caller; a later `go()` call resumes at the exact same location, guarded so the same breakpoint does
 not immediately re-fire. `stepInto`/`stepOver` reuse that same resume guard to let the current
 statement execute, then either pause unconditionally on the next one (`stepInto`) or let a deeper
-`GOSUB` call run free — while still honouring a breakpoint inside it — until the return-stack depth
+`GOSUB` call run free - while still honouring a breakpoint inside it - until the return-stack depth
 is back at or below where stepping started (`stepOver`; see `EvalState.returnStackDepth()`). Every
 run-control call also arms a per-call wall-clock safety timeout (default 30s, overridable), pausing
-with a `Limit` reason if nothing else fires first — a mitigation for the lack of true `tools/call`
+with a `Limit` reason if nothing else fires first - a mitigation for the lack of true `tools/call`
 cancellation (see `docs/spec/mcp.md` "Known limitations"), not a substitute for it.
 
 ### Class coupling notes
@@ -275,20 +275,20 @@ Facts an implementer needs before restructuring anything:
 
 Two representations of a line's source text coexist deliberately, for different purposes:
 
-- **`ProgramLine.getFlattenedStatements(parser)`** — the typed AST (`List<Stmt>`), lowered once and
+- **`ProgramLine.getFlattenedStatements(parser)`** - the typed AST (`List<Stmt>`), lowered once and
   cached. This is what execution walks: `Interpreter`, `StatementExecutor`, `ExpressionEvaluator`,
   and `Program`'s scans all operate on it exclusively.
-- **`ProgramLine.getStatements(parser)`** — a raw ANTLR parse tree, re-parsed fresh on every call,
+- **`ProgramLine.getStatements(parser)`** - a raw ANTLR parse tree, re-parsed fresh on every call,
   sharing no state with the cached AST. `ProgramEditor.executeReformat` and `ReformatVisitor` use
   this (`REFORMAT` needs to walk grammar structure and regenerate source text, not execute), as do
   parser-level tests that assert on parse-tree shape directly. Because it is always freshly parsed,
   nothing here observes or mutates the execution AST's variable-reference caches or vice versa.
 
 `ProgramEditor`'s other commands (`RENUM`, `DELETE`) work from source text and token streams
-directly, never touching either representation — see `ProgramEditor.updateLineTargets`.
+directly, never touching either representation - see `ProgramEditor.updateLineTargets`.
 `BreakpointEngine`'s `?expr` condition and `DebugEngine`'s `bazlang_eval` tool parse-and-lower a
 fresh `NumExpr`/`StrExpr`/`Stmt` on every check/call (the same "parse fresh every time" shape `VAL`/
-`INPUT` use — see below), rather than reading any cached AST.
+`INPUT` use - see below), rather than reading any cached AST.
 
 ## Execution model
 
@@ -298,12 +298,12 @@ Every executable position is a pair **(line label, statement index)**, where the
 **1-based** and counts positions in the line's **flattened** statement list.
 `ProgramLine.getFlattenedStatements()` lists a line's statements in source order with the bodies of
 `IF ... THEN` statements inlined recursively after the `IF` itself: `10 IF x THEN PRINT "A":
-PRINT "B"` flattens to `[IfStmt, PrintStmt("A"), PrintStmt("B")]` with indices 1–3.
+PRINT "B"` flattens to `[IfStmt, PrintStmt("A"), PrintStmt("B")]` with indices 1-3.
 
 Flat indices are the shared currency of the interpreter loop, `CONT`, `GOSUB` return addresses, the
 `DATA` pointer, the `FOR` skip-scan, and `BreakpointEngine` breakpoints (`<line>:<stmt>`).
 
-### The fetch–execute loop
+### The fetch-execute loop
 
 `Interpreter.resume()` loops while the state is running:
 
@@ -328,7 +328,7 @@ the *following* statement).
   immediate statements at key 0 and removes them in a `finally`. Line 0 is excluded from `GO TO`
   targeting, `SAVE`, and `LIST`; a `0 ...` REPL line executes immediately (ZX81-style). A false
   `IF` in immediate mode sets a pending jump to statement index `Integer.MAX_VALUE`, which the
-  loop's bounds check reports as `N Statement lost, 0:1` — intentional, see
+  loop's bounds check reports as `N Statement lost, 0:1` - intentional, see
   [quirks.md](../quirks.md).
 - **`DATA` pointer**: components of `-1` mean "not yet initialised"; a line label of
   `Integer.MAX_VALUE` means "exhausted" (`E Out of DATA` on the next `READ`).
@@ -347,31 +347,31 @@ Input and output are handled by a set of classes that share a common `VirtualScr
 (which extends the base `ReplReader` and `AutoCloseable` interfaces), a `VirtualInput` interface,
 and a `VirtualSpeaker` interface (for `BEEP`/`PLAY`/`APLAY`), isolating the interpreter from the
 specific device. `VirtualSpeaker` is deliberately its own interface rather than another
-`VirtualScreen` method — see [ADR-0002](../adr/0002-virtualspeaker-separate-interface.md) for why. Every
+`VirtualScreen` method - see [ADR-0002](../adr/0002-virtualspeaker-separate-interface.md) for why. Every
 `VirtualSpeaker` method defaults to a no-op, so every implementation except `TerminalScreen` gets
 silent `BEEP`/`PLAY`/`APLAY` for free, the same way `setFastMode` already works. Frames are pushed to
-the speaker rather than pulled from it — see [ADR-0003](../adr/0003-push-based-audio-frames.md).
+the speaker rather than pulled from it - see [ADR-0003](../adr/0003-push-based-audio-frames.md).
 
 `PLAY`/`APLAY`'s DSL parsing and multi-channel scheduling live entirely in their own
 `com.davidconneely.bazlang.play` package (`PlayParser`, `PlayToken`, `PlayChannelState`,
-`SharedRegisters`, `PlaySequencer`), not in `io` — `VirtualSpeaker.playFrame` only ever sees
+`SharedRegisters`, `PlaySequencer`), not in `io` - `VirtualSpeaker.playFrame` only ever sees
 already-resolved `VoiceFrame`s (frequency/amplitude/tone-or-noise), never a "note" or a "channel
 string". `StatementExecutor` pulls from the `play` package's `PlaySequencer` (via `PlaySource`) in
 ~20ms slices and hands each resolved slice to `speaker.playFrame`, which renders exactly that much
-audio and no more — this keeps all DSL/BREAK logic on the `StatementExecutor` side, so
+audio and no more - this keeps all DSL/BREAK logic on the `StatementExecutor` side, so
 `PLAY`/`APLAY` are headless-testable for free, just like `BEEP`.
 
 **Nothing ever queues idle silence, and this is load-bearing rather than incidental.** An audio
 line is a FIFO whose `write` blocks only once the buffer is full, so any component that keeps
 writing silence while nothing is playing runs a whole buffer ahead of the speaker permanently, and
-every later-triggered note lands *behind* that backlog — constant latency equal to the buffer
+every later-triggered note lands *behind* that backlog - constant latency equal to the buffer
 depth. An earlier design did exactly that (a persistent render thread continuously synthesising
 whatever voices were last pushed to it) and produced a real, user-visible bug: game sound effects
 arriving noticeably late or seeming to go missing entirely, with short notes clipped by the fixed
 sampling granularity such a loop requires. Writing only real, requested audio also means the
 line's own backpressure paces playback for free, so the pull loops need no cadence mechanism of
 their own beyond a fallback sleep for the no-device (headless) case.
-`APLAY` runs the same pull loop as `PLAY`, just on its own background thread — see
+`APLAY` runs the same pull loop as `PLAY`, just on its own background thread - see
 [language.md](language.md#input--output) for the blocking/non-blocking contract itself.
 
 - **`TerminalScreen`**: The standard version for interactive use. It provides a TUI (Text User
@@ -385,27 +385,27 @@ their own beyond a fallback sleep for the no-device (headless) case.
   whole duration; `stopBeep()` cuts a tone short on BREAK. `playFrame()` synthesises exactly the
   requested duration of up to 3 mixed voices and writes it straight to a second, entirely
   independent persistent `SourceDataLine` (opened lazily, reused for the session) on whichever
-  thread called it — no render thread of its own, per the no-idle-silence rule above (see
+  thread called it - no render thread of its own, per the no-idle-silence rule above (see
   [ADR-0007](../adr/0007-synchronous-per-call-play-rendering.md)); `stopPlay()`
   flushes audio already queued but not yet heard, so a note cut short by BREAK or a replacement
   stops promptly, while `drainPlay()` instead lets a naturally-finished note's queued tail play out
   before parking the line, called only when a sound reaches its natural end rather than being cut
   short. Keeping `PLAY`/`APLAY` on their own line means a `BEEP` sound effect can layer
   over music without either interfering with the other, matching real hardware's independent
-  beeper/AY circuits. `LineUnavailableException` (no audio device — e.g. a headless/SSH session) is
+  beeper/AY circuits. `LineUnavailableException` (no audio device - e.g. a headless/SSH session) is
   caught and silently swallowed for both, matching the no-op fallback the interface already
   provides elsewhere.
 - **`StreamScreen`**: A simpler version used for pipes or non-interactive environments. It uses
   standard Java `System.in` and `System.out`. Graphics (`PLOT` and related draw calls)
   are no-ops. `MainClass` also falls back to this screen silently if `TerminalScreen` cannot be
-  initialised (intentional — see [quirks.md](../quirks.md)).
+  initialised (intentional - see [quirks.md](../quirks.md)).
 - **`MockScreen`**: An in-memory screen with a scripted input queue, used by the program tests and
   by `DebugEngine`.
 - **`AbstractCellBufferedScreen`**: The base class for screens backed by a lib-cell `CellBuffer`;
   tracks the cursor and the active attribute set.
 
 The `VirtualScreen` interface defines methods for screen output (`print`, `println`, `cls`),
-graphics (`plot`, `point`, `setPlotMode`), attributes (`setInk` … `setOver`), introspection
+graphics (`plot`, `point`, `setPlotMode`), attributes (`setInk` ... `setOver`), introspection
 (`getScreenCodepoint`, `getScreenAttributes`,
 `getXAttributes`), and status updates (`setStatus`). `VirtualInput` defines `readln` (with different
 modes for REPL vs `INPUT`), non-blocking `inkey()`/`uinkey()`, break polling, and input prefill.
@@ -413,7 +413,7 @@ Most graphics and attribute methods have no-op defaults so that simple screens s
 
 ## Statement execution notes
 
-Mechanism only — the observable behaviour these implement is in [language.md](language.md); don't
+Mechanism only - the observable behaviour these implement is in [language.md](language.md); don't
 restate it here, link to it.
 
 - **Graphics & rendering**: The screen uses a `CellBuffer` designed with a Structure-of-Arrays (SoA)
@@ -448,7 +448,7 @@ interpreter implements several key patterns. These are load-bearing; refactoring
 effect:
 
 - **Direct primitive returns, no boxing**: `ExpressionEvaluator.evalNum`/`evalStr` return `double`/
-  `BStr` directly from a `switch` expression over the sealed `NumExpr`/`StrExpr` — no boxed
+  `BStr` directly from a `switch` expression over the sealed `NumExpr`/`StrExpr` - no boxed
   `Double` wrapper objects, and no `numResult`/`strResult` side fields for the visitor to stash
   into (the ANTLR-visitor predecessor this replaced at the parse-tree-to-AST migration had to use
   side fields, since a single visitor type parameter can't cleanly return `double` for one rule
@@ -462,10 +462,10 @@ effect:
   mutable classes, not plain records: each carries a nullable, typed `ref` field (e.g.
   `EvalState.NumVarRef`) that is resolved once on first evaluation and reused thereafter. (This is
   why cleared variables keep their ref objects, and why a `ProgramLine`'s cached `Stmt` list is
-  bound to one `EvalState` — see "State lifecycle" above.)
+  bound to one `EvalState` - see "State lifecycle" above.)
 - **Literal and operator resolution at lowering time**: `AstLowering` resolves numeric, binary, and
   string literals, and arithmetic/comparison operators (`Op`), once when lowering a parse tree to
-  AST — every other node in the AST is an immutable record — so evaluation never reparses literal
+  AST - every other node in the AST is an immutable record - so evaluation never reparses literal
   text or re-derives an operator from token text.
 - **Lazy lowering**: `ProgramLine` defers parsing-and-lowering to first execution and caches the
   resulting flat `Stmt` list.

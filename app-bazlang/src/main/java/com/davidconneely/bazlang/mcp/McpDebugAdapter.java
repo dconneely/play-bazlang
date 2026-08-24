@@ -14,7 +14,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Thin adapter from MCP {@code tools/call} arguments onto one shared {@link DebugEngine} instance
- * (one implicit debugging session per server subprocess — see docs/spec/mcp.md). Converts each of
+ * (one implicit debugging session per server subprocess - see docs/spec/mcp.md). Converts each of
  * the seven {@link McpTools} tools into the corresponding engine call, and converts the result (or
  * a thrown {@link DebugEngineException}/{@link ReportException}) into the {@code resultType}/{@code
  * content}/{@code structuredContent}/{@code isError} envelope.
@@ -129,13 +129,13 @@ final class McpDebugAdapter {
 
   /**
    * Formats {@code raw} as a BazLang string literal (doubling embedded quotes, per the grammar's
-   * {@code STR_LITERAL} escape — see {@code AstLowering.parseStrLiteral}), for embedding a
+   * {@code STR_LITERAL} escape - see {@code AstLowering.parseStrLiteral}), for embedding a
    * caller-supplied value into a synthesized immediate statement such as {@code LOAD "..."}.
    * Without this, an unescaped {@code "} in {@code raw} would close the literal early and let the
    * rest of {@code raw} be parsed as further {@code :}-separated BASIC statements (e.g. a path of
    * {@code x" : NEW : REM } would silently wipe the loaded programme). Returns {@code null} if
    * {@code raw} contains a line break, which a BazLang string literal cannot represent at all
-   * (STR_LITERAL excludes {@code \r}/{@code \n} outright, with no escape for them) — the caller
+   * (STR_LITERAL excludes {@code \r}/{@code \n} outright, with no escape for them) - the caller
    * must reject the value rather than embed it.
    */
   private static String toBasicStringLiteral(String raw) {
@@ -459,7 +459,7 @@ final class McpDebugAdapter {
   }
 
   /**
-   * Returns the full contents of array {@code name} — avoids requiring one {@code eval} call per
+   * Returns the full contents of array {@code name} - avoids requiring one {@code eval} call per
    * element to inspect a whole array. Flattened in row-major order (the last dimension varies
    * fastest), matching {@code ExpressionEvaluator.calculateArrayIndex}; 1-based indices, as in
    * BASIC subscripts, so element {@code i} (0-based, in {@code values}) is {@code A(i/dims[1]+1,

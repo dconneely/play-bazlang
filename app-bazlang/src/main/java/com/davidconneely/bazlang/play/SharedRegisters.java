@@ -1,7 +1,7 @@
 package com.davidconneely.bazlang.play;
 
 /**
- * The AY chip's chip-wide state: one mixer register, one envelope generator, and tempo — matches
+ * The AY chip's chip-wide state: one mixer register, one envelope generator, and tempo - matches
  * real hardware's single-instance-per-chip registers exactly (confirmed via the ROM disassembly and
  * independently by the ZEsarUX/FUSE AY-3-8912 sources; see {@code localonly-BAZLANG-ROADMAP.md}),
  * not per-channel: an {@code M}/{@code W}/{@code X}/{@code T} command in any one channel string
@@ -9,7 +9,7 @@ package com.davidconneely.bazlang.play;
  *
  * <p>{@code mixerMask} starts unset ({@code null}) rather than defaulting to some guessed
  * power-on-reset bit pattern (no source pins one): unset means "a channel with a note plays its
- * tone normally, no noise" — the natural behaviour for a {@code PLAY} string that never issues an
+ * tone normally, no noise" - the natural behaviour for a {@code PLAY} string that never issues an
  * {@code M} command at all, which is the common case.
  */
 final class SharedRegisters {

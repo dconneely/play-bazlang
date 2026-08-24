@@ -30,7 +30,7 @@
 
 ## Example programs
 
-Examples live in `app-bazlang/src/example/bas/` (flat — no subdirectories). Convention observed
+Examples live in `app-bazlang/src/example/bas/` (flat - no subdirectories). Convention observed
 across the existing set: a `REM ### Title ###` header (optionally a second `REM` line describing it)
 as the first program line, line numbers starting at 1000 in steps of 10, and bare `RANDOMIZE` (not a
 fixed seed) wherever `RND` is used. Match this rather than inventing a different shape.
@@ -42,17 +42,17 @@ writing anything down.
 
 When documents disagree, tense settles it:
 
-- `SPECIFICATION.md` — present tense, authoritative about what BazLang does now.
-- `CHANGELOG.md` — past tense. What changed, never what is true today.
-- `PLAN.md` — intent. Nothing described in it exists yet.
-- `docs/adr/` — why. Only `accepted` records bind; check the status before relying on one.
-- `docs/quirks.md` — deliberate deviations. **Do not "fix" anything listed here.**
+- `SPECIFICATION.md` - present tense, authoritative about what BazLang does now.
+- `CHANGELOG.md` - past tense. What changed, never what is true today.
+- `PLAN.md` - intent. Nothing described in it exists yet.
+- `docs/adr/` - why. Only `accepted` records bind; check the status before relying on one.
+- `docs/quirks.md` - deliberate deviations. **Do not "fix" anything listed here.**
 
 Before you edit:
 
 - The specification follows the work. Change it because behaviour changed, not because it would
   read better. Its purpose and scope are not yours to revise.
 - Never change an ADR's `status`, and never edit one that says `accepted`. Drafting a record is
-  yours; deciding one is not — leave `decision-makers` as the template's placeholder too.
+  yours; deciding one is not - leave `decision-makers` as the template's placeholder too.
 - Delete completed `PLAN.md` entries rather than marking them done.
 - Adding a document means updating `DOC-MAP.md` in the same commit.

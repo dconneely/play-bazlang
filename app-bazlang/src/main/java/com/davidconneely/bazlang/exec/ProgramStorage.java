@@ -84,7 +84,7 @@ public class ProgramStorage {
     } catch (IOException | InvalidPathException e) {
       // InvalidPathException (e.g. a ':' in an illegal position on Windows) is a RuntimeException,
       // not an IOException, but Path.of(filename) above is still inside this try's dynamic scope
-      // (JLS 14.20.3 covers the try-with-resources resource specification too) — without catching
+      // (JLS 14.20.3 covers the try-with-resources resource specification too) - without catching
       // it here as well, a malformed filename would propagate uncaught past every caller.
       throw new ReportException(
           ReportCode.INVALID_FILE_NAME,

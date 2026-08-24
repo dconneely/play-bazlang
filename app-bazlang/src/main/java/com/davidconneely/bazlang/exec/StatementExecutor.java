@@ -93,7 +93,7 @@ public class StatementExecutor {
   }
 
   /**
-   * Evaluates an already-parsed ANTLR {@code numExpr} — used by {@code ProgramEditor} and the
+   * Evaluates an already-parsed ANTLR {@code numExpr} - used by {@code ProgramEditor} and the
    * {@code EDIT} REPL command, which (by design; see {@code localonly-plan-CUSTOM-AST.md} Phase 0)
    * still work directly off raw parse trees. Lowers fresh on every call, same "parse/lower fresh
    * each time" shape as {@code VAL}/{@code INPUT}.
@@ -228,7 +228,7 @@ public class StatementExecutor {
         new EvalState.ForLoopData(
             en, step, state.currentLineLabel(), state.currentStatementIndex()));
     if ((step >= 0) ? (st > en) : (st < en)) {
-      // Skip to matching NEXT (flat scan including IF bodies — see docs/quirks.md
+      // Skip to matching NEXT (flat scan including IF bodies - see docs/quirks.md
       // "FOR loop flat skip scan").
       final var addr =
           state
@@ -453,7 +453,7 @@ public class StatementExecutor {
    * Shared shape of the six {@code INK}/{@code PAPER}/{@code BRIGHT}/{@code FLASH}/{@code
    * INVERSE}/{@code OVER} statements: evaluate, then update both the screen's active attribute and
    * {@code EvalState}'s persistent default (unlike an inline styleList/print-item setting, which
-   * only ever touches the screen — see {@link StyleItem}'s class Javadoc).
+   * only ever touches the screen - see {@link StyleItem}'s class Javadoc).
    */
   private void executeColourStmt(NumExpr value, IntConsumer screenSetter, IntConsumer stateSetter) {
     final int colour = (int) exprEvaluator.evalNum(value);
@@ -820,7 +820,7 @@ public class StatementExecutor {
    * Whether a background APLAY session's thread is still alive. Package-visible purely as a test
    * hook: it's otherwise unobservable from outside that the thread deliberately never exits just
    * because it ran out of notes (see the comment where {@code frame.finished()} is handled in
-   * {@link #startNewAplaySession}) — exiting there would race {@link #executeAplayStmt}'s own
+   * {@link #startNewAplaySession}) - exiting there would race {@link #executeAplayStmt}'s own
    * {@code isAlive()} check and could silently drop a channel update targeted at this session.
    */
   boolean aplaySessionIsAlive() {
@@ -912,7 +912,7 @@ public class StatementExecutor {
 
   /**
    * Targets a partial update at an already-running APLAY: {@code "-"} (trimmed) leaves that
-   * channel's in-progress state — including an in-progress infinite repeat — completely untouched;
+   * channel's in-progress state - including an in-progress infinite repeat - completely untouched;
    * anything else replaces it. Any trailing channel not given at all is silenced, matching a fresh
    * call's own "omission silences" rule even against a live session.
    */
@@ -939,7 +939,7 @@ public class StatementExecutor {
   private void startNewAplaySession(List<String> given) {
     final var source = PlayParser.buildSequencer(given, state.currentLineLabel());
     final AtomicBoolean stop = new AtomicBoolean(false);
-    // Unlike PLAY, returns immediately — the rest of the BASIC program keeps running while this
+    // Unlike PLAY, returns immediately - the rest of the BASIC program keeps running while this
     // background thread advances the tune, exactly the point of APLAY existing at all.
     final Thread player =
         new Thread(

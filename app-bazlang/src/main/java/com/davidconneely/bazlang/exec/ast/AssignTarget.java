@@ -6,7 +6,7 @@ import java.util.List;
 /**
  * A lowered {@code assignmentTarget}: the destination of {@code LET}, {@code INPUT}, and {@code
  * READ}. Mirrors the mutable-reference-cache design of {@link NumExpr}'s variable nodes (see its
- * class Javadoc) — the cache is resolved on first assignment, not at lowering time.
+ * class Javadoc) - the cache is resolved on first assignment, not at lowering time.
  */
 public sealed interface AssignTarget {
   /** A scalar numeric variable target, e.g. {@code x}. */

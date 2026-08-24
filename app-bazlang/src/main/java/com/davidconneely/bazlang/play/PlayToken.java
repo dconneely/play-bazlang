@@ -46,7 +46,7 @@ sealed interface PlayToken {
   /**
    * {@code )}: marks the end of a repeated phrase. {@code matchingStartIndex} is the token index of
    * the corresponding {@link RepeatStart} (ignored if {@code infinite}). {@code infinite} means
-   * this {@code )} had no matching {@code (} — the whole string up to this point repeats forever.
+   * this {@code )} had no matching {@code (} - the whole string up to this point repeats forever.
    */
   record RepeatEnd(int matchingStartIndex, boolean infinite) implements PlayToken {}
 

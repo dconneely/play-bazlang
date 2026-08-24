@@ -21,7 +21,7 @@ attributes; audio needed to land somewhere.
 
 ## Decision Outcome
 
-Chosen option: a separate `VirtualSpeaker` interface, because audio is not a screen concern at all —
+Chosen option: a separate `VirtualSpeaker` interface, because audio is not a screen concern at all -
 folding it into `VirtualScreen` would entangle two things that vary independently, on an interface
 that is already large. Every `VirtualSpeaker` method defaults to a no-op, so every implementation
 except `TerminalScreen` gets silent `BEEP`/`PLAY`/`APLAY` for free, the same way `setFastMode`

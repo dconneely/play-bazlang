@@ -29,7 +29,7 @@ class LogicalOperatorsProgramTest extends BaseProgramTest {
 
   @Test
   void testSinclairZxBasicAndOperator() {
-    // Sinclair ZX BASIC: A AND B = A if B ≠ 0, 0 if B = 0 (numeric)
+    // Sinclair ZX BASIC: A AND B = A if B != 0, 0 if B = 0 (numeric)
     final var state =
         runProgram(
             """
@@ -46,7 +46,7 @@ class LogicalOperatorsProgramTest extends BaseProgramTest {
 
   @Test
   void testSinclairZxBasicAndOperatorWithStrings() {
-    // Sinclair ZX BASIC: str AND n = str if n ≠ 0, "" if n = 0
+    // Sinclair ZX BASIC: str AND n = str if n != 0, "" if n = 0
     final String[] lines =
         runProgramCapture(
                 """
@@ -64,7 +64,7 @@ class LogicalOperatorsProgramTest extends BaseProgramTest {
 
   @Test
   void testSinclairZxBasicOrOperator() {
-    // Sinclair ZX BASIC: A OR B = 1 if B ≠ 0, A if B = 0
+    // Sinclair ZX BASIC: A OR B = 1 if B != 0, A if B = 0
     final var state =
         runProgram(
             """

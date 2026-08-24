@@ -7,10 +7,10 @@ import java.util.List;
  * AstStatementExecutor} via {@code switch} pattern matching.
  *
  * <p>{@link IfStmt#body()} carries the {@code THEN}-clause's statements in their natural nested
- * shape — it is not itself what the executor's normal top-to-bottom driver walks (that driver walks
+ * shape - it is not itself what the executor's normal top-to-bottom driver walks (that driver walks
  * a single flat {@code List<Stmt>} per program line, produced by {@code
  * AstLowering.lowerStatements}, which recursively inlines {@code IfStmt} bodies into the flat list
- * exactly as {@code ProgramLine.flatten()} does today — the "flat skip-scan" quirk documented in
+ * exactly as {@code ProgramLine.flatten()} does today - the "flat skip-scan" quirk documented in
  * {@code docs/quirks.md}, needed so a {@code GOTO}/{@code NEXT} target can address a statement
  * nested inside an {@code IF} by flat index). Consequently {@code visitIfStmt}-equivalent
  * evaluation logic never walks {@code body()} itself: when the condition is true, execution falls
@@ -101,7 +101,7 @@ public sealed interface Stmt {
   record PrintStmt(List<PrintElement> items) implements Stmt {}
 
   /**
-   * {@code seed} is {@code null} for bare {@code RANDOMIZE} (system-entropy reseed — the same
+   * {@code seed} is {@code null} for bare {@code RANDOMIZE} (system-entropy reseed - the same
    * effect as an explicit {@code RANDOMIZE 0}, see {@code visitRandStmt}).
    */
   record RandStmt(NumExpr seed) implements Stmt {}

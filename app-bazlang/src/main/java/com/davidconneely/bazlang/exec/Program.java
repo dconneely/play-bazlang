@@ -104,7 +104,7 @@ public class Program {
 
   /**
    * Finds the first {@code NEXT forVar} at or after (fromLabel, fromStatementIndex), scanning
-   * flattened statements in program order (deliberately including IF bodies — see docs/quirks.md
+   * flattened statements in program order (deliberately including IF bodies - see docs/quirks.md
    * "FOR loop flat skip scan"). Returns its address, or null.
    */
   public EvalState.StatementAddress findMatchingNext(

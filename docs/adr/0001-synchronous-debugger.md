@@ -10,13 +10,13 @@ decision-makers: David Conneely
 
 `DebugEngine` needs to support `run`/`goto`/`go`/`stepInto`/`stepOver` for MCP clients driving a
 running BazLang programme. Each of these has to block until the programme next breaks, elapses,
-steps, hits a safety timeout, or stops, then hand control back — and the debugger has to decide what
+steps, hits a safety timeout, or stops, then hand control back - and the debugger has to decide what
 thread that execution actually runs on, and how a breakpoint gets from "the programme should pause"
 to "the caller's blocking call actually returns".
 
 ## Considered Options
 
-* A command thread with a handoff queue — the conventional debugger architecture: a dedicated thread
+* A command thread with a handoff queue - the conventional debugger architecture: a dedicated thread
   runs the interpreter, and commands (breakpoints, step, go) are posted to it and waited on.
 * Synchronous, single-threaded: `run`/`gotoLine`/`go`/`stepInto`/`stepOver` each drive
   `Interpreter.resume()` directly on the caller's own thread until the programme next pauses, with no
@@ -26,7 +26,7 @@ to "the caller's blocking call actually returns".
 
 Chosen option: synchronous single-threaded execution, because it entirely avoids the shared-state
 concurrency, lock management, and thread-safety work a command-thread design would need across the
-whole of `EvalState` — and because stdio is already one subprocess per MCP client, so there is no
+whole of `EvalState` - and because stdio is already one subprocess per MCP client, so there is no
 separate "protocol session" to synchronise against in the first place.
 
 A breakpoint pauses execution by having `Interpreter.setExecutionListener`'s callback set
@@ -39,13 +39,13 @@ that same resume guard.
 
 * Good, because it is a genuine simplification: no concurrency bugs, no lock management across
   `EvalState`, and a deterministically testable execution model.
-* Bad, because the debugger can only gain control at statement boundaries — it cannot interrupt a
+* Bad, because the debugger can only gain control at statement boundaries - it cannot interrupt a
   programme stuck mid-statement in an infinite loop. Every run-control call arms a per-call
   wall-clock safety timeout (default 30s, overridable via `timeoutMs`) as a mitigation, not a
   substitute: see [`docs/spec/mcp.md`](../spec/mcp.md) "Known limitations" and the open `PLAN.md`
   item on true `tools/call` cancellation.
 * Neutral: `notifications/cancelled` is accepted by the MCP server but has no effect under this
-  design — a full fix would move `Interpreter.resume()` onto a worker thread so a cancellation
+  design - a full fix would move `Interpreter.resume()` onto a worker thread so a cancellation
   notification arriving on stdin could interrupt it mid-run, reintroducing the concurrency this
   decision avoids.
 

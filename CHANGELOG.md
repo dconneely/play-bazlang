@@ -7,20 +7,20 @@ All notable changes to this project are documented here, following
 
 ### Added
 
-- `BEEP duration, pitch` — play a square-wave tone.
-- `PLAY string1 [, string2 [, string3]]` — up to 3 simultaneous channels of AY-chip-style music via
+- `BEEP duration, pitch` - play a square-wave tone.
+- `PLAY string1 [, string2 [, string3]]` - up to 3 simultaneous channels of AY-chip-style music via
   a note-string DSL; blocks until every channel finishes.
-- `APLAY string1 [, string2 [, string3]]` — non-blocking counterpart to `PLAY`; `"-"` as a channel
+- `APLAY string1 [, string2 [, string3]]` - non-blocking counterpart to `PLAY`; `"-"` as a channel
   string updates one channel of an already-running `APLAY` without disturbing the others.
-- MCP: `bazlang_stack` tool — GOSUB return frames and active FOR loops.
-- MCP: `bazlang_breakpoint(list)` — query which breakpoints are currently armed.
-- MCP: `bazlang_eval(action=vars)` — list every currently-defined variable, array, and `DEF FN`; a
+- MCP: `bazlang_stack` tool - GOSUB return frames and active FOR loops.
+- MCP: `bazlang_breakpoint(list)` - query which breakpoints are currently armed.
+- MCP: `bazlang_eval(action=vars)` - list every currently-defined variable, array, and `DEF FN`; a
   later change extended it to also report numeric/string arrays and `DEF FN` definitions.
-- MCP: `bazlang_eval(action=exec)` — run any single immediate-mode statement, not just `LET`.
-- MCP: `bazlang_eval(action=array)` — return a whole array's contents in one call.
-- MCP: `bazlang_step(action=status)` — report the current pause state without executing anything.
-- MCP: `bazlang_step`'s `step_into`/`step_over` actions — single-statement stepping.
-- MCP: `bazlang_program(action=save_file)` — write the loaded programme to a file.
+- MCP: `bazlang_eval(action=exec)` - run any single immediate-mode statement, not just `LET`.
+- MCP: `bazlang_eval(action=array)` - return a whole array's contents in one call.
+- MCP: `bazlang_step(action=status)` - report the current pause state without executing anything.
+- MCP: `bazlang_step`'s `step_into`/`step_over` actions - single-statement stepping.
+- MCP: `bazlang_program(action=save_file)` - write the loaded programme to a file.
 - MCP: a per-call wall-clock safety timeout (`timeoutMs`, default 30s) on
   `run`/`goto`/`go`/`step_into`/`step_over`, so a programme with no breakpoint of its own can't block
   a call forever.
@@ -28,7 +28,7 @@ All notable changes to this project are documented here, following
 ### Changed
 
 - MCP debugging moved from the hand-rolled `AgentDebugger` text protocol to a native MCP server
-  (`McpServer`/`DebugEngine`) targeting the 2026-07-28 MCP specification, modern-only — see
+  (`McpServer`/`DebugEngine`) targeting the 2026-07-28 MCP specification, modern-only - see
   [ADR-0004](docs/adr/0004-mcp-modern-only-protocol.md).
 
 ### Removed
