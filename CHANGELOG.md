@@ -24,6 +24,9 @@ All notable changes to this project are documented here, following
 - MCP: a per-call wall-clock safety timeout (`timeoutMs`, default 30s) on
   `run`/`goto`/`go`/`step_into`/`step_over`, so a programme with no breakpoint of its own can't block
   a call forever.
+- `PLAY`/`APLAY`: triplet duration codes `10`-`12` (triplet semi-quaver/quaver/crotchet) and tied
+  notes (`<duration>_<duration><note>`, e.g. `3_5A`), matching the ZX Spectrum 128 manual's own
+  duration-code table and tie example exactly. Previously reserved as parse errors.
 
 ### Changed
 

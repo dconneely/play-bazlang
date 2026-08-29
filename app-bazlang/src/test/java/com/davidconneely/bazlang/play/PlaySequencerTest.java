@@ -57,6 +57,30 @@ class PlaySequencerTest {
   }
 
   @Test
+  void tripletCrotchetGivesASixteenTickNote() {
+    // 12 = triplet crotchet = 2 * 24 ticks (two plain crotchets) / 3 = 16 ticks.
+    final var source = PlayParser.buildSequencer(List.of("12c"), 10);
+    assertEquals(16 * TICK - GAP, source.next(LARGE).durationSeconds(), 1e-9);
+  }
+
+  @Test
+  void tiedDurationSumsBothCodesIntoOneNote() {
+    // The manual's own example, 3_5A: a crotchet+quaver-length note (12 + 24 = 36 ticks).
+    final var source = PlayParser.buildSequencer(List.of("3_5c"), 10);
+    assertEquals(36 * TICK - GAP, source.next(LARGE).durationSeconds(), 1e-9);
+  }
+
+  @Test
+  void tiedDurationLeavesTheSecondCodePersistedForLaterNotes() {
+    final var source = PlayParser.buildSequencer(List.of("3_5cc"), 10);
+    source.next(LARGE); // tied note (36 ticks)
+    source.next(LARGE); // its trailing gap
+    final var second =
+        source.next(LARGE); // plain "c" -- should use the persisted code 5 (crotchet)
+    assertEquals(24 * TICK - GAP, second.durationSeconds(), 1e-9);
+  }
+
+  @Test
   void restIsSilent() {
     final var source = PlayParser.buildSequencer(List.of("&"), 10);
     final var frame = source.next(LARGE);

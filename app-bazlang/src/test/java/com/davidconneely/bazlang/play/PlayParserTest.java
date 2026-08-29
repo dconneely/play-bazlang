@@ -97,13 +97,55 @@ class PlayParserTest {
   }
 
   @Test
-  void tripletDurationCodesAreRejectedAsNotYetSupported() {
-    assertThrows(ReportException.class, () -> PlayParser.parse("10c", 10));
-    assertThrows(ReportException.class, () -> PlayParser.parse("12c", 10));
+  void tripletDurationCodesParseLikeAnyOtherDuration() {
+    final var tokens = PlayParser.parse("10c", 10);
+    assertEquals(2, tokens.size());
+    assertEquals(10, ((PlayToken.SetDuration) tokens.get(0)).code());
+    assertInstanceOf(PlayToken.Note.class, tokens.get(1));
+    assertEquals(12, ((PlayToken.SetDuration) PlayParser.parse("12c", 10).get(0)).code());
   }
 
   @Test
-  void tiedNotesAreRejectedAsNotYetSupported() {
+  void durationOutOfRangeThrows() {
+    assertThrows(ReportException.class, () -> PlayParser.parse("0c", 10));
+    assertThrows(ReportException.class, () -> PlayParser.parse("13c", 10));
+  }
+
+  @Test
+  void tiedDurationEmitsATiedDurationTokenThenTheNote() {
+    // The ZX Spectrum 128 manual's own worked example: a crotchet+quaver-length A.
+    final var tokens = PlayParser.parse("3_5A", 10);
+    assertEquals(2, tokens.size());
+    final var tied = assertInstanceOf(PlayToken.TiedDuration.class, tokens.get(0));
+    assertEquals(3, tied.firstCode());
+    assertEquals(5, tied.secondCode());
+    assertInstanceOf(PlayToken.Note.class, tokens.get(1));
+  }
+
+  @Test
+  void tiedDurationAppliesToARestToo() {
+    final var tied =
+        assertInstanceOf(PlayToken.TiedDuration.class, PlayParser.parse("3_5&", 10).get(0));
+    assertEquals(3, tied.firstCode());
+    assertEquals(5, tied.secondCode());
+  }
+
+  @Test
+  void bareTiedDurationWithNothingFollowingKeepsOnlyTheSecondCode() {
+    final var tokens = PlayParser.parse("3_5", 10);
+    assertEquals(1, tokens.size());
+    assertEquals(5, ((PlayToken.SetDuration) tokens.get(0)).code());
+  }
+
+  @Test
+  void tieMissingSecondDurationThrows() {
+    assertThrows(ReportException.class, () -> PlayParser.parse("3_c", 10));
+    assertThrows(ReportException.class, () -> PlayParser.parse("3_", 10));
+  }
+
+  @Test
+  void tieNotFollowingADurationDigitThrows() {
+    // Real syntax is <duration>_<duration><note>, not note_note.
     assertThrows(ReportException.class, () -> PlayParser.parse("c_d", 10));
   }
 

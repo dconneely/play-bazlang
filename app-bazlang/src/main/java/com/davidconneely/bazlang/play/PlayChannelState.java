@@ -14,7 +14,12 @@ import java.util.Map;
  * found" loop.
  */
 final class PlayChannelState {
-  private static final int[] DURATION_TICKS = {0, 6, 9, 12, 18, 24, 36, 48, 72, 96};
+  // Indices 1-9 are the plain codes (1=semi-quaver ... 9=semi-breve), per the ZX Spectrum 128
+  // manual's duration table. Indices 10-12 are its triplet codes - "three notes played in the time
+  // normally used for two" of the base note they triplet (10=semi-quaver, 11=quaver, 12=crotchet),
+  // i.e. each is 2 * that base duration's ticks, divided by 3: 10 = 2*6/3 = 4, 11 = 2*12/3 = 8,
+  // 12 = 2*24/3 = 16.
+  private static final int[] DURATION_TICKS = {0, 6, 9, 12, 18, 24, 36, 48, 72, 96, 4, 8, 16};
   private static final int DEFAULT_OCTAVE = 4; // reference octave containing middle C
   private static final int DEFAULT_DURATION_CODE = 5; // crotchet, per the ROM's confirmed default
   private static final int DEFAULT_VOLUME = 15;
@@ -30,6 +35,9 @@ final class PlayChannelState {
   private int volume = DEFAULT_VOLUME;
   private boolean useEnvelope;
   private boolean halted;
+  // Set by a TiedDuration token, consumed by the very next Note/Rest (see consumeDurationTicks) -
+  // one-shot rather than persisted, since a tie's combined length applies to exactly one note.
+  private Integer tiedTicksOverride;
 
   /** One resolved note/rest event: {@code noteNumber} is {@code null} for a rest. */
   record ChannelNote(int durationTicks, Integer noteNumber, int volume, boolean useEnvelope) {}
@@ -50,12 +58,11 @@ final class PlayChannelState {
       switch (token) {
         case PlayToken.Note n -> {
           cursor++;
-          return new ChannelNote(
-              DURATION_TICKS[durationCode], resolveNoteNumber(n), volume, useEnvelope);
+          return new ChannelNote(consumeDurationTicks(), resolveNoteNumber(n), volume, useEnvelope);
         }
         case PlayToken.Rest _ -> {
           cursor++;
-          return new ChannelNote(DURATION_TICKS[durationCode], null, volume, useEnvelope);
+          return new ChannelNote(consumeDurationTicks(), null, volume, useEnvelope);
         }
         case PlayToken.SetOctave o -> {
           octave = o.octave();
@@ -63,6 +70,11 @@ final class PlayChannelState {
         }
         case PlayToken.SetDuration d -> {
           durationCode = d.code();
+          cursor++;
+        }
+        case PlayToken.TiedDuration td -> {
+          tiedTicksOverride = DURATION_TICKS[td.firstCode()] + DURATION_TICKS[td.secondCode()];
+          durationCode = td.secondCode(); // persists for later untied notes, per the manual
           cursor++;
         }
         case PlayToken.SetVolume v -> {
@@ -116,6 +128,16 @@ final class PlayChannelState {
       repeatCounters.remove(endIndex); // reset in case an outer loop re-enters this bracket later
       cursor++;
     }
+  }
+
+  /** Returns the ticks for the note/rest about to be emitted, consuming a pending tie if any. */
+  private int consumeDurationTicks() {
+    if (tiedTicksOverride != null) {
+      final int ticks = tiedTicksOverride;
+      tiedTicksOverride = null;
+      return ticks;
+    }
+    return DURATION_TICKS[durationCode];
   }
 
   private int resolveNoteNumber(PlayToken.Note note) {

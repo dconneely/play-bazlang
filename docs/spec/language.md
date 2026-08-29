@@ -139,7 +139,13 @@ Returns `1` for True, `0` for False.
   - Duration digits `1`-`9` immediately before a note (e.g. `9c`), persisting until changed:
     `1`=semi-quaver, `2`=dotted semi-quaver, `3`=quaver, `4`=dotted quaver, `5`=crotchet (the
     default), `6`=dotted crotchet, `7`=minim, `8`=dotted minim, `9`=semi-breve. A bare duration
-    digit with nothing following it just changes the persisted duration.
+    digit with nothing following it just changes the persisted duration. `10`-`12` are the triplet
+    equivalents of `1`/`3`/`5` (three notes played in the time normally used for two): `10`=triplet
+    semi-quaver, `11`=triplet quaver, `12`=triplet crotchet.
+  - `<duration>_<duration><note>` (e.g. `3_5A`) ties two duration codes into one note/rest whose
+    length is their sum, without re-articulating between them; the second code becomes the
+    persisted duration for later notes, exactly as a bare duration digit would. A tie with nothing
+    following the second code (end of string) just sets the persisted duration to that second code.
   - `O0`-`O8`: sets the octave (persists).
   - `T60`-`T240`: sets the tempo in bpm (default 120) - only honoured from the first channel
     string.
@@ -155,8 +161,7 @@ Returns `1` for True, `0` for False.
     matching `(` repeats the whole string from the start, forever.
   - `!...!`: a comment. `H`: halts this channel. `N`: a no-op separator, useful between two
     numeric commands that would otherwise run together (e.g. `T240N1c`, not `T2401c`).
-  - Not yet implemented: tied notes (`_`) and triplet duration codes (`10`-`12`) - using either is
-    a parse error, not silent misbehaviour. MIDI (`Y`/`Z`) is permanently out of scope.
+  - MIDI (`Y`/`Z`) is permanently out of scope.
 - **`APLAY string1 [, string2 [, string3]]`**: Identical DSL to `PLAY`, but non-blocking - starts
   the tune playing in the background and returns immediately, so the rest of the program keeps
   running (e.g. sound effects via `BEEP` layered over `APLAY` background music). Has no real

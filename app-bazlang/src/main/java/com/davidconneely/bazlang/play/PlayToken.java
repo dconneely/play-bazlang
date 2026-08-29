@@ -19,8 +19,17 @@ sealed interface PlayToken {
   /** {@code O0}-{@code O8}: sets the current octave. */
   record SetOctave(int octave) implements PlayToken {}
 
-  /** A duration digit {@code 1}-{@code 9}: sets the current note duration (persists). */
+  /** A duration digit {@code 1}-{@code 12}: sets the current note duration (persists). */
   record SetDuration(int code) implements PlayToken {}
+
+  /**
+   * {@code <firstCode>_<secondCode>}: ties two duration codes into one note/rest whose length is
+   * their sum (e.g. {@code 3_5A} plays a crotchet+quaver-length A - the ZX Spectrum 128 manual's
+   * own example) - applies to exactly the note/rest immediately following it. {@code secondCode}
+   * becomes the persisted duration for subsequent untied notes, matching the manual's own note that
+   * the second duration given "will also apply to any following codes" until changed.
+   */
+  record TiedDuration(int firstCode, int secondCode) implements PlayToken {}
 
   /** {@code T60}-{@code T240}: sets the tempo (only honoured from the first channel string). */
   record SetTempo(int bpm) implements PlayToken {}

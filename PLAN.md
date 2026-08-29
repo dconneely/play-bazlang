@@ -68,22 +68,6 @@ expression-level error loses the statement index and reports an incomplete locat
 Native support for substring operations that return everything except the first byte/character,
 simplifying recursive string manipulation. Small, self-contained grammar and evaluator change.
 
-## `PLAY`/`APLAY` tied notes (`_`)
-
-**Type:** feature - **Importance:** low - **Effort:** small
-
-`PlayParser.parse` already reserves `_` and rejects it with a clear "not yet supported" error
-(`PlayParser.java:164`) rather than silently misparsing it - `PlayParser`'s own class doc calls this
-out as "Phase 2, not yet implemented", so it belongs on this list rather than only living as a
-parse-error message. A tie needs one new thing at the sequencer level: `PlaySequencer` inserts
-`ARTICULATION_GAP_TICKS` of silence after every note so consecutive same-pitch notes don't merge
-into one drone (see the class doc there); a tied pair needs to suppress exactly that gap between the
-two notes while still summing their durations, rather than the note-and-rest-based rhythm model
-skipping straight to `parseNoteOrDuration` in `PlayParser` needing any deeper change. Triplet
-duration codes (`10`-`12`) are the DSL's other "Phase 2" parse-error placeholder in the same spot -
-worth doing alongside this one if either comes up, but each is independently small enough not to
-block on the other.
-
 ## Unify read/write subscript-and-slice resolution
 
 **Type:** debt - **Importance:** medium - **Effort:** medium

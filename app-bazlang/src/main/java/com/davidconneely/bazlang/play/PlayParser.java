@@ -25,9 +25,11 @@ import java.util.function.IntFunction;
  * matches the ROM's documented *behaviour* ("the whole string up until that point is repeated
  * indefinitely") exactly.
  *
- * <p>Tied notes ({@code _}) and triplet duration codes ({@code 10}-{@code 12}) are Phase 2, not yet
- * implemented - encountering either is a parse error, not silent misbehaviour. MIDI ({@code
- * Y}/{@code Z}) is permanently out of scope per the project's own hard constraint.
+ * <p>Tied notes ({@code <firstCode>_<secondCode><note>}, e.g. {@code 3_5A}) and triplet duration
+ * codes ({@code 10}-{@code 12}, "three notes played in the time normally used for two") both follow
+ * the ZX Spectrum 128 manual's own worked examples exactly - see {@link PlayToken.TiedDuration} and
+ * {@code PlayChannelState.DURATION_TICKS}. MIDI ({@code Y}/{@code Z}) is permanently out of scope
+ * per the project's own hard constraint.
  */
 public final class PlayParser {
   private PlayParser() {}
@@ -161,7 +163,9 @@ public final class PlayParser {
                     tokens,
                     lineLabel);
         case 'Y', 'Z' -> throw invalid(lineLabel, "PLAY MIDI commands ('Y'/'Z') are not supported");
-        case '_' -> throw invalid(lineLabel, "PLAY tied notes ('_') are not yet supported");
+        case '_' ->
+            throw invalid(
+                lineLabel, "PLAY tie ('_') must directly follow a duration digit, e.g. '3_5A'");
         default -> i = parseNoteOrDuration(channelString, i, tokens, lineLabel);
       }
     }
@@ -172,25 +176,31 @@ public final class PlayParser {
   }
 
   /**
-   * Parses an optional duration-digit sequence, optional {@code #}/{@code $} accidentals, and a
-   * terminating note letter or {@code &} rest - emitting a {@code SetDuration} token first if a
+   * Parses an optional duration-digit sequence (itself optionally tied to a second duration via
+   * {@code _}, e.g. {@code 3_5}), optional {@code #}/{@code $} accidentals, and a terminating note
+   * letter or {@code &} rest - emitting a {@code SetDuration}/{@code TiedDuration} token first if a
    * duration was given, then the {@code Note}/{@code Rest} token. A bare duration (nothing follows
-   * it) emits just {@code SetDuration}, updating the persisted duration for future notes.
+   * it) emits just {@code SetDuration} for the last duration digit read, updating the persisted
+   * duration for future notes - a bare tie's first half has nothing to apply its combined length
+   * to, so it's dropped rather than carried forward.
    */
   private static int parseNoteOrDuration(
       String s, int start, List<PlayToken> tokens, int lineLabel) {
     int i = start;
     Integer duration = null;
+    Integer tiedDuration = null; // set only if '_' ties a second duration to the first
     if (Character.isDigit(s.charAt(i))) {
-      final var num = parseNumber(s, i);
-      if (num.value() >= 10 && num.value() <= 12) {
-        throw invalid(lineLabel, "PLAY triplets ('10'-'12') are not yet supported");
-      }
-      if (num.value() < 1 || num.value() > 9) {
-        throw invalid(lineLabel, "PLAY duration out of range (1-9): " + num.value());
-      }
+      final var num = parseDurationCode(s, i, lineLabel);
       duration = num.value();
       i = num.nextIndex();
+      if (i < s.length() && s.charAt(i) == '_') {
+        if (i + 1 >= s.length() || !Character.isDigit(s.charAt(i + 1))) {
+          throw invalid(lineLabel, "PLAY tie ('_') missing second duration");
+        }
+        final var tied = parseDurationCode(s, i + 1, lineLabel);
+        tiedDuration = tied.value();
+        i = tied.nextIndex();
+      }
     }
     int semitoneAdjust = 0;
     boolean sawAccidental = false;
@@ -206,7 +216,7 @@ public final class PlayParser {
       if (duration == null) {
         throw invalid(lineLabel, "Invalid note name in PLAY string: '" + s.charAt(start) + "'");
       }
-      tokens.add(new PlayToken.SetDuration(duration));
+      tokens.add(new PlayToken.SetDuration(tiedDuration != null ? tiedDuration : duration));
       return i;
     }
     final char c = s.charAt(i);
@@ -214,9 +224,7 @@ public final class PlayParser {
       if (sawAccidental) {
         throw invalid(lineLabel, "PLAY accidental cannot apply to a rest");
       }
-      if (duration != null) {
-        tokens.add(new PlayToken.SetDuration(duration));
-      }
+      emitDuration(tokens, duration, tiedDuration);
       tokens.add(new PlayToken.Rest());
       return i + 1;
     }
@@ -224,12 +232,30 @@ public final class PlayParser {
     if (letterIndex < 0 || letterIndex > 6) {
       throw invalid(lineLabel, "Invalid note name in PLAY string: '" + c + "'");
     }
-    if (duration != null) {
-      tokens.add(new PlayToken.SetDuration(duration));
-    }
+    emitDuration(tokens, duration, tiedDuration);
     tokens.add(
         new PlayToken.Note(NOTE_SEMITONES[letterIndex] + semitoneAdjust, Character.isUpperCase(c)));
     return i + 1;
+  }
+
+  /**
+   * Emits the duration token, if any, ahead of the note/rest {@link #parseNoteOrDuration} found.
+   */
+  private static void emitDuration(List<PlayToken> tokens, Integer duration, Integer tiedDuration) {
+    if (tiedDuration != null) {
+      tokens.add(new PlayToken.TiedDuration(duration, tiedDuration));
+    } else if (duration != null) {
+      tokens.add(new PlayToken.SetDuration(duration));
+    }
+  }
+
+  /** Reads a duration-code digit sequence and range-checks it to {@code 1}-{@code 12}. */
+  private static ParsedNumber parseDurationCode(String s, int i, int lineLabel) {
+    final var num = parseNumber(s, i);
+    if (num.value() < 1 || num.value() > 12) {
+      throw invalid(lineLabel, "PLAY duration out of range (1-12): " + num.value());
+    }
+    return num;
   }
 
   /**
