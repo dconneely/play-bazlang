@@ -96,6 +96,42 @@ subprojects {
     dependsOn(tasks.withType<JacocoReport>())
   }
 
+  // JaCoCo coverage verification - one minimum per module, since lib-repl's terminal-wrapping code
+  // is inherently far less unit-testable than app-bazlang/lib-cell (see docs/testing.md "What is
+  // deliberately not covered"). Each threshold sits a couple of points below that module's actual
+  // instruction coverage when this was added (app-bazlang ~72%, lib-cell ~87%, lib-repl ~9%), so
+  // normal fluctuation doesn't fail a build - the point is to catch a real regression, not to
+  // ratchet coverage upward automatically.
+  val minInstructionCoverage =
+      when (project.name) {
+        "lib-cell" -> 0.85
+        "lib-repl" -> 0.05
+        else -> 0.70 // app-bazlang
+      }
+
+  tasks.withType<JacocoCoverageVerification>().configureEach {
+    dependsOn(tasks.withType<Test>())
+    classDirectories.setFrom(
+      files(classDirectories.files.map {
+        fileTree(it) {
+          exclude("**/antlr/**")
+        }
+      })
+    )
+    violationRules {
+      rule {
+        limit {
+          counter = "INSTRUCTION"
+          minimum = minInstructionCoverage.toBigDecimal()
+        }
+      }
+    }
+  }
+
+  tasks.named("check") {
+    dependsOn(tasks.withType<JacocoCoverageVerification>())
+  }
+
   // SpotBugs
   configure<com.github.spotbugs.snom.SpotBugsExtension> {
     toolVersion = spotbugsToolVersion

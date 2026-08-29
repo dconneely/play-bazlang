@@ -30,3 +30,25 @@ jobs:
 
       - name: "Build and test"
         run: ./gradlew build
+
+      - name: "Coverage summary"
+        # One canonical summary per run, not once per matrix OS - JaCoCo's numbers don't vary by OS.
+        if: matrix.os == 'ubuntu-latest'
+        shell: bash
+        # Never let a formatting hiccup in this purely-informational step fail the build.
+        continue-on-error: true
+        run: |
+          {
+            echo "## Test coverage"
+            echo
+            echo "| Module | Instructions | Branches |"
+            echo "| --- | --- | --- |"
+            for module in app-bazlang lib-cell lib-repl; do
+              report="$module/build/reports/jacoco/test/html/index.html"
+              row=$(grep -oP '(?<=<tfoot><tr>).*?(?=</tr></tfoot>)' "$report" || true)
+              pcts=$(printf '%s' "$row" | grep -oP '(?<=class="ctr2">)\d+%' || true)
+              instructions=$(printf '%s' "$pcts" | sed -n 1p)
+              branches=$(printf '%s' "$pcts" | sed -n 2p)
+              echo "| $module | ${instructions:-n/a} | ${branches:-n/a} |"
+            done
+          } >> "$GITHUB_STEP_SUMMARY"
