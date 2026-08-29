@@ -38,7 +38,7 @@ numExpr
     | numExpr ('*' | '/') numExpr                           # NumMulDivExpr
     | numExpr ('+' | '-') numExpr                           # NumAddSubExpr
     | numExpr ('<' | '<=' | '>' | '>=' | '=' | '<>') numExpr # NumCompExpr
-    | strExpr ('<' | '<=' | '>' | '>=' | '=' | '<>') strExpr # StrCompExpr
+    | strTerm ('<' | '<=' | '>' | '>=' | '=' | '<>') strTerm # StrCompExpr
     | NOT numExpr                                           # NumNotExpr
     | numExpr AND numExpr                                   # NumAndExpr
     | numExpr OR numExpr                                    # NumOrExpr

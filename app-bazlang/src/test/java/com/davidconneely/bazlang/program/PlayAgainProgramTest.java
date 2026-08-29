@@ -103,20 +103,22 @@ class PlayAgainProgramTest extends BaseProgramTest {
   }
 
   @Test
-  void chainedAndOverStringComparisonsMisparses() {
-    // Documents a real grammar bug, found via hangman's play-again prompt refusing to accept "N".
+  void chainedAndOverStringComparisonsParsesCorrectly() {
+    // Regression test for a real grammar bug, found via hangman's play-again prompt refusing to
+    // accept "N". The grammar offers both `numExpr AND numExpr` and `strTerm AND numExpr` (the
+    // "string AND number" form that yields "" when the number is zero). Parsing
+    // `r$ <> "Y" AND r$ <> "y"`, the right-hand operand of `<>` used to be a full `strExpr`, and it
+    // greedily extended across the AND, so this parsed as r$ <> ("Y" AND (r$ <> "y")) rather than
+    // (r$ <> "Y") AND (r$ <> "y").
     //
-    // The grammar offers both `numExpr AND numExpr` and `strExpr AND numExpr` (the "string AND
-    // number" form that yields "" when the number is zero). Parsing `r$ <> "Y" AND r$ <> "y"`, the
-    // right-hand operand of `<>` is a strExpr, and it greedily extends across the AND, so this
-    // parses as r$ <> ("Y" AND (r$ <> "y")) rather than (r$ <> "Y") AND (r$ <> "y").
+    // The two readings agreed often enough to hide the problem -- with r$ = "Y" both say false --
+    // which is precisely why it survived until a case where they differ. Here r$ = "n" makes the
+    // guard false (n is one of the listed letters); confirmed against real ZX81/ZX Spectrum BASIC,
+    // which both print 0 for the equivalent `PRINT r$<>"Y" AND r$<>"n"`.
     //
-    // The two readings agree often enough to hide the problem -- with r$ = "Y" both say false --
-    // which is precisely why it survived until a case where they differ. Here r$ = "n" should make
-    // the guard false (n is one of the listed letters), but the misparse reports true.
-    //
-    // OR is unaffected: there is no `strExpr OR numExpr` form to compete. Parenthesising each
-    // comparison and nested IFs both give the right answer; hangman uses the parenthesised form.
+    // Fixed by splitting strExpr into strExpr/strTerm in BazLang.g4: comparison operands are now
+    // strTerm, which has no AND alternative, so a comparison's right-hand operand can no longer
+    // reach across an AND. OR was never affected: there is no `strTerm OR numExpr` form to compete.
     final String source =
         """
         10 LET r$ = "n"
@@ -125,10 +127,9 @@ class PlayAgainProgramTest extends BaseProgramTest {
         40 IF (r$ <> "Y") AND (r$ <> "n") THEN PRINT "PAREN TRUE"
         50 PRINT "DONE"
         """;
-    // "GUARD TRUE" is the bug: r$ IS "n", so none of these guards should hold. Nested IFs and
-    // parenthesised operands both give the right answer -- parenthesising forces each comparison to
-    // close as a complete numeric expression before the AND, so the strExpr can't reach across it.
-    assertEquals("GUARD TRUE\nDONE\n", runProgramCapture(source));
+    // r$ IS "n", so none of these guards should hold -- the unparenthesised, nested-IF, and
+    // parenthesised forms must now all agree.
+    assertEquals("DONE\n", runProgramCapture(source));
   }
 
   @Test

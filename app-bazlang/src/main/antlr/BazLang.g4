@@ -182,24 +182,36 @@ numExpr
     | numExpr ('*' | '/') numExpr                          # NumMulDivExpr
     | numExpr ('+' | '-') numExpr                          # NumAddSubExpr
     | numExpr ('<' | '<=' | '>' | '>=' | '=' | '<>') numExpr # NumCompExpr
-    | strExpr ('<' | '<=' | '>' | '>=' | '=' | '<>') strExpr # StrCompExpr
+    | strTerm ('<' | '<=' | '>' | '>=' | '=' | '<>') strTerm # StrCompExpr
     | NOT numExpr                                          # NumNotExpr
     | numExpr AND numExpr                                  # NumAndExpr
     | numExpr OR numExpr                                   # NumOrExpr
     ;
 
 // String expressions
+// Split into strExpr/strTerm so a comparison operand (strTerm, below) cannot itself absorb a
+// trailing AND: without this split, `r$ <> "Y" AND r$ <> "n"` parses as
+// `r$ <> ("Y" AND (r$ <> "n"))` instead of `(r$ <> "Y") AND (r$ <> "n")`, because the strExpr
+// invoked for the comparison's right-hand operand matches its own (lowest-precedence) AND
+// alternative too - see docs/quirks.md's former "AND misparses..." entry (now fixed) and
+// PlayAgainProgramTest.
+strExpr
+    : strTerm AND numExpr                                  # StrAndExpr
+    | strTerm                                               # StrTermExpr
+    ;
+
+// Everything a strExpr can be except the top-level AND. Used as StrAndExpr's own left-hand side
+// and wherever a string operand must not swallow a trailing AND (comparison operands, above).
 // Subscripts can include indices and an optional slice at the end
 // A$(1), A$(1,2), A$(1 TO 5), A$(TO 5), A$(1, 2 TO 5), etc.
-strExpr
+strTerm
     : STR_LITERAL                                          # StrLiteralExpr
     | STR_IDENTIFIER                                       # StrVarExpr
     | STR_IDENTIFIER '(' strSubscript ')'                  # StrSubscriptExpr
     | '(' strExpr ')'                                      # StrParenExpr
-    | strExpr '+' strExpr                                  # StrConcatExpr
+    | strTerm '+' strTerm                                  # StrConcatExpr
     | strFunc                                              # StrFuncCallExpr
     | FN STR_IDENTIFIER '(' ( args+=expression (',' args+=expression)* )? ')' # FnStrCallExpr
-    | strExpr AND numExpr                                  # StrAndExpr
     ;
 
 // String subscript: indices optionally followed by a slice

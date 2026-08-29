@@ -45,3 +45,6 @@ All notable changes to this project are documented here, following
 - A breakpoint (particularly an `ELAPSE` one) no longer silently cancels a REPL command
   (`LOAD`/`NEW`/a numbered-line edit/an assignment) dispatched through the immediate-mode execution
   path.
+- `AND` chained after a string comparison (e.g. `IF r$ <> "Y" AND r$ <> "n" THEN ...`) now parses as
+  `(r$ <> "Y") AND (r$ <> "n")` instead of letting the comparison's right-hand string operand
+  swallow the `AND` (`r$ <> ("Y" AND (r$ <> "n"))`); confirmed against real ZX81/ZX Spectrum BASIC.

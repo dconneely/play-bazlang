@@ -12,11 +12,11 @@ import org.antlr.v4.runtime.Token;
 
 /**
  * Lowers ANTLR expression parse trees ({@code numExpr}/{@code numAtom}/{@code strExpr}/{@code
- * strAtom}) to the typed {@link NumExpr}/{@link StrExpr} AST. Pure functions: no {@code EvalState},
- * so lowering never resolves a variable/array reference - those stay lazily resolved on first
- * evaluation (see {@link NumExpr} class Javadoc), which keeps this class usable both ahead-of-time
- * (at {@code ProgramLine} parse time) and for one-off runtime parses ({@code VAL}, {@code INPUT})
- * without needing an {@code EvalState} to exist yet.
+ * strTerm}/{@code strAtom}) to the typed {@link NumExpr}/{@link StrExpr} AST. Pure functions: no
+ * {@code EvalState}, so lowering never resolves a variable/array reference - those stay lazily
+ * resolved on first evaluation (see {@link NumExpr} class Javadoc), which keeps this class usable
+ * both ahead-of-time (at {@code ProgramLine} parse time) and for one-off runtime parses ({@code
+ * VAL}, {@code INPUT}) without needing an {@code EvalState} to exist yet.
  *
  * <p>{@code lineNumber} is threaded through as a plain parameter (not a {@code ThreadLocal}, as the
  * retired {@code AstAnnotator} class did) purely so a {@code BIN} literal that overflows 64 digits
@@ -73,8 +73,8 @@ public final class AstLowering {
       case StrCompExprContext c ->
           new NumExpr.StrCompare(
               compOp(c.getChild(1).getText()),
-              lowerStr(c.strExpr(0), lineNumber),
-              lowerStr(c.strExpr(1), lineNumber));
+              lowerStr(c.strTerm(0), lineNumber),
+              lowerStr(c.strTerm(1), lineNumber));
       case NumNotExprContext c -> new NumExpr.NumNot(lowerNum(c.numExpr(), lineNumber));
       case NumAndExprContext c ->
           new NumExpr.NumAnd(
@@ -251,6 +251,20 @@ public final class AstLowering {
 
   public static StrExpr lowerStr(StrExprContext ctx, int lineNumber) {
     return switch (ctx) {
+      case StrAndExprContext c ->
+          new StrExpr.StrAnd(lowerStr(c.strTerm(), lineNumber), lowerNum(c.numExpr(), lineNumber));
+      case StrTermExprContext c -> lowerStr(c.strTerm(), lineNumber);
+      default -> throw new IllegalStateException("Unknown strExpr alternative: " + ctx.getClass());
+    };
+  }
+
+  /**
+   * Lowers a {@code strTerm} (everything a {@code strExpr} can be except the top-level {@code AND}
+   * - see {@code BazLang.g4}'s comment on the split) to the same node types as {@link
+   * #lowerStr(StrExprContext, int)}.
+   */
+  public static StrExpr lowerStr(StrTermContext ctx, int lineNumber) {
+    return switch (ctx) {
       case StrLiteralExprContext c ->
           new StrExpr.StrLiteral(parseStrLiteral(c.STR_LITERAL().getText()));
       case StrVarExprContext c -> new StrExpr.StrVarExpr(upper(c.STR_IDENTIFIER().getText()));
@@ -260,14 +274,12 @@ public final class AstLowering {
       case StrParenExprContext c -> lowerStr(c.strExpr(), lineNumber);
       case StrConcatExprContext c ->
           new StrExpr.StrConcat(
-              lowerStr(c.strExpr(0), lineNumber), lowerStr(c.strExpr(1), lineNumber));
+              lowerStr(c.strTerm(0), lineNumber), lowerStr(c.strTerm(1), lineNumber));
       case StrFuncCallExprContext c -> lowerStrFunc(c.strFunc(), lineNumber);
       case FnStrCallExprContext c ->
           new StrExpr.FnStrCall(
               upper(c.STR_IDENTIFIER().getText()), lowerExpressionList(c.args, lineNumber));
-      case StrAndExprContext c ->
-          new StrExpr.StrAnd(lowerStr(c.strExpr(), lineNumber), lowerNum(c.numExpr(), lineNumber));
-      default -> throw new IllegalStateException("Unknown strExpr alternative: " + ctx.getClass());
+      default -> throw new IllegalStateException("Unknown strTerm alternative: " + ctx.getClass());
     };
   }
 

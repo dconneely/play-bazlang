@@ -500,7 +500,7 @@ public class ReformatVisitor extends BazLangBaseVisitor<String> {
 
   @Override
   public String visitStrCompExpr(StrCompExprContext ctx) {
-    return visit(ctx.strExpr(0)) + " " + ctx.getChild(1).getText() + " " + visit(ctx.strExpr(1));
+    return visit(ctx.strTerm(0)) + " " + ctx.getChild(1).getText() + " " + visit(ctx.strTerm(1));
   }
 
   @Override
@@ -540,7 +540,7 @@ public class ReformatVisitor extends BazLangBaseVisitor<String> {
 
   @Override
   public String visitStrConcatExpr(StrConcatExprContext ctx) {
-    return visit(ctx.strExpr(0)) + " + " + visit(ctx.strExpr(1));
+    return visit(ctx.strTerm(0)) + " + " + visit(ctx.strTerm(1));
   }
 
   @Override
@@ -550,7 +550,12 @@ public class ReformatVisitor extends BazLangBaseVisitor<String> {
 
   @Override
   public String visitStrAndExpr(StrAndExprContext ctx) {
-    return visit(ctx.strExpr()) + " AND " + visit(ctx.numExpr());
+    return visit(ctx.strTerm()) + " AND " + visit(ctx.numExpr());
+  }
+
+  @Override
+  public String visitStrTermExpr(StrTermExprContext ctx) {
+    return visit(ctx.strTerm());
   }
 
   @Override

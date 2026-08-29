@@ -3,22 +3,6 @@
 Single ranked backlog, most important first. Entries are **deleted** when done, never annotated -
 a plan that accumulates completed items stops being read.
 
-## Fix `AND` misparsing when its left operand is a string comparison
-
-**Type:** bug - **Importance:** high - **Effort:** medium
-
-`IF r$ <> "Y" AND r$ <> "n" THEN ...` does not parse as `(r$ <> "Y") AND (r$ <> "n")`: the grammar's
-`StrAndExpr` (`strExpr AND numExpr`) lets the right-hand `strExpr` of a string comparison greedily
-extend across the `AND`, so it actually parses as `r$ <> ("Y" AND (r$ <> "n"))`. `OR` is unaffected
-(there is no `strExpr OR numExpr` form to compete with `numExpr OR numExpr`). Found via hangman's
-"play again (Y/N)?" prompt silently refusing `N`. Pinned by
-`PlayAgainProgramTest.chainedAndOverStringComparisonsMisparses`, which asserts today's wrong
-behaviour so the fix has a ready-made regression test - invert that assertion when fixing. See
-`docs/quirks.md` for the accepted-wrong entry tracking this until it's fixed. Needs care in
-`BazLang.g4`: `StrAndExpr` must not absorb an `AND` whose left context is already a complete
-comparison; check whether real Sinclair BASIC even permits a bare string left of `AND` in this
-position. Any change here needs the full example-game suite re-run, since `AND` is pervasive there.
-
 ## Fix `monster.bas`'s maze-view rendering
 
 **Type:** bug - **Importance:** high - **Effort:** medium
@@ -83,6 +67,22 @@ expression-level error loses the statement index and reports an incomplete locat
 
 Native support for substring operations that return everything except the first byte/character,
 simplifying recursive string manipulation. Small, self-contained grammar and evaluator change.
+
+## `PLAY`/`APLAY` tied notes (`_`)
+
+**Type:** feature - **Importance:** low - **Effort:** small
+
+`PlayParser.parse` already reserves `_` and rejects it with a clear "not yet supported" error
+(`PlayParser.java:164`) rather than silently misparsing it - `PlayParser`'s own class doc calls this
+out as "Phase 2, not yet implemented", so it belongs on this list rather than only living as a
+parse-error message. A tie needs one new thing at the sequencer level: `PlaySequencer` inserts
+`ARTICULATION_GAP_TICKS` of silence after every note so consecutive same-pitch notes don't merge
+into one drone (see the class doc there); a tied pair needs to suppress exactly that gap between the
+two notes while still summing their durations, rather than the note-and-rest-based rhythm model
+skipping straight to `parseNoteOrDuration` in `PlayParser` needing any deeper change. Triplet
+duration codes (`10`-`12`) are the DSL's other "Phase 2" parse-error placeholder in the same spot -
+worth doing alongside this one if either comes up, but each is independently small enough not to
+block on the other.
 
 ## Unify read/write subscript-and-slice resolution
 
@@ -180,6 +180,34 @@ codes are not a guaranteed entropy source (some JVMs hand out near-sequential va
 two throwaway `Object`s to read them is wasteful. `System.nanoTime()` alone - optionally mixed with
 `ThreadLocalRandom.current().nextLong()` - is simpler and stronger. Keep the XorShift mixing that
 follows.
+
+## `PLAY`/`APLAY` volume is linear, not the AY chip's logarithmic curve
+
+**Type:** bug - **Importance:** low - **Effort:** small
+
+`PlaySequencer.nextFrame` resolves a channel's non-envelope amplitude as flat
+`volume[channelIndex] / 15.0` (`PlaySequencer.java:184`). Real AY-3-8912 hardware (and both
+`joric`/`AY38912PSG.java` and `JSpeccy`/`AY8912.java`, compared directly against this code) use a
+measured ~logarithmic 16-level table instead (roughly x1.5 amplitude per step, not equal
+increments), so relative loudness between two `V` volume settings doesn't match real hardware -
+e.g. volume 8 sounds louder relative to volume 15 here than on a real chip. Self-contained fix:
+replace the linear divide with either a small lookup table (JSpeccy's `volumeRate` array is a
+ready-made source of the measured values) or a simple cubic approximation
+(`amplitude = (volume / 15.0)^3`, per softspectrum48's AY emulation notes, "Part 4: Improving
+Dynamics" - the same series also points at the CPC Wiki's PSG page and the AY-3-8910 manual for the
+underlying measured curve if a closer match than the cubic is wanted later).
+
+## `PLAY`/`APLAY` tone edges are not band-limited
+
+**Type:** debt - **Importance:** low - **Effort:** small
+
+`voiceSample`/`fillPlayMix` (`TerminalScreen.java:787`, `:814`) generate each channel's square wave
+as a hard `sampleIndex % samplesPerCycle < samplesPerCycle / 2` flip, so a transition always lands
+on a whole-sample boundary - a naive, non-band-limited oscillator that aliases on higher notes.
+`JSpeccy`/`AY8912.java`'s `updateAY` softens this by weighting the partial sample at each tone
+transition (its `percent` calculation); `joric`/`AY38912PSG.java` does not do this either, so this
+is a step behind one of the two references, not both. Worth doing alongside the volume-table item
+above since both touch the same mixing code.
 
 ## Accessor naming consistency
 
