@@ -17,7 +17,7 @@ Three layers, all JUnit 5:
   `io/`, `debug/`, `mcp/`, `play/`) - drive one class directly: `ExpressionEvaluatorTest`,
   `StatementExecutorTest`, `EvalStateTest`, `AstLoweringStatementTest`, `ReformatVisitorTest`,
   `BreakpointEngineTest`, `DebugEngineTest`, `McpServerProtocolTest`, `JsonCodecTest`,
-  `PlayParserTest`, `PlaySequencerTest`, `TerminalScreenTest`, `StreamScreenTest`,
+  `PlayParserTest`, `PlaySequencerTest`, `JavaSoundSpeakerTest`, `StreamScreenTest`,
   `ProgramStorageTest`, plus lexer/parser tests (`LexerTest`, `ParserTest`, `AntlrParserTest`) and
   value-type tests (`BStrTest`, `ReportCodeTest`, `ReportExceptionTest`). Since ANTLR has no builder
   API for parse trees, these parse small source snippets and feed the resulting contexts to the
@@ -33,12 +33,13 @@ assert exact screen/variable state, and component tests assert exact values.
 
 ## What is deliberately not covered
 
-- **Real audio device output.** `TerminalScreen`'s actual `javax.sound.sampled` playback (the tone
+- **Real audio device output.** `JavaSoundSpeaker`'s actual `javax.sound.sampled` playback (the tone
   synthesis behind `BEEP`/`PLAY`/`APLAY`) is not exercised end-to-end - there is no audio device in
-  CI. `TerminalScreenTest` covers the pure pitch-to-Hz conversion in isolation instead; the
-  `StatementExecutor`-level DSL parsing, scheduling, and BREAK-handling logic that sits above the
-  device is fully covered by `PlayParserTest`/`PlaySequencerTest`/the program-level `Play`/`Beep`
-  tests, since all of that runs through the headless-testable `VirtualSpeaker` no-op default.
+  CI. `JavaSoundSpeakerTest` covers the pure pitch-to-Hz and square-wave-averaging math in isolation
+  instead; the `StatementExecutor`-level DSL parsing, scheduling, and BREAK-handling logic that sits
+  above the device is fully covered by `PlayParserTest`/`PlaySequencerTest`/the program-level
+  `Play`/`Beep` tests, since all of that runs through the headless-testable `VirtualSpeaker` no-op
+  default.
 - **Interactive terminal rendering.** `TerminalScreen`'s raw-mode JLine wiring (window resize
   handling, real ANSI escape sequences) is not tested headlessly for the same reason `lib-repl`
   isn't: it requires a real terminal. `StreamScreen` and `MockScreen` carry the headless-testable

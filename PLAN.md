@@ -165,17 +165,6 @@ two throwaway `Object`s to read them is wasteful. `System.nanoTime()` alone - op
 `ThreadLocalRandom.current().nextLong()` - is simpler and stronger. Keep the XorShift mixing that
 follows.
 
-## `PLAY`/`APLAY` tone edges are not band-limited
-
-**Type:** debt - **Importance:** low - **Effort:** small
-
-`voiceSample`/`fillPlayMix` (`TerminalScreen.java:787`, `:814`) generate each channel's square wave
-as a hard `sampleIndex % samplesPerCycle < samplesPerCycle / 2` flip, so a transition always lands
-on a whole-sample boundary - a naive, non-band-limited oscillator that aliases on higher notes.
-`JSpeccy`/`AY8912.java`'s `updateAY` softens this by weighting the partial sample at each tone
-transition (its `percent` calculation); `joric`/`AY38912PSG.java` does not do this either, so this
-is a step behind one of the two references, not both.
-
 ## Accessor naming consistency
 
 **Type:** debt - **Importance:** low - **Effort:** small

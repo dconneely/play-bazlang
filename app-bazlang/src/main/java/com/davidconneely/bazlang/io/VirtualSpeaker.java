@@ -8,8 +8,8 @@ package com.davidconneely.bazlang.io;
  * birth avoids ever having a "wide VirtualScreen" problem for audio in the first place.
  *
  * <p>Both methods default to a no-op, so headless implementations ({@link MockScreen}, {@link
- * StreamScreen}) get silent {@code BEEP} for free, exactly like {@link VirtualScreen#setFastMode}.
- * Only {@link TerminalScreen} overrides them, playing a real tone.
+ * StreamScreen}, {@link TerminalScreen}) get silent {@code BEEP} for free, exactly like {@link
+ * VirtualScreen#setFastMode}. Only {@link JavaSoundSpeaker} overrides them, playing a real tone.
  *
  * <p>{@link #beep} is expected to start playback and return promptly rather than block for {@code
  * durationSeconds} - the caller ({@code StatementExecutor.executeBeepStmt}) drives its own chunked

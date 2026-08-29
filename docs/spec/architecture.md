@@ -348,9 +348,12 @@ Input and output are handled by a set of classes that share a common `VirtualScr
 and a `VirtualSpeaker` interface (for `BEEP`/`PLAY`/`APLAY`), isolating the interpreter from the
 specific device. `VirtualSpeaker` is deliberately its own interface rather than another
 `VirtualScreen` method - see [ADR-0002](../adr/0002-virtualspeaker-separate-interface.md) for why. Every
-`VirtualSpeaker` method defaults to a no-op, so every implementation except `TerminalScreen` gets
-silent `BEEP`/`PLAY`/`APLAY` for free, the same way `setFastMode` already works. Frames are pushed to
-the speaker rather than pulled from it - see [ADR-0003](../adr/0003-push-based-audio-frames.md).
+`VirtualSpeaker` method defaults to a no-op, so every screen implementation gets silent
+`BEEP`/`PLAY`/`APLAY` for free, the same way `setFastMode` already works; real playback lives
+entirely in `JavaSoundSpeaker`, a separate class with no screen role at all - `MainClass` constructs
+it alongside (not instead of) whichever `VirtualScreen` it builds, and passes both independently to
+`StatementExecutor`. Frames are pushed to the speaker rather than pulled from it - see
+[ADR-0003](../adr/0003-push-based-audio-frames.md).
 
 `PLAY`/`APLAY`'s DSL parsing and multi-channel scheduling live entirely in their own
 `com.davidconneely.bazlang.play` package (`PlayParser`, `PlayToken`, `PlayChannelState`,
@@ -378,15 +381,20 @@ their own beyond a fallback sleep for the no-device (headless) case.
   Interface) with distinct window regions: an interpreter output area at the top, an input area with
   prompt, and a status bar. Uses the `TerminalEngine` class (which wraps JLine) for terminal
   control, escape sequences, and raw input. Supports command history, cursor movement, and handles
-  terminal window resizes gracefully. The only `VirtualSpeaker` implementation that plays real
-  audio. `beep()` starts a square-wave `SourceDataLine` write on its own daemon thread and returns
-  immediately, so the interpreter thread stays free to run `PAUSE`-style chunked BREAK-polling
-  (`StatementExecutor.executeBeepStmt`) instead of blocking inside the audio write for the tone's
-  whole duration; `stopBeep()` cuts a tone short on BREAK. `playFrame()` synthesises exactly the
-  requested duration of up to 3 mixed voices and writes it straight to a second, entirely
-  independent persistent `SourceDataLine` (opened lazily, reused for the session) on whichever
-  thread called it - no render thread of its own, per the no-idle-silence rule above (see
-  [ADR-0007](../adr/0007-synchronous-per-call-play-rendering.md)); `stopPlay()`
+  terminal window resizes gracefully. Despite the name, it plays no audio role at all - a `VirtualSpeaker`
+  method reaching it resolves to the same no-op default every headless screen gets; see
+  `JavaSoundSpeaker` below for the real implementation.
+- **`JavaSoundSpeaker`**: The only `VirtualSpeaker` implementation that plays real audio, via the
+  JDK's `javax.sound.sampled` API (hence the name - nothing here is terminal-specific). A standalone
+  class, not a screen: `MainClass` constructs it alongside `TerminalScreen` and closes both, but
+  either could in principle be swapped independently. `beep()` starts a square-wave `SourceDataLine`
+  write on its own daemon thread and returns immediately, so the interpreter thread stays free to run
+  `PAUSE`-style chunked BREAK-polling (`StatementExecutor.executeBeepStmt`) instead of blocking
+  inside the audio write for the tone's whole duration; `stopBeep()` cuts a tone short on BREAK.
+  `playFrame()` synthesises exactly the requested duration of up to 3 mixed voices and writes it
+  straight to a second, entirely independent persistent `SourceDataLine` (opened lazily, reused for
+  the session) on whichever thread called it - no render thread of its own, per the no-idle-silence
+  rule above (see [ADR-0007](../adr/0007-synchronous-per-call-play-rendering.md)); `stopPlay()`
   flushes audio already queued but not yet heard, so a note cut short by BREAK or a replacement
   stops promptly, while `drainPlay()` instead lets a naturally-finished note's queued tail play out
   before parking the line, called only when a sound reaches its natural end rather than being cut

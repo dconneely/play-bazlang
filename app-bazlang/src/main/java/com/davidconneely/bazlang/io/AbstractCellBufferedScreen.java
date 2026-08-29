@@ -6,8 +6,9 @@ import com.davidconneely.cell.PixelMode;
 
 /**
  * Abstract base class for {@link VirtualScreen} / {@link VirtualInput} implementations that use a
- * {@link CellBuffer} to manage text and pixel attributes. Also implements {@link VirtualSpeaker}
- * (inherited as a no-op by every subclass except {@link TerminalScreen}, which overrides it).
+ * {@link CellBuffer} to manage text and pixel attributes. Also implements {@link VirtualSpeaker},
+ * inherited as a no-op by every subclass - real audio playback lives entirely in {@link
+ * JavaSoundSpeaker}, an unrelated class that plays no screen role at all.
  */
 public abstract class AbstractCellBufferedScreen
     implements VirtualScreen, VirtualInput, VirtualSpeaker {

@@ -54,3 +54,6 @@ All notable changes to this project are documented here, following
 - `PLAY`/`APLAY`'s `V0`-`V15` volume now follows the AY chip's measured logarithmic curve instead of
   a flat linear divide, so relative loudness between two volume settings matches real hardware (e.g.
   `V8` no longer plays too loud relative to `V15`).
+- `PLAY`/`APLAY` tone edges no longer always land on a whole-sample boundary - a transition that
+  falls mid-sample is now averaged across that sample instead of point-sampled, reducing the
+  audible aliasing a naive square-wave oscillator produces on higher notes.
