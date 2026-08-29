@@ -48,3 +48,6 @@ All notable changes to this project are documented here, following
 - `AND` chained after a string comparison (e.g. `IF r$ <> "Y" AND r$ <> "n" THEN ...`) now parses as
   `(r$ <> "Y") AND (r$ <> "n")` instead of letting the comparison's right-hand string operand
   swallow the `AND` (`r$ <> ("Y" AND (r$ <> "n"))`); confirmed against real ZX81/ZX Spectrum BASIC.
+- `PLAY`/`APLAY`'s `V0`-`V15` volume now follows the AY chip's measured logarithmic curve instead of
+  a flat linear divide, so relative loudness between two volume settings matches real hardware (e.g.
+  `V8` no longer plays too loud relative to `V15`).

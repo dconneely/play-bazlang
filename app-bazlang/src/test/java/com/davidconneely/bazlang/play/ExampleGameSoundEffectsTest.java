@@ -96,7 +96,8 @@ class ExampleGameSoundEffectsTest {
     // short. Volume is pulled back to V11 since it fires on every rally and shouldn't dominate.
     assertPitchSequence("T240V11O6N1e", 28); // 28 semitones above middle C = E6
     final var source = PlayParser.buildSequencer(List.of("T240V11O6N1e"), 10);
-    assertEquals(11.0 / 15.0, source.next(LARGE).a().amplitude(), 1e-9);
+    assertEquals(
+        0.4499, source.next(LARGE).a().amplitude(), 1e-9); // PlaySequencer.VOLUME_TABLE[11]
   }
 
   @Test

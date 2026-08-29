@@ -59,6 +59,20 @@ final class PlaySequencer implements PlaySource {
    */
   private static final double MAX_ARTICULATION_GAP_SECONDS = 0.010;
 
+  /**
+   * Real AY-3-8912 volume steps are not linear - hardware attenuates roughly x1.5 amplitude per
+   * step, not by equal increments, so a flat {@code volume / 15.0} divide makes relative loudness
+   * between two {@code V} settings audibly wrong (e.g. volume 8 would come out too loud relative to
+   * volume 15). These are the measured values from JSpeccy's {@code AY8912.java} ({@code
+   * volumeRate}, there credited to Matthew Westcott's measurements) - used directly rather than an
+   * approximation (e.g. a cubic curve) since a measured table is both more accurate and no less
+   * self-contained. Indexed directly by a {@code V0}-{@code V15} volume level.
+   */
+  private static final double[] VOLUME_TABLE = {
+    0.0000, 0.0137, 0.0205, 0.0291, 0.0423, 0.0618, 0.0847, 0.1369,
+    0.1691, 0.2647, 0.3527, 0.4499, 0.5704, 0.6873, 0.8482, 1.0000
+  };
+
   private final ReentrantLock lock = new ReentrantLock();
   private final PlayChannelState[] channels;
   private final SharedRegisters shared = new SharedRegisters();
@@ -181,7 +195,7 @@ final class PlaySequencer implements PlaySource {
       return VoiceFrame.SILENT; // a rest is fully silent, regardless of mixer/noise settings
     }
     final double amplitude =
-        useEnvelope[channelIndex] ? envelopeAmplitude() : volume[channelIndex] / 15.0;
+        useEnvelope[channelIndex] ? envelopeAmplitude() : VOLUME_TABLE[volume[channelIndex]];
     final double frequencyHz =
         Pitch.hzFromSemitonesAboveMiddleC(
             noteNumber[channelIndex] - 48); // octave 4 (48 semitones) is the reference octave

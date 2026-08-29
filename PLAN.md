@@ -181,22 +181,6 @@ two throwaway `Object`s to read them is wasteful. `System.nanoTime()` alone - op
 `ThreadLocalRandom.current().nextLong()` - is simpler and stronger. Keep the XorShift mixing that
 follows.
 
-## `PLAY`/`APLAY` volume is linear, not the AY chip's logarithmic curve
-
-**Type:** bug - **Importance:** low - **Effort:** small
-
-`PlaySequencer.nextFrame` resolves a channel's non-envelope amplitude as flat
-`volume[channelIndex] / 15.0` (`PlaySequencer.java:184`). Real AY-3-8912 hardware (and both
-`joric`/`AY38912PSG.java` and `JSpeccy`/`AY8912.java`, compared directly against this code) use a
-measured ~logarithmic 16-level table instead (roughly x1.5 amplitude per step, not equal
-increments), so relative loudness between two `V` volume settings doesn't match real hardware -
-e.g. volume 8 sounds louder relative to volume 15 here than on a real chip. Self-contained fix:
-replace the linear divide with either a small lookup table (JSpeccy's `volumeRate` array is a
-ready-made source of the measured values) or a simple cubic approximation
-(`amplitude = (volume / 15.0)^3`, per softspectrum48's AY emulation notes, "Part 4: Improving
-Dynamics" - the same series also points at the CPC Wiki's PSG page and the AY-3-8910 manual for the
-underlying measured curve if a closer match than the cubic is wanted later).
-
 ## `PLAY`/`APLAY` tone edges are not band-limited
 
 **Type:** debt - **Importance:** low - **Effort:** small
@@ -206,8 +190,7 @@ as a hard `sampleIndex % samplesPerCycle < samplesPerCycle / 2` flip, so a trans
 on a whole-sample boundary - a naive, non-band-limited oscillator that aliases on higher notes.
 `JSpeccy`/`AY8912.java`'s `updateAY` softens this by weighting the partial sample at each tone
 transition (its `percent` calculation); `joric`/`AY38912PSG.java` does not do this either, so this
-is a step behind one of the two references, not both. Worth doing alongside the volume-table item
-above since both touch the same mixing code.
+is a step behind one of the two references, not both.
 
 ## Accessor naming consistency
 
