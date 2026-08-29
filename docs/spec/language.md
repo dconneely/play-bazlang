@@ -377,6 +377,9 @@ You can slice strings and arrays. String indices are **byte offsets** (1-based).
 
 - **`a$(x)`**: Byte at position `x`.
 - **`a$(x TO y)`**: Bytes from `x` to `y`.
+- **`a$(TO y)`**: Bytes from the start up to `y` (start bound omitted).
+- **`a$(x TO)`**: Bytes from `x` to the end (end bound omitted).
+- **`a$(TO)`**: The whole string (both bounds omitted) - equivalent to `a$`.
 - **`a$(i, x TO y)`**: Slice of `i`-th string in an array.
 
 **Rule**: The `TO` slice must always be the last part of the index.

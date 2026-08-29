@@ -21,123 +21,68 @@ the grammar file itself is the machine-readable source of truth for syntax - see
 #### Expression precedence
 
 The resulting precedence order, as a plain reference table for BazLang programmers, is in
-[language.md](language.md#math) - this section covers the mechanism, not the outcome; don't let the
-two drift apart.
+[language.md](language.md#math) - this subsection covers the mechanism, not the outcome; don't let
+the two drift apart, and don't look here for the current alternative order - `numExpr` in
+`BazLang.g4` is that order's only source of truth.
 
-ANTLR handles operator precedence by ordering - earlier alternatives bind tighter:
+ANTLR resolves a left-recursive rule's operator precedence by the order its alternatives are
+written - earlier alternatives bind tighter than later ones, each level referencing the rule itself
+for its own operands. Every binary alternative in `numExpr` associates left by ANTLR's default,
+except the power operator (`**`/`^`), the one alternative marked `<assoc=right>` - so `2^3^4`
+evaluates right-to-left as `2^(3^4)`, while e.g. `10-3-2` evaluates left-to-right as `(10-3)-2`.
 
-```antlr
-numExpr
-    : NUM_LITERAL                                           # NumLiteralExpr
-    | NUM_IDENTIFIER                                        # NumVarExpr
-    | NUM_IDENTIFIER '(' numExpr (',' numExpr)* ')'         # NumArrayExpr
-    | '(' numExpr ')'                                       # NumParenExpr
-    | numFunc                                               # NumFuncCallExpr
-    | <assoc=right> numExpr ('**' | '^') numExpr            # NumPowerExpr
-    | '-' numExpr                                           # NumUnaryMinusExpr
-    | numExpr ('*' | '/') numExpr                           # NumMulDivExpr
-    | numExpr ('+' | '-') numExpr                           # NumAddSubExpr
-    | numExpr ('<' | '<=' | '>' | '>=' | '=' | '<>') numExpr # NumCompExpr
-    | strTerm ('<' | '<=' | '>' | '>=' | '=' | '<>') strTerm # StrCompExpr
-    | NOT numExpr                                           # NumNotExpr
-    | numExpr AND numExpr                                   # NumAndExpr
-    | numExpr OR numExpr                                    # NumOrExpr
-    ;
-```
-
-Note: `<assoc=right>` makes `**` and `^` right-associative, so `2^3^4` = `2^(3^4)`.
+One easy-to-miss detail worth calling out precisely because it isn't obvious from either `numExpr`
+or the outcome table: the string-comparison alternative binds its operands to `strTerm`, not the
+full `strExpr`. A sub-rule invoked from a sibling rule isn't constrained by its caller to any
+precedence ceiling - it matches everything its own rule allows, including its own lowest-precedence
+alternative. If that operand were `strExpr` (which itself allows a trailing `AND`), a comparison's
+right-hand string operand would silently absorb an `AND` that should belong to the outer `numExpr`
+instead - a real bug this project hit and fixed; see `strExpr`'s own comment in `BazLang.g4` for the
+`strExpr`/`strTerm` split that prevents it.
 
 #### Case insensitivity
 
-The grammar uses ANTLR's `caseInsensitive` option for keywords and identifiers:
-
-```antlr
-options { caseInsensitive=true; }
-
-PRINT : 'PRINT';  // Matches PRINT, print, Print, etc.
-```
-
-This allows `PRINT`, `print`, and `Print` to all match the same token. Variable names are normalised
-to uppercase when building the AST, so `myVar`, `MYVAR`, and `MyVar` all refer to the same variable.
+The grammar's `caseInsensitive` option, set once at the top of `BazLang.g4`, makes every keyword and
+identifier token match regardless of case, so a keyword's own token rule needs only its canonical
+uppercase spelling - no hand-written alternation for other casings. Variable names are additionally
+normalised to uppercase when building the AST, so `myVar`, `MYVAR`, and `MyVar` all refer to the same
+variable.
 
 String literal *contents* remain case-sensitive since they're captured as-is between quotes.
 
 #### Numeric vs string identifiers
 
-The grammar distinguishes numeric and string variables at the lexer level:
-
-```antlr
-STR_IDENTIFIER : [A-Z][A-Z0-9_]*'$' ;
-NUM_IDENTIFIER : [A-Z][A-Z0-9_]* ;
-```
-
-This ensures `a` is always a numeric variable and `a$` is always a string variable, without
-ambiguity. (The pattern uses `[A-Z]` but matches case-insensitively due to the grammar option.)
+The grammar distinguishes numeric and string variables at the lexer level, not the parser level: a
+string identifier's own token pattern requires a trailing `$`, so `a` and `a$` can never be lexed as
+the same token kind and no parser-side disambiguation is ever needed. (That trailing-`$` pattern is
+itself written case-insensitively too, via the same grammar option.)
 
 #### Function binding
 
-Functions bind tightly to their arguments (atoms), not full expressions:
+Every function - numeric or string - binds to a single atom (`numAtom`/`strAtom`: a literal, a
+variable or array reference, a parenthesised sub-expression, or another function call - mirroring
+`numExpr`/`strExpr`'s own tightest-binding alternatives), not a full expression, unless the caller
+adds parentheses explicitly. `SIN PI/2` therefore parses as `(SIN PI)/2`, not `SIN(PI/2)`.
 
-```antlr
-numFunc
-    : SIN numAtom
-    | COS numAtom
-    | PLOTMODE
-    // ...
-    ;
-
-numAtom
-    : NUM_LITERAL
-    | NUM_IDENTIFIER
-    | '(' numExpr ')'
-    | numFunc
-    ;
-```
-
-This means `SIN PI/2` parses as `SIN(PI)/2`, not `SIN(PI/2)`.
-
-Multi-argument functions require explicit parentheses and comma-separated full expressions (not just
-atoms), consistent with ZX Spectrum BASIC functions like `ATTR` and `SCREEN$`:
-
-```antlr
-numFunc
-    : UCNEXT '(' strExpr ',' numExpr ')'
-    | XATTR '(' numExpr ',' numExpr ',' numExpr ')'
-    // ...
-    ;
-```
-
-This means `UCNEXT(a$, i+1)` works as expected.
+Functions taking more than one argument (`ATTR`, `UCNEXT`, `XATTR`, `SCREEN$`, and similar) can't fit
+that single-atom shape at all, so their own grammar alternatives require explicit parentheses and
+comma-separated full expressions instead - consistent with how these work in ZX Spectrum BASIC. See
+`numFunc`/`strFunc` in `BazLang.g4` for which functions fall into each shape.
 
 #### String subscripts and slicing
 
-String subscripts use a unified rule that allows indices and optional slicing:
-
-```antlr
-strSubscript
-    : numExpr (',' numExpr)*                        // indices only
-    | numExpr (',' numExpr)* ',' numExpr? TO numExpr?  // indices + slice
-    | numExpr? TO numExpr?                          // slice only
-    ;
-```
-
-This supports: `a$(1)`, `a$(1,2)`, `a$(1 TO 5)`, `a$(TO 5)`, `a$(1 TO)`, `a$(TO)`,
-`a$(1, 2 TO 5)`, etc.
+`strSubscript` unifies a plain index list and an optional trailing slice in one rule, delegating the
+slice itself to a small `strSlice` sub-rule - an optional lower bound, the `TO` keyword, and an
+optional upper bound - so a bare index list and an index-list-with-a-trailing-slice share exactly the
+same slice grammar rather than duplicating it. See `strSubscript`/`strSlice` in `BazLang.g4` for the
+exact shape, and [language.md](language.md#slicing) for what each supported form means to a BazLang
+programmer.
 
 ### Statements vs. REPL commands
 
 BazLang strictly separates program execution logic (statements) from interactive IDE/environment
-actions (REPL commands).
-
-```antlr
-replLine
-    : NUM_LITERAL statements? EOF                          # NumberedLine
-    | replCommand EOF                                      # ReplCommandLine
-    | statements EOF                                       # ImmediateLine
-    ;
-```
-
-As defined in the `replLine` root parsing rule:
+actions (REPL commands), a split expressed directly in the root `replLine` parsing rule - one
+alternative for a numbered program line, one for a REPL command, one for immediate-mode statements:
 
 - **Statements** (`PRINT`, `LET`, `IF`, etc.) can be placed inside numbered program lines, or
   chained together with colons in immediate execution mode (e.g., `PRINT 1 : PRINT 2`).
