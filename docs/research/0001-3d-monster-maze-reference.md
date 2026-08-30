@@ -38,7 +38,7 @@ now settled: no. See `PLAN.md`.
 - **PET port devlog** -
   <https://tynemouth.itch.io/pet-3d-monster-maze/devlog/316119/remaking-3d-monster-maze-for-the-commodore-pet>
   and **PET port article** -
-  <http://blog.tynemouthsoftware.co.uk/2022/07/remaking-3d-monster-maze-for-the-commodore-pet.html> -
+  <http://blog.tynemouthsoftware.co.uk/2022/07/remaking-3d-monster-maze-for-the-commodore-pet.html>,
   a working reimplementation with its own rendering simplifications (see "Dead ends").
 - **VIC-20 port article** -
   <http://blog.tynemouthsoftware.co.uk/2023/07/3d-monster-maze-for-vic20.html> - another port,
