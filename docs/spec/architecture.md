@@ -142,8 +142,8 @@ Under `com.davidconneely.bazlang`:
   (`StatementsContext`/`NumExprContext`/`StrExprContext`/...) to the typed AST. Resolves literals
   and operators once, at lowering time; variable/array references stay unresolved until first
   evaluation (see "Variable reference caching" below). `AstLowering.lowerStatements` also performs
-  the flattening described in "Statement addressing and flattening" - folding what used to be a
-  separate `ProgramLine.flatten()` pass into the same walk that produces the AST.
+  the flattening described in "Statement addressing and flattening", in the same walk that produces
+  the AST.
 - **`ExpressionEvaluator`**: Walks the typed `NumExpr`/`StrExpr` AST via `switch` pattern matching
   and returns `double`/`BStr` directly from `evalNum`/`evalStr`.
 - **`StatementExecutor`**: Walks the typed `Stmt` AST via `switch` pattern matching, executing

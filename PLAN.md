@@ -1,19 +1,8 @@
 # Plan
 
 Single ranked backlog, most important first. Entries are **deleted** when done, never annotated -
-a plan that accumulates completed items stops being read.
-
-## Fix `monster.bas`'s maze-view rendering
-
-**Type:** bug - **Importance:** high - **Effort:** medium
-
-The 3D Monster Maze example (`app-bazlang/src/example/bas/monster.bas`, 446 lines) is incomplete and
-has a rendering bug in the maze view - confirmed 2026-08-22, not just a stale status note. See
-`docs/research/0001-3d-monster-maze-reference.md` for the reference mechanics (maze generation, Rex
-AI, the six-depth-segment rendering scheme) and two previously-tried rendering approaches that didn't
-work, plus an untried PET-port-inspired simplification (single-character vanishing point, buffer the
-frame as a string before printing) worth considering as a starting point instead of the original's
-exact `DISTCOL`/`DISTWALL` segment tables.
+a plan that accumulates completed items stops being read. **One paragraph each** - see
+[DOC-MAP.md](DOC-MAP.md).
 
 ## Baseline output tests for the interactive example games
 
@@ -24,33 +13,6 @@ snapshot, for games like `lander.bas` or `monster.bas` (see `docs/testing.md` "W
 not covered"). Snapshots should be text grids of the cell buffer, not images - the screen is a
 character-cell buffer, text snapshots diff cleanly in review, and `MockScreen` already provides most
 of the machinery.
-
-## `WHILE...WEND` / `REPEAT...UNTIL`
-
-**Type:** feature - **Importance:** high - **Effort:** medium
-
-Structured loops for variable-length iteration, avoiding line-number-dependent loop structures. The
-`FOR`/`NEXT` skip-scan (a flat linear pass over flattened statements) is the proven pattern for
-locating matching terminators, so this fits the current execution model without structural change.
-
-## `IF...THEN...ELSE`
-
-**Type:** feature - **Importance:** high - **Effort:** medium (single-line `ELSE`), large
-(multi-line blocks)
-
-Single-line `ELSE` first - it fits the existing statement model. Multi-line block `IF` is a larger
-step: execution flow is line-label based, so block terminators need the same flat-scan treatment as
-loops, and unterminated blocks need well-defined runtime errors.
-
-## `DEF PROC` & local scoping
-
-**Type:** feature - **Importance:** high - **Effort:** large
-
-Multi-line procedures with parameters passed by value or reference, and local variable namespaces
-(using `LOCAL`). Shifts BazLang from a flat line-number-based execution flow toward a modern,
-block-structured language. The largest language item: needs a call stack with local frames layered
-over the current global variable model, and interacts with `GOSUB`, `CLEAR`, and the variable
-reference caching described in `docs/spec/architecture.md`.
 
 ## Consistent error attribution in `ExpressionEvaluator`
 
@@ -66,7 +28,62 @@ expression-level error loses the statement index and reports an incomplete locat
 **Type:** feature - **Importance:** medium - **Effort:** small
 
 Native support for substring operations that return everything except the first byte/character,
-simplifying recursive string manipulation. Small, self-contained grammar and evaluator change.
+simplifying recursive string manipulation. Small, self-contained grammar and evaluator change. `TL$`
+was part of ZX80 BASIC (not ZX81 or ZX Spectrum BASIC, BazLang's actual dialect basis) - a real prior
+Sinclair BASIC, just not the one or two this project targets. `UTL$` has no such heritage - it would
+be BazLang's own Unicode-aware variant, following the existing `INKEY$`/`UINKEY$` and `CHR$`/`UCHR$`
+`U`-prefix convention rather than any historical dialect.
+
+## Simplify `LIST`/`DELETE`/`REFORMAT`/`RENUM` line-range syntax
+
+**Type:** feature - **Importance:** medium - **Effort:** small
+
+`FOR` is the only place real Sinclair BASIC uses `TO`/`STEP`; `LIST`/`DELETE`/`REFORMAT`'s line-range
+arguments and `RENUM`'s are BazLang's own invention, with no Sinclair dialect having typed line-range
+or renumber syntax at all. Replace the `TO`/`STEP` keyword syntax with comma-positional arguments in
+all four (e.g. `DELETE 10, 100`, `RENUMBER 100, 10, 50, 80`), and rename `RENUM` to `RENUMBER` to
+match the real "Renumber" spelling (confirmed 2026-08-30 against the ZX Spectrum +3 manual, though
+real hardware's Renumber is a fixed-parameter menu option - a separate, deeper divergence this item
+doesn't attempt to close), keeping `RENUM` as a short alias.
+
+## Slash-prefix REPL-only commands (`/delete`, `/edit`, `/renumber`, `/reformat`, `/exit`)
+
+**Type:** feature - **Importance:** medium - **Effort:** medium
+
+`DELETE`, `EDIT`, `RENUM`/`RENUMBER`, and `REFORMAT` are BazLang's only REPL-only commands
+(`replCommand` in `BazLang.g4`), and none exist in any real Sinclair dialect - unlike `LIST`, which
+stays a real keyword because `10 LIST` is authentically valid inside a program. Prefix them with `/`
+(`/delete 10,100`, `/renumber 100,10`), resolving the command name by text at the dispatch layer
+instead of as dedicated keyword tokens, freeing `delete`/`edit`/`renum`/`renumber`/`reformat` for use
+as ordinary variable/array names. Add a new `/exit`, and let `STOP` drop its own undocumented REPL-exit
+special case: `InterpreterReplHandler` currently ends the whole REPL loop when `STOP` is typed at line
+label 0, which no real hardware does and which `Repl.loop`'s existing EOF handling already makes
+redundant.
+
+## Tab-completion for statement/REPL-command keywords (JLine)
+
+**Type:** feature - **Importance:** medium - **Effort:** medium
+
+A `lib-repl` enhancement. JLine is already the terminal engine (`RobustLineReaderImpl` extends
+`LineReaderImpl` directly), but no `Completer` is wired in, so a partial keyword or `/`-command gets
+no suggestions. `lib-repl` depends only on JLine and knows nothing of BazLang or ANTLR, and
+`TerminalEngine`'s own Javadoc says its job is to isolate the application from the terminal library -
+so this needs a small neutral interface `lib-repl` wires into JLine internally, with `app-bazlang`
+supplying candidates derived from `BazLangLexer`'s generated keyword vocabulary rather than a
+hand-maintained list. Scope to the first token of a statement for v1; completing `GOTO`/`GOSUB`
+targets or `LOAD`/`SAVE` filenames is a separate, larger follow-on.
+
+## Syntax highlighting in the REPL (JLine)
+
+**Type:** feature - **Importance:** medium - **Effort:** medium
+
+A `lib-repl` enhancement, related to but independent of the tab-completion item above - same
+`RobustLineReaderImpl` extension point (no `Highlighter` set), same module-boundary constraint:
+`lib-repl` must not gain an ANTLR/BazLang dependency, `app-bazlang` must not gain a direct
+`org.jline.*` one. `lib-repl` should expose a small neutral tokenizing interface it wires into JLine's
+`Highlighter` internally; `app-bazlang` supplies an implementation built on the real `BazLangLexer` -
+the same lexer used for actual parsing, not a hand-maintained regex scheme that could drift from the
+grammar.
 
 ## Unify read/write subscript-and-slice resolution
 
@@ -153,6 +170,58 @@ Execute the interpreter headless while routing a streaming frame buffer (via TCP
 graphical display sidecar (e.g. a native canvas using OpenGL or WebAssembly). The `VirtualScreen`/
 `VirtualInput` interface split is the enabling precondition and is already in place. Streaming
 cell-buffer diffs over WebSocket to a browser canvas is the most practical first target.
+
+## Fix `monster.bas`'s maze-view rendering
+
+**Type:** bug - **Importance:** low - **Effort:** medium
+
+The 3D Monster Maze example (`app-bazlang/src/example/bas/monster.bas`, 446 lines) is incomplete and
+has a rendering bug in the maze view - confirmed 2026-08-22, not just a stale status note. See
+`docs/research/0001-3d-monster-maze-reference.md` for the reference mechanics (maze generation, Rex
+AI, the six-depth-segment rendering scheme) and two previously-tried rendering approaches that didn't
+work, plus an untried PET-port-inspired simplification (single-character vanishing point, buffer the
+frame as a string before printing) worth considering as a starting point instead of the original's
+exact `DISTCOL`/`DISTWALL` segment tables. Downgraded from high 2026-08-29: an attempted fix here made
+the rendering visibly worse rather than better, and needed a human to catch it - parked at low
+priority until LLM-assisted work on this kind of pixel/character-level visual layout is more reliable.
+
+## `WHILE...WEND` / `REPEAT...UNTIL`
+
+**Type:** feature - **Importance:** low - **Effort:** medium
+
+Structured loops for variable-length iteration, avoiding line-number-dependent loop structures. The
+`FOR`/`NEXT` skip-scan (a flat linear pass over flattened statements) is the proven pattern for
+locating matching terminators, so this fits the current execution model without structural change.
+Downgraded to low 2026-08-30 (previously demoted only to medium 2026-08-29): neither `WHILE`/`WEND`
+nor `REPEAT`/`UNTIL` are part of ZX81 or ZX Spectrum BASIC, the dialects BazLang is based on - the
+same non-authentic-extension reasoning that put `DEF PROC` below at low, on reflection, applies here
+regardless of this item's smaller size; authenticity, not effort, is the reason for ranking below
+core-fidelity work.
+
+## `IF...THEN...ELSE`
+
+**Type:** feature - **Importance:** low - **Effort:** medium (single-line `ELSE`), large (multi-line
+blocks)
+
+Single-line `ELSE` first - it fits the existing statement model. Multi-line block `IF` is a larger
+step: execution flow is line-label based, so block terminators need the same flat-scan treatment as
+loops, and unterminated blocks need well-defined runtime errors. Downgraded to low 2026-08-30
+(previously demoted only to medium 2026-08-29): Sinclair BASIC's `IF`/`THEN` has no `ELSE` clause at
+all - same non-authentic-extension reasoning as `WHILE`/`WEND` above and `DEF PROC` below.
+
+## `DEF PROC` & local scoping
+
+**Type:** feature - **Importance:** low - **Effort:** large
+
+Multi-line procedures with parameters passed by value or reference, and local variable namespaces
+(using `LOCAL`). Shifts BazLang from a flat line-number-based execution flow toward a modern,
+block-structured language. The largest language item: needs a call stack with local frames layered
+over the current global variable model, and interacts with `GOSUB`, `CLEAR`, and the variable
+reference caching described in `docs/spec/architecture.md`. Downgraded from high 2026-08-30: `DEF
+PROC`, multi-line `DEF FN`, and `LOCAL` are not ZX81 or ZX Spectrum BASIC - Sinclair `DEF FN` is a
+single-expression construct, and there is no `DEF PROC`/`LOCAL` at all. Same non-authentic-extension
+reasoning as `WHILE`/`WEND` and `IF`/`ELSE` above, taken further given how large this item is. Still
+wanted eventually, just not ahead of core-fidelity work.
 
 ## `RAND` entropy source is unreliable
 
