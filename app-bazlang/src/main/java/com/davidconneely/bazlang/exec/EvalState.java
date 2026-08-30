@@ -3,15 +3,21 @@ package com.davidconneely.bazlang.exec;
 import com.davidconneely.bazlang.BStr;
 import com.davidconneely.bazlang.ReportCode;
 import com.davidconneely.bazlang.exec.ast.Expr;
-import java.util.ArrayDeque;
 import java.util.Collections;
-import java.util.Deque;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.TreeMap;
 
+/**
+ * The program's memory - a thin facade over four cohesive collaborators: {@link VariableStore}
+ * (numeric/string scalars and arrays, {@code DEF FN}), {@link ReturnStack} ({@code GOSUB}/{@code
+ * RETURN}), {@link ProgramCounter} (execution position and pending jumps), and {@link DataCursor}
+ * ({@code READ}/{@code RESTORE} position). Active {@code FOR} loops, the RNG, the last report, and
+ * default styles/graphics-cursor state remain direct fields - see {@link #clear()} for exactly what
+ * each of {@code NEW}/{@code CLEAR} resets.
+ */
 public class EvalState {
   public record NumArray(int[] dimensions, double[] data) {}
 
@@ -69,21 +75,14 @@ public class EvalState {
   }
 
   private final Program program = new Program();
-  private final Map<String, NumVarRef> numScalars = new HashMap<>();
-  private final Map<String, NumArrayRef> numArrays = new HashMap<>();
-  private final Map<String, StrVarRef> strVars = new HashMap<>();
-  private final Map<String, FnDefRef> fnDefinitions = new HashMap<>();
+  private final VariableStore variables = new VariableStore();
+  private final ReturnStack returnStack = new ReturnStack();
+  private final ProgramCounter programCounter = new ProgramCounter();
+  private final DataCursor dataCursor = new DataCursor();
 
   private final Map<String, ForLoopData> forLoops = new HashMap<>();
-  private final Deque<StatementAddress> returnStack = new ArrayDeque<>();
   private final Random random = new Random();
 
-  private DataPointer dataPointer = new DataPointer(-1, -1, -1);
-
-  private boolean running = true;
-  private int currentLineLabel = 0;
-  private int currentStatementIndex = 1;
-  private StatementAddress pendingJump = null;
   private ReportState lastReport = new ReportState(ReportCode.OK, 0, 1);
 
   // Default ink/paper colour codes:
@@ -176,166 +175,114 @@ public class EvalState {
   }
 
   public NumVarRef getOrAddNumVar(String name) {
-    return numScalars.computeIfAbsent(name, NumVarRef::new);
+    return variables.getOrAddNumVar(name);
   }
 
   public NumArrayRef getOrAddNumArray(String name) {
-    return numArrays.computeIfAbsent(name, NumArrayRef::new);
+    return variables.getOrAddNumArray(name);
   }
 
   public StrVarRef getOrAddStrVar(String name) {
-    return strVars.computeIfAbsent(name, StrVarRef::new);
+    return variables.getOrAddStrVar(name);
   }
 
   public FnDefRef getOrAddFnDef(String name) {
-    return fnDefinitions.computeIfAbsent(name, FnDefRef::new);
+    return variables.getOrAddFnDef(name);
   }
 
   // ===== Numeric scalar variables =====
 
   public boolean hasNumVar(String name) {
-    NumVarRef ref = numScalars.get(name);
-    return ref != null && ref.initialised;
+    return variables.hasNumVar(name);
   }
 
   public double numVar(String name) {
-    NumVarRef ref = numScalars.get(name);
-    if (ref != null && ref.initialised) {
-      return ref.value;
-    }
-    throw new IllegalArgumentException("Undefined variable: " + name);
+    return variables.numVar(name);
   }
 
   public NumVarRef getNumVarRef(String name) {
-    return numScalars.get(name);
+    return variables.getNumVarRef(name);
   }
 
   public void setNumVar(String name, double val) {
-    NumVarRef ref = getOrAddNumVar(name);
-    ref.value = val;
-    ref.initialised = true;
+    variables.setNumVar(name, val);
   }
 
   // ===== Numeric arrays =====
 
   public boolean hasNumArray(String name) {
-    NumArrayRef ref = numArrays.get(name);
-    return ref != null && ref.array != null;
+    return variables.hasNumArray(name);
   }
 
   public NumArray numArray(String name) {
-    NumArrayRef ref = numArrays.get(name);
-    return (ref != null) ? ref.array : null;
+    return variables.numArray(name);
   }
 
   public void setNumArray(String name, NumArray arr) {
-    NumArrayRef ref = getOrAddNumArray(name);
-    ref.array = arr;
+    variables.setNumArray(name, arr);
   }
 
   /**
    * A read-only, name-sorted snapshot of every dimensioned numeric array, for debugger inspection.
    */
   public Map<String, NumArray> numArraysSnapshot() {
-    Map<String, NumArray> result = new TreeMap<>();
-    for (var entry : numArrays.entrySet()) {
-      if (entry.getValue().array != null) {
-        result.put(entry.getKey(), entry.getValue().array);
-      }
-    }
-    return result;
+    return variables.numArraysSnapshot();
   }
 
   // ===== String variables (Scalar and Array) =====
 
   public boolean hasStrVar(String name) {
-    StrVarRef ref = strVars.get(name);
-    return ref != null && ref.value != null;
+    return variables.hasStrVar(name);
   }
 
   public StrVar strVar(String name) {
-    StrVarRef ref = strVars.get(name);
-    return (ref != null) ? ref.value : null;
+    return variables.strVar(name);
   }
 
   public void setStrVar(String name, StrVar val) {
-    StrVarRef ref = getOrAddStrVar(name);
-    ref.value = val;
+    variables.setStrVar(name, val);
   }
 
   public Map<String, Double> variablesSnapshot() {
-    Map<String, Double> result = new TreeMap<>();
-    for (var entry : numScalars.entrySet()) {
-      if (entry.getValue().initialised) {
-        result.put(entry.getKey(), entry.getValue().value);
-      }
-    }
-    return result;
+    return variables.variablesSnapshot();
   }
 
   public Map<String, String> stringVariablesSnapshot() {
-    Map<String, String> result = new TreeMap<>();
-    for (var entry : strVars.entrySet()) {
-      if (entry.getValue().value instanceof StrVar.Scalar scalar) {
-        result.put(entry.getKey(), scalar.value().toJavaString());
-      }
-    }
-    return result;
+    return variables.stringVariablesSnapshot();
   }
 
   /**
    * A read-only, name-sorted snapshot of every dimensioned string array, for debugger inspection.
    */
   public Map<String, StrVar.Array> strArraysSnapshot() {
-    Map<String, StrVar.Array> result = new TreeMap<>();
-    for (var entry : strVars.entrySet()) {
-      if (entry.getValue().value instanceof StrVar.Array array) {
-        result.put(entry.getKey(), array);
-      }
-    }
-    return result;
+    return variables.strArraysSnapshot();
   }
 
   // ===== Functions =====
 
   public boolean hasFn(String name) {
-    FnDefRef ref = fnDefinitions.get(name);
-    return ref != null && ref.def != null;
+    return variables.hasFn(name);
   }
 
   public FnDefinition fn(String name) {
-    FnDefRef ref = fnDefinitions.get(name);
-    return (ref != null) ? ref.def : null;
+    return variables.fn(name);
   }
 
   public void setFn(String name, FnDefinition def) {
-    FnDefRef ref = getOrAddFnDef(name);
-    ref.def = def;
+    variables.setFn(name, def);
   }
 
   /** A read-only, name-sorted snapshot of every defined {@code DEF FN}, for debugger inspection. */
   public Map<String, FnDefinition> fnDefinitionsSnapshot() {
-    Map<String, FnDefinition> result = new TreeMap<>();
-    for (var entry : fnDefinitions.entrySet()) {
-      if (entry.getValue().def != null) {
-        result.put(entry.getKey(), entry.getValue().def);
-      }
-    }
-    return result;
+    return variables.fnDefinitionsSnapshot();
   }
 
   public void removeNumVar(String name) {
-    NumVarRef ref = numScalars.get(name);
-    if (ref != null) {
-      ref.initialised = false;
-    }
+    variables.removeNumVar(name);
   }
 
   public void removeStrVar(String name) {
-    StrVarRef ref = strVars.get(name);
-    if (ref != null) {
-      ref.value = null;
-    }
+    variables.removeStrVar(name);
   }
 
   // ===== FOR loop tracking =====
@@ -365,7 +312,7 @@ public class EvalState {
 
   /** The current GOSUB nesting depth, for {@code step over} to detect when a call has returned. */
   public int returnStackDepth() {
-    return returnStack.size();
+    return returnStack.depth();
   }
 
   public void pushReturn(StatementAddress loc) {
@@ -381,7 +328,7 @@ public class EvalState {
    * for debugger inspection.
    */
   public List<StatementAddress> returnStackSnapshot() {
-    return List.copyOf(returnStack);
+    return returnStack.snapshot();
   }
 
   // ===== Randomness =====
@@ -395,48 +342,47 @@ public class EvalState {
   }
 
   public boolean isRunning() {
-    return running;
+    return programCounter.isRunning();
   }
 
   public void setRunning(boolean running) {
-    this.running = running;
+    programCounter.setRunning(running);
   }
 
   public int currentLineLabel() {
-    return currentLineLabel;
+    return programCounter.currentLineLabel();
   }
 
   public void setCurrentLineLabel(int label) {
-    this.currentLineLabel = label;
-    this.currentStatementIndex = 1; // reset on new line
+    programCounter.setCurrentLineLabel(label);
   }
 
   public int currentStatementIndex() {
-    return currentStatementIndex;
+    return programCounter.currentStatementIndex();
   }
 
   public void setCurrentStatementIndex(int index) {
-    this.currentStatementIndex = index;
+    programCounter.setCurrentStatementIndex(index);
   }
 
   public Integer pendingJumpLabel() {
-    return pendingJump != null ? pendingJump.lineLabel() : null;
+    return programCounter.pendingJumpLabel();
   }
 
   public Integer pendingJumpStatementIndex() {
-    return pendingJump != null ? pendingJump.statementIndex() : null;
+    return programCounter.pendingJumpStatementIndex();
   }
 
   public boolean hasPendingJump() {
-    return pendingJump != null;
+    return programCounter.hasPendingJump();
   }
 
   public void setPendingJumpLocation(int label, int statementIndex) {
-    this.pendingJump = new StatementAddress(label, statementIndex);
+    programCounter.setPendingJumpLocation(label, statementIndex);
   }
 
   public void clearPendingJump() {
-    this.pendingJump = null;
+    programCounter.clearPendingJump();
   }
 
   public ReportState lastReport() {
@@ -448,31 +394,20 @@ public class EvalState {
   }
 
   public DataPointer dataPointer() {
-    return dataPointer;
+    return dataCursor.get();
   }
 
   public void setDataPointer(DataPointer dataPointer) {
-    this.dataPointer = dataPointer;
+    dataCursor.set(dataPointer);
   }
 
   public void clear() {
-    for (NumVarRef ref : numScalars.values()) {
-      ref.initialised = false;
-    }
-    for (NumArrayRef ref : numArrays.values()) {
-      ref.array = null;
-    }
-    for (StrVarRef ref : strVars.values()) {
-      ref.value = null;
-    }
-    for (FnDefRef ref : fnDefinitions.values()) {
-      ref.def = null;
-    }
+    variables.clear();
     forLoops.clear();
     returnStack.clear();
-    clearPendingJump();
+    programCounter.clearPendingJump();
     lastReport = new ReportState(ReportCode.OK, 0, 1);
-    dataPointer = new DataPointer(-1, -1, -1);
+    dataCursor.clear();
     defaultStyles.reset();
   }
 }

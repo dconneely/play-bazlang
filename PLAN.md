@@ -56,11 +56,11 @@ redundant.
 A `lib-repl` enhancement. JLine is already the terminal engine (`RobustLineReaderImpl` extends
 `LineReaderImpl` directly), but no `Completer` is wired in, so a partial keyword or `/`-command gets
 no suggestions. `lib-repl` depends only on JLine and knows nothing of BazLang or ANTLR, and
-`TerminalEngine`'s own Javadoc says its job is to isolate the application from the terminal library -
-so this needs a small neutral interface `lib-repl` wires into JLine internally, with `app-bazlang`
-supplying candidates derived from `BazLangLexer`'s generated keyword vocabulary rather than a
-hand-maintained list. Scope to the first token of a statement for v1; completing `GOTO`/`GOSUB`
-targets or `LOAD`/`SAVE` filenames is a separate, larger follow-on.
+`TerminalEngine`'s own Javadoc says its job is to isolate the application from the terminal
+library - so this needs a small neutral interface `lib-repl` wires into JLine internally, with
+`app-bazlang` supplying candidates derived from `BazLangLexer`'s generated keyword vocabulary
+rather than a hand-maintained list. Scope to the first token of a statement for v1; completing
+`GOTO`/`GOSUB` targets or `LOAD`/`SAVE` filenames is a separate, larger follow-on.
 
 ## Syntax highlighting in the REPL (JLine)
 
@@ -69,10 +69,10 @@ targets or `LOAD`/`SAVE` filenames is a separate, larger follow-on.
 A `lib-repl` enhancement, related to but independent of the tab-completion item above - same
 `RobustLineReaderImpl` extension point (no `Highlighter` set), same module-boundary constraint:
 `lib-repl` must not gain an ANTLR/BazLang dependency, `app-bazlang` must not gain a direct
-`org.jline.*` one. `lib-repl` should expose a small neutral tokenizing interface it wires into JLine's
-`Highlighter` internally; `app-bazlang` supplies an implementation built on the real `BazLangLexer` -
-the same lexer used for actual parsing, not a hand-maintained regex scheme that could drift from the
-grammar.
+`org.jline.*` one. `lib-repl` should expose a small neutral tokenizing interface it wires into
+JLine's `Highlighter` internally; `app-bazlang` supplies an implementation built on the real
+`BazLangLexer` - the same lexer used for actual parsing, not a hand-maintained regex scheme that
+could drift from the grammar.
 
 ## Unify read/write subscript-and-slice resolution
 
@@ -96,20 +96,9 @@ the post-`execute` `hasPendingJump()` check mis-sequences silently, and a normal
 indistinguishable, at the type level, from a genuine error. A sealed `ControlFlow` result
 (`Continue`, `Jump(address)`, `Stop`, `Return`, ...) returned from statement execution would make the
 loop explicit. `StatementExecutor.execute(Stmt)` already returns normally rather than being a
-`Void`-returning ANTLR visitor method, so this is now a smaller change than it once was - best
-sequenced alongside decomposing `EvalState` below, since both touch the same execution seam.
-
-## Decompose `EvalState`
-
-**Type:** debt - **Importance:** medium - **Effort:** medium
-
-`EvalState` (~420 lines) is a single mutable blackboard: the program, four variable namespaces, FOR
-loops, the return stack, the RNG, the DATA pointer, the program counter, the pending jump, the last
-report, default styles, and the graphics cursor. Centralisation keeps `NEW`/`CLEAR`/`RUN` tractable,
-but there is no encapsulation and no testable seam. Extracting cohesive collaborators -
-`VariableStore`, `ReturnStack`, `ProgramCounter`, `DataCursor` - behind a thin `EvalState` facade
-would clarify exactly what each of `NEW`/`CLEAR`/`RUN` resets, and give the item below something to
-drive against.
+`Void`-returning ANTLR visitor method, so this is now a smaller change than it once was -
+`EvalState`'s `ProgramCounter`/`ReturnStack` collaborators (see `EvalState.java`) narrow the seam
+this would touch further still.
 
 ## Programmatic component tests
 

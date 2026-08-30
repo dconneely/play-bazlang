@@ -155,11 +155,15 @@ Under `com.davidconneely.bazlang`:
   (and the `AntlrParser`) injected.
 - **`Interpreter`**: Manages the overall flow. It coordinates the executor and evaluator, decides
   which line to run next, handles jumps, and loops until the program stops.
-- **`EvalState`**: The program's memory. It stores variables (scalars and arrays), custom functions,
-  the state of any active `FOR` loops, the `GOSUB` return stack, the `DATA` pointer, the
-  current/pending execution position (a `StatementAddress`), the last report, the random generator,
-  the graphics cursor, and the default style attributes (a `StyleState`). `FnDefinition.body` is a
-  lowered `Expr`, not a parse-tree node.
+- **`EvalState`**: The program's memory - a thin facade over four package-private collaborators:
+  `VariableStore` (numeric/string scalars and arrays, `DEF FN`), `ReturnStack` (`GOSUB`/`RETURN`),
+  `ProgramCounter` (current/pending execution position, running state), and `DataCursor` (the `DATA`
+  pointer). Also holds the state of any active `FOR` loops, the last report, the random generator,
+  the graphics cursor, and the default style attributes (a `StyleState`) directly - these didn't fit
+  a named collaborator above. The four collaborators are package-private by design: only `EvalState`
+  itself (and other `exec`-package code, for tests) can see them, so extracting them adds real
+  encapsulation rather than just splitting one file into several. `FnDefinition.body` is a lowered
+  `Expr`, not a parse-tree node.
 - **`Program`**: Encapsulates the line storage (a `TreeMap<Integer, ProgramLine>`), ensuring the
   underlying map is protected. Owns the program-order navigation scans `findFirstData` (the
   `RESTORE`/`READ` pointer) and `findMatchingNext` (the `FOR` skip-scan), matching `Stmt.DataStmt`/
@@ -407,15 +411,15 @@ effect:
   side fields, since a single visitor type parameter can't cleanly return `double` for one rule
   family and `BStr` for another without boxing; ordinary method returns don't have that
   restriction).
-- **Variable reference caching**: Variables are normally looked up in the
-  [EvalState](../../app-bazlang/src/main/java/com/davidconneely/bazlang/exec/EvalState.java)
-  maps by their name strings. To avoid continuous hash map lookups during execution (especially in
-  tight loops), the AST's variable/array/subscript nodes (`NumExpr.NumVarExpr`, `NumExpr.NumArrayExpr`,
-  `StrExpr.StrVarExpr`, `StrExpr.StrSubscriptExpr`, and the `AssignTarget` variants) are small
-  mutable classes, not plain records: each carries a nullable, typed `ref` field (e.g.
-  `EvalState.NumVarRef`) that is resolved once on first evaluation and reused thereafter. (This is
-  why cleared variables keep their ref objects, and why a `ProgramLine`'s cached `Stmt` list is
-  bound to one `EvalState` - see "State lifecycle" above.)
+- **Variable reference caching**: Variables are normally looked up in
+  [EvalState](../../app-bazlang/src/main/java/com/davidconneely/bazlang/exec/EvalState.java)'s
+  `VariableStore` maps by their name strings. To avoid continuous hash map lookups during execution
+  (especially in tight loops), the AST's variable/array/subscript nodes (`NumExpr.NumVarExpr`,
+  `NumExpr.NumArrayExpr`, `StrExpr.StrVarExpr`, `StrExpr.StrSubscriptExpr`, and the `AssignTarget`
+  variants) are small mutable classes, not plain records: each carries a nullable, typed `ref`
+  field (e.g. `EvalState.NumVarRef`) that is resolved once on first evaluation and reused
+  thereafter. (This is why cleared variables keep their ref objects, and why a `ProgramLine`'s
+  cached `Stmt` list is bound to one `EvalState` - see "State lifecycle" above.)
 - **Literal and operator resolution at lowering time**: `AstLowering` resolves numeric, binary, and
   string literals, and arithmetic/comparison operators (`Op`), once when lowering a parse tree to
   AST - every other node in the AST is an immutable record - so evaluation never reparses literal
