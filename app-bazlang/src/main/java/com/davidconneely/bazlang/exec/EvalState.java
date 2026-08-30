@@ -263,7 +263,7 @@ public class EvalState {
     ref.value = val;
   }
 
-  public Map<String, Double> getVariablesSnapshot() {
+  public Map<String, Double> variablesSnapshot() {
     Map<String, Double> result = new TreeMap<>();
     for (var entry : numScalars.entrySet()) {
       if (entry.getValue().initialised) {
@@ -273,7 +273,7 @@ public class EvalState {
     return result;
   }
 
-  public Map<String, String> getStringVariablesSnapshot() {
+  public Map<String, String> stringVariablesSnapshot() {
     Map<String, String> result = new TreeMap<>();
     for (var entry : strVars.entrySet()) {
       if (entry.getValue().value instanceof StrVar.Scalar scalar) {

@@ -204,7 +204,7 @@ public final class DebugEngine {
       return;
     }
     BreakpointEngine.BreakCondition fired =
-        breaks.checkFired(line, stmt, mockScreen, executor.getExprEvaluator());
+        breaks.checkFired(line, stmt, mockScreen, executor.exprEvaluator());
     if (fired != null) {
       firedPauseReason = fired.type() == BreakpointEngine.ConditionType.ELAPSE ? "ELAPSE" : "BREAK";
       state.setRunning(false);
@@ -454,7 +454,7 @@ public final class DebugEngine {
 
   /** Evaluates a single BazLang expression in the live programme context. */
   public EvalResult evalExpression(String expr) {
-    ExpressionEvaluator eval = executor.getExprEvaluator();
+    ExpressionEvaluator eval = executor.exprEvaluator();
     BazLangParser.NumExprContext numCtx = null;
     try {
       numCtx = parser.parseNumExpr(expr);

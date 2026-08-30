@@ -401,8 +401,8 @@ final class McpDebugAdapter {
 
   private JsonValue.JsonObject callEvalVars() {
     var state = engine.state();
-    var numVars = state.getVariablesSnapshot();
-    var strVars = state.getStringVariablesSnapshot();
+    var numVars = state.variablesSnapshot();
+    var strVars = state.stringVariablesSnapshot();
     var numArrays = state.numArraysSnapshot();
     var strArrays = state.strArraysSnapshot();
     var fns = state.fnDefinitionsSnapshot();

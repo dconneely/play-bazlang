@@ -88,7 +88,7 @@ public class StatementExecutor {
     return speaker;
   }
 
-  public ExpressionEvaluator getExprEvaluator() {
+  public ExpressionEvaluator exprEvaluator() {
     return exprEvaluator;
   }
 

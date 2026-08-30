@@ -212,14 +212,6 @@ single-expression construct, and there is no `DEF PROC`/`LOCAL` at all. Same non
 reasoning as `WHILE`/`WEND` and `IF`/`ELSE` above, taken further given how large this item is. Still
 wanted eventually, just not ahead of core-fidelity work.
 
-## Accessor naming consistency
-
-**Type:** debt - **Importance:** low - **Effort:** small
-
-Accessors mix bare and `get`-prefixed styles: `screen()`, `program()`, `input()` versus
-`getExprEvaluator()`, `getVariablesSnapshot()`, `getStringVariablesSnapshot()`. Settle on the bare
-record-style convention already dominant in `exec` and rename the `get`-prefixed outliers.
-
 ## Resolve the threading model; remove the `DecimalFormat` `ThreadLocal`s if single-threaded
 
 **Type:** debt - **Importance:** low - **Effort:** small
