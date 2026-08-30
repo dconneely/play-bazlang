@@ -13,10 +13,11 @@ import java.util.TreeMap;
 /**
  * The program's memory - a thin facade over four cohesive collaborators: {@link VariableStore}
  * (numeric/string scalars and arrays, {@code DEF FN}), {@link ReturnStack} ({@code GOSUB}/{@code
- * RETURN}), {@link ProgramCounter} (execution position and pending jumps), and {@link DataCursor}
- * ({@code READ}/{@code RESTORE} position). Active {@code FOR} loops, the RNG, the last report, and
- * default styles/graphics-cursor state remain direct fields - see {@link #clear()} for exactly what
- * each of {@code NEW}/{@code CLEAR} resets.
+ * RETURN}), {@link ProgramCounter} (execution position), and {@link DataCursor} ({@code READ}/
+ * {@code RESTORE} position). Active {@code FOR} loops, the RNG, the last report, and default
+ * styles/graphics-cursor state remain direct fields - see {@link #clear()} for exactly what each of
+ * {@code NEW}/{@code CLEAR} resets. Where to jump or resume next is not state here at all - see
+ * {@link Interpreter#resume(int, int)}.
  */
 public class EvalState {
   public record NumArray(int[] dimensions, double[] data) {}
@@ -365,26 +366,6 @@ public class EvalState {
     programCounter.setCurrentStatementIndex(index);
   }
 
-  public Integer pendingJumpLabel() {
-    return programCounter.pendingJumpLabel();
-  }
-
-  public Integer pendingJumpStatementIndex() {
-    return programCounter.pendingJumpStatementIndex();
-  }
-
-  public boolean hasPendingJump() {
-    return programCounter.hasPendingJump();
-  }
-
-  public void setPendingJumpLocation(int label, int statementIndex) {
-    programCounter.setPendingJumpLocation(label, statementIndex);
-  }
-
-  public void clearPendingJump() {
-    programCounter.clearPendingJump();
-  }
-
   public ReportState lastReport() {
     return lastReport;
   }
@@ -405,7 +386,6 @@ public class EvalState {
     variables.clear();
     forLoops.clear();
     returnStack.clear();
-    programCounter.clearPendingJump();
     lastReport = new ReportState(ReportCode.OK, 0, 1);
     dataCursor.clear();
     defaultStyles.reset();

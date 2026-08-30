@@ -195,23 +195,6 @@ formatting, implying concurrent execution is supported - but the AST's mutable r
 concurrently. If execution is genuinely single-threaded (it appears to be), a plain field replaces
 those two `ThreadLocal`s.
 
-## Remove `EvalState.pendingJump`'s remaining entry-point mutation
-
-**Type:** debt - **Importance:** low - **Effort:** small
-
-`EvalState.pendingJump` (via `ProgramCounter`) is now only used for the "where should execution
-start/resume" entry point - `Interpreter.execute()`/`executeImmediate()`, and `DebugEngine`'s
-`run`/`gotoLine`/step resume-guard, all of which call `state.setPendingJumpLocation(...)` then a
-no-arg `resume()` - since the per-statement handoff moved to `ControlFlow`'s returned `Jump`.
-`Interpreter.resume()`'s outer loop re-reads `state.hasPendingJump()` at the top of every
-iteration, not just on entry (a line that falls through with no jump relies on the same check to
-advance via `currentLineLabel`), so removing this fully means threading the start position through
-`resume()`'s own loop as a local and having every caller pass it as a parameter instead. Would
-remove `EvalState.setPendingJumpLocation`/`hasPendingJump`/`pendingJumpLabel`/
-`pendingJumpStatementIndex`/`clearPendingJump` entirely. Not an active bug - this mutation is
-well-contained and consistently used today - so this is consistency with the per-statement fix
-already landed, not urgency.
-
 ## `VirtualScreen` is still wide (~30 methods)
 
 **Type:** debt - **Importance:** low - **Effort:** small

@@ -13,7 +13,6 @@ import com.davidconneely.bazlang.exec.EvalState;
 import com.davidconneely.bazlang.exec.Interpreter;
 import com.davidconneely.bazlang.exec.ProgramLine;
 import com.davidconneely.bazlang.exec.StatementExecutor;
-import com.davidconneely.bazlang.exec.ast.Stmt;
 import com.davidconneely.bazlang.io.MockScreen;
 import java.util.HashMap;
 import java.util.List;
@@ -119,8 +118,7 @@ class GosubReturnProgramTest extends BaseProgramTest {
     // which pops line 10 and tries to jump there. Since line 10 is deleted,
     // it should throw STATEMENT_LOST!
     try {
-      executor.execute(new Stmt.ContStmt());
-      interpreter.resume();
+      interpreter.executeImmediate("CONT");
       fail("Expected STATEMENT_LOST");
     } catch (ReportException e) {
       assertEquals(ReportCode.STATEMENT_LOST, e.reportCode());

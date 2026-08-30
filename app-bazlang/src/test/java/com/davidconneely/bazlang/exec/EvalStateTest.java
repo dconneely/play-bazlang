@@ -2,7 +2,6 @@ package com.davidconneely.bazlang.exec;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -59,21 +58,6 @@ class EvalStateTest {
     state.setFn("FNA", def);
     assertTrue(state.hasFn("FNA"));
     assertEquals(def, state.fn("FNA"));
-  }
-
-  @Test
-  void testJumpLocations() {
-    assertFalse(state.hasPendingJump());
-    assertNull(state.pendingJumpLabel());
-    assertNull(state.pendingJumpStatementIndex());
-
-    state.setPendingJumpLocation(100, 3);
-    assertTrue(state.hasPendingJump());
-    assertEquals(100, state.pendingJumpLabel());
-    assertEquals(3, state.pendingJumpStatementIndex());
-
-    state.clearPendingJump();
-    assertFalse(state.hasPendingJump());
   }
 
   @Test

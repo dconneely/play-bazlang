@@ -28,43 +28,37 @@ public class Interpreter {
 
   public void execute(Map<Integer, ProgramLine> program) {
     state.setProgram(program);
-    if (!state.program().isEmpty()) {
-      state.setPendingJumpLocation(state.program().firstKey(), 1);
+    if (state.program().isEmpty()) {
+      return;
     }
-    resume();
+    resume(state.program().firstKey(), 1);
   }
 
   public void executeImmediate(String rawLine) {
     final var immediateLine = new ProgramLine(0, rawLine);
     state.program().put(0, immediateLine);
     try {
-      state.setPendingJumpLocation(0, 1);
-      resume();
+      resume(0, 1);
     } finally {
       state.program().remove(0);
     }
   }
 
-  public void resume() {
+  /**
+   * Runs from {@code label}/{@code statementIndex} until the program stops, pauses (via {@link
+   * #executionListener}), or throws. Line 0 - the synthetic line {@link #executeImmediate} uses -
+   * has no natural successor line: finishing it without an explicit jump means "back to the REPL",
+   * not falling through into whatever real program line happens to sort after it, which is why that
+   * case is handled separately from the general "advance to the next line" fallthrough below.
+   */
+  public void resume(int label, int statementIndex) {
     state.setRunning(true);
+    Integer nextLabel = label;
+    int startIndex = statementIndex;
     while (state.isRunning()) {
-      Integer nextLabel;
-      int startIndex = 1;
-      if (state.hasPendingJump()) {
-        nextLabel = state.pendingJumpLabel();
-        if (nextLabel < 0) {
-          break; // Line numbers must be >= 0
-        }
-        startIndex = state.pendingJumpStatementIndex();
-        state.clearPendingJump();
-      } else {
-        if (state.currentLineLabel() == 0) {
-          state.setRunning(false);
-          break;
-        }
-        nextLabel = state.program().higherKey(state.currentLineLabel());
+      if (nextLabel != null && nextLabel < 0) {
+        break; // Line numbers must be >= 0
       }
-
       if (nextLabel == null) {
         state.setRunning(false);
         break;
@@ -100,6 +94,8 @@ public class Interpreter {
 
       state.setCurrentLineLabel(nextLabel);
       int index = 1;
+      Integer jumpLabel = null;
+      int jumpIndex = 1;
       for (var stmt : stmts) {
         if (index >= startIndex) {
           state.setCurrentStatementIndex(index);
@@ -110,25 +106,37 @@ public class Interpreter {
             }
           }
           final ControlFlow flow = executor.execute(stmt);
-          // An exhaustive switch expression (no default arm) so a future ControlFlow variant is a
-          // compile error here, not a statement whose jump/stop silently gets ignored.
-          final boolean stopped =
-              switch (flow) {
-                case ControlFlow.Continue _ -> false;
-                case ControlFlow.Jump j -> {
-                  state.setPendingJumpLocation(j.label(), j.statementIndex());
-                  yield true;
-                }
-                case ControlFlow.EndOfProgram _ -> {
-                  state.setRunning(false);
-                  yield true;
-                }
-              };
-          if (stopped) {
+          // An exhaustive switch (no default arm) so a future ControlFlow variant is a compile
+          // error here, not a statement whose jump/stop silently gets ignored.
+          switch (flow) {
+            case ControlFlow.Continue _ -> {
+              /* advance to the next statement in this line */
+            }
+            case ControlFlow.Jump j -> {
+              jumpLabel = j.label();
+              jumpIndex = j.statementIndex();
+            }
+            case ControlFlow.EndOfProgram _ -> state.setRunning(false);
+          }
+          if (jumpLabel != null || !state.isRunning()) {
             break;
           }
         }
         index++;
+      }
+
+      if (!state.isRunning()) {
+        break;
+      }
+      if (jumpLabel != null) {
+        nextLabel = jumpLabel;
+        startIndex = jumpIndex;
+      } else if (nextLabel == 0) {
+        state.setRunning(false); // immediate mode: no jump, no next line - back to the REPL
+        break;
+      } else {
+        nextLabel = state.program().higherKey(nextLabel);
+        startIndex = 1;
       }
     }
   }

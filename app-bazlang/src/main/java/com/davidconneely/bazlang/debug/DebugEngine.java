@@ -31,13 +31,13 @@ import java.util.List;
  * steps, hits its safety timeout, or stops, then returns - there is no blocking wait for a "next
  * command" inside the engine itself. A breakpoint pauses execution by having the {@link
  * Interpreter.ExecutionListener} set {@link EvalState#setRunning} to {@code false} before the
- * triggering statement executes, which unwinds {@link Interpreter#resume()} back to the caller; a
- * later {@link #go()} call resumes at the exact same location, guarded so the same breakpoint does
- * not immediately re-fire. Every run-control call also arms a wall-clock deadline (default {@link
- * #DEFAULT_STEP_TIMEOUT_MS}, overridable per call) as a safety net against a runaway programme with
- * no breakpoint of its own - there is no cancel-while-running mechanism (see docs/spec/mcp.md
- * "Known limitations"), so an unconditionally blocking call would otherwise hang the caller (and,
- * for the MCP server, the whole single-threaded session) forever.
+ * triggering statement executes, which unwinds {@link Interpreter#resume(int, int)} back to the
+ * caller; a later {@link #go()} call resumes at the exact same location, guarded so the same
+ * breakpoint does not immediately re-fire. Every run-control call also arms a wall-clock deadline
+ * (default {@link #DEFAULT_STEP_TIMEOUT_MS}, overridable per call) as a safety net against a
+ * runaway programme with no breakpoint of its own - there is no cancel-while-running mechanism (see
+ * docs/spec/mcp.md "Known limitations"), so an unconditionally blocking call would otherwise hang
+ * the caller (and, for the MCP server, the whole single-threaded session) forever.
  */
 public final class DebugEngine {
 
@@ -319,11 +319,10 @@ public final class DebugEngine {
     if (state.program().isEmpty()) {
       throw new DebugEngineException("no programme loaded");
     }
-    state.setPendingJumpLocation(state.program().firstKey(), 1);
     disarmStep();
     breaks.resetTimer();
     armDeadline(timeoutMs);
-    return driveUntilPause();
+    return driveUntilPause(state.program().firstKey(), 1);
   }
 
   /** Runs from line {@code lineNumber} without clearing variables, with the default timeout. */
@@ -333,11 +332,10 @@ public final class DebugEngine {
 
   /** Runs from line {@code lineNumber} without clearing variables. See {@link #run(long)}. */
   public PauseResult gotoLine(int lineNumber, long timeoutMs) {
-    state.setPendingJumpLocation(lineNumber, 1);
     disarmStep();
     breaks.resetTimer();
     armDeadline(timeoutMs);
-    return driveUntilPause();
+    return driveUntilPause(lineNumber, 1);
   }
 
   /** Resumes execution from a breakpoint, with the default timeout. Only valid when paused. */
@@ -348,11 +346,11 @@ public final class DebugEngine {
   /** Resumes execution from a breakpoint. See {@link #run(long)}. Only valid when paused. */
   public PauseResult go(long timeoutMs) {
     requirePaused();
-    resumeAtCurrentPosition();
+    armResumeGuard();
     disarmStep();
     breaks.resetTimer();
     armDeadline(timeoutMs);
-    return driveUntilPause();
+    return driveUntilPause(resumeGuardLine, resumeGuardStmt);
   }
 
   /**
@@ -366,12 +364,12 @@ public final class DebugEngine {
   /** {@link #stepInto()} with an explicit timeout. See {@link #run(long)}. */
   public PauseResult stepInto(long timeoutMs) {
     requirePaused();
-    resumeAtCurrentPosition();
+    armResumeGuard();
     stepArmed = true;
     stepOver = false;
     breaks.resetTimer();
     armDeadline(timeoutMs);
-    return driveUntilPause();
+    return driveUntilPause(resumeGuardLine, resumeGuardStmt);
   }
 
   /**
@@ -386,13 +384,13 @@ public final class DebugEngine {
   /** {@link #stepOver()} with an explicit timeout. See {@link #run(long)}. */
   public PauseResult stepOver(long timeoutMs) {
     requirePaused();
-    resumeAtCurrentPosition();
+    armResumeGuard();
     stepArmed = true;
     stepOver = true;
     stepOverBaseDepth = state.returnStackDepth();
     breaks.resetTimer();
     armDeadline(timeoutMs);
-    return driveUntilPause();
+    return driveUntilPause(resumeGuardLine, resumeGuardStmt);
   }
 
   /** Terminates the currently running/paused programme immediately. */
@@ -408,11 +406,10 @@ public final class DebugEngine {
     }
   }
 
-  /** Arms the resume guard at the current pause location and re-targets execution there. */
-  private void resumeAtCurrentPosition() {
+  /** Arms the resume guard at the current pause location, for {@link #driveUntilPause} to use. */
+  private void armResumeGuard() {
     resumeGuardLine = state.currentLineLabel();
     resumeGuardStmt = state.currentStatementIndex();
-    state.setPendingJumpLocation(resumeGuardLine, resumeGuardStmt);
   }
 
   private void armDeadline(long timeoutMs) {
@@ -420,10 +417,10 @@ public final class DebugEngine {
     stepDeadlineMs = System.currentTimeMillis() + effectiveMs;
   }
 
-  private PauseResult driveUntilPause() {
+  private PauseResult driveUntilPause(int label, int statementIndex) {
     firedPauseReason = null;
     try {
-      interpreter.resume();
+      interpreter.resume(label, statementIndex);
     } catch (ReportException e) {
       paused = false;
       disarmStep();

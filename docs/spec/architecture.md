@@ -152,21 +152,24 @@ Under `com.davidconneely.bazlang`:
   `default` arm - it is exhaustive over the sealed `Stmt`, so a new statement kind is a compile
   error here until handled, not a silent gap. `execute(Stmt)` returns a sealed `ControlFlow`
   (`Continue`, `Jump(label, statementIndex)`, `EndOfProgram`) rather than mutating `EvalState`'s
-  execution position itself - only `Interpreter.resume()` translates a `Jump`/`EndOfProgram` into
-  the actual `ProgramCounter` state, so there is exactly one place that happens, not one per
-  flow-control statement. `STOP` and a genuine runtime error stay outside `ControlFlow` and unwind
-  via `ReportException` instead - both are meant to look different from an ordinary jump; `BREAK` is
-  polled between statements in `Interpreter.resume()` itself, not returned by a statement's own
-  execution. A 3-argument convenience constructor builds the default `ProgramStorage`/
-  `ExpressionEvaluator` collaborators; the full constructor takes them (and the `AntlrParser`)
-  injected.
-- **`Interpreter`**: Manages the overall flow. It coordinates the executor and evaluator, decides
+  execution position itself - `Interpreter.resume()` threads the current jump target through its own
+  loop as a local variable instead, so no collaborator holds "where to jump next" as state at all.
+  `STOP` and a genuine runtime error stay outside `ControlFlow` and unwind via `ReportException`
+  instead - both are meant to look different from an ordinary jump; `BREAK` is polled between
+  statements in `Interpreter.resume()` itself, not returned by a statement's own execution. A
+  3-argument convenience constructor builds the default `ProgramStorage`/`ExpressionEvaluator`
+  collaborators; the full constructor takes them (and the `AntlrParser`) injected.
+- **`Interpreter`**: Manages the overall flow. `resume(label, statementIndex)` takes where to start
+  or resume as parameters - callers (`execute`, `executeImmediate`, and `DebugEngine`'s run control)
+  never mutate shared state to communicate this. It coordinates the executor and evaluator, decides
   which line to run next by switching on each statement's returned `ControlFlow` - an exhaustive
   switch expression with no `default` arm, so a future `ControlFlow` variant is a compile error here
-  too - and loops until the program stops.
+  too - and loops until the program stops. Line 0 (the synthetic line `executeImmediate` uses) has
+  no natural successor line, so finishing it with no `Jump` anywhere in it means "stop and return to
+  the REPL", not falling through into whatever real program line happens to sort after it.
 - **`EvalState`**: The program's memory - a thin facade over four package-private collaborators:
   `VariableStore` (numeric/string scalars and arrays, `DEF FN`), `ReturnStack` (`GOSUB`/`RETURN`),
-  `ProgramCounter` (current/pending execution position, running state), and `DataCursor` (the `DATA`
+  `ProgramCounter` (current execution position, running state), and `DataCursor` (the `DATA`
   pointer). Also holds the state of any active `FOR` loops, the last report, the random generator,
   the graphics cursor, and the default style attributes (a `StyleState`) directly - these didn't fit
   a named collaborator above. The four collaborators are package-private by design: only `EvalState`
@@ -263,31 +266,32 @@ Flat indices are the shared currency of the interpreter loop, `CONT`, `GOSUB` re
 
 ### The fetch-execute loop
 
-`Interpreter.resume()` loops while the state is running:
+`Interpreter.resume(label, statementIndex)` takes where to start as parameters and loops while the
+state is running, threading the current jump target through the loop as a local variable rather than
+storing it anywhere:
 
-1. If a **pending jump** (label + statement index) is set in `EvalState`, consume it; a negative
-   label ends the run. Otherwise, advance to the next higher line number; none left means a normal
-   end. If the current line label is 0 (immediate mode) and no jump is pending, the run ends.
+1. A negative label ends the run; a `null` label (ran off the end of the program) ends it too.
 2. Poll `VirtualInput.pollForBreak()`; a pending break raises `L BREAK into program`.
 3. Fetch and flatten the line. The valid start-index range is `1 .. size + 1` (`size + 1` means
    "start past the end", i.e. fall through); anything else raises `N Statement lost`.
-4. Visit statements from the start index, stopping early when a statement sets a pending jump or
-   stops the run.
+4. Visit statements from the start index. Each returns a `ControlFlow` (see "Main components"
+   above): `Continue` moves to the next statement in the line; `Jump(label, statementIndex)` stops
+   the line early and becomes the next iteration's target; `EndOfProgram` stops the run. If the
+   whole line finishes with no `Jump`, the next target is the next higher line number - except line
+   0 (immediate mode), which has no successor line and stops the run instead.
 
-All control transfers are expressed as pending jumps recorded in `EvalState`; visitor methods never
-call back into the interpreter. `GO TO`/`GO SUB` resolve targets with `ceilingKey`
-(jumping past the last line is a clean stop). `RUN` implies `CLEAR`; `GO TO` does not. `CONT`
-resumes at the last-report location (for reports `9 STOP statement` and `L BREAK into program`, at
-the *following* statement).
+Statement execution never calls back into the interpreter; it only returns a `ControlFlow` value.
+`GO TO`/`GO SUB` resolve targets with `ceilingKey` (jumping past the last line is a clean stop, via
+`EndOfProgram`). `RUN` implies `CLEAR`; `GO TO` does not. `CONT` resumes at the last-report location
+(for reports `9 STOP statement` and `L BREAK into program`, at the *following* statement).
 
 ### Sentinel values
 
 - **Line 0 is the immediate-mode line.** `Interpreter.executeImmediate()` temporarily inserts the
   immediate statements at key 0 and removes them in a `finally`. Line 0 is excluded from `GO TO`
   targeting, `SAVE`, and `LIST`; a `0 ...` REPL line executes immediately (ZX81-style). A false
-  `IF` in immediate mode sets a pending jump to statement index `Integer.MAX_VALUE`, which the
-  loop's bounds check reports as `N Statement lost, 0:1` - intentional, see
-  [quirks.md](../quirks.md).
+  `IF` in immediate mode returns `ControlFlow.Jump(0, Integer.MAX_VALUE)`, which the loop's bounds
+  check reports as `N Statement lost, 0:1` - intentional, see [quirks.md](../quirks.md).
 - **`DATA` pointer**: components of `-1` mean "not yet initialised"; a line label of
   `Integer.MAX_VALUE` means "exhausted" (`E Out of DATA` on the next `READ`).
 
