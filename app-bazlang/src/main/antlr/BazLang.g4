@@ -281,9 +281,11 @@ strFunc
     | INKEY_STR
     | SCREEN_STR '(' numExpr ',' numExpr ')'
     | STR_STR numAtom
+    | TL_STR strAtom
     | UCHR_STR numAtom
     | UINKEY_STR
     | USCREEN_STR '(' numExpr ',' numExpr ')'
+    | UTL_STR strAtom
     | VAL_STR strAtom
     ;
 
@@ -396,12 +398,14 @@ TEXTH    : 'TEXTH';
 TEXTW    : 'TEXTW';
 TEXTX    : 'TEXTX';
 TEXTY    : 'TEXTY';
+TL_STR   : 'TL$';
 UCHR_STR : 'UCHR$';
 UCNEXT   : 'UCNEXT';
 UCODE    : 'UCODE';
 UINKEY_STR: 'UINKEY$';
 ULEN     : 'ULEN';
 USCREEN_STR: 'USCREEN$';
+UTL_STR  : 'UTL$';
 VAL      : 'VAL';
 VAL_STR  : 'VAL$';
 XATTR    : 'XATTR';

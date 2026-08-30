@@ -6,8 +6,10 @@ public enum StrFuncKind {
   INKEY_STR,
   SCREEN_STR,
   STR_STR,
+  TL_STR,
   UCHR_STR,
   UINKEY_STR,
   USCREEN_STR,
+  UTL_STR,
   VAL_STR
 }

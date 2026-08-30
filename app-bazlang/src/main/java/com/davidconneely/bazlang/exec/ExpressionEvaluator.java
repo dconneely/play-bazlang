@@ -449,6 +449,10 @@ public class ExpressionEvaluator {
         }
       }
       case STR_STR -> BStr.fromJavaString(formatNum(argNum(args, 0)));
+      case TL_STR -> {
+        final var s = argStr(args, 0);
+        yield s.isEmpty() ? BStr.EMPTY : s.slice(2, s.length());
+      }
       case UCHR_STR -> {
         final int code = (int) argNum(args, 0);
         if (code < 0 || !Character.isValidCodePoint(code)) {
@@ -457,6 +461,10 @@ public class ExpressionEvaluator {
         yield BStr.fromJavaString(new String(Character.toChars(code)));
       }
       case UINKEY_STR -> input.uinkey();
+      case UTL_STR -> {
+        final var s = argStr(args, 0);
+        yield s.isEmpty() ? BStr.EMPTY : s.slice(s.nextCodepointStart(0) + 1, s.length());
+      }
       case VAL_STR -> evaluateStringExpression(argStr(args, 0).toJavaString().trim());
     };
   }

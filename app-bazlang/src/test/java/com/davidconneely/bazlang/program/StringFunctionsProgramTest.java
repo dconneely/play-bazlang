@@ -208,4 +208,65 @@ class StringFunctionsProgramTest extends BaseProgramTest {
     assertEquals(1.0, state.numVar("C")); // 😀 is 1 character
     assertEquals(2.0, state.numVar("D")); // 2 invalid bytes = 2 characters under fallback
   }
+
+  @Test
+  void testTlDollarAndUtlDollarFunctions() {
+    // TL$ drops the first byte; UTL$ drops the first codepoint however many bytes it took.
+    final var state =
+        runProgram(
+            """
+        10 LET A$ = TL$("HELLO")
+        20 LET B$ = TL$(UCHR$(9608) + "X")
+        30 LET C = LEN(B$)
+        40 LET D$ = UTL$("HELLO")
+        50 LET E$ = UTL$(UCHR$(9608) + "X")
+        60 LET F$ = TL$("")
+        70 LET G$ = UTL$("")
+        """);
+    assertEquals("ELLO", ((EvalState.StrVar.Scalar) state.strVar("A$")).value().toJavaString());
+    assertEquals(3.0, state.numVar("C")); // block char loses 1 of its 3 bytes, plus "X"
+    assertEquals("ELLO", ((EvalState.StrVar.Scalar) state.strVar("D$")).value().toJavaString());
+    assertEquals("X", ((EvalState.StrVar.Scalar) state.strVar("E$")).value().toJavaString());
+    assertEquals("", ((EvalState.StrVar.Scalar) state.strVar("F$")).value().toJavaString());
+    assertEquals("", ((EvalState.StrVar.Scalar) state.strVar("G$")).value().toJavaString());
+  }
+
+  @Test
+  void testByteIterationIdiomUsingCodeAndTl() {
+    // The idiom: CODE peeks the first byte, TL$ removes it - iterate until the string is empty.
+    final var state =
+        runProgram(
+            """
+        10 LET S$ = "AB" + UCHR$(9608)
+        20 LET R$ = ""
+        30 LET T$ = S$
+        40 IF LEN(T$) = 0 THEN GO TO 80
+        50 LET R$ = R$ + CHR$(CODE(T$))
+        60 LET T$ = TL$(T$)
+        70 GO TO 40
+        80 LET MATCH = 1
+        90 IF R$ <> S$ THEN LET MATCH = 0
+        """);
+    assertEquals(1.0, state.numVar("MATCH"));
+  }
+
+  @Test
+  void testCodepointIterationIdiomUsingUcodeAndUtl() {
+    // The idiom: UCODE peeks the first codepoint, UTL$ removes it - iterate until the string is
+    // empty; reconstruct with UCHR$ to confirm every codepoint round-trips.
+    final var state =
+        runProgram(
+            """
+        10 LET S$ = "AB" + UCHR$(9608)
+        20 LET R$ = ""
+        30 LET T$ = S$
+        40 IF ULEN(T$) = 0 THEN GO TO 80
+        50 LET R$ = R$ + UCHR$(UCODE(T$))
+        60 LET T$ = UTL$(T$)
+        70 GO TO 40
+        80 LET MATCH = 1
+        90 IF R$ <> S$ THEN LET MATCH = 0
+        """);
+    assertEquals(1.0, state.numVar("MATCH"));
+  }
 }

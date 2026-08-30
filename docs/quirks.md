@@ -63,6 +63,11 @@ those behaviours. It serves two audiences:
   large enough to hold the character's full byte sequence. If the assigned string exceeds
   `cols` bytes, it is truncated at the byte boundary, which can result in partial, invalid UTF-8
   sequences.
+- **`TL$` truncates at the byte boundary, not the character boundary**: `TL$ s$` always removes
+  exactly one byte, so on a multibyte UTF-8 character it leaves a partial, invalid sequence behind
+  rather than dropping the whole character. This is deliberate - `TL$` is the byte-oriented sibling
+  of Unicode-aware `UTL$`, matching the project's other byte/Unicode function pairs (`CODE`/`UCODE`,
+  `CHR$`/`UCHR$`); it is not a bug to make `TL$` itself Unicode-aware.
 
 ## Interpreter & application behaviours
 

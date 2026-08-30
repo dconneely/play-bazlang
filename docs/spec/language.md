@@ -333,12 +333,37 @@ current pixel state (which is slightly confusing, but consistent with the Sincla
   Returns `""` if the character codepoint is outside `0..127`. Reports 'Integer out of range' if
   coordinates are out of bounds.
 - **`STR$ x`**: Convert number to string.
+- **`TL$ s$`**: String with the first byte removed (`""` if `s$` is already empty). Together with
+  `CODE`, iterate a string byte-by-byte:
+
+  ```bas
+  10 LET t$ = s$
+  20 IF LEN(t$) = 0 THEN GOTO 60
+  30 LET b = CODE(t$)   : REM current byte
+  40 LET t$ = TL$(t$)   : REM drop it and continue
+  50 GOTO 20
+  60 REM ...
+  ```
+
 - **`UCHR$ x`**: String containing the UTF-8 encoding of Unicode codepoint `x`. Use for codepoints
   above U+007F, e.g. `UCHR$(9608)` for the full-block character █.
 - **`UINKEY$`**: Check key press, interpreting multibyte UTF-8 sequences and ANSI escape sequences.
 - **`USCREEN$(row, col)`**: Character at screen coordinate `(row, col)` as a UTF-8 string. Returns
   Unicode Braille/quadrant characters if the location has been plotted to. Reports
   'Integer out of range' if coordinates are out of bounds.
+- **`UTL$ s$`**: String with the first Unicode character removed, however many bytes it took
+  (`""` if `s$` is already empty). Together with `UCODE`, iterate a string codepoint-by-codepoint
+  - an alternative to the `UCNEXT` loop above:
+
+  ```bas
+  10 LET t$ = s$
+  20 IF LEN(t$) = 0 THEN GOTO 60
+  30 LET cp = UCODE(t$)  : REM current codepoint
+  40 LET t$ = UTL$(t$)   : REM drop it and continue
+  50 GOTO 20
+  60 REM ...
+  ```
+
 - **`VAL$ s$`**: Evaluate a string as a string expression.
 
 ### Byte vs Unicode functions
@@ -370,6 +395,10 @@ between raw bytes and decoded Unicode characters:
   - `INKEY$` polls for a single raw byte from the input queue and returns it as a `BStr`.
   - `UINKEY$` polls for input, reading and returning a complete UTF-8 multibyte sequence or a
     terminal ANSI CSI escape sequence (e.g. cursor or function keys) as a single `BStr`.
+- **`TL$` vs `UTL$`**:
+  - `TL$ s$` removes exactly the first byte of `s$`, which can leave a partial multibyte
+    character behind.
+  - `UTL$ s$` removes the first whole Unicode character of `s$`, however many bytes it took.
 
 ## Slicing
 

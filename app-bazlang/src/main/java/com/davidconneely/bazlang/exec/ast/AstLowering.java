@@ -325,6 +325,10 @@ public final class AstLowering {
       return new StrExpr.StrFuncCall(
           StrFuncKind.STR_STR, List.of(lowerNum(ctx.numAtom(), lineNumber)));
     }
+    if (ctx.TL_STR() != null) {
+      return new StrExpr.StrFuncCall(
+          StrFuncKind.TL_STR, List.of(lowerStr(ctx.strAtom(), lineNumber)));
+    }
     if (ctx.UCHR_STR() != null) {
       return new StrExpr.StrFuncCall(
           StrFuncKind.UCHR_STR, List.of(lowerNum(ctx.numAtom(), lineNumber)));
@@ -336,6 +340,10 @@ public final class AstLowering {
       return new StrExpr.StrFuncCall(
           StrFuncKind.USCREEN_STR,
           List.of(lowerNum(ctx.numExpr(0), lineNumber), lowerNum(ctx.numExpr(1), lineNumber)));
+    }
+    if (ctx.UTL_STR() != null) {
+      return new StrExpr.StrFuncCall(
+          StrFuncKind.UTL_STR, List.of(lowerStr(ctx.strAtom(), lineNumber)));
     }
     if (ctx.VAL_STR() != null) {
       return new StrExpr.StrFuncCall(

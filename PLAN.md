@@ -23,17 +23,6 @@ but `ExpressionEvaluator.codedException` records only `(code, currentLineLabel, 
 expression-level error loses the statement index and reports an incomplete location. Thread
 `state.currentStatementIndex()` through for parity.
 
-## `TL$` / `UTL$` (string tail)
-
-**Type:** feature - **Importance:** medium - **Effort:** small
-
-Native support for substring operations that return everything except the first byte/character,
-simplifying recursive string manipulation. Small, self-contained grammar and evaluator change. `TL$`
-was part of ZX80 BASIC (not ZX81 or ZX Spectrum BASIC, BazLang's actual dialect basis) - a real prior
-Sinclair BASIC, just not the one or two this project targets. `UTL$` has no such heritage - it would
-be BazLang's own Unicode-aware variant, following the existing `INKEY$`/`UINKEY$` and `CHR$`/`UCHR$`
-`U`-prefix convention rather than any historical dialect.
-
 ## Simplify `LIST`/`DELETE`/`REFORMAT`/`RENUM` line-range syntax
 
 **Type:** feature - **Importance:** medium - **Effort:** small

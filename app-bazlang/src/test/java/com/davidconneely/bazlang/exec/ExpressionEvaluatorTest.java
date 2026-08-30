@@ -330,6 +330,19 @@ class ExpressionEvaluatorTest {
     }
 
     @Test
+    void tlDollarAndUtlDollar() {
+      // TL$ drops the first byte; multi-byte UTF-8 codepoints leave partial bytes behind.
+      assertEquals(BStr.fromJavaString("ELLO"), evalS("TL$ \"HELLO\""));
+      assertEquals(BStr.EMPTY, evalS("TL$ \"H\""));
+      assertEquals(BStr.EMPTY, evalS("TL$ \"\""));
+      // UTL$ drops the first Unicode codepoint, however many bytes it took.
+      assertEquals(BStr.fromJavaString("ELLO"), evalS("UTL$ \"HELLO\""));
+      assertEquals(BStr.fromJavaString("LLO"), evalS("UTL$ (UTL$ \"HELLO\")"));
+      assertEquals(BStr.EMPTY, evalS("UTL$ \"H\""));
+      assertEquals(BStr.EMPTY, evalS("UTL$ \"\""));
+    }
+
+    @Test
     void valOfEmptyStringThrows() {
       // VAL "" trims to an empty expression, which evaluateNumericExpression rejects outright.
       assertThrows(ReportException.class, () -> evalN("VAL \"\""));

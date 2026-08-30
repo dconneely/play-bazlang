@@ -27,6 +27,9 @@ All notable changes to this project are documented here, following
 - `PLAY`/`APLAY`: triplet duration codes `10`-`12` (triplet semi-quaver/quaver/crotchet) and tied
   notes (`<duration>_<duration><note>`, e.g. `3_5A`), matching the ZX Spectrum 128 manual's own
   duration-code table and tie example exactly. Previously reserved as parse errors.
+- `TL$ s$` - string with the first byte removed (ZX80 BASIC's "truncate left"), and `UTL$ s$` -
+  BazLang's Unicode-aware counterpart, removing the first whole codepoint instead. Together with
+  `CODE`/`UCODE`, iterate a string byte-by-byte or codepoint-by-codepoint.
 
 ### Changed
 
