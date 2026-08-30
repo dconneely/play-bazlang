@@ -984,7 +984,7 @@ public class StatementExecutor {
     // RAND with 0 or no argument seeds from system state
     if (seed == 0) {
       // Combine multiple entropy sources and mix with XorShift
-      seed = System.nanoTime() ^ ((long) new Object().hashCode() << 32 | new Object().hashCode());
+      seed = System.nanoTime() ^ java.util.concurrent.ThreadLocalRandom.current().nextLong();
       seed ^= seed << 17;
       seed ^= seed >>> 31;
       seed ^= seed << 8;

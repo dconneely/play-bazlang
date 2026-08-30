@@ -212,17 +212,6 @@ single-expression construct, and there is no `DEF PROC`/`LOCAL` at all. Same non
 reasoning as `WHILE`/`WEND` and `IF`/`ELSE` above, taken further given how large this item is. Still
 wanted eventually, just not ahead of core-fidelity work.
 
-## `RAND` entropy source is unreliable
-
-**Type:** bug - **Importance:** low - **Effort:** small
-
-`visitRandStmt` seeds the no-argument/zero case from
-`System.nanoTime() ^ ((long) new Object().hashCode() << 32 | new Object().hashCode())`. Identity hash
-codes are not a guaranteed entropy source (some JVMs hand out near-sequential values), and allocating
-two throwaway `Object`s to read them is wasteful. `System.nanoTime()` alone - optionally mixed with
-`ThreadLocalRandom.current().nextLong()` - is simpler and stronger. Keep the XorShift mixing that
-follows.
-
 ## Accessor naming consistency
 
 **Type:** debt - **Importance:** low - **Effort:** small
