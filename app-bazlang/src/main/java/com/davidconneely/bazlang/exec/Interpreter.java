@@ -109,8 +109,22 @@ public class Interpreter {
               break;
             }
           }
-          executor.execute(stmt);
-          if (state.hasPendingJump() || !state.isRunning()) {
+          final ControlFlow flow = executor.execute(stmt);
+          // An exhaustive switch expression (no default arm) so a future ControlFlow variant is a
+          // compile error here, not a statement whose jump/stop silently gets ignored.
+          final boolean stopped =
+              switch (flow) {
+                case ControlFlow.Continue _ -> false;
+                case ControlFlow.Jump j -> {
+                  state.setPendingJumpLocation(j.label(), j.statementIndex());
+                  yield true;
+                }
+                case ControlFlow.EndOfProgram _ -> {
+                  state.setRunning(false);
+                  yield true;
+                }
+              };
+          if (stopped) {
             break;
           }
         }

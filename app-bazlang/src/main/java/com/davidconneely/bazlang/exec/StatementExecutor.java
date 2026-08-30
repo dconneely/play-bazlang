@@ -102,7 +102,8 @@ public class StatementExecutor {
     return exprEvaluator.evalNum(AstLowering.lowerNum(ctx, state.currentLineLabel()));
   }
 
-  public void execute(Stmt stmt) {
+  public ControlFlow execute(Stmt stmt) {
+    ControlFlow flow = ControlFlow.CONTINUE;
     switch (stmt) {
       case Stmt.ClearStmt _ -> state.clear();
       case Stmt.NewStmt _ -> {
@@ -111,15 +112,15 @@ public class StatementExecutor {
       }
       case Stmt.LetStmt s -> executeLetStmt(s);
       case Stmt.DimStmt s -> executeDimStmt(s);
-      case Stmt.ForStmt s -> executeForStmt(s);
-      case Stmt.NextStmt s -> executeNextStmt(s);
-      case Stmt.GotoStmt s -> gotoLabel((int) Math.round(exprEvaluator.evalNum(s.target())));
-      case Stmt.GosubStmt s -> executeGosubStmt(s);
-      case Stmt.ReturnStmt _ -> executeReturnStmt();
-      case Stmt.IfStmt s -> executeIfStmt(s);
-      case Stmt.ContStmt _ -> executeContStmt();
+      case Stmt.ForStmt s -> flow = executeForStmt(s);
+      case Stmt.NextStmt s -> flow = executeNextStmt(s);
+      case Stmt.GotoStmt s -> flow = gotoLabel((int) Math.round(exprEvaluator.evalNum(s.target())));
+      case Stmt.GosubStmt s -> flow = executeGosubStmt(s);
+      case Stmt.ReturnStmt _ -> flow = executeReturnStmt();
+      case Stmt.IfStmt s -> flow = executeIfStmt(s);
+      case Stmt.ContStmt _ -> flow = executeContStmt();
       case Stmt.StopStmt _ -> executeStopStmt();
-      case Stmt.RunStmt s -> executeRunStmt(s);
+      case Stmt.RunStmt s -> flow = executeRunStmt(s);
       case Stmt.DataStmt _ -> {
         /* no-op: consumed by READ, not executed */
       }
@@ -160,6 +161,7 @@ public class StatementExecutor {
       case Stmt.SaveStmt s -> storage.save(exprEvaluator.evalStr(s.fileName()).toJavaString());
       case Stmt.VerifyStmt s -> storage.verify(exprEvaluator.evalStr(s.fileName()).toJavaString());
     }
+    return flow;
   }
 
   // ===== LET / DIM =====
@@ -218,7 +220,7 @@ public class StatementExecutor {
 
   // ===== Control flow =====
 
-  private void executeForStmt(Stmt.ForStmt stmt) {
+  private ControlFlow executeForStmt(Stmt.ForStmt stmt) {
     final double st = exprEvaluator.evalNum(stmt.start());
     final double en = exprEvaluator.evalNum(stmt.end());
     final double step = exprEvaluator.evalNum(stmt.step());
@@ -242,11 +244,12 @@ public class StatementExecutor {
         throw new ReportException(
             ReportCode.FOR_WITHOUT_NEXT, state.currentLineLabel(), "FOR without NEXT");
       }
-      state.setPendingJumpLocation(addr.lineLabel(), addr.statementIndex() + 1);
+      return new ControlFlow.Jump(addr.lineLabel(), addr.statementIndex() + 1);
     }
+    return ControlFlow.CONTINUE;
   }
 
-  private void executeNextStmt(Stmt.NextStmt stmt) {
+  private ControlFlow executeNextStmt(Stmt.NextStmt stmt) {
     final String forVar = stmt.forVar();
     if (!state.hasForLoop(forVar)) {
       throw new ReportException(
@@ -260,11 +263,12 @@ public class StatementExecutor {
     final double nv = state.numVar(forVar) + d.step();
     state.setNumVar(forVar, nv);
     if (d.step() >= 0 ? nv <= d.limit() : nv >= d.limit()) {
-      state.setPendingJumpLocation(d.loopPcLabel(), d.loopPcStatementIndex() + 1);
+      return new ControlFlow.Jump(d.loopPcLabel(), d.loopPcStatementIndex() + 1);
     }
+    return ControlFlow.CONTINUE;
   }
 
-  private void gotoLabel(int target) {
+  private ControlFlow gotoLabel(int target) {
     if (target < Limits.MIN_TARGET_LABEL || target > Limits.MAX_TARGET_LABEL) {
       throw new ReportException(
           ReportCode.INTEGER_OUT_OF_RANGE,
@@ -274,56 +278,48 @@ public class StatementExecutor {
     // Prevent jumping to line 0 (the immediate statement buffer)
     final int searchTarget = Math.max(target, Limits.MIN_LINE_LABEL);
     final Integer label = state.program().ceilingKey(searchTarget);
-    if (label != null) {
-      state.setPendingJumpLocation(label, 1);
-    } else {
-      state.setRunning(false);
-    }
+    return (label != null) ? new ControlFlow.Jump(label, 1) : ControlFlow.END_OF_PROGRAM;
   }
 
-  private void executeGosubStmt(Stmt.GosubStmt stmt) {
+  private ControlFlow executeGosubStmt(Stmt.GosubStmt stmt) {
     state.pushReturn(
         new EvalState.StatementAddress(
             state.currentLineLabel(), state.currentStatementIndex() + 1));
-    gotoLabel((int) Math.round(exprEvaluator.evalNum(stmt.target())));
+    return gotoLabel((int) Math.round(exprEvaluator.evalNum(stmt.target())));
   }
 
-  private void executeReturnStmt() {
+  private ControlFlow executeReturnStmt() {
     if (state.isReturnStackEmpty()) {
       throw new ReportException(
           ReportCode.RETURN_WITHOUT_GOSUB, state.currentLineLabel(), "RETURN without GOSUB");
     }
     final var gosubLoc = state.popReturn();
-    state.setPendingJumpLocation(gosubLoc.lineLabel(), gosubLoc.statementIndex());
+    return new ControlFlow.Jump(gosubLoc.lineLabel(), gosubLoc.statementIndex());
   }
 
-  private void executeIfStmt(Stmt.IfStmt stmt) {
-    if (exprEvaluator.evalNum(stmt.condition()) == 0.0) {
-      if (state.currentLineLabel() > 0) {
-        final Integer nextLabel = state.program().higherKey(state.currentLineLabel());
-        if (nextLabel != null) {
-          state.setPendingJumpLocation(nextLabel, 1);
-        } else {
-          state.setRunning(false); // End of program
-        }
-      } else {
-        state.setPendingJumpLocation(
-            0, Integer.MAX_VALUE); // effectively skips the rest of immediate line
-      }
+  private ControlFlow executeIfStmt(Stmt.IfStmt stmt) {
+    if (exprEvaluator.evalNum(stmt.condition()) != 0.0) {
+      return ControlFlow.CONTINUE;
     }
+    if (state.currentLineLabel() > 0) {
+      final Integer nextLabel = state.program().higherKey(state.currentLineLabel());
+      return (nextLabel != null) ? new ControlFlow.Jump(nextLabel, 1) : ControlFlow.END_OF_PROGRAM;
+    }
+    // Immediate mode: effectively skips the rest of the immediate line.
+    return new ControlFlow.Jump(0, Integer.MAX_VALUE);
   }
 
-  private void executeContStmt() {
+  private ControlFlow executeContStmt() {
     final int m = state.lastReport().lineLabel();
     if (m <= 0) {
-      return;
+      return ControlFlow.CONTINUE;
     }
-    if (state.lastReport().code() == ReportCode.STOP_STATEMENT
-        || state.lastReport().code() == ReportCode.BREAK_INTO_PROGRAM) {
-      state.setPendingJumpLocation(m, state.lastReport().statementIndex() + 1);
-    } else {
-      state.setPendingJumpLocation(m, state.lastReport().statementIndex());
-    }
+    final int index =
+        (state.lastReport().code() == ReportCode.STOP_STATEMENT
+                || state.lastReport().code() == ReportCode.BREAK_INTO_PROGRAM)
+            ? state.lastReport().statementIndex() + 1
+            : state.lastReport().statementIndex();
+    return new ControlFlow.Jump(m, index);
   }
 
   private void executeStopStmt() {
@@ -331,7 +327,7 @@ public class StatementExecutor {
     throw codedException(ReportCode.STOP_STATEMENT, ReportCode.STOP_STATEMENT.getMessage());
   }
 
-  private void executeRunStmt(Stmt.RunStmt stmt) {
+  private ControlFlow executeRunStmt(Stmt.RunStmt stmt) {
     final int target =
         stmt.target() != null
             ? (int) Math.round(exprEvaluator.evalNum(stmt.target()))
@@ -341,7 +337,7 @@ public class StatementExecutor {
           ReportCode.INTEGER_OUT_OF_RANGE, state.currentLineLabel(), "RUN line label out of range");
     }
     state.clear();
-    gotoLabel(target);
+    return gotoLabel(target);
   }
 
   // ===== DATA / READ / RESTORE =====

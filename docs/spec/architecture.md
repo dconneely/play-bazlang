@@ -150,11 +150,20 @@ Under `com.davidconneely.bazlang`:
   variable assignment, I/O operations, state mutation, and the flow-control statements (`CONT`,
   `FOR`, `GO SUB`, `GO TO`, `NEXT`, `RETURN`, `RUN`). The `switch` in `execute(Stmt)` has no
   `default` arm - it is exhaustive over the sealed `Stmt`, so a new statement kind is a compile
-  error here until handled, not a silent gap. A 3-argument convenience constructor builds the
-  default `ProgramStorage`/`ExpressionEvaluator` collaborators; the full constructor takes them
-  (and the `AntlrParser`) injected.
+  error here until handled, not a silent gap. `execute(Stmt)` returns a sealed `ControlFlow`
+  (`Continue`, `Jump(label, statementIndex)`, `EndOfProgram`) rather than mutating `EvalState`'s
+  execution position itself - only `Interpreter.resume()` translates a `Jump`/`EndOfProgram` into
+  the actual `ProgramCounter` state, so there is exactly one place that happens, not one per
+  flow-control statement. `STOP` and a genuine runtime error stay outside `ControlFlow` and unwind
+  via `ReportException` instead - both are meant to look different from an ordinary jump; `BREAK` is
+  polled between statements in `Interpreter.resume()` itself, not returned by a statement's own
+  execution. A 3-argument convenience constructor builds the default `ProgramStorage`/
+  `ExpressionEvaluator` collaborators; the full constructor takes them (and the `AntlrParser`)
+  injected.
 - **`Interpreter`**: Manages the overall flow. It coordinates the executor and evaluator, decides
-  which line to run next, handles jumps, and loops until the program stops.
+  which line to run next by switching on each statement's returned `ControlFlow` - an exhaustive
+  switch expression with no `default` arm, so a future `ControlFlow` variant is a compile error here
+  too - and loops until the program stops.
 - **`EvalState`**: The program's memory - a thin facade over four package-private collaborators:
   `VariableStore` (numeric/string scalars and arrays, `DEF FN`), `ReturnStack` (`GOSUB`/`RETURN`),
   `ProgramCounter` (current/pending execution position, running state), and `DataCursor` (the `DATA`

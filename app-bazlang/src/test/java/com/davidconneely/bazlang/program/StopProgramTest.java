@@ -10,7 +10,6 @@ import com.davidconneely.bazlang.exec.EvalState;
 import com.davidconneely.bazlang.exec.Interpreter;
 import com.davidconneely.bazlang.exec.ProgramLine;
 import com.davidconneely.bazlang.exec.StatementExecutor;
-import com.davidconneely.bazlang.exec.ast.Stmt;
 import com.davidconneely.bazlang.io.MockScreen;
 import java.util.HashMap;
 import java.util.List;
@@ -40,8 +39,7 @@ class StopProgramTest extends BaseProgramTest {
     }
 
     // CONTINUE -> should repeat the INPUT statement
-    executor.execute(new Stmt.ContStmt());
-    interpreter.resume();
+    interpreter.executeImmediate("CONT");
 
     assertEquals("STOP\n42\n42\n", screen.getOutput());
   }

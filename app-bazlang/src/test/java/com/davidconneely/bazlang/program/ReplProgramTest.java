@@ -75,8 +75,7 @@ class ReplProgramTest extends BaseProgramTest {
     }
 
     // Simulate REPL running CONT
-    executor.execute(new Stmt.ContStmt());
-    interpreter.resume();
+    interpreter.executeImmediate("CONT");
 
     assertEquals("BEFORE\nAFTER\n", screen.getOutput());
   }

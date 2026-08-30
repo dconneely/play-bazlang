@@ -84,22 +84,6 @@ Both sides now read the same `StrSubscript`/`StrSlice` AST type, but the bounds-
 from a slice, call `SliceBounds.resolve`, and compute the array element offset the same way. Extract
 a shared resolver so the read and write paths cannot drift apart.
 
-## Model control flow as returned signals
-
-**Type:** debt - **Importance:** medium - **Effort:** medium
-
-Statements currently signal `GO TO`/`GO SUB`/`RETURN`/`NEXT` and the `IF`-skip by mutating
-`EvalState.pendingJump`/`running`, which `Interpreter.resume()` reads after each `execute`; `STOP`
-and `BREAK` are thrown as `ReportException`s and pattern-matched in `InterpreterReplHandler`. Both
-couple control flow to shared mutable state (or the exception channel): a new statement that forgets
-the post-`execute` `hasPendingJump()` check mis-sequences silently, and a normal pause/stop is
-indistinguishable, at the type level, from a genuine error. A sealed `ControlFlow` result
-(`Continue`, `Jump(address)`, `Stop`, `Return`, ...) returned from statement execution would make the
-loop explicit. `StatementExecutor.execute(Stmt)` already returns normally rather than being a
-`Void`-returning ANTLR visitor method, so this is now a smaller change than it once was -
-`EvalState`'s `ProgramCounter`/`ReturnStack` collaborators (see `EvalState.java`) narrow the seam
-this would touch further still.
-
 ## Programmatic component tests
 
 **Type:** debt - **Importance:** medium - **Effort:** medium
@@ -210,6 +194,23 @@ formatting, implying concurrent execution is supported - but the AST's mutable r
 (`NumVarExpr.ref` etc.) already mean a `ProgramLine`'s cached `Stmt` list is not safe to execute
 concurrently. If execution is genuinely single-threaded (it appears to be), a plain field replaces
 those two `ThreadLocal`s.
+
+## Remove `EvalState.pendingJump`'s remaining entry-point mutation
+
+**Type:** debt - **Importance:** low - **Effort:** small
+
+`EvalState.pendingJump` (via `ProgramCounter`) is now only used for the "where should execution
+start/resume" entry point - `Interpreter.execute()`/`executeImmediate()`, and `DebugEngine`'s
+`run`/`gotoLine`/step resume-guard, all of which call `state.setPendingJumpLocation(...)` then a
+no-arg `resume()` - since the per-statement handoff moved to `ControlFlow`'s returned `Jump`.
+`Interpreter.resume()`'s outer loop re-reads `state.hasPendingJump()` at the top of every
+iteration, not just on entry (a line that falls through with no jump relies on the same check to
+advance via `currentLineLabel`), so removing this fully means threading the start position through
+`resume()`'s own loop as a local and having every caller pass it as a parameter instead. Would
+remove `EvalState.setPendingJumpLocation`/`hasPendingJump`/`pendingJumpLabel`/
+`pendingJumpStatementIndex`/`clearPendingJump` entirely. Not an active bug - this mutation is
+well-contained and consistently used today - so this is consistency with the per-statement fix
+already landed, not urgency.
 
 ## `VirtualScreen` is still wide (~30 methods)
 

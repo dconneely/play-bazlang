@@ -207,9 +207,8 @@ class StatementExecutorTest {
     @Test
     void falseConditionInImmediateModeSkipsRestOfLine() {
       state.setCurrentLineLabel(0);
-      executor.execute(new Stmt.IfStmt(new NumExpr.NumLiteral(0.0), List.of()));
-      assertEquals(0, (int) state.pendingJumpLabel());
-      assertEquals(Integer.MAX_VALUE, (int) state.pendingJumpStatementIndex());
+      final var flow = executor.execute(new Stmt.IfStmt(new NumExpr.NumLiteral(0.0), List.of()));
+      assertEquals(new ControlFlow.Jump(0, Integer.MAX_VALUE), flow);
     }
   }
 
@@ -218,15 +217,14 @@ class StatementExecutorTest {
     @Test
     void afterStopResumesAtNextStatement() {
       state.setLastReport(new EvalState.ReportState(ReportCode.STOP_STATEMENT, 10, 2));
-      executor.execute(firstStmt("CONT"));
-      assertEquals(10, (int) state.pendingJumpLabel());
-      assertEquals(3, (int) state.pendingJumpStatementIndex());
+      final var flow = executor.execute(firstStmt("CONT"));
+      assertEquals(new ControlFlow.Jump(10, 3), flow);
     }
 
     @Test
     void withNoPriorStopIsNoOp() {
-      executor.execute(firstStmt("CONT"));
-      assertFalse(state.hasPendingJump());
+      final var flow = executor.execute(firstStmt("CONT"));
+      assertEquals(ControlFlow.CONTINUE, flow);
     }
   }
 
@@ -242,9 +240,9 @@ class StatementExecutorTest {
     void runClearsStateAndJumpsToFirstLine() {
       state.setProgram(PARSER.parseProgramLines("10 LET X=1\n"));
       state.setNumVar("X", 99.0);
-      executor.execute(firstStmt("RUN"));
+      final var flow = executor.execute(firstStmt("RUN"));
       assertFalse(state.hasNumVar("X")); // cleared
-      assertEquals(10, (int) state.pendingJumpLabel());
+      assertEquals(new ControlFlow.Jump(10, 1), flow);
     }
   }
 
