@@ -83,13 +83,19 @@ public class Interpreter {
       if (line == null) {
         state.setRunning(false);
         throw new ReportException(
-            ReportCode.STATEMENT_LOST, state.currentLineLabel(), "Statement lost");
+            ReportCode.STATEMENT_LOST,
+            state.currentLineLabel(),
+            state.currentStatementIndex(),
+            "Statement lost");
       }
       final var stmts = line.getFlattenedStatements(parser);
       if (startIndex < 1 || startIndex > stmts.size() + 1) {
         state.setRunning(false);
         throw new ReportException(
-            ReportCode.STATEMENT_LOST, state.currentLineLabel(), "Statement lost");
+            ReportCode.STATEMENT_LOST,
+            state.currentLineLabel(),
+            state.currentStatementIndex(),
+            "Statement lost");
       }
 
       state.setCurrentLineLabel(nextLabel);

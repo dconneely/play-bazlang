@@ -84,11 +84,12 @@ final class PlaySequencer implements PlaySource {
   private final boolean[] done;
   private double elapsedSeconds;
 
-  PlaySequencer(List<List<PlayToken>> channelTokenLists, int lineLabel) {
+  PlaySequencer(List<List<PlayToken>> channelTokenLists, int lineLabel, int statementIndex) {
     final int n = channelTokenLists.size();
     channels = new PlayChannelState[n];
     for (int i = 0; i < n; i++) {
-      channels[i] = new PlayChannelState(channelTokenLists.get(i), i == 0, lineLabel);
+      channels[i] =
+          new PlayChannelState(channelTokenLists.get(i), i == 0, lineLabel, statementIndex);
     }
     remainingSeconds = new double[n];
     pendingGapSeconds = new double[n];
@@ -99,15 +100,15 @@ final class PlaySequencer implements PlaySource {
   }
 
   @Override
-  public void replaceChannel(int index, String channelDsl, int lineLabel) {
+  public void replaceChannel(int index, String channelDsl, int lineLabel, int statementIndex) {
     if (index < 0 || index >= channels.length) {
       return;
     }
     final String normalized = "-".equals(channelDsl.trim()) ? "" : channelDsl;
-    final var tokens = PlayParser.parse(normalized, lineLabel);
+    final var tokens = PlayParser.parse(normalized, lineLabel, statementIndex);
     lock.lock();
     try {
-      channels[index] = new PlayChannelState(tokens, index == 0, lineLabel);
+      channels[index] = new PlayChannelState(tokens, index == 0, lineLabel, statementIndex);
       remainingSeconds[index] = 0; // forces an immediate re-fetch on the very next tick
       pendingGapSeconds[index] = 0; // don't carry the replaced note's trailing gap into the new one
       done[index] = false;

@@ -656,7 +656,7 @@ public final class AstLowering {
     final String digits = tokenText.substring(3).replaceAll("[ \t]", "");
     if (digits.length() > 64) {
       throw new ReportException(
-          ReportCode.NUMBER_TOO_BIG, lineNumber, "Binary literal exceeds 64 digits");
+          ReportCode.NUMBER_TOO_BIG, lineNumber, 1, "Binary literal exceeds 64 digits");
     }
     return new BigInteger(digits, 2).doubleValue();
   }

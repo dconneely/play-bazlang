@@ -53,7 +53,10 @@ public class AntlrParser {
         result.put(lineNumber, new ProgramLine(lineNumber, statementText));
       } else {
         throw new ReportException(
-            ReportCode.NONSENSE_IN_BASIC, 0, "Missing line number or invalid syntax: " + trimmed);
+            ReportCode.NONSENSE_IN_BASIC,
+            0,
+            1,
+            "Missing line number or invalid syntax: " + trimmed);
       }
     }
 
@@ -64,12 +67,16 @@ public class AntlrParser {
     int lineNumber = Integer.parseInt(matcher.group(1));
     if (lineNumber < Limits.MIN_LINE_LABEL || lineNumber > Limits.MAX_LINE_LABEL) {
       throw new ReportException(
-          ReportCode.INTEGER_OUT_OF_RANGE, lineNumber, "Line number out of range: " + lineNumber);
+          ReportCode.INTEGER_OUT_OF_RANGE,
+          lineNumber,
+          1,
+          "Line number out of range: " + lineNumber);
     }
     if (lineNumber <= lastLineNumber) {
       throw new ReportException(
           ReportCode.NONSENSE_IN_BASIC,
           lineNumber,
+          1,
           "Line numbers must be monotonically increasing");
     }
     return lineNumber;
@@ -96,7 +103,10 @@ public class AntlrParser {
       }
       if (lineNumber > Limits.MAX_LINE_LABEL) {
         throw new ReportException(
-            ReportCode.INTEGER_OUT_OF_RANGE, lineNumber, "Line number out of range: " + lineNumber);
+            ReportCode.INTEGER_OUT_OF_RANGE,
+            lineNumber,
+            1,
+            "Line number out of range: " + lineNumber);
       }
       String statementText = getStatementText(line, lineNumber);
       return new ParsedLine.Numbered(lineNumber, statementText);
@@ -106,7 +116,7 @@ public class AntlrParser {
       return new ParsedLine.Immediate(immediate.statements());
     }
 
-    throw new ReportException(ReportCode.NONSENSE_IN_BASIC, 0, "Unexpected parse result");
+    throw new ReportException(ReportCode.NONSENSE_IN_BASIC, 0, 1, "Unexpected parse result");
   }
 
   /**
@@ -189,7 +199,7 @@ public class AntlrParser {
         int charPositionInLine,
         String msg,
         RecognitionException e) {
-      throw new ReportException(ReportCode.NONSENSE_IN_BASIC, 0, msg);
+      throw new ReportException(ReportCode.NONSENSE_IN_BASIC, 0, 1, msg);
     }
   }
 }

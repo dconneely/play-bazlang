@@ -26,5 +26,5 @@ public interface PlaySource {
    * method is even called. A default no-op so {@code PlaySource} stays usable without every
    * implementation needing to support targeted updates.
    */
-  default void replaceChannel(int index, String channelDsl, int lineLabel) {}
+  default void replaceChannel(int index, String channelDsl, int lineLabel, int statementIndex) {}
 }

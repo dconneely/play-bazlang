@@ -88,10 +88,10 @@ public class ProgramEditor {
 
     if (newStart < Limits.MIN_LINE_LABEL) {
       throw new ReportException(
-          ReportCode.INTEGER_OUT_OF_RANGE, 0, "New start must be >= " + Limits.MIN_LINE_LABEL);
+          ReportCode.INTEGER_OUT_OF_RANGE, 0, 1, "New start must be >= " + Limits.MIN_LINE_LABEL);
     }
     if (newStep < 1) {
-      throw new ReportException(ReportCode.INTEGER_OUT_OF_RANGE, 0, "Step must be >= 1");
+      throw new ReportException(ReportCode.INTEGER_OUT_OF_RANGE, 0, 1, "Step must be >= 1");
     }
 
     final var toRenumber = new ArrayList<Map.Entry<Integer, ProgramLine>>();
@@ -108,6 +108,7 @@ public class ProgramEditor {
       throw new ReportException(
           ReportCode.INTEGER_OUT_OF_RANGE,
           0,
+          1,
           "Renumbering would exceed max line number " + Limits.MAX_LINE_LABEL);
     }
     final int newEnd = (int) newEndLong;
@@ -117,6 +118,7 @@ public class ProgramEditor {
       throw new ReportException(
           ReportCode.INTEGER_OUT_OF_RANGE,
           0,
+          1,
           "New start "
               + newStart
               + " must be greater than line "
@@ -128,6 +130,7 @@ public class ProgramEditor {
       throw new ReportException(
           ReportCode.INTEGER_OUT_OF_RANGE,
           0,
+          1,
           "New end " + newEnd + " must be less than line " + lineAfter + " to preserve line order");
     }
 
@@ -319,12 +322,12 @@ public class ProgramEditor {
   private int[] parseDeleteReformatLineRange(BazLangParser.LineRangeContext range) {
     if (range == null) {
       throw new ReportException(
-          ReportCode.NONSENSE_IN_BASIC, 0, "Command requires at least one line number");
+          ReportCode.NONSENSE_IN_BASIC, 0, 1, "Command requires at least one line number");
     }
     final var nums = range.numExpr();
     if (nums.isEmpty() && range.TO() == null) {
       throw new ReportException(
-          ReportCode.NONSENSE_IN_BASIC, 0, "Command requires at least one line number or TO");
+          ReportCode.NONSENSE_IN_BASIC, 0, 1, "Command requires at least one line number or TO");
     }
     int start = Limits.MIN_TARGET_LABEL;
     int end = Limits.MAX_TARGET_LABEL;

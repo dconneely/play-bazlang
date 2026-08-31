@@ -30,7 +30,7 @@ class PlaySequencerTest {
   @Test
   void defaultDurationAndTempoGiveAHalfSecondCrotchet() {
     // Default duration is a crotchet: 24 ticks = 0.5s, of which all but the trailing gap sounds.
-    final var source = PlayParser.buildSequencer(List.of("c"), 10);
+    final var source = PlayParser.buildSequencer(List.of("c"), 10, 1);
     final var tone = source.next(LARGE);
     assertEquals(24 * TICK - GAP, tone.durationSeconds(), 1e-9);
     assertTrue(tone.a().toneOn());
@@ -43,7 +43,7 @@ class PlaySequencerTest {
 
   @Test
   void middleCPlaysAtTheExpectedFrequency() {
-    final var source = PlayParser.buildSequencer(List.of("c"), 10);
+    final var source = PlayParser.buildSequencer(List.of("c"), 10, 1);
     final var frame = source.next(LARGE);
     assertEquals(Pitch.MIDDLE_C_HZ, frame.a().frequencyHz(), 0.01);
     assertTrue(frame.a().toneOn());
@@ -52,27 +52,27 @@ class PlaySequencerTest {
   @Test
   void shortestDurationDigitGivesASixTickNote() {
     // 1 = semi-quaver = 6 ticks -> 0.125s at the default tempo, less the trailing gap.
-    final var source = PlayParser.buildSequencer(List.of("1c"), 10);
+    final var source = PlayParser.buildSequencer(List.of("1c"), 10, 1);
     assertEquals(6 * TICK - GAP, source.next(LARGE).durationSeconds(), 1e-9);
   }
 
   @Test
   void tripletCrotchetGivesASixteenTickNote() {
     // 12 = triplet crotchet = 2 * 24 ticks (two plain crotchets) / 3 = 16 ticks.
-    final var source = PlayParser.buildSequencer(List.of("12c"), 10);
+    final var source = PlayParser.buildSequencer(List.of("12c"), 10, 1);
     assertEquals(16 * TICK - GAP, source.next(LARGE).durationSeconds(), 1e-9);
   }
 
   @Test
   void tiedDurationSumsBothCodesIntoOneNote() {
     // The manual's own example, 3_5A: a crotchet+quaver-length note (12 + 24 = 36 ticks).
-    final var source = PlayParser.buildSequencer(List.of("3_5c"), 10);
+    final var source = PlayParser.buildSequencer(List.of("3_5c"), 10, 1);
     assertEquals(36 * TICK - GAP, source.next(LARGE).durationSeconds(), 1e-9);
   }
 
   @Test
   void tiedDurationLeavesTheSecondCodePersistedForLaterNotes() {
-    final var source = PlayParser.buildSequencer(List.of("3_5cc"), 10);
+    final var source = PlayParser.buildSequencer(List.of("3_5cc"), 10, 1);
     source.next(LARGE); // tied note (36 ticks)
     source.next(LARGE); // its trailing gap
     final var second =
@@ -82,7 +82,7 @@ class PlaySequencerTest {
 
   @Test
   void restIsSilent() {
-    final var source = PlayParser.buildSequencer(List.of("&"), 10);
+    final var source = PlayParser.buildSequencer(List.of("&"), 10, 1);
     final var frame = source.next(LARGE);
     assertFalse(frame.a().toneOn());
     assertFalse(frame.a().noiseOn());
@@ -91,7 +91,7 @@ class PlaySequencerTest {
 
   @Test
   void pullingLessThanTheNoteDurationReturnsAPartialSlice() {
-    final var source = PlayParser.buildSequencer(List.of("1c"), 10); // 0.125s, less the gap
+    final var source = PlayParser.buildSequencer(List.of("1c"), 10, 1); // 0.125s, less the gap
     final var first = source.next(0.05);
     assertEquals(0.05, first.durationSeconds(), 1e-9);
     assertFalse(first.finished());
@@ -103,7 +103,7 @@ class PlaySequencerTest {
   void multiChannelSliceIsBoundedByTheShortestRemainingNote() {
     // Channel A: 1c (6 ticks, less the gap). Channel B: 9c (96 ticks) -- the slice must be
     // capped to channel A's shorter note.
-    final var source = PlayParser.buildSequencer(List.of("1c", "9c"), 10);
+    final var source = PlayParser.buildSequencer(List.of("1c", "9c"), 10, 1);
     final var frame = source.next(LARGE);
     assertEquals(6 * TICK - GAP, frame.durationSeconds(), 1e-9);
     assertTrue(frame.a().toneOn());
@@ -112,7 +112,7 @@ class PlaySequencerTest {
 
   @Test
   void nonRepeatingChannelEventuallyFinishes() {
-    final var source = PlayParser.buildSequencer(List.of("1c"), 10);
+    final var source = PlayParser.buildSequencer(List.of("1c"), 10, 1);
     source.next(LARGE); // the note's tone
     source.next(LARGE); // its trailing articulation gap
     assertTrue(source.next(LARGE).finished());
@@ -120,7 +120,8 @@ class PlaySequencerTest {
 
   @Test
   void infiniteRepeatNeverFinishes() {
-    final var source = PlayParser.buildSequencer(List.of("1c)"), 10); // unmatched ')' -> infinite
+    final var source =
+        PlayParser.buildSequencer(List.of("1c)"), 10, 1); // unmatched ')' -> infinite
     for (int i = 0; i < 50; i++) {
       assertFalse(source.next(LARGE).finished());
     }
@@ -130,7 +131,7 @@ class PlaySequencerTest {
   void matchedBracketPlaysContentTwice() {
     // "(1c)1d" -- c plays twice, then d once -- verified by counting how many notes are produced
     // before the source finishes.
-    final var source = PlayParser.buildSequencer(List.of("(1c)1d"), 10);
+    final var source = PlayParser.buildSequencer(List.of("(1c)1d"), 10, 1);
     int notes = 0;
     while (true) {
       final var frame = source.next(LARGE);
@@ -147,7 +148,7 @@ class PlaySequencerTest {
 
   @Test
   void unsetMixerDefaultsToToneOnlyForAPlayingNote() {
-    final var source = PlayParser.buildSequencer(List.of("c"), 10);
+    final var source = PlayParser.buildSequencer(List.of("c"), 10, 1);
     final var frame = source.next(LARGE);
     assertTrue(frame.a().toneOn());
     assertFalse(frame.a().noiseOn());
@@ -156,7 +157,7 @@ class PlaySequencerTest {
   @Test
   void explicitMixerSelectsToneAndNoiseBitsPerChannel() {
     // M9 = tone A (1) + noise A (8) -- both enabled for channel A specifically.
-    final var source = PlayParser.buildSequencer(List.of("M9c"), 10);
+    final var source = PlayParser.buildSequencer(List.of("M9c"), 10, 1);
     final var frame = source.next(LARGE);
     assertTrue(frame.a().toneOn());
     assertTrue(frame.a().noiseOn());
@@ -164,7 +165,7 @@ class PlaySequencerTest {
 
   @Test
   void haltStopsThatChannelWithoutAffectingOthers() {
-    final var source = PlayParser.buildSequencer(List.of("H", "1c"), 10);
+    final var source = PlayParser.buildSequencer(List.of("H", "1c"), 10, 1);
     final var frame = source.next(LARGE);
     assertFalse(frame.a().toneOn()); // halted channel contributes nothing
     assertTrue(frame.b().toneOn());
@@ -174,7 +175,7 @@ class PlaySequencerTest {
   void dashPlaceholderInAFreshBuildIsSilent() {
     // "-" has nothing to "leave alone" in a fresh build (no prior state exists), so it falls back
     // to meaning silent, same as omitting the channel entirely.
-    final var source = PlayParser.buildSequencer(List.of("-", "1c"), 10);
+    final var source = PlayParser.buildSequencer(List.of("-", "1c"), 10, 1);
     final var frame = source.next(LARGE);
     assertFalse(frame.a().toneOn());
     assertTrue(frame.b().toneOn());
@@ -183,7 +184,7 @@ class PlaySequencerTest {
   @Test
   void replaceChannelLeavesOtherChannelsInFlightNoteUnaffected() {
     // Channels A/B start long notes (96 ticks = 2.0s); a partial pull establishes pending state.
-    final var source = PlayParser.buildSequencer(List.of("9c", "9e"), 10);
+    final var source = PlayParser.buildSequencer(List.of("9c", "9e"), 10, 1);
     final var first = source.next(0.05);
     assertTrue(first.a().toneOn());
     assertTrue(first.b().toneOn());
@@ -191,7 +192,7 @@ class PlaySequencerTest {
     final double freqABefore = first.a().frequencyHz();
     final double freqBBefore = first.b().frequencyHz();
 
-    source.replaceChannel(2, "1c", 10); // touch channel C only
+    source.replaceChannel(2, "1c", 10, 1); // touch channel C only
 
     final var second = source.next(0.01); // well within A/B's remaining ~1.95s
     assertEquals(freqABefore, second.a().frequencyHz(), 0.01); // A's in-progress note is untouched
@@ -201,17 +202,17 @@ class PlaySequencerTest {
 
   @Test
   void replaceChannelWithDashIsSilent() {
-    final var source = PlayParser.buildSequencer(List.of("1c"), 10);
-    source.replaceChannel(0, "-", 10);
+    final var source = PlayParser.buildSequencer(List.of("1c"), 10, 1);
+    source.replaceChannel(0, "-", 10, 1);
     assertFalse(source.next(LARGE).a().toneOn());
   }
 
   @Test
   void replaceChannelWithHaltStopsThatChannelPromptlyRatherThanWaitingOutTheCurrentNote() {
     // The "APLAY \"H\", \"H\", effect$\" idiom for stopping background music at game end.
-    final var source = PlayParser.buildSequencer(List.of("9c"), 10); // a long note (2.0s)
+    final var source = PlayParser.buildSequencer(List.of("9c"), 10, 1); // a long note (2.0s)
     source.next(0.05); // establish pending state mid-note
-    source.replaceChannel(0, "H", 10);
+    source.replaceChannel(0, "H", 10, 1);
     final var frame = source.next(LARGE);
     assertFalse(frame.a().toneOn()); // halted immediately, not after the original long note ends
     assertTrue(frame.finished()); // the only channel with content is now halted

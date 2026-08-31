@@ -26,6 +26,7 @@ final class PlayChannelState {
 
   private final List<PlayToken> tokens;
   private final int lineLabel;
+  private final int statementIndex;
   private final boolean honoursTempo;
   private final Map<Integer, Integer> repeatCounters = new HashMap<>();
 
@@ -42,10 +43,12 @@ final class PlayChannelState {
   /** One resolved note/rest event: {@code noteNumber} is {@code null} for a rest. */
   record ChannelNote(int durationTicks, Integer noteNumber, int volume, boolean useEnvelope) {}
 
-  PlayChannelState(List<PlayToken> tokens, boolean honoursTempo, int lineLabel) {
+  PlayChannelState(
+      List<PlayToken> tokens, boolean honoursTempo, int lineLabel, int statementIndex) {
     this.tokens = tokens;
     this.honoursTempo = honoursTempo;
     this.lineLabel = lineLabel;
+    this.statementIndex = statementIndex;
   }
 
   /** Advances to the next note/rest, applying side effects along the way. {@code null} = done. */
@@ -144,7 +147,10 @@ final class PlayChannelState {
     final int noteNumber = (octave + (note.octaveUp() ? 1 : 0)) * 12 + note.semitoneOffset();
     if (noteNumber < 0 || noteNumber > 127) {
       throw new ReportException(
-          ReportCode.INVALID_ARGUMENT, lineLabel, "PLAY note out of range: " + noteNumber);
+          ReportCode.INVALID_ARGUMENT,
+          lineLabel,
+          statementIndex,
+          "PLAY note out of range: " + noteNumber);
     }
     return noteNumber;
   }

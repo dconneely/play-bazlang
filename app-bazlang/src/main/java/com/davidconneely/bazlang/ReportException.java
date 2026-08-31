@@ -12,10 +12,6 @@ public class ReportException extends RuntimeException {
     this.statementIndex = statementIndex;
   }
 
-  public ReportException(ReportCode reportCode, int lineLabel, String message) {
-    this(reportCode, lineLabel, 1, message);
-  }
-
   public ReportCode reportCode() {
     return reportCode;
   }

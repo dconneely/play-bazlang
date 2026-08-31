@@ -60,8 +60,7 @@ public class ProgramStorage {
   public void verify(String filename) {
     final var fileProgram = parseSource(filename);
     if (!canonicalText(state.program().entrySet()).equals(canonicalText(fileProgram.entrySet()))) {
-      throw new ReportException(
-          ReportCode.TAPE_LOADING_ERROR, state.currentLineLabel(), "Program does not match file");
+      throw codedException(ReportCode.TAPE_LOADING_ERROR, "Program does not match file");
     }
   }
 
@@ -86,10 +85,7 @@ public class ProgramStorage {
       // not an IOException, but Path.of(filename) above is still inside this try's dynamic scope
       // (JLS 14.20.3 covers the try-with-resources resource specification too) - without catching
       // it here as well, a malformed filename would propagate uncaught past every caller.
-      throw new ReportException(
-          ReportCode.INVALID_FILE_NAME,
-          state.currentLineLabel(),
-          "Failed to save: " + e.getMessage());
+      throw codedException(ReportCode.INVALID_FILE_NAME, "Failed to save: " + e.getMessage());
     }
   }
 
@@ -101,10 +97,8 @@ public class ProgramStorage {
         final String resourcePath = filename.substring(9);
         try (var is = ProgramStorage.class.getResourceAsStream(resourcePath)) {
           if (is == null) {
-            throw new ReportException(
-                ReportCode.INVALID_FILE_NAME,
-                state.currentLineLabel(),
-                "Resource not found: " + resourcePath);
+            throw codedException(
+                ReportCode.INVALID_FILE_NAME, "Resource not found: " + resourcePath);
           }
           source = new String(is.readAllBytes(), StandardCharsets.UTF_8);
         }
@@ -113,10 +107,7 @@ public class ProgramStorage {
       }
       return parser.parseProgramLines(source);
     } catch (IOException | InvalidPathException e) {
-      throw new ReportException(
-          ReportCode.INVALID_FILE_NAME,
-          state.currentLineLabel(),
-          "Failed to load: " + e.getMessage());
+      throw codedException(ReportCode.INVALID_FILE_NAME, "Failed to load: " + e.getMessage());
     }
   }
 
@@ -130,5 +121,9 @@ public class ProgramStorage {
       sb.append(entry.getKey()).append(' ').append(entry.getValue().sourceText()).append('\n');
     }
     return sb.toString();
+  }
+
+  private ReportException codedException(ReportCode rc, String msg) {
+    return new ReportException(rc, state.currentLineLabel(), state.currentStatementIndex(), msg);
   }
 }

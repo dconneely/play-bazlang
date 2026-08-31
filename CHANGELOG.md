@@ -60,3 +60,12 @@ All notable changes to this project are documented here, following
 - `PLAY`/`APLAY` tone edges no longer always land on a whole-sample boundary - a transition that
   falls mid-sample is now averaged across that sample instead of point-sampled, reducing the
   audible aliasing a naive square-wave oscillator produces on higher notes.
+- Error attribution now consistently reports the statement index within the line, not just the
+  line label: expression evaluation (undefined variable, subscript out of range, ...), `FOR`
+  without `NEXT`, `NEXT` without `FOR`, `RETURN` without `GOSUB`, `GO TO`/`RUN` with an
+  out-of-range line label, a jump to a since-deleted line or statement (`N Statement lost`),
+  `LOAD`/`SAVE`/`VERIFY` file errors, and a bad `PLAY`/`APLAY` channel string (an out-of-range
+  `O`/`T`/`V`/`W`/`X`/`M` argument, a malformed note, or a note pitched out of range) previously
+  defaulted to statement 1 regardless of where the triggering statement actually was on its line.
+  `ReportException`'s constructor now always requires an explicit statement index, so this class of
+  bug can't recur silently.

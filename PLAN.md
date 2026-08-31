@@ -14,15 +14,6 @@ not covered"). Snapshots should be text grids of the cell buffer, not images - t
 character-cell buffer, text snapshots diff cleanly in review, and `MockScreen` already provides most
 of the machinery.
 
-## Consistent error attribution in `ExpressionEvaluator`
-
-**Type:** bug - **Importance:** medium - **Effort:** small
-
-`StatementExecutor.codedException` records `(code, currentLineLabel, currentStatementIndex, msg)`,
-but `ExpressionEvaluator.codedException` records only `(code, currentLineLabel, msg)` - every
-expression-level error loses the statement index and reports an incomplete location. Thread
-`state.currentStatementIndex()` through for parity.
-
 ## Simplify `LIST`/`DELETE`/`REFORMAT`/`RENUM` line-range syntax
 
 **Type:** feature - **Importance:** medium - **Effort:** small
@@ -194,6 +185,21 @@ formatting, implying concurrent execution is supported - but the AST's mutable r
 (`NumVarExpr.ref` etc.) already mean a `ProgramLine`'s cached `Stmt` list is not safe to execute
 concurrently. If execution is genuinely single-threaded (it appears to be), a plain field replaces
 those two `ThreadLocal`s.
+
+## `AstLowering`'s over-long `BIN` literal error reports statement 1
+
+**Type:** bug - **Importance:** low - **Effort:** small
+
+`AstLowering.parseBinLiteral`'s "Binary literal exceeds 64 digits" error hardcodes statement index 1
+rather than the literal's real statement, the one gap left after a pass that fixed every other
+`ReportException` call site defaulting to statement 1. Not a mechanical thread-through like
+`lineNumber`: the real index is the statement's position in the *flattened* list `Interpreter` walks
+(`flattenInto` splices each `IfStmt`'s body in right after it), which isn't resolved until after
+every statement on the line - including nested `IF` bodies - has already been lowered, so a naive
+parameter can't carry a value that doesn't exist yet at the point `parseBinLiteral` runs. Fixing it
+means computing final flat positions structurally on the parse tree first (mirroring `flattenInto`'s
+walk, but over `StatementContext`/`IfStmtContext` before lowering), then lowering each statement
+with both `lineNumber` and `statementIndex` in hand.
 
 ## `VirtualScreen` is still wide (~30 methods)
 

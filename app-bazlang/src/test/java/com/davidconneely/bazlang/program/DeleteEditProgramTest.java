@@ -62,7 +62,8 @@ class DeleteEditProgramTest extends BaseProgramTest {
     } else if (ctx instanceof BazLangParser.EditCmdContext edit) {
       final int lineNum = (int) executor.evalNum(edit.numExpr());
       if (lineNum < Limits.MIN_LINE_LABEL || lineNum > Limits.MAX_LINE_LABEL) {
-        throw new ReportException(ReportCode.INTEGER_OUT_OF_RANGE, 0, "Line number out of range");
+        throw new ReportException(
+            ReportCode.INTEGER_OUT_OF_RANGE, 0, 1, "Line number out of range");
       }
       final var programLine = state.program().get(lineNum);
       if (programLine != null) {

@@ -48,7 +48,7 @@ class ExampleGameSoundEffectsTest {
   }
 
   private static void assertPitchSequence(String dsl, int... expectedSemitonesAboveMiddleC) {
-    final var source = PlayParser.buildSequencer(List.of(dsl), 10);
+    final var source = PlayParser.buildSequencer(List.of(dsl), 10, 1);
     for (final int semitones : expectedSemitonesAboveMiddleC) {
       final var frame = nextSoundingFrame(source);
       assertTrue(frame != null && frame.a().toneOn(), "expected a tone, got silence");
@@ -95,7 +95,7 @@ class ExampleGameSoundEffectsTest {
     // A "ping" on ball-to-bat contact: E6, two octaves above the original dull middle-C click, and
     // short. Volume is pulled back to V11 since it fires on every rally and shouldn't dominate.
     assertPitchSequence("T240V11O6N1e", 28); // 28 semitones above middle C = E6
-    final var source = PlayParser.buildSequencer(List.of("T240V11O6N1e"), 10);
+    final var source = PlayParser.buildSequencer(List.of("T240V11O6N1e"), 10, 1);
     assertEquals(
         0.4499, source.next(LARGE).a().amplitude(), 1e-9); // PlaySequencer.VOLUME_TABLE[11]
   }
@@ -142,7 +142,8 @@ class ExampleGameSoundEffectsTest {
                 "T120O4N6$b3$b5$b5$bO5N6$d3c5cO4N7$b",
                 "V11O4N6f3f5f5f6f3a5a7f",
                 "V11O2N6$b3$b5$b5$b6$b3f5f7$b"),
-            10);
+            10,
+            1);
     // Asserts the harmonic progression rather than a frame-by-frame transcript: each channel's
     // articulation gaps fall at its own note boundaries, so the frame grid is finely fragmented and
     // its exact shape isn't the interesting property. Collapsing to the sequence of distinct chords

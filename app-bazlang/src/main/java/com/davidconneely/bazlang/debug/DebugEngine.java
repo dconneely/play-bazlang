@@ -143,6 +143,7 @@ public final class DebugEngine {
               throw new ReportException(
                   ReportCode.INVALID_FILE_NAME,
                   state.currentLineLabel(),
+                  state.currentStatementIndex(),
                   "File not found: " + filename);
             }
             super.load(p.toString());

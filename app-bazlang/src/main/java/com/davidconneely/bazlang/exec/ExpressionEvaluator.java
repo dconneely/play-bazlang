@@ -666,6 +666,6 @@ public class ExpressionEvaluator {
   }
 
   private ReportException codedException(ReportCode rc, String msg) {
-    return new ReportException(rc, state.currentLineLabel(), msg);
+    return new ReportException(rc, state.currentLineLabel(), state.currentStatementIndex(), msg);
   }
 }

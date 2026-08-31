@@ -241,8 +241,7 @@ public class StatementExecutor {
                   state.currentStatementIndex() + 1,
                   parser);
       if (addr == null) {
-        throw new ReportException(
-            ReportCode.FOR_WITHOUT_NEXT, state.currentLineLabel(), "FOR without NEXT");
+        throw codedException(ReportCode.FOR_WITHOUT_NEXT, "FOR without NEXT");
       }
       return new ControlFlow.Jump(addr.lineLabel(), addr.statementIndex() + 1);
     }
@@ -252,13 +251,11 @@ public class StatementExecutor {
   private ControlFlow executeNextStmt(Stmt.NextStmt stmt) {
     final String forVar = stmt.forVar();
     if (!state.hasForLoop(forVar)) {
-      throw new ReportException(
-          ReportCode.NEXT_WITHOUT_FOR, state.currentLineLabel(), "NEXT without FOR");
+      throw codedException(ReportCode.NEXT_WITHOUT_FOR, "NEXT without FOR");
     }
     final var d = state.forLoop(forVar);
     if (!state.hasNumVar(forVar)) {
-      throw new ReportException(
-          ReportCode.VARIABLE_NOT_FOUND, state.currentLineLabel(), "Undefined loop variable");
+      throw codedException(ReportCode.VARIABLE_NOT_FOUND, "Undefined loop variable");
     }
     final double nv = state.numVar(forVar) + d.step();
     state.setNumVar(forVar, nv);
@@ -270,10 +267,7 @@ public class StatementExecutor {
 
   private ControlFlow gotoLabel(int target) {
     if (target < Limits.MIN_TARGET_LABEL || target > Limits.MAX_TARGET_LABEL) {
-      throw new ReportException(
-          ReportCode.INTEGER_OUT_OF_RANGE,
-          state.currentLineLabel(),
-          "GO TO line label out of range");
+      throw codedException(ReportCode.INTEGER_OUT_OF_RANGE, "GO TO line label out of range");
     }
     // Prevent jumping to line 0 (the immediate statement buffer)
     final int searchTarget = Math.max(target, Limits.MIN_LINE_LABEL);
@@ -290,8 +284,7 @@ public class StatementExecutor {
 
   private ControlFlow executeReturnStmt() {
     if (state.isReturnStackEmpty()) {
-      throw new ReportException(
-          ReportCode.RETURN_WITHOUT_GOSUB, state.currentLineLabel(), "RETURN without GOSUB");
+      throw codedException(ReportCode.RETURN_WITHOUT_GOSUB, "RETURN without GOSUB");
     }
     final var gosubLoc = state.popReturn();
     return new ControlFlow.Jump(gosubLoc.lineLabel(), gosubLoc.statementIndex());
@@ -312,6 +305,8 @@ public class StatementExecutor {
   private ControlFlow executeContStmt() {
     final int m = state.lastReport().lineLabel();
     if (m <= 0) {
+      // Confirmed against real ZX80/ZX81/ZX Spectrum hardware: CONT with nothing to continue (the
+      // "0 OK, 0:1" state NEW/power-on leaves lastReport in) is a silent no-op, not an error.
       return ControlFlow.CONTINUE;
     }
     final int index =
@@ -333,8 +328,7 @@ public class StatementExecutor {
             ? (int) Math.round(exprEvaluator.evalNum(stmt.target()))
             : Limits.MIN_TARGET_LABEL;
     if (target < Limits.MIN_TARGET_LABEL || target > Limits.MAX_TARGET_LABEL) {
-      throw new ReportException(
-          ReportCode.INTEGER_OUT_OF_RANGE, state.currentLineLabel(), "RUN line label out of range");
+      throw codedException(ReportCode.INTEGER_OUT_OF_RANGE, "RUN line label out of range");
     }
     state.clear();
     return gotoLabel(target);
@@ -880,7 +874,10 @@ public class StatementExecutor {
   private void executePlayStmt(Stmt.PlayStmt stmt) {
     stopBackgroundAudio(); // a blocking PLAY takes over from any currently-running background APLAY
     final var source =
-        PlayParser.buildSequencer(playChannelStrings(stmt.channels()), state.currentLineLabel());
+        PlayParser.buildSequencer(
+            playChannelStrings(stmt.channels()),
+            state.currentLineLabel(),
+            state.currentStatementIndex());
     while (renderNextFramePaced(source)) {
       if (input.pollForBreak()) {
         speaker.stopPlay(); // cut short: discard whatever is still queued
@@ -916,11 +913,15 @@ public class StatementExecutor {
     for (int i = 0; i < given.size(); i++) {
       final String channelDsl = given.get(i);
       if (!"-".equals(channelDsl.trim())) {
-        session.source().replaceChannel(i, channelDsl, state.currentLineLabel());
+        session
+            .source()
+            .replaceChannel(i, channelDsl, state.currentLineLabel(), state.currentStatementIndex());
       }
     }
     for (int i = given.size(); i < 3; i++) {
-      session.source().replaceChannel(i, "", state.currentLineLabel());
+      session
+          .source()
+          .replaceChannel(i, "", state.currentLineLabel(), state.currentStatementIndex());
     }
     // Wakes the background thread immediately rather than leaving it to discover the replaced
     // channel(s) whenever its current sleep happens to end (up to one PLAY_CHUNK_MS away, or
@@ -933,7 +934,8 @@ public class StatementExecutor {
   }
 
   private void startNewAplaySession(List<String> given) {
-    final var source = PlayParser.buildSequencer(given, state.currentLineLabel());
+    final var source =
+        PlayParser.buildSequencer(given, state.currentLineLabel(), state.currentStatementIndex());
     final AtomicBoolean stop = new AtomicBoolean(false);
     // Unlike PLAY, returns immediately - the rest of the BASIC program keeps running while this
     // background thread advances the tune, exactly the point of APLAY existing at all.

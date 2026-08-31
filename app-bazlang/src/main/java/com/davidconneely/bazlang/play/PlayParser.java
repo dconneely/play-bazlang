@@ -51,16 +51,17 @@ public final class PlayParser {
    * meaning silent, same as omitting it. The sole public entry point into this package - {@link
    * PlayToken}, {@link PlayChannelState}, and {@link PlaySequencer} all stay package-private.
    */
-  public static PlaySource buildSequencer(List<String> channelStrings, int lineLabel) {
+  public static PlaySource buildSequencer(
+      List<String> channelStrings, int lineLabel, int statementIndex) {
     final List<List<PlayToken>> tokenLists = new ArrayList<>(CHANNEL_COUNT);
     for (int i = 0; i < CHANNEL_COUNT; i++) {
       final String raw = i < channelStrings.size() ? channelStrings.get(i) : "";
-      tokenLists.add(parse("-".equals(raw.trim()) ? "" : raw, lineLabel));
+      tokenLists.add(parse("-".equals(raw.trim()) ? "" : raw, lineLabel, statementIndex));
     }
-    return new PlaySequencer(tokenLists, lineLabel);
+    return new PlaySequencer(tokenLists, lineLabel, statementIndex);
   }
 
-  static List<PlayToken> parse(String channelString, int lineLabel) {
+  static List<PlayToken> parse(String channelString, int lineLabel, int statementIndex) {
     final List<PlayToken> tokens = new ArrayList<>();
     final Deque<Integer> openBrackets = new ArrayDeque<>();
     final int len = channelString.length();
@@ -75,7 +76,7 @@ public final class PlayParser {
         case 'N' -> i++;
         case '(' -> {
           if (openBrackets.size() >= MAX_BRACKET_DEPTH) {
-            throw invalid(lineLabel, "Too many brackets in PLAY string");
+            throw invalid(lineLabel, statementIndex, "Too many brackets in PLAY string");
           }
           openBrackets.push(tokens.size());
           tokens.add(new PlayToken.RepeatStart());
@@ -102,7 +103,8 @@ public final class PlayParser {
                     "octave",
                     PlayToken.SetOctave::new,
                     tokens,
-                    lineLabel);
+                    lineLabel,
+                    statementIndex);
         case 'T' ->
             i =
                 parseRangedNumber(
@@ -113,7 +115,8 @@ public final class PlayParser {
                     "tempo",
                     PlayToken.SetTempo::new,
                     tokens,
-                    lineLabel);
+                    lineLabel,
+                    statementIndex);
         case 'V' ->
             i =
                 parseRangedNumber(
@@ -124,7 +127,8 @@ public final class PlayParser {
                     "volume",
                     PlayToken.SetVolume::new,
                     tokens,
-                    lineLabel);
+                    lineLabel,
+                    statementIndex);
         case 'U' -> {
           tokens.add(new PlayToken.UseEnvelope());
           i++;
@@ -139,7 +143,8 @@ public final class PlayParser {
                     "envelope shape",
                     PlayToken.SetEnvelopeShape::new,
                     tokens,
-                    lineLabel);
+                    lineLabel,
+                    statementIndex);
         case 'X' ->
             i =
                 parseRangedNumber(
@@ -150,7 +155,8 @@ public final class PlayParser {
                     "envelope duration",
                     PlayToken.SetEnvelopeDuration::new,
                     tokens,
-                    lineLabel);
+                    lineLabel,
+                    statementIndex);
         case 'M' ->
             i =
                 parseRangedNumber(
@@ -161,16 +167,21 @@ public final class PlayParser {
                     "mixer value",
                     PlayToken.SetMixer::new,
                     tokens,
-                    lineLabel);
-        case 'Y', 'Z' -> throw invalid(lineLabel, "PLAY MIDI commands ('Y'/'Z') are not supported");
+                    lineLabel,
+                    statementIndex);
+        case 'Y', 'Z' ->
+            throw invalid(
+                lineLabel, statementIndex, "PLAY MIDI commands ('Y'/'Z') are not supported");
         case '_' ->
             throw invalid(
-                lineLabel, "PLAY tie ('_') must directly follow a duration digit, e.g. '3_5A'");
-        default -> i = parseNoteOrDuration(channelString, i, tokens, lineLabel);
+                lineLabel,
+                statementIndex,
+                "PLAY tie ('_') must directly follow a duration digit, e.g. '3_5A'");
+        default -> i = parseNoteOrDuration(channelString, i, tokens, lineLabel, statementIndex);
       }
     }
     if (!openBrackets.isEmpty()) {
-      throw invalid(lineLabel, "Unmatched '(' in PLAY string");
+      throw invalid(lineLabel, statementIndex, "Unmatched '(' in PLAY string");
     }
     return tokens;
   }
@@ -185,19 +196,19 @@ public final class PlayParser {
    * to, so it's dropped rather than carried forward.
    */
   private static int parseNoteOrDuration(
-      String s, int start, List<PlayToken> tokens, int lineLabel) {
+      String s, int start, List<PlayToken> tokens, int lineLabel, int statementIndex) {
     int i = start;
     Integer duration = null;
     Integer tiedDuration = null; // set only if '_' ties a second duration to the first
     if (Character.isDigit(s.charAt(i))) {
-      final var num = parseDurationCode(s, i, lineLabel);
+      final var num = parseDurationCode(s, i, lineLabel, statementIndex);
       duration = num.value();
       i = num.nextIndex();
       if (i < s.length() && s.charAt(i) == '_') {
         if (i + 1 >= s.length() || !Character.isDigit(s.charAt(i + 1))) {
-          throw invalid(lineLabel, "PLAY tie ('_') missing second duration");
+          throw invalid(lineLabel, statementIndex, "PLAY tie ('_') missing second duration");
         }
-        final var tied = parseDurationCode(s, i + 1, lineLabel);
+        final var tied = parseDurationCode(s, i + 1, lineLabel, statementIndex);
         tiedDuration = tied.value();
         i = tied.nextIndex();
       }
@@ -211,10 +222,13 @@ public final class PlayParser {
     }
     if (i >= s.length()) {
       if (sawAccidental) {
-        throw invalid(lineLabel, "PLAY note name missing after accidental");
+        throw invalid(lineLabel, statementIndex, "PLAY note name missing after accidental");
       }
       if (duration == null) {
-        throw invalid(lineLabel, "Invalid note name in PLAY string: '" + s.charAt(start) + "'");
+        throw invalid(
+            lineLabel,
+            statementIndex,
+            "Invalid note name in PLAY string: '" + s.charAt(start) + "'");
       }
       tokens.add(new PlayToken.SetDuration(tiedDuration != null ? tiedDuration : duration));
       return i;
@@ -222,7 +236,7 @@ public final class PlayParser {
     final char c = s.charAt(i);
     if (c == '&') {
       if (sawAccidental) {
-        throw invalid(lineLabel, "PLAY accidental cannot apply to a rest");
+        throw invalid(lineLabel, statementIndex, "PLAY accidental cannot apply to a rest");
       }
       emitDuration(tokens, duration, tiedDuration);
       tokens.add(new PlayToken.Rest());
@@ -230,7 +244,7 @@ public final class PlayParser {
     }
     final int letterIndex = Character.toUpperCase(c) - 'A';
     if (letterIndex < 0 || letterIndex > 6) {
-      throw invalid(lineLabel, "Invalid note name in PLAY string: '" + c + "'");
+      throw invalid(lineLabel, statementIndex, "Invalid note name in PLAY string: '" + c + "'");
     }
     emitDuration(tokens, duration, tiedDuration);
     tokens.add(
@@ -250,10 +264,11 @@ public final class PlayParser {
   }
 
   /** Reads a duration-code digit sequence and range-checks it to {@code 1}-{@code 12}. */
-  private static ParsedNumber parseDurationCode(String s, int i, int lineLabel) {
+  private static ParsedNumber parseDurationCode(
+      String s, int i, int lineLabel, int statementIndex) {
     final var num = parseNumber(s, i);
     if (num.value() < 1 || num.value() > 12) {
-      throw invalid(lineLabel, "PLAY duration out of range (1-12): " + num.value());
+      throw invalid(lineLabel, statementIndex, "PLAY duration out of range (1-12): " + num.value());
     }
     return num;
   }
@@ -270,11 +285,14 @@ public final class PlayParser {
       String label,
       IntFunction<PlayToken> factory,
       List<PlayToken> tokens,
-      int lineLabel) {
+      int lineLabel,
+      int statementIndex) {
     final var num = parseNumber(s, i);
     if (num.value() < min || num.value() > max) {
       throw invalid(
-          lineLabel, "PLAY " + label + " out of range (" + min + "-" + max + "): " + num.value());
+          lineLabel,
+          statementIndex,
+          "PLAY " + label + " out of range (" + min + "-" + max + "): " + num.value());
     }
     tokens.add(factory.apply(num.value()));
     return num.nextIndex();
@@ -290,8 +308,8 @@ public final class PlayParser {
     return new ParsedNumber((int) value, j);
   }
 
-  private static ReportException invalid(int lineLabel, String message) {
-    return new ReportException(ReportCode.INVALID_ARGUMENT, lineLabel, message);
+  private static ReportException invalid(int lineLabel, int statementIndex, String message) {
+    return new ReportException(ReportCode.INVALID_ARGUMENT, lineLabel, statementIndex, message);
   }
 
   private record ParsedNumber(int value, int nextIndex) {}
