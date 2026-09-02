@@ -32,6 +32,9 @@ bin/
 localonly-*
 scratch/
 
+# Temporary exclusion
+.agents/
+
 # UI cache, Office backup
 .DS_Store
 ._*

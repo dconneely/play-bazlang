@@ -86,6 +86,30 @@ source snippets and feeding the resulting contexts to the component under test -
 `ExpressionEvaluatorTest`/`StatementExecutorTest` already use this approach, but cover only a
 handful of cases against a much larger statement and expression surface. Ongoing, not a one-shot.
 
+## Make the AST strictly immutable (Decouple reference caches from AST nodes)
+
+**Type:** debt - **Importance:** medium - **Effort:** medium
+
+AST nodes (`NumVarExpr`, `StrVarExpr`, etc.) currently carry mutable `ref` fields (e.g.
+`EvalState.NumVarRef`) to cache variable lookups. This permanently ties a lowered `ProgramLine`'s
+cached `Stmt` list to a single `EvalState` instance, preventing the sharing of a parsed program
+across multiple interpreter sessions. Moving these caches out of the AST nodes and into the
+`EvalState` (e.g. by assigning each variable reference a unique integer ID at lowering time and
+having `EvalState` hold a flat array of references indexed by that ID) would make the AST strictly
+immutable and thread-safe. This supersedes the "Resolve the threading model" item by enabling true
+concurrent execution of the same AST.
+
+## Agent-friendly formatting and line-numbering maintenance
+
+**Type:** feature - **Importance:** medium - **Effort:** medium
+
+Currently, maintaining consistent BASIC formatting and preserving logical line-number blocks (like
+`1000`, `2000`) from outside the interactive REPL is difficult. Agents currently rely on an
+external Python script (`block_renumber.py`) to orchestrate REPL commands for this. We should
+explore ways to natively help LLM agents and external tools maintain consistent code style and
+line numbering in `.bas` files, without pre-determining the architectural solution (e.g., via MCP
+tools, batch CLI flags, or IDE extensions).
+
 ## `TerminalScreenGraphicsTest.testInverseOverRendering` failed once on `windows-latest`
 
 **Type:** debt - **Importance:** medium - **Effort:** medium
