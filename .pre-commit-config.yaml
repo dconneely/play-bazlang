@@ -1,3 +1,8 @@
+# `pre-commit install` alone only wires the `pre-commit` hook type unless told otherwise, which
+# would leave the `commit-msg` hook below installed but never invoked. Declaring it here means a
+# plain `pre-commit install` is enough - nobody has to remember `--hook-type commit-msg`.
+default_install_hook_types: [pre-commit, commit-msg]
+
 repos:
   - repo: local
     hooks:
@@ -31,10 +36,39 @@ repos:
 
       # spotbugsMain/spotbugsTest and test are omitted - too slow for pre-commit; run via CI.
 
+      # MADR status values are lowercase (proposed | rejected | accepted | deprecated | superseded
+      # by ADR-NNNN, per docs/adr/0000-template.md and DOC-MAP.md) - this catches a capitalised
+      # status or a capitalised "Superseded by ADR-" pointer before it lands. `Deprecated` is
+      # deliberately absent from the alternation: it's also a Keep a Changelog category name
+      # (DOC-MAP.md's own CHANGELOG.md description uses it in backticks), so matching it flags a
+      # legitimate line - confirmed the hard way, running this against the repo the first time.
+      - id: lowercase-adr-status
+        name: "ADR statuses are lowercase (MADR spelling)"
+        language: pygrep
+        entry: 'Superseded by ADR-|`(Accepted|Proposed|Rejected)`'
+        files: ^docs/adr/
+
+      # This project's ADRs use MADR front-matter (a `status:` field), not the older
+      # Michael Nygard-style "## Status" section - a stray one would mean a record was copied from
+      # a different convention rather than this repo's own template.
+      - id: no-nygard-status-section
+        name: "ADRs use MADR front-matter, not a Status section"
+        language: pygrep
+        entry: '^## Status$'
+        files: ^docs/adr/
+
+  # gitleaks-system, not the default gitleaks, which builds the binary from source with Go on
+  # first run: that produces an unsigned, reputation-less executable in AppData, which Windows
+  # Smart App Control blocks outright (os error 4551). A packaged release carries enough download
+  # reputation to run even with Smart App Control enforced. Needs gitleaks on PATH (confirmed
+  # present via `scoop install gitleaks` in this environment).
   - repo: https://github.com/gitleaks/gitleaks
-    rev: v8.21.2
+    rev: v8.30.1
     hooks:
-      - id: gitleaks
+      - id: gitleaks-system
+        # `gitleaks git --staged` reads the staged diff itself and takes at most one path, so
+        # passing it the changed filenames makes it exit with "accepts at most 1 arg(s)".
+        pass_filenames: false
 
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v5.0.0
@@ -43,8 +77,55 @@ repos:
       - id: end-of-file-fixer
       - id: check-yaml
       - id: check-added-large-files
+      - id: check-merge-conflict
+      - id: check-case-conflict
+      # Caught nowhere else: a script committed without its executable bit is silent on Windows
+      # but fails outright on Linux/macOS checkouts (`./app-bazlang/run.sh`, `./gradlew`).
+      - id: check-shebang-scripts-are-executable
+      # .gitattributes already pins eol=lf for *.sh/gradlew and eol=auto (LF) generally; this
+      # guards against that being weakened rather than being the fix for it. Excludes *.bat:
+      # .gitattributes deliberately requires eol=crlf there (Windows batch scripts need it) -
+      # confirmed the hard way, this hook rewrote gradlew.bat to LF on the first run without the
+      # exclude.
+      - id: mixed-line-ending
+        args: [--fix=lf]
+        exclude: \.bat$
 
   - repo: https://github.com/igorshubovych/markdownlint-cli
     rev: v0.43.0
     hooks:
       - id: markdownlint
+      # Migrating this to markdownlint-cli2 + Prettier is tracked as its own PLAN.md item - that
+      # move needs a one-time bulk reformat and a ruleset translation, not a drive-by hook add.
+
+  # app-bazlang/run.sh is the only hand-authored shell script here; gradlew is Gradle-vendored
+  # boilerplate, not ours to fix shellcheck findings in.
+  - repo: https://github.com/shellcheck-py/shellcheck-py
+    rev: v0.9.0.6
+    hooks:
+      - id: shellcheck
+        exclude: ^gradlew$
+
+  # Conventional Commits, on the commit-msg stage. The type list matches what this repository's
+  # own history actually uses (`git log --format='%s' | grep -oE '^[a-z]+' | sort | uniq -c`) -
+  # canonical `feat`, not the couple of historical `feature` uses.
+  - repo: https://github.com/compilerla/conventional-pre-commit
+    rev: v4.4.0
+    hooks:
+      - id: conventional-pre-commit
+        stages: [commit-msg]
+        args: [build, chore, ci, docs, feat, fix, perf, refactor, test]
+
+  # Link rot, on demand only: `pre-commit run --hook-stage manual lychee`. Deliberately NOT on
+  # commit - external hosts fail for reasons unrelated to the change under review, and a hook that
+  # blocks a commit because someone else's server is down is a hook that gets bypassed. Worth
+  # having now that docs/research/*.md cites dozens of external manuals and archive.org items.
+  # --method get, not the default HEAD: some hosts answer HEAD with an error and GET with 200, so
+  # a HEAD-based sweep can report false failures. Needs lychee on PATH (confirmed present via
+  # `scoop install lychee` in this environment).
+  - repo: https://github.com/lycheeverse/lychee
+    rev: lychee-v0.24.2
+    hooks:
+      - id: lychee-system
+        stages: [manual]
+        args: [--no-progress, --method, get, --max-concurrency, "4"]
