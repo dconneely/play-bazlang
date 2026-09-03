@@ -8,7 +8,11 @@
   // MD013: matches the 100-column wrap AGENTS.md states as this repo's convention. Tables and code
   // blocks are exempt because neither can be wrapped without corrupting it; headings are exempt
   // because a heading is one line by construction - the only fix would be a rename, which is not
-  // this tool's job.
+  // this tool's job. `stern` closes the gap non-strict mode leaves open: an ordinary prose line
+  // with one long trailing word is otherwise silently forgiven. It does not flag a line that is
+  // purely one unbreakable token (a bare URL alone on its own line, most commonly) - only a long
+  // token that shares a line with other prose. Matches doc-kit's and both identigon repos' own
+  // copies of this file.
   //
   // MD024: siblings_only, because CHANGELOG.md repeating "### Added" under each version heading is
   // the format Keep a Changelog prescribes, not a duplication bug.
@@ -27,7 +31,8 @@
       "line_length": 100,
       "code_blocks": false,
       "tables": false,
-      "headings": false
+      "headings": false,
+      "stern": true
     },
     "MD024": {
       "siblings_only": true

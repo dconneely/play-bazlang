@@ -266,6 +266,40 @@ the only observation is that immediate execution temporarily mutates the program
 would execute the statement without touching storage while still attributing results to line 0, but
 the current approach is well-contained. Optional.
 
+## Pin JaCoCo's `toolVersion` explicitly
+
+**Type:** debt - **Importance:** low - **Effort:** small
+
+`build.gradle.kts`'s shared `subprojects` block applies `jacoco` but never sets
+`JacocoPluginExtension.toolVersion`, so the build floats on whatever version ships with the current
+Gradle release rather than a pinned one - unlike `checkstyleVersion`/`pmdVersion`/
+`spotbugsToolVersion`, which are all declared in `gradle/libs.versions.toml`. identigon/identigon's
+own `jacocoTool` catalog entry is the pattern to copy: add a `jacoco` version to the catalog and
+reference it from the `JacocoPluginExtension` configuration, so a Gradle upgrade can't silently
+change coverage-report behaviour underneath the pinned per-module INSTRUCTION-coverage minimums.
+
+## Trial `find-sec-bugs` on SpotBugs
+
+**Type:** debt - **Importance:** low - **Effort:** small
+
+SpotBugs runs in CI (`build.gradle.kts`'s `subprojects` block) without the `find-sec-bugs` plugin
+identigon/identigon adds to its own SpotBugs configuration. Bazlang isn't obviously
+security-sensitive, but it does run an ANTLR-generated parser over user-supplied `.bas` source and
+exposes an MCP server that reads commands from stdin - both plausible categories the generic
+SpotBugs ruleset doesn't specifically target. Add the plugin once and review what it actually flags
+before deciding whether to keep it permanently; a clean run is useful information too.
+
+## Javadoc/doclint enforcement (`Xdoclint:all` + `Xwerror`)
+
+**Type:** debt - **Importance:** low - **Effort:** medium
+
+identigon/identigon enforces full doclint (a missing `@param`/`@return`/`@throws` fails the build)
+on every subproject; this repo has no such gate. `lib-cell` and `lib-repl` are consumed across
+module boundaries, and `app-bazlang`'s MCP server (`McpServer`) is a programmatic surface other
+tools call into, so undocumented public API is a real cost here, not just style. Sizeable one-time
+debt to pay off first, though: existing public classes/methods would need a documentation pass
+before the `Xwerror` gate could be turned on without breaking the build immediately.
+
 ## 64-bit explicit integers (`%` suffix)
 
 **Type:** feature - **Importance:** low - **Effort:** large
