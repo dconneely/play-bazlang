@@ -9,8 +9,8 @@ from the application logic.
 ## Core features
 
 - **Keyboard polling:** Provides synchronous, non-blocking polling for raw keyboard sequences via
-  `ReplReader`, supporting multibyte UTF-8 input sequences and ANSI escape codes (arrows, home,
-  end, function keys).
+  `ReplReader`, supporting multibyte UTF-8 input sequences and ANSI escape codes (arrows, home, end,
+  function keys).
 - **Command line engine:** Abstract wrapper (`TerminalEngine`) managing raw-mode terminal
   configurations, output streaming, status lines, window resizing handlers, and prompt rendering.
 - **Robust signal handling:** Intercepts system interrupts (like Ctrl+C / `SIGINT`) and translates

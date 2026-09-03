@@ -3,8 +3,8 @@
 <!-- Confidence levels and what counts as research are in ../../DOC-MAP.md. -->
 
 **Confidence:** high - primary manual text was read directly for all seven core dialects surveyed,
-plus SpecBAS. See `0006-related-basic-dialects-overview.md` for the wider dialect genealogy this
-and the other topic notes share.
+plus SpecBAS. See `0006-related-basic-dialects-overview.md` for the wider dialect genealogy this and
+the other topic notes share.
 
 ## Finding
 
@@ -25,35 +25,35 @@ All three of these achieve it the same way conceptually: **`FN` is just `PROC` w
 return value**, not a separate mechanism. The header differs (a return type or `RETurn`
 requirement), but the body, scoping, and parameter rules are identical to that dialect's own
 procedure construct - confirmed explicitly in two of the three manuals ("Parameters and items are
-treated in the same manner as with DEFine FuNction", QL SuperBASIC's `DEFine PROCedure` page,
-worded from the PROC side of the same equivalence; COMAL's guide gives `FUNC`/`PROC` matching
-syntax diagrams differing only in the mandatory `RETURN`).
+treated in the same manner as with DEFine FuNction", QL SuperBASIC's `DEFine PROCedure` page, worded
+from the PROC side of the same equivalence; COMAL's guide gives `FUNC`/`PROC` matching syntax
+diagrams differing only in the mandatory `RETURN`).
 
 **A fourth, genuinely different mechanism exists outside the core seven: SpecBAS's `CALL`.** SpecBAS
 (a modern, from-scratch Sinclair-BASIC-superset reimplementation - see `0006`) keeps classic
 single-line `DEF FN`/`FN` completely unchanged, the same choice SAM Coupé and NextBASIC make below -
-but *separately* adds a new keyword, `CALL`, documented as "identical to the `PROC` command, but...
+but _separately_ adds a new keyword, `CALL`, documented as "identical to the `PROC` command, but...
 you are able to return a value from the procedure." Rather than a `RETURN`/`RETurn` statement, a
 `CALL`-defined procedure gets an **implicit `result`/`result$` variable**, auto-created on entry and
-whatever it holds on exit is the returned value - no explicit return statement anywhere in the
-body. Of every multi-line-function mechanism found across all eight dialects surveyed (BBC's bare
-`=`, QL/COMAL/Boriel's `RETURN`-generalizes-`PROC`, and this), SpecBAS's implicit named-variable
-approach is the only one that needs no dedicated return statement at all.
+whatever it holds on exit is the returned value - no explicit return statement anywhere in the body.
+Of every multi-line-function mechanism found across all eight dialects surveyed (BBC's bare `=`,
+QL/COMAL/Boriel's `RETURN`-generalizes-`PROC`, and this), SpecBAS's implicit named-variable approach
+is the only one that needs no dedicated return statement at all.
 
 The other four dialects keep `DEF FN` (or `DEFFN`/`DEFPROC`+something) as a **strictly single-line,
 single-expression construct**, the original Sinclair shape, even where they went on to build
 elaborate multi-line `PROC` systems:
 
-- **SAM Coupé BASIC**'s manual states outright that a multi-line function is achieved by
-  *composing several single-line `DEFFN`s* that call each other - not by making `DEFFN` itself
-  multi-line. This is a deliberate design statement, not an oversight: the manual explicitly frames
-  it as "the way of getting a function to be made up of several lines".
-- **NextBASIC** extended `DEF FN` with `REF` parameters and recursion, but the manual states
-  plainly it remains a single `=expr` construct, and separately notes it doesn't support
-  user-defined integer (`%`) functions at all - multi-value/multi-statement "function-like" work is
-  done with `DEFPROC`'s `ENDPROC = expr,...` multi-return mechanism instead, a genuinely different
-  route to the same end.
-- **BBC BASIC** is the interesting middle case: `DEF FN` *can* be multi-line, but not via a distinct
+- **SAM Coupé BASIC**'s manual states outright that a multi-line function is achieved by _composing
+  several single-line `DEFFN`s_ that call each other - not by making `DEFFN` itself multi-line. This
+  is a deliberate design statement, not an oversight: the manual explicitly frames it as "the way of
+  getting a function to be made up of several lines".
+- **NextBASIC** extended `DEF FN` with `REF` parameters and recursion, but the manual states plainly
+  it remains a single `=expr` construct, and separately notes it doesn't support user-defined
+  integer (`%`) functions at all - multi-value/multi-statement "function-like" work is done with
+  `DEFPROC`'s `ENDPROC = expr,...` multi-return mechanism instead, a genuinely different route to
+  the same end.
+- **BBC BASIC** is the interesting middle case: `DEF FN` _can_ be multi-line, but not via a distinct
   `ENDFN` keyword - a bare line starting with `=` is what ends the function and supplies its return
   value, reusing the same "restore `LOCAL`s and return" machinery `ENDPROC` uses. Multiple such
   `=expr` lines can act as multiple early-exit points, though the manual recommends using one exit
@@ -69,10 +69,10 @@ elaborate multi-line `PROC` systems:
 **Implication for BazLang:** the `DEF FN`-shaped `DEF PROC` design already discussed against
 `PLAN.md` (value-only params shadowing globals, no reference parameters) runs the comparison in
 reverse from every extended dialect here. QL SuperBASIC, COMAL, and Boriel all built their
-multi-line function by *generalizing PROC to require a return value*; SpecBAS built a parallel but
+multi-line function by _generalizing PROC to require a return value_; SpecBAS built a parallel but
 separate `CALL` construct to do the same job by implicit variable rather than statement. The design
-under discussion for BazLang instead proposes *generalizing FN's existing value-only shadowing to a
-statement body, without adding a return value* (since a `DEF PROC` isn't a function). SAM Coupé's
+under discussion for BazLang instead proposes _generalizing FN's existing value-only shadowing to a
+statement body, without adding a return value_ (since a `DEF PROC` isn't a function). SAM Coupé's
 and NextBASIC's explicit choice to leave `DEFFN`/`DEF FN` single-expression and compose or use
 `PROC`'s own multi-return mechanism instead is the clearest existing precedent for keeping `FN` and
 `PROC` as genuinely separate mechanisms rather than unifying them - which is the same choice
@@ -91,12 +91,12 @@ BazLang's design already makes.
   =Num^2
   ```
 
-  `LOCAL` works identically to `PROC`'s, restored at the `=` line. Worked example with a `LOCAL`
-  and an `IF...ELSE...ENDIF` computing a boolean result before the final `=Result%`. The guide
-  advises "only have one exit point" - i.e. prefer a single trailing `=` over several conditional
-  ones - as a style recommendation, not a language restriction. Functions return only a single
-  scalar value, not arrays or structures. Multi-line functions must be placed where they won't be
-  executed "out of sequence" (typically after an `END` statement, alongside `PROC` definitions).
+  `LOCAL` works identically to `PROC`'s, restored at the `=` line. Worked example with a `LOCAL` and
+  an `IF...ELSE...ENDIF` computing a boolean result before the final `=Result%`. The guide advises
+  "only have one exit point" - i.e. prefer a single trailing `=` over several conditional ones - as
+  a style recommendation, not a language restriction. Functions return only a single scalar value,
+  not arrays or structures. Multi-line functions must be placed where they won't be executed "out of
+  sequence" (typically after an `END` statement, alongside `PROC` definitions).
 
 ### Beta BASIC (Spectrum)
 
@@ -117,27 +117,26 @@ BazLang's design already makes.
 ### SAM Coupé BASIC
 
 - <https://sam.speccy.cz/basic/sam-basic_complete_guide.pdf> - "The Complete Guide" (see `0006`'s
-  "Fetch technique notes" for the extraction route). States outright: `DEFFN name(params)=expr`
-  (one word, single-line, single-expression - the classic Sinclair shape, extended only with SAM's
-  fuller parameter machinery: array/`REF` params, defaults via context), e.g.
-  `DEFFN double$(a$)=a$+a$`, called `FN double$("hello")`. On multi-line bodies, the guide's own
-  words: "The way of getting a function to be made up of several lines is simply to make use of
-  several functions" - i.e. deliberately composing single-expression `DEFFN`s that call each other
-  (`FN total` calling out to other `FN`s in its own expression), not a language feature for a
-  multi-statement function body.
+  "Fetch technique notes" for the extraction route). States outright: `DEFFN name(params)=expr` (one
+  word, single-line, single-expression - the classic Sinclair shape, extended only with SAM's fuller
+  parameter machinery: array/`REF` params, defaults via context), e.g. `DEFFN double$(a$)=a$+a$`,
+  called `FN double$("hello")`. On multi-line bodies, the guide's own words: "The way of getting a
+  function to be made up of several lines is simply to make use of several functions" - i.e.
+  deliberately composing single-expression `DEFFN`s that call each other (`FN total` calling out to
+  other `FN`s in its own expression), not a language feature for a multi-statement function body.
 
 ### NextBASIC / SpecNext
 
 - <https://element.zxfiles.net/DOCS/OTHER/NEXTBAS.PDF> - `DEF FN` is extended but stays
-  single-expression: `DEF FN gladys(harold)=harold+2`, `DEF FN ian$(REF jenny$(),index)=jenny$(index)`
-  (recursion also supported: an in-manual factorial example). Explicitly states "`DEF FN` does not
-  support user-defined integer functions" (the `%` suffix type). A `%CODE` system-variable bit
-  toggles "legacy `DEF FN` entry" mode, for programs whose `DEF FN` pokes the old `DEFADD` system
-  variable directly - "New and legacy `DEF FN`s may be mixed in the same program", implying the
-  underlying execution mechanism changed under NextBASIC without changing the surface single-line
-  syntax. Multi-statement, multi-return-value work is instead done via `DEFPROC`'s
-  `ENDPROC = expr1, expr2, ...` mechanism (see `0002`) - a structurally different feature, not an
-  extended `DEF FN`.
+  single-expression: `DEF FN gladys(harold)=harold+2`,
+  `DEF FN ian$(REF jenny$(),index)=jenny$(index)` (recursion also supported: an in-manual factorial
+  example). Explicitly states "`DEF FN` does not support user-defined integer functions" (the `%`
+  suffix type). A `%CODE` system-variable bit toggles "legacy `DEF FN` entry" mode, for programs
+  whose `DEF FN` pokes the old `DEFADD` system variable directly - "New and legacy `DEF FN`s may be
+  mixed in the same program", implying the underlying execution mechanism changed under NextBASIC
+  without changing the surface single-line syntax. Multi-statement, multi-return-value work is
+  instead done via `DEFPROC`'s `ENDPROC = expr1, expr2, ...` mechanism (see `0002`) - a structurally
+  different feature, not an extended `DEF FN`.
 
 ### Sinclair QL SuperBASIC
 
@@ -164,7 +163,7 @@ BazLang's design already makes.
 ### COMAL
 
 - <https://dn760101.eu.archive.org/0/items/COMAL_Reference_Guide/COMAL_Reference_Guide_djvu.txt> -
-  full text of Borge R. Christensen's 1984 *COMAL Reference Guide*. Exact syntax:
+  full text of Borge R. Christensen's 1984 _COMAL Reference Guide_. Exact syntax:
 
   ```text
   FUNC id [(paramlist)] [CLOSED]
@@ -191,11 +190,11 @@ BazLang's design already makes.
 
 ### Boriel ZX BASIC (the outlier)
 
-- <https://github.com/boriel/zxbasic/blob/main/docs/function.md> - `FUNCTION name [(paramlist)]
-  [AS type] ... END FUNCTION`; untyped parameters and untyped return both default to `Float`.
-  `RETURN expr` supplies the return value and can be used more than once, as an early exit, similar
-  to COMAL's style above. Recursion demonstrated with a `Factorial` example. Legacy Sinclair
-  `DEF FN` is mentioned only as history - not extended, replaced.
+- <https://github.com/boriel/zxbasic/blob/main/docs/function.md> -
+  `FUNCTION name [(paramlist)] [AS type] ... END FUNCTION`; untyped parameters and untyped return
+  both default to `Float`. `RETURN expr` supplies the return value and can be used more than once,
+  as an early exit, similar to COMAL's style above. Recursion demonstrated with a `Factorial`
+  example. Legacy Sinclair `DEF FN` is mentioned only as history - not extended, replaced.
 
 ### SpecBAS (see `0006`)
 
@@ -203,8 +202,8 @@ BazLang's design already makes.
   `DEF FN name[(var1[,var2...])] = Expression` confirmed unchanged, e.g.
   `DEF FN pythagoras(opp, adj) = SQR((opp*opp)+(adj*adj))`, called `FN pythagoras(...)`, parameters
   by value only. Separately, `CALL name[(params)]` - described in the manual's own words as acting
-  "identically to the `PROC` command, but... you are able to return a value from the procedure" -
-  is multi-line like `DEF PROC`/`END PROC`, and returns whatever an implicit `result` (numeric) or
+  "identically to the `PROC` command, but... you are able to return a value from the procedure" - is
+  multi-line like `DEF PROC`/`END PROC`, and returns whatever an implicit `result` (numeric) or
   `result$` (string) variable holds on exit, e.g. `LET a=CALL myproc(1,2)*100`. No `RETURN`
   statement is used or needed anywhere in the mechanism.
 

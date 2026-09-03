@@ -15,7 +15,7 @@ those behaviours. It serves two audiences:
   completion. This value is equal to `limit + step` (e.g., if running `FOR i=1 TO 5`, `i` will be
   `6` after the loop terminates).
 - **FOR loop stale loops and stray `NEXT`**: A `FOR` loop is not deactivated when it terminates
-  naturally. Executing a stray `NEXT var` statement *after* the loop has finished will continue to
+  naturally. Executing a stray `NEXT var` statement _after_ the loop has finished will continue to
   increment `var` and resume execution from the statement following `NEXT` without raising an error.
 - **FOR loop flat skip scan**: When a loop's initial value falls outside its range (e.g.,
   `FOR i=1 TO 0`), the loop body is skipped. The interpreter performs a flat, linear scan through
@@ -37,13 +37,13 @@ those behaviours. It serves two audiences:
 ## Variables & memory quirks
 
 - **Editing lines preserves runtime state**: Adding, replacing, or deleting numbered program lines
-  in interactive (REPL) mode does *not* clear runtime variables, the `DATA` pointer, the `GOSUB`
+  in interactive (REPL) mode does _not_ clear runtime variables, the `DATA` pointer, the `GOSUB`
   return stack, or active `FOR` loop states. Only `NEW` and `CLEAR` reset this state. This allows
   debugging and hot-patching program code mid-run.
 - **Recursive user functions (`DEF FN`)**: Because user-defined functions (`DEF FN`) are evaluated
   on the host system stack, deep recursion in custom functions will exceed stack depth limits.
-  Rather than crashing the JVM, this is caught and surfaced as report code `4 Out of memory,
-  <line>:<statement>`, matching real ZX Spectrum behaviour.
+  Rather than crashing the JVM, this is caught and surfaced as report code
+  `4 Out of memory, <line>:<statement>`, matching real ZX Spectrum behaviour.
 
 ## Data quirks
 
@@ -60,9 +60,8 @@ those behaviours. It serves two audiences:
 - **Byte-oriented fixed-length string arrays**: Fixed-length string arrays (declared via
   `DIM a$(rows, cols)`) are byte-oriented. The column size `cols` specifies the maximum width in
   **bytes**, not character count. When assigning multibyte UTF-8 characters, ensure `cols` is sized
-  large enough to hold the character's full byte sequence. If the assigned string exceeds
-  `cols` bytes, it is truncated at the byte boundary, which can result in partial, invalid UTF-8
-  sequences.
+  large enough to hold the character's full byte sequence. If the assigned string exceeds `cols`
+  bytes, it is truncated at the byte boundary, which can result in partial, invalid UTF-8 sequences.
 - **`TL$` truncates at the byte boundary, not the character boundary**: `TL$ s$` always removes
   exactly one byte, so on a multibyte UTF-8 character it leaves a partial, invalid sequence behind
   rather than dropping the whole character. This is deliberate - `TL$` is the byte-oriented sibling
@@ -87,6 +86,7 @@ they equally look like bugs at first sight:
 
   This is authentic ZX BASIC behaviour: when a false `IF` skips "to the next line" there is no next
   line for the edit line to continue on.
+
 - **Silent terminal fallback**: If the interactive `TerminalScreen` cannot be initialised (its
   construction throws `IOException`), `MainClass` silently falls back to the plain stdin/stdout
   `StreamScreen`. This is intentional graceful degradation for environments without a usable

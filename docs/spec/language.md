@@ -56,7 +56,7 @@ However, the names of strings and character arrays would clash. So there cannot 
 ### Math
 
 | Operator    | Action           | Priority    |
-|:------------|:-----------------|:------------|
+| :---------- | :--------------- | :---------- |
 | `^` or `**` | Power            | 1 (Highest) |
 | `-`         | Negative (Unary) | 2           |
 | `*`, `/`    | Multiply, Divide | 3           |
@@ -94,8 +94,8 @@ Returns `1` for True, `0` for False.
 - **`IF condition THEN statement`**: Run statement if true. No `ELSE`.
 - **`FOR varname = start TO end STEP step` ... `NEXT varname`**: Loop.
   - Note: While the Spectrum only allows single-character loop variables (`A` to `Z`), BazLang
-    supports multi-character loop variables. See
-    [quirks.md](../quirks.md#flow-control-quirks) for loop execution quirks.
+    supports multi-character loop variables. See [quirks.md](../quirks.md#flow-control-quirks) for
+    loop execution quirks.
 - **`STOP`**: Stop the program.
 - **`CONTINUE`** (alias **`CONT`**): Continue after a `STOP`.
 - **`PAUSE n`**: Wait for `n` frames (each frame is 1/50 second = 20ms). Fractional values are
@@ -126,8 +126,8 @@ Returns `1` for True, `0` for False.
   negative, below) middle C - e.g. `BEEP 1, 0` plays middle C for one second, `BEEP 0.5, 12` plays
   one octave higher for half a second. Blocks execution for `duration`, interruptible by BREAK
   exactly like `PAUSE`. Negative `duration` is a no-op (matching `PAUSE`'s own negative-frame
-  clamping). Silent - not an error - in non-interactive/headless modes, since there is no speaker
-  to play to. See `PLAY`/`APLAY` below for multi-channel tune playback.
+  clamping). Silent - not an error - in non-interactive/headless modes, since there is no speaker to
+  play to. See `PLAY`/`APLAY` below for multi-channel tune playback.
 - **`PLAY string1 [, string2 [, string3]]`**: Play up to 3 simultaneous channels of music (the
   AY-chip-style tone/noise/envelope model, one shared noise generator and one shared envelope
   generator across all 3 channels - not per-channel), described by a small note-string DSL per
@@ -143,12 +143,11 @@ Returns `1` for True, `0` for False.
     equivalents of `1`/`3`/`5` (three notes played in the time normally used for two): `10`=triplet
     semi-quaver, `11`=triplet quaver, `12`=triplet crotchet.
   - `<duration>_<duration><note>` (e.g. `3_5A`) ties two duration codes into one note/rest whose
-    length is their sum, without re-articulating between them; the second code becomes the
-    persisted duration for later notes, exactly as a bare duration digit would. A tie with nothing
-    following the second code (end of string) just sets the persisted duration to that second code.
+    length is their sum, without re-articulating between them; the second code becomes the persisted
+    duration for later notes, exactly as a bare duration digit would. A tie with nothing following
+    the second code (end of string) just sets the persisted duration to that second code.
   - `O0`-`O8`: sets the octave (persists).
-  - `T60`-`T240`: sets the tempo in bpm (default 120) - only honoured from the first channel
-    string.
+  - `T60`-`T240`: sets the tempo in bpm (default 120) - only honoured from the first channel string.
   - `V0`-`V15`: sets the current channel's volume (default 15).
   - `U`: switches the current channel's volume source to the shared envelope generator.
   - `W0`-`W7`: sets the shared envelope's shape (`W0`/`W1`=single decay/attack then off,
@@ -157,17 +156,17 @@ Returns `1` for True, `0` for False.
     envelope's period.
   - `M0`-`M63`: sets the shared tone/noise mixer bitmask (tone A/B/C=1/2/4, noise A/B/C=8/16/32,
     additive - e.g. `M9`=tone A + noise A).
-  - `(...)`: repeats the enclosed phrase twice; nestable up to 4 levels. A lone `)` with no
-    matching `(` repeats the whole string from the start, forever.
-  - `!...!`: a comment. `H`: halts this channel. `N`: a no-op separator, useful between two
-    numeric commands that would otherwise run together (e.g. `T240N1c`, not `T2401c`).
+  - `(...)`: repeats the enclosed phrase twice; nestable up to 4 levels. A lone `)` with no matching
+    `(` repeats the whole string from the start, forever.
+  - `!...!`: a comment. `H`: halts this channel. `N`: a no-op separator, useful between two numeric
+    commands that would otherwise run together (e.g. `T240N1c`, not `T2401c`).
   - MIDI (`Y`/`Z`) is permanently out of scope.
 - **`APLAY string1 [, string2 [, string3]]`**: Identical DSL to `PLAY`, but non-blocking - starts
   the tune playing in the background and returns immediately, so the rest of the program keeps
   running (e.g. sound effects via `BEEP` layered over `APLAY` background music). Has no real
   Spectrum equivalent - a deliberate BazLang-only addition, since real `PLAY` blocks (see
-  `docs/quirks.md`). A fresh `PLAY`/`APLAY` call replaces whatever tune is currently sounding.
-  BREAK (Ctrl+C) stops background `APLAY` audio even though nothing is "waiting" on it - another
+  `docs/quirks.md`). A fresh `PLAY`/`APLAY` call replaces whatever tune is currently sounding. BREAK
+  (Ctrl+C) stops background `APLAY` audio even though nothing is "waiting" on it - another
   deliberate divergence from real hardware, where BREAK does not reliably interrupt `PLAY` at all.
   **`"-"` (trimmed) as a channel string is a reserved placeholder meaning "leave this channel's
   currently-playing state alone"** - only meaningful against an already-running `APLAY`; with
@@ -189,8 +188,7 @@ Returns `1` for True, `0` for False.
   (or less) plots a single point at the centre. Accepts colour/style modifiers before coordinates
   (e.g. `CIRCLE INK 2; x, y, r`).
   - Coordinates start at `(0,0)` (bottom-left) and extend dynamically based on terminal size. For
-    negative coordinate behaviours, see
-    [quirks.md](../quirks.md#input--output-quirks).
+    negative coordinate behaviours, see [quirks.md](../quirks.md#input--output-quirks).
   - Uses Unicode block characters; the resolution depends on the current pixel mode (see
     `PLOTMODE`).
 - **`PLOTMODE n`**: Sets the pixel mode for graphics (`PLOT` and `DRAW`):
@@ -246,9 +244,9 @@ current pixel state (which is slightly confusing, but consistent with the Sincla
 - **`CLEAR`**: Clear all variables (keeps program).
 - **`SAVE "file"`**: Save program to file.
 - **`LOAD "file"`**: Load program from file, replacing the current program.
-- **`MERGE "file"`**: Load program lines from a file and merge them into the current program:
-  lines are added, replacing any existing line with the same number, and all other existing lines
-  and variables are kept (unlike `LOAD`, which replaces the whole program).
+- **`MERGE "file"`**: Load program lines from a file and merge them into the current program: lines
+  are added, replacing any existing line with the same number, and all other existing lines and
+  variables are kept (unlike `LOAD`, which replaces the whole program).
 - **`VERIFY "file"`**: Check that the program text in the file matches the current program exactly
   (line numbers and source text). Succeeds silently on a match; reports `R Tape loading error` if
   the contents differ.
@@ -300,7 +298,7 @@ current pixel state (which is slightly confusing, but consistent with the Sincla
 - **`TEXTY`**: Current text cursor row (Y coordinate).
 - **`UCNEXT(s$, i)`**: Returns the 1-based byte position of the codepoint that starts immediately
   after position `i`. Consistent with utf8-c8: each invalid byte counts as one codepoint of width
-    1. Use for codepoint-by-codepoint iteration:
+  1. Use for codepoint-by-codepoint iteration:
 
   ```bas
   10 LET i = 1
@@ -319,9 +317,9 @@ current pixel state (which is slightly confusing, but consistent with the Sincla
   counts as exactly 1.
 - **`VAL s$`**: Evaluate string as numeric expression (not just parse a literal).
 - **`XATTR(row, col, select)`**: Extended attribute cell value at `(row, col)`. The `select` code
-  determines the return value: `0`=ink colour, `1`=paper colour, `2`=flash, `3`=bright,
-  `4`=inverse, `5`=italic, `6`=underline, `7`=strikethrough, `8`=faint. Reports 'Integer out of
-  range' if parameters are out of range.
+  determines the return value: `0`=ink colour, `1`=paper colour, `2`=flash, `3`=bright, `4`=inverse,
+  `5`=italic, `6`=underline, `7`=strikethrough, `8`=faint. Reports 'Integer out of range' if
+  parameters are out of range.
 - **Logs**: `EXP`, `LN`.
 - **Trig**: `SIN`, `COS`, `TAN`, `ASN`, `ACS`, `ATN`.
 
@@ -349,10 +347,10 @@ current pixel state (which is slightly confusing, but consistent with the Sincla
   above U+007F, e.g. `UCHR$(9608)` for the full-block character █.
 - **`UINKEY$`**: Check key press, interpreting multibyte UTF-8 sequences and ANSI escape sequences.
 - **`USCREEN$(row, col)`**: Character at screen coordinate `(row, col)` as a UTF-8 string. Returns
-  Unicode Braille/quadrant characters if the location has been plotted to. Reports
-  'Integer out of range' if coordinates are out of bounds.
-- **`UTL$ s$`**: String with the first Unicode character removed, however many bytes it took
-  (`""` if `s$` is already empty). Together with `UCODE`, iterate a string codepoint-by-codepoint
+  Unicode Braille/quadrant characters if the location has been plotted to. Reports 'Integer out of
+  range' if coordinates are out of bounds.
+- **`UTL$ s$`**: String with the first Unicode character removed, however many bytes it took (`""`
+  if `s$` is already empty). Together with `UCODE`, iterate a string codepoint-by-codepoint
   - an alternative to the `UCNEXT` loop above:
 
   ```bas
@@ -375,13 +373,13 @@ between raw bytes and decoded Unicode characters:
 
 - **`CHR$` vs `UCHR$`**:
   - `CHR$ x` returns a single-byte string containing the raw byte value `x` (0-255).
-  - `UCHR$ x` returns a string containing the multibyte UTF-8 encoding of the Unicode codepoint
-    `x` (e.g. `UCHR$ 9608` yields the 3-byte sequence for `█`).
+  - `UCHR$ x` returns a string containing the multibyte UTF-8 encoding of the Unicode codepoint `x`
+    (e.g. `UCHR$ 9608` yields the 3-byte sequence for `█`).
 - **`CODE` vs `UCODE`**:
-  - `CODE s$` returns the numeric value of the first raw *byte* of `s$` (0-255).
-  - `UCODE s$` decodes the first character of `s$` as UTF-8 and returns its Unicode codepoint
-    value. If the sequence is invalid or incomplete, it falls back to the raw value of the first
-    byte (128-255).
+  - `CODE s$` returns the numeric value of the first raw _byte_ of `s$` (0-255).
+  - `UCODE s$` decodes the first character of `s$` as UTF-8 and returns its Unicode codepoint value.
+    If the sequence is invalid or incomplete, it falls back to the raw value of the first byte
+    (128-255).
 - **`LEN` vs `ULEN`**:
   - `LEN s$` returns the raw byte length of `s$`.
   - `ULEN s$` returns the number of Unicode characters (codepoints) in `s$`. Each invalid or lone
@@ -396,8 +394,8 @@ between raw bytes and decoded Unicode characters:
   - `UINKEY$` polls for input, reading and returning a complete UTF-8 multibyte sequence or a
     terminal ANSI CSI escape sequence (e.g. cursor or function keys) as a single `BStr`.
 - **`TL$` vs `UTL$`**:
-  - `TL$ s$` removes exactly the first byte of `s$`, which can leave a partial multibyte
-    character behind.
+  - `TL$ s$` removes exactly the first byte of `s$`, which can leave a partial multibyte character
+    behind.
   - `UTL$ s$` removes the first whole Unicode character of `s$`, however many bytes it took.
 
 ## Slicing
@@ -463,7 +461,7 @@ BazLang follows Sinclair ZX BASIC semantics where practical, with these intentio
 an exhaustive list):
 
 | Feature         | BazLang                              | Sinclair ZX BASIC                |
-|:----------------|:-------------------------------------|:---------------------------------|
+| :-------------- | :----------------------------------- | :------------------------------- |
 | Character set   | UTF-8                                | Proprietary ZX charset           |
 | Variable names  | Multi-character allowed              | Single letters for arrays/FOR    |
 | GOTO target     | Rounds to nearest line               | Truncates to integer             |
@@ -497,8 +495,8 @@ part of a program.
 
   `DELETE n` deletes only line `n`; `DELETE n TO m` deletes lines `n` through `m`; `DELETE TO m`
   deletes from start to `m`; `DELETE n TO` deletes from `n` to end; `DELETE TO` deletes all lines.
-  Requires at least one line number or the `TO` keyword. Typing just a line number (e.g., `100`)
-  at the REPL also deletes that line.
+  Requires at least one line number or the `TO` keyword. Typing just a line number (e.g., `100`) at
+  the REPL also deletes that line.
 
 - **`EDIT [line]`**: Edit an existing line.
 
@@ -532,6 +530,6 @@ part of a program.
   RENUM 100, 50 TO 80
   ```
 
-  `RENUM` renumbers all lines starting at 10 with step 10. `RENUM n` starts at `n`.
-  `RENUM n STEP s` uses step `s`. A comma introduces a range: `RENUM n, from TO to` renumbers lines
-  `from` through `to` starting at `n`. Updates `GO TO`/`GO SUB` literal targets automatically.
+  `RENUM` renumbers all lines starting at 10 with step 10. `RENUM n` starts at `n`. `RENUM n STEP s`
+  uses step `s`. A comma introduces a range: `RENUM n, from TO to` renumbers lines `from` through
+  `to` starting at `n`. Updates `GO TO`/`GO SUB` literal targets automatically.

@@ -12,9 +12,10 @@ documented in [language.md](language.md) and the deliberately-preserved eccentri
 
 BazLang uses ANTLR 4 to generate its lexer and parser from a declarative grammar file
 (`app-bazlang/src/main/antlr/BazLang.g4`) - why ANTLR over a hand-written parser is
-[ADR-0006](../adr/0006-use-antlr-for-the-grammar.md). This section covers the grammar's key patterns;
-the grammar file itself is the machine-readable source of truth for syntax - see `DOC-MAP.md`
-"Machine-readable and generated parts" - so nothing here may restate a production, only explain it.
+[ADR-0006](../adr/0006-use-antlr-for-the-grammar.md). This section covers the grammar's key
+patterns; the grammar file itself is the machine-readable source of truth for syntax - see
+`DOC-MAP.md` "Machine-readable and generated parts" - so nothing here may restate a production, only
+explain it.
 
 ### Key grammar patterns
 
@@ -45,10 +46,10 @@ instead - a real bug this project hit and fixed; see `strExpr`'s own comment in 
 The grammar's `caseInsensitive` option, set once at the top of `BazLang.g4`, makes every keyword and
 identifier token match regardless of case, so a keyword's own token rule needs only its canonical
 uppercase spelling - no hand-written alternation for other casings. Variable names are additionally
-normalised to uppercase when building the AST, so `myVar`, `MYVAR`, and `MyVar` all refer to the same
-variable.
+normalised to uppercase when building the AST, so `myVar`, `MYVAR`, and `MyVar` all refer to the
+same variable.
 
-String literal *contents* remain case-sensitive since they're captured as-is between quotes.
+String literal _contents_ remain case-sensitive since they're captured as-is between quotes.
 
 #### Numeric vs string identifiers
 
@@ -64,19 +65,19 @@ variable or array reference, a parenthesised sub-expression, or another function
 `numExpr`/`strExpr`'s own tightest-binding alternatives), not a full expression, unless the caller
 adds parentheses explicitly. `SIN PI/2` therefore parses as `(SIN PI)/2`, not `SIN(PI/2)`.
 
-Functions taking more than one argument (`ATTR`, `UCNEXT`, `XATTR`, `SCREEN$`, and similar) can't fit
-that single-atom shape at all, so their own grammar alternatives require explicit parentheses and
-comma-separated full expressions instead - consistent with how these work in ZX Spectrum BASIC. See
-`numFunc`/`strFunc` in `BazLang.g4` for which functions fall into each shape.
+Functions taking more than one argument (`ATTR`, `UCNEXT`, `XATTR`, `SCREEN$`, and similar) can't
+fit that single-atom shape at all, so their own grammar alternatives require explicit parentheses
+and comma-separated full expressions instead - consistent with how these work in ZX Spectrum BASIC.
+See `numFunc`/`strFunc` in `BazLang.g4` for which functions fall into each shape.
 
 #### String subscripts and slicing
 
 `strSubscript` unifies a plain index list and an optional trailing slice in one rule, delegating the
 slice itself to a small `strSlice` sub-rule - an optional lower bound, the `TO` keyword, and an
-optional upper bound - so a bare index list and an index-list-with-a-trailing-slice share exactly the
-same slice grammar rather than duplicating it. See `strSubscript`/`strSlice` in `BazLang.g4` for the
-exact shape, and [language.md](language.md#slicing) for what each supported form means to a BazLang
-programmer.
+optional upper bound - so a bare index list and an index-list-with-a-trailing-slice share exactly
+the same slice grammar rather than duplicating it. See `strSubscript`/`strSlice` in `BazLang.g4` for
+the exact shape, and [language.md](language.md#slicing) for what each supported form means to a
+BazLang programmer.
 
 ### Statements vs. REPL commands
 
@@ -258,8 +259,9 @@ fresh `NumExpr`/`StrExpr`/`Stmt` on every check/call (the same "parse fresh ever
 Every executable position is a pair **(line label, statement index)**, where the statement index is
 **1-based** and counts positions in the line's **flattened** statement list.
 `ProgramLine.getFlattenedStatements()` lists a line's statements in source order with the bodies of
-`IF ... THEN` statements inlined recursively after the `IF` itself: `10 IF x THEN PRINT "A":
-PRINT "B"` flattens to `[IfStmt, PrintStmt("A"), PrintStmt("B")]` with indices 1-3.
+`IF ... THEN` statements inlined recursively after the `IF` itself:
+`10 IF x THEN PRINT "A": PRINT "B"` flattens to `[IfStmt, PrintStmt("A"), PrintStmt("B")]` with
+indices 1-3.
 
 Flat indices are the shared currency of the interpreter loop, `CONT`, `GOSUB` return addresses, the
 `DATA` pointer, the `FOR` skip-scan, and `BreakpointEngine` breakpoints (`<line>:<stmt>`).
@@ -283,25 +285,24 @@ storing it anywhere:
 Statement execution never calls back into the interpreter; it only returns a `ControlFlow` value.
 `GO TO`/`GO SUB` resolve targets with `ceilingKey` (jumping past the last line is a clean stop, via
 `EndOfProgram`). `RUN` implies `CLEAR`; `GO TO` does not. `CONT` resumes at the last-report location
-(for reports `9 STOP statement` and `L BREAK into program`, at the *following* statement).
+(for reports `9 STOP statement` and `L BREAK into program`, at the _following_ statement).
 
 ### Sentinel values
 
 - **Line 0 is the immediate-mode line.** `Interpreter.executeImmediate()` temporarily inserts the
   immediate statements at key 0 and removes them in a `finally`. Line 0 is excluded from `GO TO`
-  targeting, `SAVE`, and `LIST`; a `0 ...` REPL line executes immediately (ZX81-style). A false
-  `IF` in immediate mode returns `ControlFlow.Jump(0, Integer.MAX_VALUE)`, which the loop's bounds
-  check reports as `N Statement lost, 0:1` - intentional, see [quirks.md](../quirks.md).
+  targeting, `SAVE`, and `LIST`; a `0 ...` REPL line executes immediately (ZX81-style). A false `IF`
+  in immediate mode returns `ControlFlow.Jump(0, Integer.MAX_VALUE)`, which the loop's bounds check
+  reports as `N Statement lost, 0:1` - intentional, see [quirks.md](../quirks.md).
 - **`DATA` pointer**: components of `-1` mean "not yet initialised"; a line label of
   `Integer.MAX_VALUE` means "exhausted" (`E Out of DATA` on the next `READ`).
 
 ### State lifecycle
 
-`EvalState.clear()` blanks the *contents* of the variable reference objects (`NumVarRef`,
+`EvalState.clear()` blanks the _contents_ of the variable reference objects (`NumVarRef`,
 `NumArrayRef`, `StrVarRef`, `FnDefRef`) but keeps the objects themselves alive. This is what keeps
 references cached on AST nodes valid across `CLEAR`/`RUN`. Editing program lines preserves all
-runtime state (hot-patching, see [quirks.md](../quirks.md)); only `NEW` and `CLEAR`
-reset it.
+runtime state (hot-patching, see [quirks.md](../quirks.md)); only `NEW` and `CLEAR` reset it.
 
 ## I/O system (the `io` package)
 
@@ -309,8 +310,8 @@ Input and output are handled by a set of classes that share a common `VirtualScr
 (which extends the base `ReplReader` and `AutoCloseable` interfaces), a `VirtualInput` interface,
 and a `VirtualSpeaker` interface (for `BEEP`/`PLAY`/`APLAY`), isolating the interpreter from the
 specific device. `VirtualSpeaker` is deliberately its own interface rather than another
-`VirtualScreen` method - see [ADR-0002](../adr/0002-virtualspeaker-separate-interface.md) for why. Every
-`VirtualSpeaker` method defaults to a no-op, so every screen implementation gets silent
+`VirtualScreen` method - see [ADR-0002](../adr/0002-virtualspeaker-separate-interface.md) for why.
+Every `VirtualSpeaker` method defaults to a no-op, so every screen implementation gets silent
 `BEEP`/`PLAY`/`APLAY` for free, the same way `setFastMode` already works; real playback lives
 entirely in `JavaSoundSpeaker`, a separate class with no screen role at all - `MainClass` constructs
 it alongside (not instead of) whichever `VirtualScreen` it builds, and passes both independently to
@@ -326,32 +327,32 @@ string". `StatementExecutor` pulls from the `play` package's `PlaySequencer` (vi
 audio and no more - this keeps all DSL/BREAK logic on the `StatementExecutor` side, so
 `PLAY`/`APLAY` are headless-testable for free, just like `BEEP`.
 
-**Nothing ever queues idle silence, and this is load-bearing rather than incidental.** An audio
-line is a FIFO whose `write` blocks only once the buffer is full, so any component that keeps
-writing silence while nothing is playing runs a whole buffer ahead of the speaker permanently, and
-every later-triggered note lands *behind* that backlog - constant latency equal to the buffer
-depth. An earlier design did exactly that (a persistent render thread continuously synthesising
-whatever voices were last pushed to it) and produced a real, user-visible bug: game sound effects
-arriving noticeably late or seeming to go missing entirely, with short notes clipped by the fixed
-sampling granularity such a loop requires. Writing only real, requested audio also means the
-line's own backpressure paces playback for free, so the pull loops need no cadence mechanism of
-their own beyond a fallback sleep for the no-device (headless) case.
-`APLAY` runs the same pull loop as `PLAY`, just on its own background thread - see
-[language.md](language.md#input--output) for the blocking/non-blocking contract itself.
+**Nothing ever queues idle silence, and this is load-bearing rather than incidental.** An audio line
+is a FIFO whose `write` blocks only once the buffer is full, so any component that keeps writing
+silence while nothing is playing runs a whole buffer ahead of the speaker permanently, and every
+later-triggered note lands _behind_ that backlog - constant latency equal to the buffer depth. An
+earlier design did exactly that (a persistent render thread continuously synthesising whatever
+voices were last pushed to it) and produced a real, user-visible bug: game sound effects arriving
+noticeably late or seeming to go missing entirely, with short notes clipped by the fixed sampling
+granularity such a loop requires. Writing only real, requested audio also means the line's own
+backpressure paces playback for free, so the pull loops need no cadence mechanism of their own
+beyond a fallback sleep for the no-device (headless) case. `APLAY` runs the same pull loop as
+`PLAY`, just on its own background thread - see [language.md](language.md#input--output) for the
+blocking/non-blocking contract itself.
 
 - **`TerminalScreen`**: The standard version for interactive use. It provides a TUI (Text User
   Interface) with distinct window regions: an interpreter output area at the top, an input area with
   prompt, and a status bar. Uses the `TerminalEngine` class (which wraps JLine) for terminal
   control, escape sequences, and raw input. Supports command history, cursor movement, and handles
-  terminal window resizes gracefully. Despite the name, it plays no audio role at all - a `VirtualSpeaker`
-  method reaching it resolves to the same no-op default every headless screen gets; see
-  `JavaSoundSpeaker` below for the real implementation.
+  terminal window resizes gracefully. Despite the name, it plays no audio role at all - a
+  `VirtualSpeaker` method reaching it resolves to the same no-op default every headless screen gets;
+  see `JavaSoundSpeaker` below for the real implementation.
 - **`JavaSoundSpeaker`**: The only `VirtualSpeaker` implementation that plays real audio, via the
   JDK's `javax.sound.sampled` API (hence the name - nothing here is terminal-specific). A standalone
   class, not a screen: `MainClass` constructs it alongside `TerminalScreen` and closes both, but
   either could in principle be swapped independently. `beep()` starts a square-wave `SourceDataLine`
-  write on its own daemon thread and returns immediately, so the interpreter thread stays free to run
-  `PAUSE`-style chunked BREAK-polling (`StatementExecutor.executeBeepStmt`) instead of blocking
+  write on its own daemon thread and returns immediately, so the interpreter thread stays free to
+  run `PAUSE`-style chunked BREAK-polling (`StatementExecutor.executeBeepStmt`) instead of blocking
   inside the audio write for the tone's whole duration; `stopBeep()` cuts a tone short on BREAK.
   `playFrame()` synthesises exactly the requested duration of up to 3 mixed voices and writes it
   straight to a second, entirely independent persistent `SourceDataLine` (opened lazily, reused for
@@ -360,15 +361,14 @@ their own beyond a fallback sleep for the no-device (headless) case.
   flushes audio already queued but not yet heard, so a note cut short by BREAK or a replacement
   stops promptly, while `drainPlay()` instead lets a naturally-finished note's queued tail play out
   before parking the line, called only when a sound reaches its natural end rather than being cut
-  short. Keeping `PLAY`/`APLAY` on their own line means a `BEEP` sound effect can layer
-  over music without either interfering with the other, matching real hardware's independent
-  beeper/AY circuits. `LineUnavailableException` (no audio device - e.g. a headless/SSH session) is
-  caught and silently swallowed for both, matching the no-op fallback the interface already
-  provides elsewhere.
+  short. Keeping `PLAY`/`APLAY` on their own line means a `BEEP` sound effect can layer over music
+  without either interfering with the other, matching real hardware's independent beeper/AY
+  circuits. `LineUnavailableException` (no audio device - e.g. a headless/SSH session) is caught and
+  silently swallowed for both, matching the no-op fallback the interface already provides elsewhere.
 - **`StreamScreen`**: A simpler version used for pipes or non-interactive environments. It uses
-  standard Java `System.in` and `System.out`. Graphics (`PLOT` and related draw calls)
-  are no-ops. `MainClass` also falls back to this screen silently if `TerminalScreen` cannot be
-  initialised (intentional - see [quirks.md](../quirks.md)).
+  standard Java `System.in` and `System.out`. Graphics (`PLOT` and related draw calls) are no-ops.
+  `MainClass` also falls back to this screen silently if `TerminalScreen` cannot be initialised
+  (intentional - see [quirks.md](../quirks.md)).
 - **`MockScreen`**: An in-memory screen with a scripted input queue, used by the program tests and
   by `DebugEngine`.
 - **`AbstractCellBufferedScreen`**: The base class for screens backed by a lib-cell `CellBuffer`;
@@ -376,10 +376,10 @@ their own beyond a fallback sleep for the no-device (headless) case.
 
 The `VirtualScreen` interface defines methods for screen output (`print`, `println`, `cls`),
 graphics (`plot`, `point`, `setPlotMode`), attributes (`setInk` ... `setOver`), introspection
-(`getScreenCodepoint`, `getScreenAttributes`,
-`getXAttributes`), and status updates (`setStatus`). `VirtualInput` defines `readln` (with different
-modes for REPL vs `INPUT`), non-blocking `inkey()`/`uinkey()`, break polling, and input prefill.
-Most graphics and attribute methods have no-op defaults so that simple screens stay simple.
+(`getScreenCodepoint`, `getScreenAttributes`, `getXAttributes`), and status updates (`setStatus`).
+`VirtualInput` defines `readln` (with different modes for REPL vs `INPUT`), non-blocking
+`inkey()`/`uinkey()`, break polling, and input prefill. Most graphics and attribute methods have
+no-op defaults so that simple screens stay simple.
 
 ## Statement execution notes
 
@@ -390,8 +390,8 @@ restate it here, link to it.
   layout for high performance, supporting 24-bit RGB colours and styles. `PLOT` and `UNPLOT` operate
   on this buffer with dynamic sizing (see [language.md](language.md#input--output) for `PLOT`'s
   coordinate behaviour). Rendering resolution is pluggable via `PixelMode` (e.g., `QuadrantMode` for
-  2x2 blocks, `SextantMode` for 2x3 blocks, or `BrailleMode` for 2x4 patterns). Text output (`PRINT`)
-  and graphics share the same buffer seamlessly.
+  2x2 blocks, `SextantMode` for 2x3 blocks, or `BrailleMode` for 2x4 patterns). Text output
+  (`PRINT`) and graphics share the same buffer seamlessly.
 - **Styles**: Standalone style statements (`INK 2`) set both the session default (stored in
   `EvalState`) and the screen's active attribute. Style items embedded in `PRINT`/`PLOT`/`DRAW`
   (`PRINT INK 2; ...`) apply temporarily: the executor snapshots the defaults, applies the items,
@@ -418,30 +418,29 @@ interpreter implements several key patterns. These are load-bearing; refactoring
 effect:
 
 - **Direct primitive returns, no boxing**: `ExpressionEvaluator.evalNum`/`evalStr` return `double`/
-  `BStr` directly from a `switch` expression over the sealed `NumExpr`/`StrExpr` - no boxed
-  `Double` wrapper objects, and no `numResult`/`strResult` side fields for the visitor to stash
-  into (the ANTLR-visitor predecessor this replaced at the parse-tree-to-AST migration had to use
-  side fields, since a single visitor type parameter can't cleanly return `double` for one rule
-  family and `BStr` for another without boxing; ordinary method returns don't have that
-  restriction).
+  `BStr` directly from a `switch` expression over the sealed `NumExpr`/`StrExpr` - no boxed `Double`
+  wrapper objects, and no `numResult`/`strResult` side fields for the visitor to stash into (the
+  ANTLR-visitor predecessor this replaced at the parse-tree-to-AST migration had to use side fields,
+  since a single visitor type parameter can't cleanly return `double` for one rule family and `BStr`
+  for another without boxing; ordinary method returns don't have that restriction).
 - **Variable reference caching**: Variables are normally looked up in
   [EvalState](../../app-bazlang/src/main/java/com/davidconneely/bazlang/exec/EvalState.java)'s
   `VariableStore` maps by their name strings. To avoid continuous hash map lookups during execution
   (especially in tight loops), the AST's variable/array/subscript nodes (`NumExpr.NumVarExpr`,
   `NumExpr.NumArrayExpr`, `StrExpr.StrVarExpr`, `StrExpr.StrSubscriptExpr`, and the `AssignTarget`
-  variants) are small mutable classes, not plain records: each carries a nullable, typed `ref`
-  field (e.g. `EvalState.NumVarRef`) that is resolved once on first evaluation and reused
-  thereafter. (This is why cleared variables keep their ref objects, and why a `ProgramLine`'s
-  cached `Stmt` list is bound to one `EvalState` - see "State lifecycle" above.)
+  variants) are small mutable classes, not plain records: each carries a nullable, typed `ref` field
+  (e.g. `EvalState.NumVarRef`) that is resolved once on first evaluation and reused thereafter.
+  (This is why cleared variables keep their ref objects, and why a `ProgramLine`'s cached `Stmt`
+  list is bound to one `EvalState` - see "State lifecycle" above.)
 - **Literal and operator resolution at lowering time**: `AstLowering` resolves numeric, binary, and
   string literals, and arithmetic/comparison operators (`Op`), once when lowering a parse tree to
   AST - every other node in the AST is an immutable record - so evaluation never reparses literal
   text or re-derives an operator from token text.
 - **Lazy lowering**: `ProgramLine` defers parsing-and-lowering to first execution and caches the
   resulting flat `Stmt` list.
-- **Index scratch stack**: `ExpressionEvaluator` evaluates array subscripts into a shared
-  `int[256]` stack (with a stack pointer restored in `finally`) instead of allocating an index array
-  per access.
+- **Index scratch stack**: `ExpressionEvaluator` evaluates array subscripts into a shared `int[256]`
+  stack (with a stack pointer restored in `finally`) instead of allocating an index array per
+  access.
 - **Single-byte string cache**: `BStr.fromByte` returns interned single-byte instances for all 256
   byte values (used heavily by `CHR$` and `INKEY$`).
 
@@ -449,5 +448,5 @@ effect:
 
 Deliberately preserved eccentric behaviours (stale `FOR` variables, the flat skip-scan, `DATA`
 visibility inside `IF` bodies, byte-oriented string arrays, immediate-mode line-0 reports, and more)
-are documented in [quirks.md](../quirks.md). Treat that page as a contract: behaviour listed there must
-survive any change to this codebase.
+are documented in [quirks.md](../quirks.md). Treat that page as a contract: behaviour listed there
+must survive any change to this codebase.

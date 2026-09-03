@@ -15,28 +15,28 @@ repeatedly as the language grew.
 
 ## Considered Options
 
-* A hand-written recursive-descent parser, with precedence handled by manual climbing.
-* ANTLR 4, generating the lexer and parser from a declarative grammar file (`BazLang.g4`).
+- A hand-written recursive-descent parser, with precedence handled by manual climbing.
+- ANTLR 4, generating the lexer and parser from a declarative grammar file (`BazLang.g4`).
 
 ## Decision Outcome
 
 Chosen option: ANTLR 4, because a declarative grammar states precedence as rule ordering rather than
 as manually-climbed code, keeps error recovery and case-insensitive keyword matching largely built
-in rather than hand-rolled, and turns changes to the language's syntax into grammar-rule edits rather
-than parser-logic surgery. The grammar file doubles as the syntax documentation: precedence,
+in rather than hand-rolled, and turns changes to the language's syntax into grammar-rule edits
+rather than parser-logic surgery. The grammar file doubles as the syntax documentation: precedence,
 argument-binding tightness, and the statement/REPL-command split are all readable directly from
 `BazLang.g4`'s rule structure.
 
 ### Consequences
 
-* Good, because adding an operator or statement is a grammar-rule change plus an `AstLowering`/
+- Good, because adding an operator or statement is a grammar-rule change plus an `AstLowering`/
   `ExpressionEvaluator`/`StatementExecutor` case, not a parser rewrite - see
   `docs/spec/architecture.md` "Adding new features".
-* Good, because precedence and associativity (`<assoc=right>` for `**`/`^`) are declared, not
+- Good, because precedence and associativity (`<assoc=right>` for `**`/`^`) are declared, not
   implemented - there is no separate precedence-climbing function to keep in sync with the grammar.
-* Bad, because a contributor needs to learn ANTLR's grammar syntax and generated-parser model, not
+- Bad, because a contributor needs to learn ANTLR's grammar syntax and generated-parser model, not
   just Java, to touch the parser.
-* Neutral: the generated `BazLangLexer`/`BazLangParser` classes are build output, never
+- Neutral: the generated `BazLangLexer`/`BazLangParser` classes are build output, never
   hand-edited - see `DOC-MAP.md` "Machine-readable and generated parts".
 
 <!-- Extracted from the former docs/grammar.md ("Why ANTLR?") during a doc-kit restructuring pass;

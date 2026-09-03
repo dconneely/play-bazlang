@@ -11,7 +11,7 @@ Pascalated ZX BASIC, sourced from one real worked example program rather than a 
 Every dialect surveyed that has `ELSE` at all (all seven core dialects do, plus SpecBAS) draws the
 same basic distinction `PLAN.md`'s own item anticipates: a same-line, colon-joined `ELSE` that needs
 no terminator, and - in most, but not all, cases - a genuine block form that does. Where they differ
-is *how* the two forms are told apart (where a block form exists at all), whether the block form
+is _how_ the two forms are told apart (where a block form exists at all), whether the block form
 truly nests, and what the terminator is spelled.
 
 **Three dialects have no real block form whatsoever - one of them is Beta BASIC itself, the dialect
@@ -35,7 +35,7 @@ time**: single-line `IF...THEN...ELSE[ENDIF]` only, no separate block form, nest
 colon-chaining (which is what produces its documented `ELSE ELSE` idiom, see below). So the family's
 most influential structured-programming pioneer, its most business-oriented and least structured
 relative, and its newest reimplementation all land in the same place on this one specific question -
-and every dialect that *does* build a real nested block `IF` (SAM Coupé, NextBASIC, BBC, QL
+and every dialect that _does_ build a real nested block `IF` (SAM Coupé, NextBASIC, BBC, QL
 SuperBASIC, COMAL, Boriel) added one on top of that same single-line starting point, not something
 Sinclair-heritage BASIC arrives at by default.
 
@@ -51,7 +51,7 @@ Sinclair-heritage BASIC arrives at by default.
   extensions, though neither manual states this explicitly for `IF` the way SAM's manual does for
   `DEF PROC`.
 - **Line position decides it, `THEN` stays optional either way** (BBC BASIC, QL SuperBASIC, Boriel
-  ZX BASIC). If `THEN` is the *last* token on the line (nothing after it, not even a comment), the
+  ZX BASIC). If `THEN` is the _last_ token on the line (nothing after it, not even a comment), the
   parser commits to a block `IF` and expects `ENDIF`/`END IF` later; otherwise it's a same-line
   form, with `THEN` itself optional or replaceable by a colon in most of these.
 
@@ -61,40 +61,40 @@ Sinclair-heritage BASIC arrives at by default.
   is **not real nesting** - "there is no marker to indicate the end of an `IF`... execution skips to
   the code following the next `ELSE`" - it's a flat scan for the next `ELSE`/`ELSE IF` on the same
   line, which happens to behave like nesting for a simple chain but isn't structurally one. Their
-  *long*-form `IF...ELSE IF...END IF`, by contrast, is explicitly "properly-nested".
+  _long_-form `IF...ELSE IF...END IF`, by contrast, is explicitly "properly-nested".
 - BBC BASIC, QL SuperBASIC, COMAL, and Boriel ZX BASIC's block forms are all real nesting - an `IF`
   block can contain another complete `IF...ENDIF` inside it, at any depth, each closed by its own
   terminator.
 
 **Terminator spelling** is scattered across all four plausible options, no two dialects agreeing:
 
-| Dialect | Terminator | One word or two? |
-| --- | --- | --- |
-| BBC BASIC | `ENDIF` | one - the manual states "BBC BASIC won't accept `END IF` as two separate words" |
-| SAM Coupé BASIC | `END IF` | two |
-| NextBASIC | `ENDIF` | one |
-| QL SuperBASIC | `END IF` | two |
-| COMAL | `ENDIF` | one |
-| Boriel ZX BASIC | `END IF` | two (optional entirely on single-line forms since v1.8+) |
-| Beta BASIC | *(none - no block form)* | n/a |
-| Mallard BASIC | *(none - no block form)* | n/a |
-| SpecBAS | `ENDIF` | one, and optional even on the single-line form |
-| Pascalated ZX BASIC | `END IF` | two |
+| Dialect             | Terminator               | One word or two?                                                                |
+| ------------------- | ------------------------ | ------------------------------------------------------------------------------- |
+| BBC BASIC           | `ENDIF`                  | one - the manual states "BBC BASIC won't accept `END IF` as two separate words" |
+| SAM Coupé BASIC     | `END IF`                 | two                                                                             |
+| NextBASIC           | `ENDIF`                  | one                                                                             |
+| QL SuperBASIC       | `END IF`                 | two                                                                             |
+| COMAL               | `ENDIF`                  | one                                                                             |
+| Boriel ZX BASIC     | `END IF`                 | two (optional entirely on single-line forms since v1.8+)                        |
+| Beta BASIC          | _(none - no block form)_ | n/a                                                                             |
+| Mallard BASIC       | _(none - no block form)_ | n/a                                                                             |
+| SpecBAS             | `ENDIF`                  | one, and optional even on the single-line form                                  |
+| Pascalated ZX BASIC | `END IF`                 | two                                                                             |
 
 **Chained `ELSE IF`** is universal across every dialect that has a block form at all, but the
 keyword itself has three spellings: `ELSE IF` (two words: BBC, SAM Coupé, NextBASIC), `ELSEIF` (one
 word: Boriel ZX BASIC, which explicitly prefers it over manually nested `IF`s "for cleaner code",
 and Pascalated ZX BASIC, unsurprisingly given it compiles through Boriel), and `ELIF` (COMAL). QL
 SuperBASIC has none at all - the official QL User Guide documents `IF`/`ELSE` explicitly as a
-**two-way** decision only, with a completely separate `SELect ON var / ON var = value ... /
-END SELect` construct - the same `CASE`/`WHEN` idea COMAL's `CASE...ENDCASE` already models in this
-survey - as the recommended way to handle three or more branches. So a QL SuperBASIC "else-if chain"
-doesn't idiomatically exist at all, not because `IF` can't nest (it can, freely, per the worked
-examples read - a bare `ELSE` containing a complete nested `IF...END IF`), but because the manual
-steers a 3+-way decision to `SELect` from the start.
+**two-way** decision only, with a completely separate
+`SELect ON var / ON var = value ... / END SELect` construct - the same `CASE`/`WHEN` idea COMAL's
+`CASE...ENDCASE` already models in this survey - as the recommended way to handle three or more
+branches. So a QL SuperBASIC "else-if chain" doesn't idiomatically exist at all, not because `IF`
+can't nest (it can, freely, per the worked examples read - a bare `ELSE` containing a complete
+nested `IF...END IF`), but because the manual steers a 3+-way decision to `SELect` from the start.
 
 SpecBAS's manual documents a genuinely new quirk none of the seven core dialects have: an `IF` with
-no `ELSE` nested inside an `IF` that *does* have one needs **`ELSE ELSE`** to skip the inner `IF`'s
+no `ELSE` nested inside an `IF` that _does_ have one needs **`ELSE ELSE`** to skip the inner `IF`'s
 absent `ELSE` and reach the outer one -
 `IF a=1 THEN PRINT "A is 1": IF b=2 THEN PRINT "B is 2" ELSE ELSE PRINT "A is not 1"` - the manual's
 own words: "If a child-condition doesn't need an `ELSE`, but the parent `IF` does, then `ELSE ELSE`
@@ -108,10 +108,10 @@ regardless of whether it has an `ELSE`.
 `ELSE` is inherited from Sinclair BASIC itself; every one of them added it as an extension, the same
 judgement `PLAN.md` already reaches independently. The two-tier design `PLAN.md` sketches (single-
 line `ELSE` first, block `IF` as a larger follow-on step) matches the shape practically every
-dialect here converged on independently. The one genuinely open design choice this survey
-surfaces is SAM Coupé's/NextBASIC's "is there a `THEN`" rule for telling short-form from long-form
-apart, versus BBC's/QL's/Boriel's "is `THEN` the last token on the line" rule - the former needs no
-`THEN` at all in the long form, which reads slightly oddly next to BazLang's existing single-line
+dialect here converged on independently. The one genuinely open design choice this survey surfaces
+is SAM Coupé's/NextBASIC's "is there a `THEN`" rule for telling short-form from long-form apart,
+versus BBC's/QL's/Boriel's "is `THEN` the last token on the line" rule - the former needs no `THEN`
+at all in the long form, which reads slightly oddly next to BazLang's existing single-line
 `IF...THEN`; the latter keeps `THEN` meaningful in both forms, matching how it's used everywhere
 else in the language today.
 
@@ -154,15 +154,16 @@ else in the language today.
   120 END PROC
   ```
 
-  The manual's own footnote on this exact example explains the indentation: "Note: The listing is
-  in `LIST FORMAT 2`" - one of Beta BASIC's own listing modes that auto-indents a program's
-  structure for readability on screen, mentioned elsewhere in the manual as indenting `FOR`-loops
-  and `DEF PROC`-`END PROC` blocks the same way.
+  The manual's own footnote on this exact example explains the indentation: "Note: The listing is in
+  `LIST FORMAT 2`" - one of Beta BASIC's own listing modes that auto-indents a program's structure
+  for readability on screen, mentioned elsewhere in the manual as indenting `FOR`-loops and
+  `DEF PROC`-`END PROC` blocks the same way.
+
 - <https://en.wikipedia.org/wiki/Beta_BASIC> and the CRASH 43 review
-  (<https://www.crashonline.org.uk/43/betabasic.htm>) both describe a "multiline
-  `IF...THEN...ELSE`" that can be nested - technically accurate in the sense the primary manual
-  above clarifies (the *display* spans multiple lines), but neither gives the exact syntax, which
-  turns out not to include a terminator at all.
+  (<https://www.crashonline.org.uk/43/betabasic.htm>) both describe a "multiline `IF...THEN...ELSE`"
+  that can be nested - technically accurate in the sense the primary manual above clarifies (the
+  _display_ spans multiple lines), but neither gives the exact syntax, which turns out not to
+  include a terminator at all.
 - The Beta BASIC 4.0 supplement (see `0006`'s "Fetch technique notes") independently shows the same
   shape - an `IF...THEN` followed by several indented statements and a colon-joined `ELSE`, no
   terminator visible.
@@ -247,7 +248,8 @@ else in the language today.
   Minerva v1.92 involving inline `IF`s with `ELSE`, and that inline `IF...ELSE...END IF` can
   misbehave with a following `GOSUB` - implementation quirks, not language design, but notable as
   the kind of thing `docs/quirks.md` exists to record if BazLang ever needs the equivalent.
-- <https://archive.org/details/SinclairQLHomepage> (the official *Sinclair QL User Guide*'s
+
+- <https://archive.org/details/SinclairQLHomepage> (the official _Sinclair QL User Guide_'s
   programming section - the manual mirror above is a modern fan-maintained one; this is the primary
   official source it's based on). Every worked multi-branch example in this Guide's own
   programming-techniques chapter uses a **bare `ELSE` containing a complete nested `IF...END IF`**,
@@ -260,7 +262,7 @@ else in the language today.
 ### COMAL
 
 - <https://dn760101.eu.archive.org/0/items/COMAL_Reference_Guide/COMAL_Reference_Guide_djvu.txt> -
-  the 1984 *COMAL Reference Guide*. Real, chainable, properly-nested `IF`:
+  the 1984 _COMAL Reference Guide_. Real, chainable, properly-nested `IF`:
 
   ```text
   IF <logical expression> [THEN]
@@ -315,11 +317,11 @@ else in the language today.
 
 ### SpecBAS (see `0006`)
 
-- <https://sites.google.com/site/pauldunn/home/manual> - `IF numexpr THEN statement [ELSE statement]
-  [ENDIF]` - a single-line form only (no distinct block form with its own multi-statement body was
-  found in the pages read), with `ENDIF` itself optional. Nested `IF`s are written by colon-chaining
-  another `IF` after `THEN`/`ELSE`, which is what produces the `ELSE ELSE` idiom described in
-  Finding above.
+- <https://sites.google.com/site/pauldunn/home/manual> -
+  `IF numexpr THEN statement [ELSE statement] [ENDIF]` - a single-line form only (no distinct block
+  form with its own multi-statement body was found in the pages read), with `ENDIF` itself optional.
+  Nested `IF`s are written by colon-chaining another `IF` after `THEN`/`ELSE`, which is what
+  produces the `ELSE ELSE` idiom described in Finding above.
 
 ### Mallard BASIC (not Sinclair-heritage - see `0006`)
 

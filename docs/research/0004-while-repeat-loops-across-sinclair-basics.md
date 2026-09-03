@@ -19,7 +19,7 @@ its top-tested-loop terminator differently: BBC BASIC and Boriel ZX BASIC use `E
 also accepts `WEND` as an explicit alternative spelling - its own docs note plainly that `WHILE`
 "does not exist in Sinclair Basic"), COMAL uses `ENDWHILE`, and most of the rest (SAM Coupé, Beta
 BASIC, NextBASIC) don't have a freestanding `WHILE` loop construct at all - `WHILE` there is a
-*condition clause* attached to a different loop keyword, not its own loop.
+_condition clause_ attached to a different loop keyword, not its own loop.
 
 Four genuinely different loop-family shapes turned up, of varying richness:
 
@@ -46,23 +46,24 @@ Four genuinely different loop-family shapes turned up, of varying richness:
    checked at the top, the bottom, and the middle, in any combination - at the cost of reusing
    `REPEAT` itself as half of its own terminator (`REPEAT UNTIL condition`) rather than a distinct
    keyword.
-3. **A single unified loop constructor with no dedicated `WHILE`/`UNTIL` keywords at all**
-   (QL SuperBASIC's `REPeat`/`END REPeat`, labelled by an identifier, exited or restarted early via
+3. **A single unified loop constructor with no dedicated `WHILE`/`UNTIL` keywords at all** (QL
+   SuperBASIC's `REPeat`/`END REPeat`, labelled by an identifier, exited or restarted early via
    plain `IF...THEN EXIT`/`IF...THEN NEXT` statements placed anywhere in the body). This is
    `WHILE`/`UNTIL`'s job done entirely with the language's ordinary conditional and jump statements
    rather than dedicated loop-condition syntax - the QL manual's own words: "The `REPeat` structure
    does the jobs of both `REPEAT` and `WHILE` structures."
-4. **A bare `REPEAT UNTIL` with no `WHILE`-equivalent at all** (YS MegaBasic - "simple `REPEAT UNTIL`
-   loops are the only new control structure", per a contemporary review). The weakest of the four -
-   no top-tested form, no anywhere-in-body guard, just the one bottom-tested construct.
+4. **A bare `REPEAT UNTIL` with no `WHILE`-equivalent at all** (YS MegaBasic - "simple
+   `REPEAT UNTIL` loops are the only new control structure", per a contemporary review). The weakest
+   of the four - no top-tested form, no anywhere-in-body guard, just the one bottom-tested
+   construct.
 
 The classic BBC-derived pair - a genuinely separate `REPEAT...UNTIL` (bottom-tested) alongside a
 genuinely separate `WHILE...ENDWHILE`/`WEND` (top-tested), as two independent constructs - is the
-shape BBC BASIC and COMAL use, and the shape `PLAN.md`'s item is actually describing (once `WEND`
-is read as "the top-tested one", regardless of exact spelling). It's one option among the four
-found here, not the only one, and not the one most of the Sinclair-heritage dialects (as opposed to
+shape BBC BASIC and COMAL use, and the shape `PLAN.md`'s item is actually describing (once `WEND` is
+read as "the top-tested one", regardless of exact spelling). It's one option among the four found
+here, not the only one, and not the one most of the Sinclair-heritage dialects (as opposed to
 BBC/COMAL) actually picked. **COMAL, uniquely among every dialect surveyed, layers a third construct
-on top of that pair**: `LOOP ... EXIT/EXITIF condition ... ENDLOOP`, for a condition in the *middle*
+on top of that pair**: `LOOP ... EXIT/EXITIF condition ... ENDLOOP`, for a condition in the _middle_
 of the body - added to the language after its 1984 standard, but real (see Evidence) - making COMAL
 alone in having a dedicated, separate keyword for each of the three testing positions (top, bottom,
 middle) rather than making one shape do double or triple duty the way every other dialect here does.
@@ -138,6 +139,7 @@ keyword pairs.
   in Pascal, but are more flexible" - a deliberate, Pascal-inspired design, not an incidental
   extension. `WHILE`/`UNTIL` are clause keywords attached to `DO`/`LOOP`, not a freestanding loop of
   their own, matching NextBASIC's and SAM Coupé's later choices (see Finding).
+
 - Beta BASIC 4.0 supplement manual (see `0006`'s "Fetch technique notes"). Confirms the same
   `DO`/`LOOP` shape with an `UNTIL` clause on the `DO`:
 
@@ -253,10 +255,11 @@ Two independent primary sources cover different points in COMAL's version histor
 
   Plus a `FOR var:=init TO final [STEP n] DO ... ENDFOR [var]` counted loop. Has no
   `LOOP`/`ENDLOOP`/exit-anywhere construct - it's a later addition, documented below.
+
 - <https://archive.org/details/COMAL_Handbook_1983_Reston_Publishing> (Len Lindsay, 1983, Reston
   Publishing) - COMAL 80 on the Commodore 64, versions 0.11-1.02. Documents
   `LOOP ... [EXIT|EXITIF condition] ... ENDLOOP` in full: a loop whose exit condition sits in the
-  *middle* of the body rather than the top or bottom, closer in spirit to NextBASIC's
+  _middle_ of the body rather than the top or bottom, closer in spirit to NextBASIC's
   anywhere-in-body `WHILE` guard than to the top/bottom-only `WHILE`/`REPEAT` pair above - making
   COMAL, across its full version history, the **third** dialect in this survey with an
   anywhere-in-body condition. Explicitly marked `COMAL STANDARD: [NO]`, unsupported in version 0.12,
@@ -279,7 +282,7 @@ Two independent primary sources cover different points in COMAL's version histor
   ```
 
   with `WEND` explicitly documented as an accepted alternative to `END WHILE` - making Boriel the
-  only dialect surveyed that supports *both* the BBC-style spelling and the GW-BASIC-family `WEND`
+  only dialect surveyed that supports _both_ the BBC-style spelling and the GW-BASIC-family `WEND`
   spelling `PLAN.md`'s item is named after. The docs state plainly this statement "does not exist in
   Sinclair Basic" - an explicit acknowledgement, in Boriel's own documentation, that `WHILE` is a
   deliberate non-authentic extension, the same judgement `PLAN.md`'s downgrade rationale already
@@ -330,19 +333,20 @@ Two independent primary sources cover different points in COMAL's version histor
 
 ### YS MegaBasic (see `0006`)
 
-- <https://www.crashonline.org.uk/25/basics.htm> - *CRASH* 25 (1985), "Battle of the Basics".
+- <https://www.crashonline.org.uk/25/basics.htm> - _CRASH_ 25 (1985), "Battle of the Basics".
   "Simple `REPEAT UNTIL` loops are the only new control structure" - no `WHILE` in any form, no
   `DO`/`LOOP`, no anywhere-in-body exit mechanism documented.
 
 ### Acorn Atom BASIC (see `0006`)
 
-- <https://www.theoddys.com/acorn/acorn_system_computers/atom/Atomic%20Theory%20and%20Practice.pdf> -
-  the Atom BASIC language manual (227pp - not to be confused with a same-vintage-looking "Technical
-  Manual" that turns out to be a hardware/construction guide, see `0006`). Section 5.2, "`DO...UNTIL`
-  Loops": "ATOM BASIC provides an alternative pair of loop-control statements: `DO` and `UNTIL`. The
-  `UNTIL` statement is followed by a condition, and everything between the `DO` statement and the
-  `UNTIL` statement is repeatedly executed until the condition becomes true." Worked examples confirm
-  both a same-line form (`DO PRINT "ATOM-"; UNTIL 0`) and a multi-line indented form:
+- <https://www.theoddys.com/acorn/acorn_system_computers/atom/Atomic%20Theory%20and%20Practice.pdf>.
+  The Atom BASIC language manual (227pp - not to be confused with a same-vintage-looking "Technical
+  Manual" that turns out to be a hardware/construction guide, see `0006`). Section 5.2,
+  "`DO...UNTIL` Loops": "ATOM BASIC provides an alternative pair of loop-control statements: `DO`
+  and `UNTIL`. The `UNTIL` statement is followed by a condition, and everything between the `DO`
+  statement and the `UNTIL` statement is repeatedly executed until the condition becomes true."
+  Worked examples confirm both a same-line form (`DO PRINT "ATOM-"; UNTIL 0`) and a multi-line
+  indented form:
 
   ```basic
   10 I=0
@@ -354,22 +358,26 @@ Two independent primary sources cover different points in COMAL's version histor
 
   and that a statement may directly follow `DO` on its own line (`20 DO INPUT J`). Bottom-tested
   only - no `WHILE` variant, no `LOOP` terminator keyword at all, condition only ever on `UNTIL`.
-  The manual's own reserved-word list (an early, possibly non-exhaustive subset: `BPUT, CLEAR, DIM,
-  DO, DRAW, END, FOR, GOSUB, GOTO, IF, INPUT, LET, LINK, MOVE, NEXT, OLD, PLOT, PRINT, PUT, REM,
-  RETURN, RUN, SAVE, SGET, SHUT, SPUT, UNTIL, WAIT`) includes `DO`/`UNTIL` but no `REPEAT`, `WHILE`,
-  `PROC`, or `FN` - consistent with `0006`'s finding that Atom BASIC has no procedures or
-  user-defined functions.
+  The manual's own reserved-word list (an early, possibly non-exhaustive subset) is:
+
+  ```text
+  BPUT, CLEAR, DIM, DO, DRAW, END, FOR, GOSUB, GOTO, IF, INPUT, LET, LINK, MOVE, NEXT, OLD, PLOT,
+  PRINT, PUT, REM, RETURN, RUN, SAVE, SGET, SHUT, SPUT, UNTIL, WAIT
+  ```
+
+  It includes `DO`/`UNTIL` but no `REPEAT`, `WHILE`, `PROC`, or `FN` - consistent with `0006`'s
+  finding that Atom BASIC has no procedures or user-defined functions.
 
 ### Pascalated ZX BASIC (see `0006`)
 
 - <https://arcalusitana.org/MuseuZX/Pascalated_ZXBASIC/> - the page's raw HTML (`WebFetch`'s
   markdown conversion of this page misses the per-lesson `<textarea>` content - see `0006`'s
-  technique notes). `REPEAT`/`UNTIL` are **not** a classic BBC/COMAL-style independent pair - they're
-  literal `#define REPEAT DO` / `#define UNTIL LOOP UNTIL` macros feeding Boriel's own compiler, so
-  `REPEAT...UNTIL condition` *is*, after expansion, Boriel's `DO...LOOP UNTIL condition` (shape 1
-  above). A comment in a second lesson's source, `'#define WHILE WHILE ' already defined`, confirms
-  `WHILE`/`END WHILE` has no macro at all - it's Boriel's own native keyword, unchanged, not a
-  Pascalated-specific spelling.
+  technique notes). `REPEAT`/`UNTIL` are **not** a classic BBC/COMAL-style independent pair -
+  they're literal `#define REPEAT DO` / `#define UNTIL LOOP UNTIL` macros feeding Boriel's own
+  compiler, so `REPEAT...UNTIL condition` _is_, after expansion, Boriel's
+  `DO...LOOP UNTIL condition` (shape 1 above). A comment in a second lesson's source,
+  `'#define WHILE WHILE ' already defined`, confirms `WHILE`/`END WHILE` has no macro at all - it's
+  Boriel's own native keyword, unchanged, not a Pascalated-specific spelling.
 
 ### Laser BASIC (confirmed to add nothing here - see `0006`)
 

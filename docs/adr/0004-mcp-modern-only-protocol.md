@@ -15,11 +15,11 @@ committing to one protocol and one front-end.
 
 ## Considered Options
 
-* Keep `AgentDebugger`'s text protocol alongside a new MCP server - two front-ends over the same
+- Keep `AgentDebugger`'s text protocol alongside a new MCP server - two front-ends over the same
   debugging core.
-* Support both the legacy `initialize`-handshake MCP protocol and the modern 2026-07-28 stateless
+- Support both the legacy `initialize`-handshake MCP protocol and the modern 2026-07-28 stateless
   revision in one server.
-* Build `McpServer` targeting only the 2026-07-28 revision, and delete `AgentDebugger` entirely.
+- Build `McpServer` targeting only the 2026-07-28 revision, and delete `AgentDebugger` entirely.
 
 ## Decision Outcome
 
@@ -32,15 +32,15 @@ interpreter, `BreakpointEngine`, and `MockScreen`, and `McpServer` is its sole a
 
 ### Consequences
 
-* Good, because there is one debugging front-end to keep in sync with the interpreter, not two, and
-  a smaller codebase - `AgentDebugger.java`, `DebugSession.java`,
-  `AgentDebuggerProtocolTest.java`, `QuotedArg.java`, `QuotedArgTest.java`, and
-  `docs/language_debugger.md` were all deleted, along with the `runAgentDebugger` Gradle task.
-* Bad, because a client still speaking the pre-2026-07-28 `initialize`-handshake protocol cannot use
+- Good, because there is one debugging front-end to keep in sync with the interpreter, not two, and
+  a smaller codebase - `AgentDebugger.java`, `DebugSession.java`, `AgentDebuggerProtocolTest.java`,
+  `QuotedArg.java`, `QuotedArgTest.java`, and `docs/language_debugger.md` were all deleted, along
+  with the `runAgentDebugger` Gradle task.
+- Bad, because a client still speaking the pre-2026-07-28 `initialize`-handshake protocol cannot use
   this server at all - see [`docs/spec/mcp.md`](../spec/mcp.md) "Known limitations".
-* Neutral: `BreakpointEngine.parseCondition` (the text protocol's `CSC`/`ELAPSE`/`?expr`/`EVERY`
-  condition-string parser) was deleted with it - `McpServer` builds `BreakCondition`s from structured
-  JSON directly and never needed a string parser.
+- Neutral: `BreakpointEngine.parseCondition` (the text protocol's `CSC`/`ELAPSE`/`?expr`/`EVERY`
+  condition-string parser) was deleted with it - `McpServer` builds `BreakCondition`s from
+  structured JSON directly and never needed a string parser.
 
 <!-- Extracted from docs/mcp_server.md's "Protocol version" note and the gitignored
      localonly-BAZLANG-IMPROVEMENTS.md's AgentDebugger-retirement narrative during the doc-kit

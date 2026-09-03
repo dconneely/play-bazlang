@@ -16,11 +16,11 @@ to "the caller's blocking call actually returns".
 
 ## Considered Options
 
-* A command thread with a handoff queue - the conventional debugger architecture: a dedicated thread
+- A command thread with a handoff queue - the conventional debugger architecture: a dedicated thread
   runs the interpreter, and commands (breakpoints, step, go) are posted to it and waited on.
-* Synchronous, single-threaded: `run`/`gotoLine`/`go`/`stepInto`/`stepOver` each drive
-  `Interpreter.resume()` directly on the caller's own thread until the programme next pauses, with no
-  blocking wait for a "next command" inside the engine itself.
+- Synchronous, single-threaded: `run`/`gotoLine`/`go`/`stepInto`/`stepOver` each drive
+  `Interpreter.resume()` directly on the caller's own thread until the programme next pauses, with
+  no blocking wait for a "next command" inside the engine itself.
 
 ## Decision Outcome
 
@@ -37,14 +37,14 @@ that same resume guard.
 
 ### Consequences
 
-* Good, because it is a genuine simplification: no concurrency bugs, no lock management across
+- Good, because it is a genuine simplification: no concurrency bugs, no lock management across
   `EvalState`, and a deterministically testable execution model.
-* Bad, because the debugger can only gain control at statement boundaries - it cannot interrupt a
+- Bad, because the debugger can only gain control at statement boundaries - it cannot interrupt a
   programme stuck mid-statement in an infinite loop. Every run-control call arms a per-call
   wall-clock safety timeout (default 30s, overridable via `timeoutMs`) as a mitigation, not a
   substitute: see [`docs/spec/mcp.md`](../spec/mcp.md) "Known limitations" and the open `PLAN.md`
   item on true `tools/call` cancellation.
-* Neutral: `notifications/cancelled` is accepted by the MCP server but has no effect under this
+- Neutral: `notifications/cancelled` is accepted by the MCP server but has no effect under this
   design - a full fix would move `Interpreter.resume()` onto a worker thread so a cancellation
   notification arriving on stdin could interrupt it mid-run, reintroducing the concurrency this
   decision avoids.

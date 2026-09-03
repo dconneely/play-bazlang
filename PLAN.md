@@ -1,7 +1,7 @@
 # Plan
 
-Single ranked backlog, most important first. Entries are **deleted** when done, never annotated -
-a plan that accumulates completed items stops being read. **One paragraph each** - see
+Single ranked backlog, most important first. Entries are **deleted** when done, never annotated - a
+plan that accumulates completed items stops being read. **One paragraph each** - see
 [DOC-MAP.md](DOC-MAP.md).
 
 ## Baseline output tests for the interactive example games
@@ -18,13 +18,13 @@ of the machinery.
 
 **Type:** feature - **Importance:** medium - **Effort:** small
 
-`FOR` is the only place real Sinclair BASIC uses `TO`/`STEP`; `LIST`/`DELETE`/`REFORMAT`'s line-range
-arguments and `RENUM`'s are BazLang's own invention, with no Sinclair dialect having typed line-range
-or renumber syntax at all. Replace the `TO`/`STEP` keyword syntax with comma-positional arguments in
-all four (e.g. `DELETE 10, 100`, `RENUMBER 100, 10, 50, 80`), and rename `RENUM` to `RENUMBER` to
-match the real "Renumber" spelling (confirmed 2026-08-30 against the ZX Spectrum +3 manual, though
-real hardware's Renumber is a fixed-parameter menu option - a separate, deeper divergence this item
-doesn't attempt to close), keeping `RENUM` as a short alias.
+`FOR` is the only place real Sinclair BASIC uses `TO`/`STEP`; `LIST`/`DELETE`/`REFORMAT`'s
+line-range arguments and `RENUM`'s are BazLang's own invention, with no Sinclair dialect having
+typed line-range or renumber syntax at all. Replace the `TO`/`STEP` keyword syntax with
+comma-positional arguments in all four (e.g. `DELETE 10, 100`, `RENUMBER 100, 10, 50, 80`), and
+rename `RENUM` to `RENUMBER` to match the real "Renumber" spelling (confirmed 2026-08-30 against the
+ZX Spectrum +3 manual, though real hardware's Renumber is a fixed-parameter menu option - a
+separate, deeper divergence this item doesn't attempt to close), keeping `RENUM` as a short alias.
 
 ## Slash-prefix REPL-only commands (`/delete`, `/edit`, `/renumber`, `/reformat`, `/exit`)
 
@@ -34,11 +34,11 @@ doesn't attempt to close), keeping `RENUM` as a short alias.
 (`replCommand` in `BazLang.g4`), and none exist in any real Sinclair dialect - unlike `LIST`, which
 stays a real keyword because `10 LIST` is authentically valid inside a program. Prefix them with `/`
 (`/delete 10,100`, `/renumber 100,10`), resolving the command name by text at the dispatch layer
-instead of as dedicated keyword tokens, freeing `delete`/`edit`/`renum`/`renumber`/`reformat` for use
-as ordinary variable/array names. Add a new `/exit`, and let `STOP` drop its own undocumented REPL-exit
-special case: `InterpreterReplHandler` currently ends the whole REPL loop when `STOP` is typed at line
-label 0, which no real hardware does and which `Repl.loop`'s existing EOF handling already makes
-redundant.
+instead of as dedicated keyword tokens, freeing `delete`/`edit`/`renum`/`renumber`/`reformat` for
+use as ordinary variable/array names. Add a new `/exit`, and let `STOP` drop its own undocumented
+REPL-exit special case: `InterpreterReplHandler` currently ends the whole REPL loop when `STOP` is
+typed at line label 0, which no real hardware does and which `Repl.loop`'s existing EOF handling
+already makes redundant.
 
 ## Tab-completion for statement/REPL-command keywords (JLine)
 
@@ -49,8 +49,8 @@ A `lib-repl` enhancement. JLine is already the terminal engine (`RobustLineReade
 no suggestions. `lib-repl` depends only on JLine and knows nothing of BazLang or ANTLR, and
 `TerminalEngine`'s own Javadoc says its job is to isolate the application from the terminal
 library - so this needs a small neutral interface `lib-repl` wires into JLine internally, with
-`app-bazlang` supplying candidates derived from `BazLangLexer`'s generated keyword vocabulary
-rather than a hand-maintained list. Scope to the first token of a statement for v1; completing
+`app-bazlang` supplying candidates derived from `BazLangLexer`'s generated keyword vocabulary rather
+than a hand-maintained list. Scope to the first token of a statement for v1; completing
 `GOTO`/`GOSUB` targets or `LOAD`/`SAVE` filenames is a separate, larger follow-on.
 
 ## Syntax highlighting in the REPL (JLine)
@@ -65,36 +65,15 @@ JLine's `Highlighter` internally; `app-bazlang` supplies an implementation built
 `BazLangLexer` - the same lexer used for actual parsing, not a hand-maintained regex scheme that
 could drift from the grammar.
 
-## Migrate Markdown tooling to `markdownlint-cli2` + Prettier
-
-**Type:** debt - **Importance:** medium - **Effort:** medium
-
-This repository still runs the older `igorshubovych/markdownlint-cli` (`.markdownlint.yaml`) with no
-auto-formatter; `doc-kit`, `identigon/identigon`, and `identigon/identigon.github.io` have all moved
-to `DavidAnson/markdownlint-cli2` (`.markdownlint-cli2.jsonc`), and the two identigon repos pair it
-with a local Prettier hook, splitting the work the same way in both: markdownlint-cli2 gates line
-length only (MD013 has no auto-fix in any implementation), Prettier does the actual reformatting.
-`doc-kit` itself carries the identical Prettier addition as its own PLAN.md item
-("Wire Prettier for Markdown auto-wrapping", citing its ADR-0017) without yet having made it either,
-so this is the same move, made twice. Port `.markdownlint.yaml`'s current rules (`MD013`
-`line_length: 100`, `tables: false`, `code_blocks: false`, `headings: false`; `MD024`
-`siblings_only: true`) into `.markdownlint-cli2.jsonc`, add `.prettierrc.json`
-(`proseWrap: always`, `printWidth: 100`, `embeddedLanguageFormatting: off` - both identigon repos'
-comments document `proseWrap` and `embeddedLanguageFormatting` as load-bearing, not cosmetic:
-Prettier's own defaults silently do nothing and corrupt fenced-YAML code blocks respectively), pin a
-local `prettier-markdown` hook, and run the one-time bulk reformat - checking the diff for
-`identigon/identigon`'s documented `*emphasis*` -> `_emphasis_` conversion (permanent, no config
-option to prevent it) before committing it.
-
 ## Unify read/write subscript-and-slice resolution
 
 **Type:** debt - **Importance:** medium - **Effort:** medium
 
 Both sides now read the same `StrSubscript`/`StrSlice` AST type, but the bounds-resolution
-*algorithm* is still duplicated: `ExpressionEvaluator.evalStrSubscriptCore` versus
-`StatementExecutor.assignStrScalarTarget`/`assignStrArrayTarget` both distinguish a single byte index
-from a slice, call `SliceBounds.resolve`, and compute the array element offset the same way. Extract
-a shared resolver so the read and write paths cannot drift apart.
+_algorithm_ is still duplicated: `ExpressionEvaluator.evalStrSubscriptCore` versus
+`StatementExecutor.assignStrScalarTarget`/`assignStrArrayTarget` both distinguish a single byte
+index from a slice, call `SliceBounds.resolve`, and compute the array element offset the same way.
+Extract a shared resolver so the read and write paths cannot drift apart.
 
 ## Programmatic component tests
 
@@ -125,11 +104,11 @@ concurrent execution of the same AST.
 **Type:** feature - **Importance:** medium - **Effort:** medium
 
 Currently, maintaining consistent BASIC formatting and preserving logical line-number blocks (like
-`1000`, `2000`) from outside the interactive REPL is difficult. Agents currently rely on an
-external Python script (`block_renumber.py`) to orchestrate REPL commands for this. We should
-explore ways to natively help LLM agents and external tools maintain consistent code style and
-line numbering in `.bas` files, without pre-determining the architectural solution (e.g., via MCP
-tools, batch CLI flags, or IDE extensions).
+`1000`, `2000`) from outside the interactive REPL is difficult. Agents currently rely on an external
+Python script (`block_renumber.py`) to orchestrate REPL commands for this. We should explore ways to
+natively help LLM agents and external tools maintain consistent code style and line numbering in
+`.bas` files, without pre-determining the architectural solution (e.g., via MCP tools, batch CLI
+flags, or IDE extensions).
 
 ## `TerminalScreenGraphicsTest.testInverseOverRendering` failed once on `windows-latest`
 
@@ -140,12 +119,12 @@ on `windows-latest` only (ubuntu/macos passed); did not reproduce locally. Cause
 `StatementExecutorTest.Aplay.anIdleAplaySessionStopsPushingAudioEntirelyRatherThanStreamingSilence`
 failed the same way on `macos-latest` twice, in two separate runs, and needed two attempts to fix
 properly: a first pass (polling until the recorded call count went quiet) was still flaky, because a
-GC pause on a loaded runner can space two still-legitimate mid-note chunks further apart than a short
-quiet-window would assume. The working fix waits for `drainPlay()` instead - `StatementExecutor`'s
-own single-fire, unambiguous "just went idle" signal (see
+GC pause on a loaded runner can space two still-legitimate mid-note chunks further apart than a
+short quiet-window would assume. The working fix waits for `drainPlay()` instead -
+`StatementExecutor`'s own single-fire, unambiguous "just went idle" signal (see
 [ADR-0007](docs/adr/0007-synchronous-per-call-play-rendering.md)) - rather than inferring idleness
-from any timing heuristic. Worth auditing any other test using `Thread.sleep` for synchronization the
-same way, but confirm this Windows failure actually recurs before spending more effort on it.
+from any timing heuristic. Worth auditing any other test using `Thread.sleep` for synchronization
+the same way, but confirm this Windows failure actually recurs before spending more effort on it.
 
 ## MCP: true `tools/call` cancellation
 
@@ -176,12 +155,13 @@ cell-buffer diffs over WebSocket to a browser canvas is the most practical first
 The 3D Monster Maze example (`app-bazlang/src/example/bas/monster.bas`, 446 lines) is incomplete and
 has a rendering bug in the maze view - confirmed 2026-08-22, not just a stale status note. See
 `docs/research/0001-3d-monster-maze-reference.md` for the reference mechanics (maze generation, Rex
-AI, the six-depth-segment rendering scheme) and two previously-tried rendering approaches that didn't
-work, plus an untried PET-port-inspired simplification (single-character vanishing point, buffer the
-frame as a string before printing) worth considering as a starting point instead of the original's
-exact `DISTCOL`/`DISTWALL` segment tables. Downgraded from high 2026-08-29: an attempted fix here made
-the rendering visibly worse rather than better, and needed a human to catch it - parked at low
-priority until LLM-assisted work on this kind of pixel/character-level visual layout is more reliable.
+AI, the six-depth-segment rendering scheme) and two previously-tried rendering approaches that
+didn't work, plus an untried PET-port-inspired simplification (single-character vanishing point,
+buffer the frame as a string before printing) worth considering as a starting point instead of the
+original's exact `DISTCOL`/`DISTWALL` segment tables. Downgraded from high 2026-08-29: an attempted
+fix here made the rendering visibly worse rather than better, and needed a human to catch it -
+parked at low priority until LLM-assisted work on this kind of pixel/character-level visual layout
+is more reliable.
 
 ## `WHILE...WEND` / `REPEAT...UNTIL`
 
@@ -226,16 +206,16 @@ Multi-line procedures with parameters passed by value or reference, and local va
 (using `LOCAL`). Shifts BazLang from a flat line-number-based execution flow toward a modern,
 block-structured language. The largest language item: needs a call stack with local frames layered
 over the current global variable model, and interacts with `GOSUB`, `CLEAR`, and the variable
-reference caching described in `docs/spec/architecture.md`. Downgraded from high 2026-08-30: `DEF
-PROC`, multi-line `DEF FN`, and `LOCAL` are not ZX81 or ZX Spectrum BASIC - Sinclair `DEF FN` is a
-single-expression construct, and there is no `DEF PROC`/`LOCAL` at all. Same non-authentic-extension
-reasoning as `WHILE`/`WEND` and `IF`/`ELSE` above, taken further given how large this item is. Still
-wanted eventually, just not ahead of core-fidelity work. See
+reference caching described in `docs/spec/architecture.md`. Downgraded from high 2026-08-30:
+`DEF PROC`, multi-line `DEF FN`, and `LOCAL` are not ZX81 or ZX Spectrum BASIC - Sinclair `DEF FN`
+is a single-expression construct, and there is no `DEF PROC`/`LOCAL` at all. Same
+non-authentic-extension reasoning as `WHILE`/`WEND` and `IF`/`ELSE` above, taken further given how
+large this item is. Still wanted eventually, just not ahead of core-fidelity work. See
 `docs/research/0002-def-proc-across-sinclair-basics.md` for how BBC BASIC, Beta BASIC, SAM Coupé
 BASIC, NextBASIC, QL SuperBASIC, Boriel ZX BASIC, and COMAL each handle parameter passing and
-scoping - a `DEF FN`-shaped design (value-only params shadowing globals, an optional `LOCAL`
-reusing that same shadow/restore mechanism, no reference parameters) would sit outside all of them,
-smaller than any surveyed precedent. See also
+scoping - a `DEF FN`-shaped design (value-only params shadowing globals, an optional `LOCAL` reusing
+that same shadow/restore mechanism, no reference parameters) would sit outside all of them, smaller
+than any surveyed precedent. See also
 `docs/research/0003-multiline-def-fn-across-sinclair-basics.md` on multi-line `DEF FN` specifically:
 only QL SuperBASIC, COMAL, and Boriel actually extend `FN` past a single expression, and all three
 do it by making `FN` just `PROC` with a mandatory return value rather than a separate mechanism -
@@ -260,7 +240,7 @@ those two `ThreadLocal`s.
 `AstLowering.parseBinLiteral`'s "Binary literal exceeds 64 digits" error hardcodes statement index 1
 rather than the literal's real statement, the one gap left after a pass that fixed every other
 `ReportException` call site defaulting to statement 1. Not a mechanical thread-through like
-`lineNumber`: the real index is the statement's position in the *flattened* list `Interpreter` walks
+`lineNumber`: the real index is the statement's position in the _flattened_ list `Interpreter` walks
 (`flattenInto` splices each `IfStmt`'s body in right after it), which isn't resolved until after
 every statement on the line - including nested `IF` bodies - has already been lowered, so a naive
 parameter can't carry a value that doesn't exist yet at the point `parseBinLiteral` runs. Fixing it
@@ -293,9 +273,9 @@ the current approach is well-contained. Optional.
 Support for variables (e.g. `count%`, `grid%(10)`) with exact 64-bit semantics and fast bitwise
 operations. The value is semantic correctness (exact integer arithmetic, well-defined bit ops), not
 performance - in the current AST-walking interpreter, memory-footprint and speed gains would be
-minimal until the bytecode tier exists, so the two items should not be justified by each other. Large
-because a second numeric type touches the whole expression evaluator, assignment targets, arrays,
-and `DEF FN`.
+minimal until the bytecode tier exists, so the two items should not be justified by each other.
+Large because a second numeric type touches the whole expression evaluator, assignment targets,
+arrays, and `DEF FN`.
 
 ## Virtual machine / bytecode tier
 

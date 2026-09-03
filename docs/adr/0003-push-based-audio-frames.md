@@ -15,9 +15,9 @@ first implementation gave `VirtualSpeaker` a `play(PlaySource)`/`isPlaying()` pa
 
 ## Considered Options
 
-* Pull-based: hand the speaker a `PlaySource`; `StatementExecutor` polls `isPlaying()` for
+- Pull-based: hand the speaker a `PlaySource`; `StatementExecutor` polls `isPlaying()` for
   completion. (Original design; rejected.)
-* Push-based: `StatementExecutor` itself pulls fixed ~20ms slices from `PlaySequencer` and pushes
+- Push-based: `StatementExecutor` itself pulls fixed ~20ms slices from `PlaySequencer` and pushes
   each resolved slice to `speaker.playFrame(VoiceFrame, VoiceFrame, VoiceFrame)`/`stopPlay()`, with
   no duration or liveness concept on the speaker side at all.
 
@@ -25,17 +25,17 @@ first implementation gave `VirtualSpeaker` a `play(PlaySource)`/`isPlaying()` pa
 
 Chosen option: push-based `playFrame`/`stopPlay`, because the pull-based design silently broke
 headless testability. A no-op `VirtualSpeaker` - every test double - never reports "playing", so
-`BREAK` could never fire and `PLAY` returned instantly in tests, unlike `BEEP`/`PAUSE`. Inverting the
-design keeps all DSL parsing, timing, and BREAK-handling logic inside `StatementExecutor`, mirroring
-`executeBeepStmt`'s chunked-sleep/BREAK-poll shape exactly.
+`BREAK` could never fire and `PLAY` returned instantly in tests, unlike `BEEP`/`PAUSE`. Inverting
+the design keeps all DSL parsing, timing, and BREAK-handling logic inside `StatementExecutor`,
+mirroring `executeBeepStmt`'s chunked-sleep/BREAK-poll shape exactly.
 
 ### Consequences
 
-* Good, because `PLAY`/`APLAY` are headless-testable for free, exactly like `BEEP` - nothing about
+- Good, because `PLAY`/`APLAY` are headless-testable for free, exactly like `BEEP` - nothing about
   correctness depends on a real audio device reporting its own state back.
-* Bad, because `TerminalScreen`'s real playback needs its own persistent background render thread
+- Bad, because `TerminalScreen`'s real playback needs its own persistent background render thread
   (started lazily, decoupled from the push cadence) rather than simply blocking inside `play()`.
-* Neutral: this decision is about who *initiates* each audio frame, not about buffering - the
+- Neutral: this decision is about who _initiates_ each audio frame, not about buffering - the
   separate "nothing ever queues idle silence" rule in
   [`docs/spec/architecture.md`](../spec/architecture.md) ("I/O system") governs buffering and still
   holds under the push model.

@@ -15,9 +15,9 @@ attributes; audio needed to land somewhere.
 
 ## Considered Options
 
-* Add `beep`/`playFrame`/`stopBeep`/`stopPlay` methods directly onto `VirtualScreen`.
-* Define `VirtualSpeaker` as its own interface, implemented alongside `VirtualScreen` by
-  screens that support audio.
+- Add `beep`/`playFrame`/`stopBeep`/`stopPlay` methods directly onto `VirtualScreen`.
+- Define `VirtualSpeaker` as its own interface, implemented alongside `VirtualScreen` by screens
+  that support audio.
 
 ## Decision Outcome
 
@@ -29,11 +29,11 @@ already works.
 
 ### Consequences
 
-* Good, because screens and audio evolve independently: a new headless or test screen needs zero
+- Good, because screens and audio evolve independently: a new headless or test screen needs zero
   audio-specific code, and `VirtualScreen` does not grow further.
-* Bad, because two interfaces have to be threaded through constructors (e.g.
-  `StatementExecutor`'s ~21 call sites) instead of one.
-* Neutral: matches the no-op-default pattern `VirtualScreen`'s own graphics/attribute methods
+- Bad, because two interfaces have to be threaded through constructors (e.g. `StatementExecutor`'s
+  ~21 call sites) instead of one.
+- Neutral: matches the no-op-default pattern `VirtualScreen`'s own graphics/attribute methods
   already use.
 
 <!-- Extracted from docs/implementation.md, I/O system section ("VirtualSpeaker is deliberately its

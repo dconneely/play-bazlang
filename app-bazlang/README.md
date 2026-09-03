@@ -51,8 +51,8 @@ See [../docs/spec/mcp.md](../docs/spec/mcp.md) for the full tool and protocol re
 
 ## Example programs
 
-A selection of classic game and graphics demo examples can be found under
-`src/example/bas/`. You can execute them directly:
+A selection of classic game and graphics demo examples can be found under `src/example/bas/`. You
+can execute them directly:
 
 ```bash
 ./run.sh src/example/bas/pontoon.bas

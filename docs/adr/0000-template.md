@@ -24,15 +24,15 @@ Delete this comment in the copy.
 
 ## Context and Problem Statement
 
-What forces were at play, and what made this decision non-obvious. What was known at the time -
-and, more usefully, what was **not**. If nothing here would surprise a newcomer, this may not need
-a record.
+What forces were at play, and what made this decision non-obvious. What was known at the time - and,
+more usefully, what was **not**. If nothing here would surprise a newcomer, this may not need a
+record.
 
 ## Considered Options
 
-* {option 1}
-* {option 2}
-* {option 3}
+- {option 1}
+- {option 2}
+- {option 3}
 
 <!--
 This section is what makes the file a decision rather than a statement. A record with only one
@@ -46,13 +46,13 @@ person will think of it too, and this is what stops them re-litigating it.
 
 Chosen option: "{option}", because {justification in one sentence}.
 
-Then, if needed, a paragraph on what the decision does *not* settle.
+Then, if needed, a paragraph on what the decision does _not_ settle.
 
 ### Consequences
 
-* Good, because {what becomes easier}.
-* Bad, because {what becomes harder, or what is given up}.
-* Neutral: {what changes without being better or worse}.
+- Good, because {what becomes easier}.
+- Bad, because {what becomes harder, or what is given up}.
+- Neutral: {what changes without being better or worse}.
 
 <!--
 The honest ones are the useful ones. A record listing only benefits tells a future reader nothing

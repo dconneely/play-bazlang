@@ -1,8 +1,8 @@
 # McpServer
 
-`McpServer` is a native MCP (Model Context Protocol) server exposing BazLang programme debugging
-as JSON-RPC tools, so any MCP client can attach directly and drive a running programme. `McpServer`
-is a thin JSON-RPC adapter over [`DebugEngine`](architecture.md), which owns the interpreter,
+`McpServer` is a native MCP (Model Context Protocol) server exposing BazLang programme debugging as
+JSON-RPC tools, so any MCP client can attach directly and drive a running programme. `McpServer` is
+a thin JSON-RPC adapter over [`DebugEngine`](architecture.md), which owns the interpreter,
 breakpoints, and mock screen for the session.
 
 ## Running the server
@@ -20,31 +20,31 @@ mode - load a programme with the `bazlang_program` tool once connected.
 This server targets the **2026-07-28 MCP specification** - the stateless protocol revision - and
 only that revision. Two consequences worth knowing before integrating:
 
-- **No `initialize` handshake, no protocol session.** Every request carries its own protocol
-  version in `_meta`; there is nothing to negotiate up front. State (the loaded programme,
-  breakpoints, variables) lives in one `DebugEngine` instance for the lifetime of the server
-  process - since stdio is already one subprocess per client, this is equivalent to a protocol
-  session without needing one.
-- **No legacy fallback.** A client still speaking the pre-2026-07-28 `initialize`-handshake
-  protocol cannot use this server - per the spec's own compatibility matrix, "modern server,
-  legacy client" fails outright. This was a deliberate scope decision - see
+- **No `initialize` handshake, no protocol session.** Every request carries its own protocol version
+  in `_meta`; there is nothing to negotiate up front. State (the loaded programme, breakpoints,
+  variables) lives in one `DebugEngine` instance for the lifetime of the server process - since
+  stdio is already one subprocess per client, this is equivalent to a protocol session without
+  needing one.
+- **No legacy fallback.** A client still speaking the pre-2026-07-28 `initialize`-handshake protocol
+  cannot use this server - per the spec's own compatibility matrix, "modern server, legacy client"
+  fails outright. This was a deliberate scope decision - see
   [ADR-0004](../adr/0004-mcp-modern-only-protocol.md) for why, including what it replaced.
 - **Lenient version checking.** If a request omits `_meta`'s protocol version field entirely, the
-  server proceeds anyway rather than rejecting it - some early modern clients may not yet send it
-  on every request. If a version *is* present and doesn't match, the server responds with
+  server proceeds anyway rather than rejecting it - some early modern clients may not yet send it on
+  every request. If a version _is_ present and doesn't match, the server responds with
   `UnsupportedProtocolVersionError` (code `-32022`) listing what it supports.
 
 ## Transport
 
 Newline-delimited JSON-RPC 2.0 over stdin/stdout. Each request line produces exactly one response
-line, except JSON-RPC *notifications* (a message with no `id`), which never get a response -
+line, except JSON-RPC _notifications_ (a message with no `id`), which never get a response -
 `notifications/cancelled` is accepted and silently ignored (there is no cancel-while-running
 mechanism).
 
 ## `server/discover`
 
-Required by the spec. Advertises the supported protocol version, capabilities, and server
-identity - call it first if you want to confirm compatibility before anything else.
+Required by the spec. Advertises the supported protocol version, capabilities, and server identity -
+call it first if you want to confirm compatibility before anything else.
 
 ```jsonc
 -> {"jsonrpc":"2.0","id":1,"method":"server/discover","params":{"_meta":{"io.modelcontextprotocol/protocolVersion":"2026-07-28"}}}
@@ -69,18 +69,18 @@ same information in a programmatic shape where one is useful.
 
 ### `bazlang_program`
 
-Manages the loaded programme: create a new empty programme, load one from a file or inline
-source, save the current programme to a file, add/replace/delete a single numbered line, or list
-the current programme text.
+Manages the loaded programme: create a new empty programme, load one from a file or inline source,
+save the current programme to a file, add/replace/delete a single numbered line, or list the current
+programme text.
 
-| `action` | Arguments | Effect |
-| --- | --- | --- |
-| `new` | - | Clears the programme and all runtime state, and flushes queued input |
-| `load_file` | `path` | Loads a `.bas` file (bare names resolve against the example directory); flushes queued input |
-| `load_source` | `source` | Replaces the whole programme with inline multi-line source; flushes queued input |
-| `save_file` | `path` | Writes the current programme to `path`, one numbered line per file line |
-| `edit_line` | `line`, `statement` | Adds/replaces line `line`; blank `statement` deletes it. Does **not** flush queued input |
-| `list` | - | Returns the current programme text in `content` and `structuredContent.listing` |
+| `action`      | Arguments           | Effect                                                                                       |
+| ------------- | ------------------- | -------------------------------------------------------------------------------------------- |
+| `new`         | -                   | Clears the programme and all runtime state, and flushes queued input                         |
+| `load_file`   | `path`              | Loads a `.bas` file (bare names resolve against the example directory); flushes queued input |
+| `load_source` | `source`            | Replaces the whole programme with inline multi-line source; flushes queued input             |
+| `save_file`   | `path`              | Writes the current programme to `path`, one numbered line per file line                      |
+| `edit_line`   | `line`, `statement` | Adds/replaces line `line`; blank `statement` deletes it. Does **not** flush queued input     |
+| `list`        | -                   | Returns the current programme text in `content` and `structuredContent.listing`              |
 
 `load_source` loads a whole multi-line programme (one BASIC line per `\n`) in one call, rather than
 requiring one `edit_line` call per line. See "Input queue" below for why `new`/`load_file`/
@@ -103,25 +103,25 @@ platform (e.g. a bare `:` on Windows) is reported as a normal file-not-found err
 
 ### `bazlang_step`
 
-Drives programme execution. `run`/`goto`/`go`/`step_into`/`step_over` block until the programme
-next breaks, elapses, steps, hits its safety timeout, or stops, then return the pause reason - each
-MCP call is already one full request/response round trip, so there is no separate "wait for the
-next event" phase to model.
+Drives programme execution. `run`/`goto`/`go`/`step_into`/`step_over` block until the programme next
+breaks, elapses, steps, hits its safety timeout, or stops, then return the pause reason - each MCP
+call is already one full request/response round trip, so there is no separate "wait for the next
+event" phase to model.
 
-| `action` | Arguments | Effect |
-| --- | --- | --- |
-| `run` | `timeoutMs` (optional) | Clears runtime state and runs from the first line. Error if no programme is loaded |
-| `goto` | `line`, `timeoutMs` (optional) | Runs from `line` without clearing state |
-| `go` | `timeoutMs` (optional) | Resumes from a breakpoint. Error if not currently paused |
-| `step_into` | `timeoutMs` (optional) | Executes exactly one statement, entering any `GOSUB` it calls. Error if not currently paused |
-| `step_over` | `timeoutMs` (optional) | Executes exactly one statement, running any `GOSUB` it calls to completion instead of pausing inside it. Error if not currently paused |
-| `stop` | - | Terminates the running programme, without ending the server process |
-| `status` | - | Reports the current pause state immediately, without executing anything |
+| `action`    | Arguments                      | Effect                                                                                                                                 |
+| ----------- | ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------- |
+| `run`       | `timeoutMs` (optional)         | Clears runtime state and runs from the first line. Error if no programme is loaded                                                     |
+| `goto`      | `line`, `timeoutMs` (optional) | Runs from `line` without clearing state                                                                                                |
+| `go`        | `timeoutMs` (optional)         | Resumes from a breakpoint. Error if not currently paused                                                                               |
+| `step_into` | `timeoutMs` (optional)         | Executes exactly one statement, entering any `GOSUB` it calls. Error if not currently paused                                           |
+| `step_over` | `timeoutMs` (optional)         | Executes exactly one statement, running any `GOSUB` it calls to completion instead of pausing inside it. Error if not currently paused |
+| `stop`      | -                              | Terminates the running programme, without ending the server process                                                                    |
+| `status`    | -                              | Reports the current pause state immediately, without executing anything                                                                |
 
 `bazlang_step`'s `stop` action just resets run state so a later `run`/`goto` can start again - the
-server stays up until stdin closes. `status` never blocks, unlike the other five actions - use it
-to check whether the programme is currently paused (and where) without triggering execution, e.g.
-after a few `bazlang_eval`/`bazlang_stack` calls while paused.
+server stays up until stdin closes. `status` never blocks, unlike the other five actions - use it to
+check whether the programme is currently paused (and where) without triggering execution, e.g. after
+a few `bazlang_eval`/`bazlang_stack` calls while paused.
 
 `step_into`/`step_over` require the programme to already be paused, exactly like `go` - to start
 stepping from the very first line, set a breakpoint there and `run` first. A breakpoint inside a
@@ -130,8 +130,8 @@ skips past a breakpoint an agent placed inside that call.
 
 Every blocking action arms a wall-clock safety cap - default 30 seconds, overridable per call via
 `timeoutMs` - so a programme with an accidental infinite loop and no breakpoint of its own can't
-block the call (and, since the server processes one request at a time, the whole session) forever.
-A `bazlang_step(go)` (or `step_into`/`step_over`) after hitting the cap simply keeps going, arming a
+block the call (and, since the server processes one request at a time, the whole session) forever. A
+`bazlang_step(go)` (or `step_into`/`step_over`) after hitting the cap simply keeps going, arming a
 fresh deadline.
 
 `structuredContent.reason` is one of `break` (with `line`/`stmt`), `elapse`, `step` (with
@@ -151,12 +151,12 @@ programme is currently paused.
 
 Sets or clears breakpoints, with optional conditions.
 
-| `action` | Arguments | Effect |
-| --- | --- | --- |
-| `set` | `persistent` (default `true`), `line`, `statement`, `condition` | Adds a breakpoint |
-| `clear` | `line`, `statement` | Removes breakpoints registered at that exact location |
-| `clear_all` | - | Removes every persistent breakpoint |
-| `list` | - | Reports every currently-active breakpoint in `structuredContent.breakpoints` |
+| `action`    | Arguments                                                       | Effect                                                                       |
+| ----------- | --------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| `set`       | `persistent` (default `true`), `line`, `statement`, `condition` | Adds a breakpoint                                                            |
+| `clear`     | `line`, `statement`                                             | Removes breakpoints registered at that exact location                        |
+| `clear_all` | -                                                               | Removes every persistent breakpoint                                          |
+| `list`      | -                                                               | Reports every currently-active breakpoint in `structuredContent.breakpoints` |
 
 Omit `line`/`statement` for a condition-only breakpoint checked on every statement.
 `persistent: false` fires the breakpoint once, then removes itself. `list` is the only way to
@@ -165,15 +165,15 @@ breakpoints across a session and loses track needs `list` rather than rememberin
 Each entry has `line`/`statement` (omitted for a condition-only breakpoint), `persistent`, and
 `condition` (omitted for an unconditional one) in the same shape `set` accepts.
 
-`condition` is optional (omit it for an unconditional location breakpoint) and, when present, is
-one of:
+`condition` is optional (omit it for an unconditional location breakpoint) and, when present, is one
+of:
 
-| `condition.type` | Fields | Fires when |
-| --- | --- | --- |
-| `csc` | `text` | The screen contains `text` (case-insensitive) |
-| `elapse` | `milliseconds` | At least `milliseconds` of wall-clock time have elapsed since the last resume |
-| `expr` | `expression` | The BazLang expression `expression` is truthy |
-| `every` | `everyN` | Every `everyN`th time the condition is checked |
+| `condition.type` | Fields         | Fires when                                                                    |
+| ---------------- | -------------- | ----------------------------------------------------------------------------- |
+| `csc`            | `text`         | The screen contains `text` (case-insensitive)                                 |
+| `elapse`         | `milliseconds` | At least `milliseconds` of wall-clock time have elapsed since the last resume |
+| `expr`           | `expression`   | The BazLang expression `expression` is truthy                                 |
+| `every`          | `everyN`       | Every `everyN`th time the condition is checked                                |
 
 ```jsonc
 -> {"name":"bazlang_breakpoint","arguments":{"action":"set","line":100,"statement":1,
@@ -183,16 +183,16 @@ one of:
 
 ### `bazlang_eval`
 
-| `action` | Arguments | Effect |
-| --- | --- | --- |
+| `action`         | Arguments    | Effect                                                       |
+| ---------------- | ------------ | ------------------------------------------------------------ |
 | `eval` (default) | `expression` | Evaluates `expression`, or executes it as a `LET` assignment |
-| `exec` | `statement` | Executes any single immediate-mode statement, not just `LET` |
-| `vars` | - | Lists every currently-defined variable, array, and `DEF FN` |
-| `array` | `name` | Returns the full contents of array `name` |
+| `exec`           | `statement`  | Executes any single immediate-mode statement, not just `LET` |
+| `vars`           | -            | Lists every currently-defined variable, array, and `DEF FN`  |
+| `array`          | `name`       | Returns the full contents of array `name`                    |
 
 `eval` covers both evaluation and assignment with one `expression` argument. A leading `LET` is the
 disambiguating cue for assignment - everything else is evaluated as an expression. This is
-deliberate, not a heuristic guess: bare `X=3` is a valid BazLang *expression* (an equality test), so
+deliberate, not a heuristic guess: bare `X=3` is a valid BazLang _expression_ (an equality test), so
 only an explicit `LET X=3` can mean "assign" without ambiguity.
 
 `exec` runs `statement` exactly as the interactive REPL would with any single immediate-mode input
@@ -242,10 +242,10 @@ value, not trimmed).
 
 Reads a rectangle of the virtual screen buffer, or resizes it.
 
-| `action` | Arguments | Effect |
-| --- | --- | --- |
-| `read` | `rowTop`, `colLeft`, `rowBottom`, `colRight`, `attr` (default `false`) | Dumps a screen rectangle into `content`/`structuredContent.grid` |
-| `resize` | `rows`, `cols` | Resizes the virtual screen buffer |
+| `action` | Arguments                                                              | Effect                                                           |
+| -------- | ---------------------------------------------------------------------- | ---------------------------------------------------------------- |
+| `read`   | `rowTop`, `colLeft`, `rowBottom`, `colRight`, `attr` (default `false`) | Dumps a screen rectangle into `content`/`structuredContent.grid` |
+| `resize` | `rows`, `cols`                                                         | Resizes the virtual screen buffer                                |
 
 `read`'s grid is a plain JSON string, one row per `\n`-separated line, with runs of five or more
 spaces compressed to `{N}`. With `attr: true`, a `[fg,bg]` colour tag is prepended at the start of
@@ -256,20 +256,20 @@ means N spaces sharing the current colour.
 
 Queues keyboard/`INPUT` text for the programme to consume, or discards queued input.
 
-| `action` | Arguments | Effect |
-| --- | --- | --- |
-| `queue` | `text` | Queues `text` for `INKEY$`/`UINKEY$`/`INPUT` to consume |
-| `clear` | - | Discards all queued input without adding any |
+| `action` | Arguments | Effect                                                  |
+| -------- | --------- | ------------------------------------------------------- |
+| `queue`  | `text`    | Queues `text` for `INKEY$`/`UINKEY$`/`INPUT` to consume |
+| `clear`  | -         | Discards all queued input without adding any            |
 
 `text` is a plain JSON string. `action=clear` is for cancelling a mis-queued value or resetting
-mid-session without reloading the programme - see "Input queue" below for the far more common
-case, which is handled automatically and needs no explicit call.
+mid-session without reloading the programme - see "Input queue" below for the far more common case,
+which is handled automatically and needs no explicit call.
 
 ### `bazlang_stack`
 
-Inspects interpreter call-stack state that no BazLang expression can reach - unlike variables,
-which `bazlang_eval` can always read via `?X`, there's no BASIC syntax that exposes the GOSUB
-return stack or FOR-loop bookkeeping. Takes no arguments.
+Inspects interpreter call-stack state that no BazLang expression can reach - unlike variables, which
+`bazlang_eval` can always read via `?X`, there's no BASIC syntax that exposes the GOSUB return stack
+or FOR-loop bookkeeping. Takes no arguments.
 
 ```jsonc
 -> {"name":"bazlang_stack","arguments":{}}
@@ -287,38 +287,37 @@ is the loop variable's live value, `limit`/`step` are the `TO`/`STEP` bounds, an
 
 ## Input queue
 
-`bazlang_input(queue)` queues the same text for all three input primitives at once (`INKEY$` gets
-it byte-by-byte, `UINKEY$` codepoint-by-codepoint, `INPUT` as one line), because the queuer can't
-know in advance which one the programme will actually read. That's fine within one programme's
-lifetime, but `DebugEngine`'s queues live on one
-`MockScreen` for as long as the engine does - across many `bazlang_program` calls, not just one
-run - so **anything queued but never consumed by one programme is still sitting there, in all three
-queues, when the next programme loads.**
+`bazlang_input(queue)` queues the same text for all three input primitives at once (`INKEY$` gets it
+byte-by-byte, `UINKEY$` codepoint-by-codepoint, `INPUT` as one line), because the queuer can't know
+in advance which one the programme will actually read. That's fine within one programme's lifetime,
+but `DebugEngine`'s queues live on one `MockScreen` for as long as the engine does - across many
+`bazlang_program` calls, not just one run - so **anything queued but never consumed by one programme
+is still sitting there, in all three queues, when the next programme loads.**
 
-This was found the hard way: a session that queued single-key guesses for a hangman-style
-programme (which only ever calls `INKEY$`) then loaded a real-time programme reading `UINKEY$`
-found its very first keypress was actually a stale hangman guess, several calls deep into the
-queue. A later session hit the same thing from the other side - a programme's first `INPUT` call
-consumed a stale value queued many calls earlier by a completely different programme, and (correctly)
-reported a parse error for it.
+This was found the hard way: a session that queued single-key guesses for a hangman-style programme
+(which only ever calls `INKEY$`) then loaded a real-time programme reading `UINKEY$` found its very
+first keypress was actually a stale hangman guess, several calls deep into the queue. A later
+session hit the same thing from the other side - a programme's first `INPUT` call consumed a stale
+value queued many calls earlier by a completely different programme, and (correctly) reported a
+parse error for it.
 
 `bazlang_program`'s `new`, `load_file`, and `load_source` actions now flush all three queues
 automatically whenever they replace the whole programme, so input queued for a programme you've
 moved on from can never leak into the next one. `edit_line` deliberately does **not** flush -
-editing one line of the *current* programme is a much smaller change than replacing it, and a
-workflow that's iterating on one programme in a loop plausibly wants queued input to survive a
-line tweak. Use `bazlang_input(clear)` directly if you need to flush without a reload (e.g. you
-queued the wrong key and want to cancel it before the programme consumes it).
+editing one line of the _current_ programme is a much smaller change than replacing it, and a
+workflow that's iterating on one programme in a loop plausibly wants queued input to survive a line
+tweak. Use `bazlang_input(clear)` directly if you need to flush without a reload (e.g. you queued
+the wrong key and want to cancel it before the programme consumes it).
 
 ## Error codes
 
-| Code | Meaning |
-| --- | --- |
-| `-32700` | Parse error - the line wasn't valid JSON |
-| `-32600` | Invalid Request - not a JSON object, or missing `method` |
-| `-32601` | Method not found |
-| `-32602` | Invalid params - unknown tool name, or missing `tools/call.name` |
-| `-32603` | Internal error - an unexpected exception while dispatching a request |
+| Code     | Meaning                                                               |
+| -------- | --------------------------------------------------------------------- |
+| `-32700` | Parse error - the line wasn't valid JSON                              |
+| `-32600` | Invalid Request - not a JSON object, or missing `method`              |
+| `-32601` | Method not found                                                      |
+| `-32602` | Invalid params - unknown tool name, or missing `tools/call.name`      |
+| `-32603` | Internal error - an unexpected exception while dispatching a request  |
 | `-32022` | Unsupported protocol version (see `error.data.supported`/`requested`) |
 
 A tool that fails because of bad arguments or a BASIC runtime error (e.g. an undefined variable, an
@@ -337,5 +336,5 @@ errors and tool execution errors.
   call early on demand.
 - **No `listChanged`.** The tool set is static, so `tools/list`'s long `ttlMs` is safe to cache.
 - **One implicit session per process.** There's no protocol-level session (2026-07-28 has none) and
-  no explicit session handle - the whole server process *is* the session, one process per debugging
+  no explicit session handle - the whole server process _is_ the session, one process per debugging
   session.
