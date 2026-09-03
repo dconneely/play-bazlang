@@ -15,12 +15,10 @@ segments using half-block and quadrant Unicode-equivalent (ZX81 block-graphics) 
 ray-tracing or 3D projection. The status text, scoring, and win/lose text are fixed strings keyed off
 Rex's distance and line of sight to the player.
 
-As of this note, `app-bazlang/src/example/bas/monster.bas` (446 lines, added 2026-07-06) already
-contains a substantial implementation attempt - including the ringmaster introduction text and
-tables that look like `DISTCOL`/`DISTWALL` analogues. **Confirmed 2026-08-22: it is incomplete and
-still has a rendering bug in the maze view** - the "no implementation yet" status this note
-originally carried (inherited from the pre-migration notes) was stale, but "does it already work" is
-now settled: no. See `PLAN.md`.
+`app-bazlang/src/example/bas/monster.bas` (446 lines, added 2026-07-06) contains a substantial
+implementation attempt - including the ringmaster introduction text and tables that look like
+`DISTCOL`/`DISTWALL` analogues - but it is incomplete and still has a rendering bug in the maze view
+(confirmed 2026-08-22). See `PLAN.md`.
 
 ## Evidence
 

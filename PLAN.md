@@ -65,6 +65,27 @@ JLine's `Highlighter` internally; `app-bazlang` supplies an implementation built
 `BazLangLexer` - the same lexer used for actual parsing, not a hand-maintained regex scheme that
 could drift from the grammar.
 
+## Migrate Markdown tooling to `markdownlint-cli2` + Prettier
+
+**Type:** debt - **Importance:** medium - **Effort:** medium
+
+This repository still runs the older `igorshubovych/markdownlint-cli` (`.markdownlint.yaml`) with no
+auto-formatter; `doc-kit`, `identigon/identigon`, and `identigon/identigon.github.io` have all moved
+to `DavidAnson/markdownlint-cli2` (`.markdownlint-cli2.jsonc`), and the two identigon repos pair it
+with a local Prettier hook, splitting the work the same way in both: markdownlint-cli2 gates line
+length only (MD013 has no auto-fix in any implementation), Prettier does the actual reformatting.
+`doc-kit` itself carries the identical Prettier addition as its own PLAN.md item
+("Wire Prettier for Markdown auto-wrapping", citing its ADR-0017) without yet having made it either,
+so this is the same move, made twice. Port `.markdownlint.yaml`'s current rules (`MD013`
+`line_length: 100`, `tables: false`, `code_blocks: false`, `headings: false`; `MD024`
+`siblings_only: true`) into `.markdownlint-cli2.jsonc`, add `.prettierrc.json`
+(`proseWrap: always`, `printWidth: 100`, `embeddedLanguageFormatting: off` - both identigon repos'
+comments document `proseWrap` and `embeddedLanguageFormatting` as load-bearing, not cosmetic:
+Prettier's own defaults silently do nothing and corrupt fenced-YAML code blocks respectively), pin a
+local `prettier-markdown` hook, and run the one-time bulk reformat - checking the diff for
+`identigon/identigon`'s documented `*emphasis*` -> `_emphasis_` conversion (permanent, no config
+option to prevent it) before committing it.
+
 ## Unify read/write subscript-and-slice resolution
 
 **Type:** debt - **Importance:** medium - **Effort:** medium
@@ -173,7 +194,13 @@ Downgraded to low 2026-08-30 (previously demoted only to medium 2026-08-29): nei
 nor `REPEAT`/`UNTIL` are part of ZX81 or ZX Spectrum BASIC, the dialects BazLang is based on - the
 same non-authentic-extension reasoning that put `DEF PROC` below at low, on reflection, applies here
 regardless of this item's smaller size; authenticity, not effort, is the reason for ranking below
-core-fidelity work.
+core-fidelity work. See `docs/research/0004-while-repeat-loops-across-sinclair-basics.md`: `WEND`
+itself doesn't appear in any Sinclair-heritage dialect surveyed there (it's the GW-BASIC-family
+spelling) - the same seven dialects split three ways between `DO`/`LOOP` with an `UNTIL`/`WHILE`
+clause on either end (SAM Coupé, Beta BASIC, Boriel), `REPEAT`/`REPEAT UNTIL` with `WHILE` as a
+guard clause anywhere in the body (NextBASIC), and a single unified `REPeat`/`END REPeat` with no
+dedicated condition keywords at all (QL SuperBASIC) - only BBC BASIC and COMAL use the separate
+`WHILE...ENDWHILE` / `REPEAT...UNTIL` pair this item's name assumes.
 
 ## `IF...THEN...ELSE`
 
@@ -184,7 +211,12 @@ Single-line `ELSE` first - it fits the existing statement model. Multi-line bloc
 step: execution flow is line-label based, so block terminators need the same flat-scan treatment as
 loops, and unterminated blocks need well-defined runtime errors. Downgraded to low 2026-08-30
 (previously demoted only to medium 2026-08-29): Sinclair BASIC's `IF`/`THEN` has no `ELSE` clause at
-all - same non-authentic-extension reasoning as `WHILE`/`WEND` above and `DEF PROC` below.
+all - same non-authentic-extension reasoning as `WHILE`/`WEND` above and `DEF PROC` below. See
+`docs/research/0005-if-then-else-across-sinclair-basics.md`: every surveyed dialect's block form
+uses a `THEN`-presence-or-position rule to tell single-line from block `IF` apart (matching this
+item's own two-tier plan), but terminator spelling is split four ways (`ENDIF`/`END IF`/`ELIF` all
+appear) and two dialects' `ELSE IF` chaining is a flat same-line scan, not real nesting - worth
+picking the terminator/nesting shape deliberately when this is implemented, not by default.
 
 ## `DEF PROC` & local scoping
 
@@ -198,7 +230,18 @@ reference caching described in `docs/spec/architecture.md`. Downgraded from high
 PROC`, multi-line `DEF FN`, and `LOCAL` are not ZX81 or ZX Spectrum BASIC - Sinclair `DEF FN` is a
 single-expression construct, and there is no `DEF PROC`/`LOCAL` at all. Same non-authentic-extension
 reasoning as `WHILE`/`WEND` and `IF`/`ELSE` above, taken further given how large this item is. Still
-wanted eventually, just not ahead of core-fidelity work.
+wanted eventually, just not ahead of core-fidelity work. See
+`docs/research/0002-def-proc-across-sinclair-basics.md` for how BBC BASIC, Beta BASIC, SAM Coupé
+BASIC, NextBASIC, QL SuperBASIC, Boriel ZX BASIC, and COMAL each handle parameter passing and
+scoping - a `DEF FN`-shaped design (value-only params shadowing globals, an optional `LOCAL`
+reusing that same shadow/restore mechanism, no reference parameters) would sit outside all of them,
+smaller than any surveyed precedent. See also
+`docs/research/0003-multiline-def-fn-across-sinclair-basics.md` on multi-line `DEF FN` specifically:
+only QL SuperBASIC, COMAL, and Boriel actually extend `FN` past a single expression, and all three
+do it by making `FN` just `PROC` with a mandatory return value rather than a separate mechanism -
+SAM Coupé's manual instead states outright that it keeps `DEFFN` single-expression and composes
+multiple `FN`s together for anything longer, the one precedent for keeping `FN` and `PROC` as
+separate mechanisms the way BazLang's own design already does.
 
 ## Resolve the threading model; remove the `DecimalFormat` `ThreadLocal`s if single-threaded
 
