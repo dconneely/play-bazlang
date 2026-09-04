@@ -138,9 +138,10 @@ repos:
   # commit - external hosts fail for reasons unrelated to the change under review, and a hook that
   # blocks a commit because someone else's server is down is a hook that gets bypassed. Worth
   # having now that docs/research/*.md cites dozens of external manuals and archive.org items.
-  # `.github/workflows/link-check.yml` runs the identical command nightly, which is where routine
-  # rot detection belongs; this manual stage is for checking a link-heavy change before it's
-  # committed, not a stand-in for CI.
+  # `.github/workflows/link-check.yml` runs the same flags nightly, scoped to docs/research/ and
+  # docs/adr/ specifically, which is where routine rot detection belongs; this manual stage covers
+  # the whole repo and is for checking a link-heavy change before it's committed, not a stand-in
+  # for CI.
   # --method get, not the default HEAD: some hosts answer HEAD with an error and GET with 200, so
   # a HEAD-based sweep can report false failures. Needs lychee on PATH (confirmed present via
   # `scoop install lychee` in this environment).
