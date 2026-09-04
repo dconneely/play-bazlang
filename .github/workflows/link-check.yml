@@ -1,0 +1,24 @@
+# Nightly link sweep, mirroring the local `lychee-system` pre-commit hook's exact args
+# (.pre-commit-config.yaml) deliberately: two checks running the same command differently is drift
+# waiting to happen. The manual pre-commit stage catches a link-heavy change before it's committed;
+# this catches rot in everything else - docs/research/*.md cites dozens of external manuals and
+# archive.org items, and docs/adr/*.md cites external references too - between commits, on hosts
+# that go away on their own schedule. Same pattern as doc-kit's own link-check.yml.
+name: "Link check"
+
+on:
+  schedule:
+    - cron: "0 3 * * *" # 03:00 UTC daily
+  workflow_dispatch:
+
+jobs:
+  lychee:
+    name: "lychee"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: lycheeverse/lychee-action@e7477775783ea5526144ba13e8db5eec57747ce8 # v2.9.0
+        with:
+          args: --no-progress --method get --max-concurrency 4 "**/*.md"
+          fail: true
