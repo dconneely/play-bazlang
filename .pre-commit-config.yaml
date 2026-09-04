@@ -38,21 +38,9 @@ repos:
         pass_filenames: false
         types: [java]
 
-      - id: checkstyle
-        name: Checkstyle
-        language: system
-        entry: ./gradlew checkstyleMain checkstyleTest
-        pass_filenames: false
-        types: [java]
-
-      - id: pmd
-        name: PMD
-        language: system
-        entry: ./gradlew pmdMain pmdTest
-        pass_filenames: false
-        types: [java]
-
-      # spotbugsMain/spotbugsTest and test are omitted - too slow for pre-commit; run via CI.
+      # Checkstyle, PMD, SpotBugs, and test are omitted - too slow for pre-commit; `./gradlew build`
+      # (build.yml) already runs all of them via the `check` task, same reasoning as identigon's own
+      # .pre-commit-config.yaml, which defers the same set to CI.
 
       # MADR status values are lowercase (proposed | rejected | accepted | deprecated | superseded
       # by ADR-NNNN, per docs/adr/0000-template.md and DOC-MAP.md) - this catches a capitalised

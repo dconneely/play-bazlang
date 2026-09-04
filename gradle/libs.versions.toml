@@ -7,6 +7,8 @@ spotbugs = "6.5.11"
 checkstyle = "13.11.0"
 pmd = "7.22.0"
 spotbugs-tool = "4.10.4"
+findsecbugs = "1.14.0"
+jacoco-tool = "0.8.14"
 
 [libraries]
 antlr-tool = { group = "org.antlr", name = "antlr4", version.ref = "antlr" }
@@ -15,6 +17,7 @@ jline = { group = "org.jline", name = "jline", version.ref = "jline" }
 junit-bom = { group = "org.junit", name = "junit-bom", version.ref = "junit" }
 junit-jupiter = { group = "org.junit.jupiter", name = "junit-jupiter" }
 junit-launcher = { group = "org.junit.platform", name = "junit-platform-launcher" }
+findsecbugs-plugin = { group = "com.h3xstream.findsecbugs", name = "findsecbugs-plugin", version.ref = "findsecbugs" }
 
 [plugins]
 spotless = { id = "com.diffplug.spotless", version.ref = "spotless" }

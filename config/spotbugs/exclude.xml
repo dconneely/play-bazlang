@@ -36,4 +36,30 @@
         <Class name="com.davidconneely.bazlang.mcp.JsonValue$JsonObject" />
         <Bug pattern="DLS_DEAD_LOCAL_STORE" />
     </Match>
+
+    <!-- find-sec-bugs false positive: this java.util.Random backs the language's own RAND()
+         builtin, seedable via SEED() for reproducible scripts - it is not a security token or
+         credential, so its predictability is the point, not a vulnerability. -->
+    <Match>
+        <Class name="com.davidconneely.bazlang.exec.EvalState" />
+        <Method name="&lt;init&gt;" />
+        <Bug pattern="PREDICTABLE_RANDOM" />
+    </Match>
+
+    <!-- find-sec-bugs false positive: ThreadLocalRandom here only mixes extra entropy into the
+         same RAND() builtin's seed when no explicit seed is given - again not a security token. -->
+    <Match>
+        <Class name="com.davidconneely.bazlang.exec.StatementExecutor" />
+        <Method name="executeRandStmt" />
+        <Bug pattern="PREDICTABLE_RANDOM" />
+    </Match>
+
+    <!-- find-sec-bugs false positive: this ProcessBuilder launches a JVM subprocess for a test
+         harness, with a fixed java.home-derived executable path and hardcoded flags - no
+         untrusted input reaches it. -->
+    <Match>
+        <Class name="com.davidconneely.bazlang.mcp.McpServerProtocolTest" />
+        <Method name="runSession" />
+        <Bug pattern="COMMAND_INJECTION" />
+    </Match>
 </FindBugsFilter>

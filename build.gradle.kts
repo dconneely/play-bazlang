@@ -9,6 +9,8 @@ plugins {
 val checkstyleVersion = libs.versions.checkstyle.get()
 val pmdVersion = libs.versions.pmd.get()
 val spotbugsToolVersion = libs.versions.spotbugs.tool.get()
+val jacocoToolVersion = libs.versions.jacoco.tool.get()
+val findsecbugsPluginProvider = libs.findsecbugs.plugin
 
 val junitBomProvider = libs.junit.bom
 val junitJupiterProvider = libs.junit.jupiter
@@ -75,7 +77,13 @@ subprojects {
     exclude("**/antlr/**")
   }
 
-  // JaCoCo
+  // JaCoCo - toolVersion pinned rather than left to the plugin's own default, same reasoning as
+  // identigon's own build.gradle.kts: a Gradle upgrade shouldn't be able to silently change the
+  // coverage tool underneath the build.
+  configure<JacocoPluginExtension> {
+    toolVersion = jacocoToolVersion
+  }
+
   tasks.withType<JacocoReport>().configureEach {
     dependsOn(tasks.withType<Test>())
     reports {
@@ -137,6 +145,10 @@ subprojects {
     toolVersion = spotbugsToolVersion
     ignoreFailures = false
   }
+
+  // find-sec-bugs - security-focused SpotBugs ruleset, same plugin used by identigon's own
+  // build.gradle.kts.
+  dependencies.add("spotbugsPlugins", findsecbugsPluginProvider)
 
   tasks.withType<com.github.spotbugs.snom.SpotBugsTask>().configureEach {
     excludeFilter.set(rootProject.file("config/spotbugs/exclude.xml"))
