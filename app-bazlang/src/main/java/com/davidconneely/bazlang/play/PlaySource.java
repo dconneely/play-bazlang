@@ -15,6 +15,9 @@ public interface PlaySource {
    * Advances playback by up to {@code maxDurationSeconds} and returns the voice parameters that
    * were current for that slice. The returned {@link PlayFrame#durationSeconds} may be less than
    * requested (playback stops early at a note boundary) but is never more.
+   *
+   * @param maxDurationSeconds the maximum duration to advance by, in seconds.
+   * @return the frame covering the advanced slice.
    */
   PlayFrame next(double maxDurationSeconds);
 
@@ -25,6 +28,11 @@ public interface PlaySource {
    * APLAY} session (see {@code StatementExecutor.executeAplayStmt}), where it's checked before this
    * method is even called. A default no-op so {@code PlaySource} stays usable without every
    * implementation needing to support targeted updates.
+   *
+   * @param index the channel to replace (0=A, 1=B, 2=C).
+   * @param channelDsl the new channel content, in {@code PLAY}/{@code APLAY} DSL syntax.
+   * @param lineLabel the line the update came from, for error reporting.
+   * @param statementIndex the flat statement index the update came from, for error reporting.
    */
   default void replaceChannel(int index, String channelDsl, int lineLabel, int statementIndex) {}
 }

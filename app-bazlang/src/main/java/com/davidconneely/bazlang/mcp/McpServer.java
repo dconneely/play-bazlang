@@ -22,6 +22,12 @@ public final class McpServer {
 
   private McpServer() {}
 
+  /**
+   * Runs the server, reading newline-delimited JSON-RPC requests from stdin and writing responses
+   * to stdout until EOF.
+   *
+   * @param args ignored.
+   */
   public static void main(String[] args) {
     System.err.println("Running BazLang MCP server (protocol " + PROTOCOL_VERSION + ")");
     AntlrParser parser = AntlrParser.INSTANCE;

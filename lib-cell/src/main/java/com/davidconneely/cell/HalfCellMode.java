@@ -1,6 +1,10 @@
 package com.davidconneely.cell;
 
+/**
+ * {@link PixelMode} for 1x2 half-block characters (upper/lower half block, Unicode Block Elements).
+ */
 public enum HalfCellMode implements PixelMode {
+  /** The single instance of this stateless mode. */
   INSTANCE;
 
   private static final int[] CODEPOINTS = {' ', '▀', '▄', '█'};

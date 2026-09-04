@@ -32,6 +32,9 @@ import javax.sound.sampled.SourceDataLine;
  * {@code VirtualScreen} it constructs.
  */
 public final class JavaSoundSpeaker implements VirtualSpeaker, AutoCloseable {
+  /** Creates a speaker. Audio lines are opened lazily, on first use. */
+  public JavaSoundSpeaker() {}
+
   private final AtomicBoolean closed = new AtomicBoolean(false);
 
   // ===== BEEP =====

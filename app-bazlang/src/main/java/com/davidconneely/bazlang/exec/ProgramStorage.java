@@ -21,6 +21,12 @@ public class ProgramStorage {
   private final EvalState state;
   private final AntlrParser parser;
 
+  /**
+   * Creates a storage backend.
+   *
+   * @param state the interpreter state to load into / save from.
+   * @param parser the parser to use to parse loaded/merged source.
+   */
   public ProgramStorage(EvalState state, AntlrParser parser) {
     this.state = state;
     this.parser = parser;

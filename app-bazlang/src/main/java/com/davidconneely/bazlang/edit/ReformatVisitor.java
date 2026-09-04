@@ -10,6 +10,9 @@ import org.antlr.v4.runtime.tree.TerminalNode;
  * built-in function names are upper-cased, and whitespace is normalised.
  */
 public class ReformatVisitor extends BazLangBaseVisitor<String> {
+  /** Create a reformatting visitor. Stateless; one instance may be reused across lines. */
+  public ReformatVisitor() {}
+
   @Override
   public String visitStatements(StatementsContext ctx) {
     return ctx.statement().stream().map(this::visit).collect(Collectors.joining(" : "));

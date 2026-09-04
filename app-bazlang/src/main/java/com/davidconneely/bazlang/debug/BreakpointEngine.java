@@ -18,14 +18,33 @@ import java.util.concurrent.atomic.AtomicLong;
  */
 public final class BreakpointEngine {
 
+  /** Which kind of break condition a {@link BreakCondition} carries, beyond a plain location. */
   public enum ConditionType {
+    /** A plain location breakpoint, with no extra condition. */
     NONE,
+    /** A {@code CSC} view-only marker; never itself pauses execution. */
     VIEW,
+    /** An {@code ELAPSE} wall-clock condition. */
     ELAPSE,
+    /** A {@code ?expr} conditional breakpoint. */
     EXPR,
+    /** An {@code EVERY} counting breakpoint, firing every {@code everyN}th hit. */
     EVERY
   }
 
+  /**
+   * One registered breakpoint.
+   *
+   * @param line the line to break at.
+   * @param stmt the flat statement index to break at.
+   * @param type which kind of condition, beyond the plain location, this carries.
+   * @param seeText for {@link ConditionType#VIEW}, the screen text to watch for; for {@link
+   *     ConditionType#EXPR}, the condition expression's source text.
+   * @param timeoutMs for {@link ConditionType#ELAPSE}, the wall-clock delay in milliseconds.
+   * @param persistent whether this breakpoint survives past its first hit.
+   * @param everyN for {@link ConditionType#EVERY}, how many hits between firings.
+   * @param counter for {@link ConditionType#EVERY}, the running hit count.
+   */
   public record BreakCondition(
       int line,
       int stmt,
@@ -44,19 +63,35 @@ public final class BreakpointEngine {
     this.parser = parser;
   }
 
+  /**
+   * Registers a breakpoint.
+   *
+   * @param brk the breakpoint to add.
+   */
   public void add(BreakCondition brk) {
     activeBreaks.add(brk);
   }
 
+  /** Removes every registered breakpoint whose {@link BreakCondition#persistent()} is true. */
   public void clearPersistent() {
     activeBreaks.removeIf(BreakCondition::persistent);
   }
 
+  /**
+   * Removes every breakpoint registered at the given location.
+   *
+   * @param line the line to clear breakpoints at.
+   * @param stmt the flat statement index to clear breakpoints at.
+   */
   public void clearAt(int line, int stmt) {
     activeBreaks.removeIf(b -> b.line() == line && b.stmt() == stmt);
   }
 
-  /** A read-only snapshot of every currently-active breakpoint, in registration order. */
+  /**
+   * A read-only snapshot of every currently-active breakpoint, in registration order.
+   *
+   * @return the snapshot.
+   */
   public List<BreakCondition> list() {
     return List.copyOf(activeBreaks);
   }

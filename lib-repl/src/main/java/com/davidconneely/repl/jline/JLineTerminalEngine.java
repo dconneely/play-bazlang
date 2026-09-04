@@ -15,6 +15,7 @@ import org.jline.utils.InfoCmp.Capability;
 import org.jline.utils.NonBlocking;
 import org.jline.utils.NonBlockingInputStream;
 
+/** A {@link TerminalEngine} implemented on top of the JLine terminal library. */
 public class JLineTerminalEngine implements TerminalEngine {
   private final Terminal terminal;
   private final NonBlockingInputStream inputStream;
@@ -23,6 +24,12 @@ public class JLineTerminalEngine implements TerminalEngine {
   private Runnable onInterrupt;
   private Runnable onResize;
 
+  /**
+   * Acquire the system terminal, enter raw mode and the alternate screen buffer, and install
+   * SIGINT/SIGWINCH handlers.
+   *
+   * @throws IOException if the underlying terminal cannot be opened.
+   */
   public JLineTerminalEngine() throws IOException {
     this.terminal = TerminalBuilder.builder().system(true).nativeSignals(true).build();
     this.savedAttributes = terminal.enterRawMode();

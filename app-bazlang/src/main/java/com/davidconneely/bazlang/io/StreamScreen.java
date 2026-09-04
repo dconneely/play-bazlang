@@ -8,6 +8,10 @@ import java.io.InputStreamReader;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 
+/**
+ * A non-interactive {@link VirtualScreen} that reads/writes plain streams, with no cursor
+ * positioning, colour, or pixel graphics support - used for headless/piped execution.
+ */
 public class StreamScreen implements VirtualScreen, VirtualInput, VirtualSpeaker {
   private final InputStream in;
   private final PrintStream out;
@@ -16,15 +20,27 @@ public class StreamScreen implements VirtualScreen, VirtualInput, VirtualSpeaker
   // Simple cursor tracking for currentRow/currentCol
   private int currentCol = 0;
 
+  /**
+   * Creates a screen over the given streams.
+   *
+   * @param in the input stream to read from.
+   * @param out the output stream to write to.
+   */
   public StreamScreen(InputStream in, PrintStream out) {
     this.in = in;
     this.out = out;
   }
 
+  /** Creates a screen over {@link System#in}/{@link System#out}. */
   public StreamScreen() {
     this(System.in, System.out);
   }
 
+  /**
+   * Creates a screen that reads no input and discards all output.
+   *
+   * @return the new screen.
+   */
   public static StreamScreen nullScreen() {
     final var nullOut =
         new PrintStream(java.io.OutputStream.nullOutputStream(), true, StandardCharsets.UTF_8);

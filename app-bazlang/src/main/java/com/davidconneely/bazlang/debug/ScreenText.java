@@ -33,6 +33,14 @@ public final class ScreenText {
    * Dumps the given (0-based, inclusive, clamped) rectangle of the screen buffer. Rows are
    * separated by {@code \n}; runs of more than four spaces compress to <code>{N}</code>; {@code
    * showAttr} adds {@code [fg,bg]} annotations at attribute changes.
+   *
+   * @param mockScreen the screen to dump.
+   * @param rStart the rectangle's start row (0-based, inclusive, clamped to the screen).
+   * @param rEnd the rectangle's end row (0-based, inclusive, clamped to the screen).
+   * @param cStart the rectangle's start column (0-based, inclusive, clamped to the screen).
+   * @param cEnd the rectangle's end column (0-based, inclusive, clamped to the screen).
+   * @param showAttr whether to annotate attribute changes with {@code [fg,bg]}.
+   * @return the dumped text.
    */
   public static String buildScreenString(
       MockScreen mockScreen, int rStart, int rEnd, int cStart, int cEnd, boolean showAttr) {

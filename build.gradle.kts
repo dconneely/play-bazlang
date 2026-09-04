@@ -161,4 +161,34 @@ subprojects {
   tasks.named("check") {
     dependsOn(tasks.withType<com.github.spotbugs.snom.SpotBugsTask>())
   }
+
+  // Javadoc/doclint - matches identigon/identigon's own build.gradle.kts (Xdoclint:all + Xwerror,
+  // unconditional on every subproject). lib-cell/lib-repl are consumed across module boundaries and
+  // app-bazlang's MCP server is a programmatic surface other tools call into, so undocumented public
+  // API is a real cost here, not just style.
+  tasks.withType<Javadoc>().configureEach {
+    options.encoding = "UTF-8"
+    // Generated ANTLR sources (BazLangLexer/Parser/Listener/Visitor/Base*) are regenerated every
+    // build and not ours to document - excluded by filename rather than by package, since the
+    // hand-written AntlrParser.java lives in that same com.davidconneely.bazlang.antlr package and
+    // does need documenting (unlike Checkstyle/PMD's own "**/antlr/**" exclude, which is fine
+    // sweeping AntlrParser.java out too since those tools lint code style, not API completeness).
+    exclude(
+        "**/BazLangLexer.java",
+        "**/BazLangParser.java",
+        "**/BazLangListener.java",
+        "**/BazLangVisitor.java",
+        "**/BazLangBaseListener.java",
+        "**/BazLangBaseVisitor.java")
+    (options as StandardJavadocDocletOptions).apply {
+      addBooleanOption("Xdoclint:all", true)
+      addBooleanOption("Xwerror", true)
+      // javac/javadoc's default -Xmaxwarns is 100: with Xwerror active that silently truncates the
+      // reported list rather than the actual violation count, which cost real time here chasing a
+      // moving "100 warnings" total across several rounds of fixes before the true (417-warning)
+      // scope became visible. Set high enough that a real regression is never hidden by the cap
+      // again.
+      addStringOption("Xmaxwarns", "10000")
+    }
+  }
 }

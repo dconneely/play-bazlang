@@ -17,9 +17,19 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
+/** CLI entry point: runs a source file, or the interactive REPL when given no arguments. */
 public class MainClass {
   private static final AntlrParser PARSER = AntlrParser.INSTANCE;
 
+  /** Creates a new instance. Stateless; every method here is static. */
+  public MainClass() {}
+
+  /**
+   * Entry point. Chooses a terminal-backed screen when attached to a console, a plain stream screen
+   * otherwise.
+   *
+   * @param args a single BazLang source file path to run, or no arguments for the REPL.
+   */
   public static void main(String[] args) {
     int exitCode = 0;
     if (System.console() != null) {

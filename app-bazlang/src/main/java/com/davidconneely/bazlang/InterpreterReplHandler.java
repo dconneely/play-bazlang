@@ -11,6 +11,9 @@ import com.davidconneely.bazlang.io.VirtualInput;
 import com.davidconneely.bazlang.io.VirtualScreen;
 import com.davidconneely.repl.ReplHandler;
 
+/**
+ * The interactive REPL's {@link ReplHandler}: dispatches each line to the interpreter or editor.
+ */
 public final class InterpreterReplHandler implements ReplHandler {
   private final VirtualScreen screen;
   private final VirtualInput input;
@@ -20,6 +23,17 @@ public final class InterpreterReplHandler implements ReplHandler {
   private final ProgramEditor programEditor;
   private final Interpreter interpreter;
 
+  /**
+   * Creates a REPL handler over the given collaborators.
+   *
+   * @param screen the screen to render output to.
+   * @param input the input source for {@code INPUT}/{@code INKEY$}/...
+   * @param parser the parser to use for REPL lines.
+   * @param state the interpreter state to run against.
+   * @param executor the statement executor to dispatch immediate-mode statements to.
+   * @param programEditor the editor for {@code DELETE}/{@code RENUM}/{@code REFORMAT}/{@code EDIT}.
+   * @param interpreter the interpreter to run programs on.
+   */
   public InterpreterReplHandler(
       VirtualScreen screen,
       VirtualInput input,

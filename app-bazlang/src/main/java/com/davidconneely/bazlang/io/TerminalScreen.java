@@ -62,6 +62,12 @@ public class TerminalScreen extends AbstractCellBufferedScreen {
     return true;
   }
 
+  /**
+   * Creates a screen sized to the given terminal, wiring up its interrupt/resize/input-height
+   * callbacks and rendering an initial frame.
+   *
+   * @param engine the terminal engine to drive.
+   */
   public TerminalScreen(TerminalEngine engine) {
     super(createInitialBuffer(engine));
     this.engine = engine;
@@ -84,6 +90,11 @@ public class TerminalScreen extends AbstractCellBufferedScreen {
     return new CellBuffer(rows, cols, QuadrantMode.INSTANCE);
   }
 
+  /**
+   * Resizes and redraws the buffer when the multi-line input area's height has changed.
+   *
+   * @param newInputHeight the input area's new height, in rows.
+   */
   public void adjustLayoutForInputHeight(int newInputHeight) {
     if (this.currentInputHeight != newInputHeight) {
       this.currentInputHeight = newInputHeight;

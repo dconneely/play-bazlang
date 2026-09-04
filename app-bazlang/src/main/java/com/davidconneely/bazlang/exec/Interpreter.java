@@ -5,9 +5,17 @@ import com.davidconneely.bazlang.ReportException;
 import com.davidconneely.bazlang.antlr.AntlrParser;
 import java.util.Map;
 
+/** Drives execution of a stored program: advances line by line, dispatching each statement. */
 public class Interpreter {
+  /** Notified before each statement executes, so a debugger can pause execution. */
   @FunctionalInterface
   public interface ExecutionListener {
+    /**
+     * Called immediately before the statement at {@code line}/{@code stmt} executes.
+     *
+     * @param line the line about to execute.
+     * @param stmt the flat statement index about to execute.
+     */
     void beforeStatement(int line, int stmt);
   }
 
@@ -16,16 +24,32 @@ public class Interpreter {
   private final AntlrParser parser;
   private ExecutionListener executionListener;
 
+  /**
+   * Creates an interpreter over the given state and statement executor.
+   *
+   * @param state the interpreter state to run against.
+   * @param executor the statement executor to dispatch each statement to.
+   */
   public Interpreter(EvalState state, StatementExecutor executor) {
     this.state = state;
     this.executor = executor;
     this.parser = AntlrParser.INSTANCE;
   }
 
+  /**
+   * Registers the listener notified before each statement executes.
+   *
+   * @param executionListener the listener, or {@code null} to remove any existing one.
+   */
   public void setExecutionListener(ExecutionListener executionListener) {
     this.executionListener = executionListener;
   }
 
+  /**
+   * Replaces the stored program and runs it from its first line.
+   *
+   * @param program the program to run, keyed by line number.
+   */
   public void execute(Map<Integer, ProgramLine> program) {
     state.setProgram(program);
     if (state.program().isEmpty()) {
@@ -34,6 +58,11 @@ public class Interpreter {
     resume(state.program().firstKey(), 1);
   }
 
+  /**
+   * Executes a single REPL/immediate-mode line without adding it to the stored program.
+   *
+   * @param rawLine the statement source to execute.
+   */
   public void executeImmediate(String rawLine) {
     final var immediateLine = new ProgramLine(0, rawLine);
     state.program().put(0, immediateLine);
@@ -50,6 +79,9 @@ public class Interpreter {
    * has no natural successor line: finishing it without an explicit jump means "back to the REPL",
    * not falling through into whatever real program line happens to sort after it, which is why that
    * case is handled separately from the general "advance to the next line" fallthrough below.
+   *
+   * @param label the line to resume at.
+   * @param statementIndex the flat statement index within {@code label} to resume at.
    */
   public void resume(int label, int statementIndex) {
     state.setRunning(true);

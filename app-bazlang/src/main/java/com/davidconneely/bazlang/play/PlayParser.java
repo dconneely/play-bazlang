@@ -50,6 +50,12 @@ public final class PlayParser {
    * is ever reached, so a fresh build has nothing to "leave alone" and {@code "-"} falls back to
    * meaning silent, same as omitting it. The sole public entry point into this package - {@link
    * PlayToken}, {@link PlayChannelState}, and {@link PlaySequencer} all stay package-private.
+   *
+   * @param channelStrings each channel's DSL source, in order (A, B, C); fewer than 3 entries or a
+   *     {@code "-"} entry pads that channel silent.
+   * @param lineLabel the line the {@code PLAY}/{@code APLAY} statement is on, for error reporting.
+   * @param statementIndex the flat statement index, for error reporting.
+   * @return the built sequencer.
    */
   public static PlaySource buildSequencer(
       List<String> channelStrings, int lineLabel, int statementIndex) {

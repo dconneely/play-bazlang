@@ -8,6 +8,12 @@ public final class JsonWriter {
 
   private JsonWriter() {}
 
+  /**
+   * Serializes a value tree to compact JSON text.
+   *
+   * @param value the value to serialize.
+   * @return the JSON text.
+   */
   public static String write(JsonValue value) {
     StringBuilder sb = new StringBuilder();
     writeValue(sb, value);

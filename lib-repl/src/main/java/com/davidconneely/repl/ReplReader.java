@@ -8,6 +8,10 @@ package com.davidconneely.repl;
  */
 @FunctionalInterface
 public interface ReplReader {
-  /** Reads a line of REPL input. Returns null on EOF. Throws BreakException on Ctrl+C. */
+  /**
+   * Reads a line of REPL input. Returns null on EOF. Throws BreakException on Ctrl+C.
+   *
+   * @return the line read, or {@code null} on EOF.
+   */
   String readReplInput();
 }

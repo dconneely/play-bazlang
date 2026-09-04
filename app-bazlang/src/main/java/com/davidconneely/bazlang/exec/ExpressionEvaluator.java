@@ -32,6 +32,14 @@ public class ExpressionEvaluator {
   private final int[] indexStack = new int[256];
   private int indexStackPtr = 0;
 
+  /**
+   * Creates an expression evaluator.
+   *
+   * @param state the interpreter state to evaluate against.
+   * @param screen the screen, for screen-reading functions ({@code ATTR}, {@code SCREEN$}, ...).
+   * @param input the input source, for input-reading functions ({@code INKEY$}, ...).
+   * @param parser the parser to use for one-off parses ({@code VAL}, {@code VAL$}).
+   */
   public ExpressionEvaluator(
       EvalState state, VirtualScreen screen, VirtualInput input, AntlrParser parser) {
     this.state = state;
@@ -40,6 +48,11 @@ public class ExpressionEvaluator {
     this.parser = parser;
   }
 
+  /**
+   * The screen this evaluator reads from.
+   *
+   * @return the screen.
+   */
   public VirtualScreen screen() {
     return screen;
   }
@@ -47,6 +60,9 @@ public class ExpressionEvaluator {
   /**
    * Formats an {@link Expr} for {@code PRINT}: a numeric value via {@link
    * ExpressionEvaluator#formatNum}, a string value as-is.
+   *
+   * @param expr the expression to evaluate and format.
+   * @return the formatted text.
    */
   public String evalPrintExpr(Expr expr) {
     if (expr instanceof NumExpr numExpr) {
@@ -57,6 +73,12 @@ public class ExpressionEvaluator {
 
   // ===== Numeric expressions =====
 
+  /**
+   * Evaluates a numeric expression.
+   *
+   * @param expr the expression to evaluate.
+   * @return the result.
+   */
   public double evalNum(NumExpr expr) {
     return switch (expr) {
       case NumExpr.NumLiteral n -> n.value();
@@ -303,6 +325,12 @@ public class ExpressionEvaluator {
 
   // ===== String expressions =====
 
+  /**
+   * Evaluates a string expression.
+   *
+   * @param expr the expression to evaluate.
+   * @return the result.
+   */
   public BStr evalStr(StrExpr expr) {
     return switch (expr) {
       case StrExpr.StrLiteral s -> s.value();
@@ -479,6 +507,15 @@ public class ExpressionEvaluator {
 
   // ===== Shared helpers =====
 
+  /**
+   * Converts 1-based multi-dimensional array indices to a flat, 0-based offset (row-major).
+   *
+   * @param dimensions the array's declared size in each dimension.
+   * @param indices the full index buffer the requested (1-based) indices are taken from.
+   * @param offset the requested indices' start position within {@code indices}.
+   * @param indicesCount how many indices to use, starting at {@code offset}.
+   * @return the flat, 0-based element offset.
+   */
   public int calculateArrayIndex(int[] dimensions, int[] indices, int offset, int indicesCount) {
     if (dimensions == null || indices == null) {
       throw codedException(ReportCode.SUBSCRIPT_WRONG, "Subscript wrong");
@@ -629,7 +666,12 @@ public class ExpressionEvaluator {
   private static final ThreadLocal<DecimalFormat> DEC_FORMAT =
       ThreadLocal.withInitial(() -> new DecimalFormat("0.########"));
 
-  /** Formats a number with up to 8 decimal digits, scientific notation for extreme values. */
+  /**
+   * Formats a number with up to 8 decimal digits, scientific notation for extreme values.
+   *
+   * @param d the value to format.
+   * @return the formatted text.
+   */
   public static String formatNum(double d) {
     if (Math.abs(d) < ULP0) {
       return "0";

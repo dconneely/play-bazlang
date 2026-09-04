@@ -12,7 +12,12 @@ public final class Pitch {
   /** C4, concert pitch (A4 = 440Hz). */
   public static final double MIDDLE_C_HZ = 261.6256;
 
-  /** Converts semitones above (or below, if negative) middle C to a frequency in Hz. */
+  /**
+   * Converts semitones above (or below, if negative) middle C to a frequency in Hz.
+   *
+   * @param semitones the offset from middle C, in semitones.
+   * @return the frequency, in Hz.
+   */
   public static double hzFromSemitonesAboveMiddleC(double semitones) {
     return MIDDLE_C_HZ * Math.pow(2.0, semitones / 12.0);
   }

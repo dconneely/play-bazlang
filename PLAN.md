@@ -266,17 +266,6 @@ the only observation is that immediate execution temporarily mutates the program
 would execute the statement without touching storage while still attributing results to line 0, but
 the current approach is well-contained. Optional.
 
-## Javadoc/doclint enforcement (`Xdoclint:all` + `Xwerror`)
-
-**Type:** debt - **Importance:** low - **Effort:** medium
-
-identigon/identigon enforces full doclint (a missing `@param`/`@return`/`@throws` fails the build)
-on every subproject; this repo has no such gate. `lib-cell` and `lib-repl` are consumed across
-module boundaries, and `app-bazlang`'s MCP server (`McpServer`) is a programmatic surface other
-tools call into, so undocumented public API is a real cost here, not just style. Sizeable one-time
-debt to pay off first, though: existing public classes/methods would need a documentation pass
-before the `Xwerror` gate could be turned on without breaking the build immediately.
-
 ## 64-bit explicit integers (`%` suffix)
 
 **Type:** feature - **Importance:** low - **Effort:** large

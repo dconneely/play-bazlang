@@ -19,6 +19,7 @@ import java.util.Arrays;
  * decoded back to raw bytes, as this path is only used for string literals and input).
  */
 public final class BStr implements Comparable<BStr> {
+  /** The empty string. */
   public static final BStr EMPTY = new BStr(new byte[0], 0, 0);
 
   private static final BStr[] BYTE_CACHE = new BStr[256];
@@ -39,7 +40,12 @@ public final class BStr implements Comparable<BStr> {
     this.length = length;
   }
 
-  /** Creates a BStr by encoding a Java String using standard UTF-8. */
+  /**
+   * Creates a BStr by encoding a Java String using standard UTF-8.
+   *
+   * @param s the string to encode, or {@code null}/empty for {@link #EMPTY}.
+   * @return the encoded BStr.
+   */
   public static BStr fromJavaString(String s) {
     if (s == null || s.isEmpty()) {
       return EMPTY;
@@ -48,12 +54,22 @@ public final class BStr implements Comparable<BStr> {
     return new BStr(b, 0, b.length);
   }
 
-  /** Creates a BStr representing a single byte (0-255). Avoids allocations by using a cache. */
+  /**
+   * Creates a BStr representing a single byte (0-255). Avoids allocations by using a cache.
+   *
+   * @param b the byte value; only the low 8 bits are used.
+   * @return the single-byte BStr.
+   */
   public static BStr fromByte(int b) {
     return BYTE_CACHE[b & 0xFF];
   }
 
-  /** Creates a BStr directly from a byte array (the array is copied). */
+  /**
+   * Creates a BStr directly from a byte array (the array is copied).
+   *
+   * @param bytes the bytes to copy.
+   * @return the new BStr.
+   */
   public static BStr fromBytes(byte[] bytes) {
     if (bytes.length == 0) {
       return EMPTY;
@@ -64,6 +80,11 @@ public final class BStr implements Comparable<BStr> {
   /**
    * Wraps a range of {@code bytes} without copying - the caller must not mutate the array range
    * afterwards. Used on hot paths (string-array slicing) to avoid allocation.
+   *
+   * @param bytes the backing array, not copied.
+   * @param offset the range's start offset within {@code bytes}.
+   * @param length the range's length.
+   * @return the new BStr, backed by the given array range.
    */
   public static BStr fromBytes(byte[] bytes, int offset, int length) {
     if (length == 0) {
@@ -72,7 +93,11 @@ public final class BStr implements Comparable<BStr> {
     return new BStr(bytes, offset, length);
   }
 
-  /** Returns a completely isolated copy of this BStr, safe from underlying array mutations. */
+  /**
+   * Returns a completely isolated copy of this BStr, safe from underlying array mutations.
+   *
+   * @return the copy.
+   */
   public BStr copy() {
     if (length == 0) {
       return EMPTY;
@@ -80,15 +105,30 @@ public final class BStr implements Comparable<BStr> {
     return new BStr(Arrays.copyOfRange(bytes, offset, offset + length), 0, length);
   }
 
+  /**
+   * Byte count.
+   *
+   * @return the length in bytes.
+   */
   public int length() {
     return length;
   }
 
+  /**
+   * Whether this BStr has zero bytes.
+   *
+   * @return {@code true} if empty.
+   */
   public boolean isEmpty() {
     return length == 0;
   }
 
-  /** Returns the byte at 0-based index {@code i} as an unsigned integer (0-255). */
+  /**
+   * Returns the byte at 0-based index {@code i} as an unsigned integer (0-255).
+   *
+   * @param i the 0-based byte index.
+   * @return the byte value, 0-255.
+   */
   public int byteAt(int i) {
     return bytes[offset + i] & 0xFF;
   }
@@ -96,12 +136,21 @@ public final class BStr implements Comparable<BStr> {
   /**
    * Returns a slice of this BStr (1-based inclusive, matching BazLang indexing semantics). {@code
    * from} and {@code to} are 1-based byte positions.
+   *
+   * @param from the 1-based inclusive start byte position.
+   * @param to the 1-based inclusive end byte position.
+   * @return the slice.
    */
   public BStr slice(int from, int to) {
     return fromBytes(bytes, offset + from - 1, to - from + 1);
   }
 
-  /** Concatenates this BStr with another. */
+  /**
+   * Concatenates this BStr with another.
+   *
+   * @param other the BStr to append.
+   * @return the concatenation.
+   */
   public BStr concat(BStr other) {
     if (isEmpty()) {
       return other;
@@ -118,6 +167,11 @@ public final class BStr implements Comparable<BStr> {
   /**
    * Returns a new BStr with the specified slice (1-based, inclusive) replaced by the given
    * replacement BStr. The replacement is padded with spaces or truncated to fit the slice length.
+   *
+   * @param from the 1-based inclusive start byte position of the slice to replace.
+   * @param to the 1-based inclusive end byte position of the slice to replace.
+   * @param replacement the replacement content.
+   * @return the resulting BStr.
    */
   public BStr withSlice(int from, int to, BStr replacement) {
     if (from < 1 || to > length || from > to + 1) {
@@ -136,6 +190,8 @@ public final class BStr implements Comparable<BStr> {
    * Converts this BStr to a Java String using UTF-8 Clean-8 (utf8-c8): valid UTF-8 sequences are
    * decoded to their natural Unicode codepoints; any invalid or lone byte 0xNN is emitted as the
    * 4-codepoint synthetic {@code [U+10FFFD, 'x', upper-hex-nibble, lower-hex-nibble]}.
+   *
+   * @return the decoded Java string.
    */
   public String toJavaString() {
     if (length == 0) {
@@ -210,6 +266,8 @@ public final class BStr implements Comparable<BStr> {
    * invalid or lone byte 0xNN returned as the raw value NN), or -1 if this BStr is empty. This uses
    * raw byte fallback (not utf8-c8 synthetics) because it is used for the {@code CODE} and {@code
    * UCODE} BASIC functions, which must return byte-level numeric values.
+   *
+   * @return the first codepoint, or {@code -1} if empty.
    */
   public int firstCodepoint() {
     if (length == 0) {
@@ -259,6 +317,9 @@ public final class BStr implements Comparable<BStr> {
    * starting at {@code byteIndex0} (0-based). Uses the same UTF-8 validity logic as {@link
    * #toJavaString()}: each invalid or lone byte advances by exactly 1. If {@code byteIndex0 >=
    * length()}, returns {@code length()}.
+   *
+   * @param byteIndex0 the 0-based byte index the current codepoint starts at.
+   * @return the 0-based byte index the next codepoint starts at.
    */
   public int nextCodepointStart(int byteIndex0) {
     if (byteIndex0 >= length) {
@@ -304,6 +365,8 @@ public final class BStr implements Comparable<BStr> {
   /**
    * Returns the number of Unicode codepoints in this BStr. Consistent with the UTF-8 iteration
    * logic: each invalid or lone byte counts as 1.
+   *
+   * @return the codepoint count.
    */
   public int codepointLength() {
     int count = 0;

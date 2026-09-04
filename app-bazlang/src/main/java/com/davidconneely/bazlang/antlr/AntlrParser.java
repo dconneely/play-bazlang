@@ -17,8 +17,13 @@ import org.antlr.v4.runtime.Recognizer;
 
 /** Parser facade that uses ANTLR to parse BazLang source code. */
 public class AntlrParser {
+  /** Shared stateless instance; construct directly instead where a test needs its own. */
   public static final AntlrParser INSTANCE = new AntlrParser();
+
   private static final Pattern LINE_PATTERN = Pattern.compile("^(\\d+)\\s*(.*)$");
+
+  /** Create a parser facade. Stateless; {@link #INSTANCE} is available for shared use. */
+  public AntlrParser() {}
 
   /**
    * Parse a complete BazLang program from source code into ProgramLines. The ParseTree for each
@@ -182,10 +187,27 @@ public class AntlrParser {
 
   /** Result of parsing a REPL line - numbered, immediate, or REPL-only command. */
   public sealed interface ParsedLine {
+    /**
+     * A normal numbered program line, not yet parsed into a statement tree.
+     *
+     * @param lineNumber the line number.
+     * @param statementText the line's source text, after the line number.
+     */
     record Numbered(int lineNumber, String statementText) implements ParsedLine {}
 
+    /**
+     * An immediate-mode statement (unnumbered, or entered as line 0) to execute right away.
+     *
+     * @param statements the parsed statement tree.
+     */
     record Immediate(StatementsContext statements) implements ParsedLine {}
 
+    /**
+     * A REPL-only command (e.g. {@code DELETE}, {@code EDIT}, {@code RENUM}), not a BazLang
+     * statement.
+     *
+     * @param context the parsed command tree.
+     */
     record ReplCommand(BazLangParser.ReplCommandContext context) implements ParsedLine {}
   }
 

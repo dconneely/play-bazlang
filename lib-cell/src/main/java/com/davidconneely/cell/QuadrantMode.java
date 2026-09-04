@@ -1,6 +1,8 @@
 package com.davidconneely.cell;
 
+/** {@link PixelMode} for 2x2 quadrant block characters (Unicode Block Elements). */
 public enum QuadrantMode implements PixelMode {
+  /** The single instance of this stateless mode. */
   INSTANCE;
 
   // Index = state bits (UL=bit0, UR=bit1, LL=bit2, LR=bit3)

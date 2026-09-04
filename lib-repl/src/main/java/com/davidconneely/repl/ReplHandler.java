@@ -1,5 +1,6 @@
 package com.davidconneely.repl;
 
+/** Processes each line of input read by the {@link Repl} loop. */
 @FunctionalInterface
 public interface ReplHandler {
   /**

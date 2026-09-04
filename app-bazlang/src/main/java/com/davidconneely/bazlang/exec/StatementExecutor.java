@@ -47,6 +47,15 @@ public class StatementExecutor {
   private final ExpressionEvaluator exprEvaluator;
   private final AntlrParser parser;
 
+  /**
+   * Creates a statement executor with default {@link ProgramStorage}/{@link ExpressionEvaluator}
+   * collaborators and the shared {@link AntlrParser#INSTANCE}.
+   *
+   * @param state the interpreter state to execute against.
+   * @param screen the screen to render output to.
+   * @param input the input source for {@code INPUT}/{@code INKEY$}/...
+   * @param speaker the speaker for {@code BEEP}/{@code PLAY}/{@code APLAY}.
+   */
   public StatementExecutor(
       EvalState state, VirtualScreen screen, VirtualInput input, VirtualSpeaker speaker) {
     this(
@@ -59,6 +68,17 @@ public class StatementExecutor {
         AntlrParser.INSTANCE);
   }
 
+  /**
+   * Creates a statement executor with explicit collaborators.
+   *
+   * @param state the interpreter state to execute against.
+   * @param screen the screen to render output to.
+   * @param input the input source for {@code INPUT}/{@code INKEY$}/...
+   * @param speaker the speaker for {@code BEEP}/{@code PLAY}/{@code APLAY}.
+   * @param storage the storage backend for {@code LOAD}/{@code SAVE}/{@code MERGE}/{@code VERIFY}.
+   * @param exprEvaluator the evaluator for expressions within statements.
+   * @param parser the parser to use for one-off parses (e.g. {@code EDIT}).
+   */
   public StatementExecutor(
       EvalState state,
       VirtualScreen screen,
@@ -76,18 +96,38 @@ public class StatementExecutor {
     this.parser = parser;
   }
 
+  /**
+   * The screen this executor renders output to.
+   *
+   * @return the screen.
+   */
   public VirtualScreen screen() {
     return screen;
   }
 
+  /**
+   * The input source this executor reads from.
+   *
+   * @return the input source.
+   */
   public VirtualInput input() {
     return input;
   }
 
+  /**
+   * The speaker this executor plays audio through.
+   *
+   * @return the speaker.
+   */
   public VirtualSpeaker speaker() {
     return speaker;
   }
 
+  /**
+   * The expression evaluator this executor uses for expressions within statements.
+   *
+   * @return the evaluator.
+   */
   public ExpressionEvaluator exprEvaluator() {
     return exprEvaluator;
   }
@@ -97,11 +137,20 @@ public class StatementExecutor {
    * {@code EDIT} REPL command, which (by design; see {@code localonly-plan-CUSTOM-AST.md} Phase 0)
    * still work directly off raw parse trees. Lowers fresh on every call, same "parse/lower fresh
    * each time" shape as {@code VAL}/{@code INPUT}.
+   *
+   * @param ctx the parsed numeric expression.
+   * @return the evaluated value.
    */
   public double evalNum(NumExprContext ctx) {
     return exprEvaluator.evalNum(AstLowering.lowerNum(ctx, state.currentLineLabel()));
   }
 
+  /**
+   * Executes a single lowered statement.
+   *
+   * @param stmt the statement to execute.
+   * @return how execution should proceed afterward.
+   */
   public ControlFlow execute(Stmt stmt) {
     ControlFlow flow = ControlFlow.CONTINUE;
     switch (stmt) {

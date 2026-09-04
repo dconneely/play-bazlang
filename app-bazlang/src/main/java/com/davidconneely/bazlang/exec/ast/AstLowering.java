@@ -25,7 +25,13 @@ import org.antlr.v4.runtime.Token;
 public final class AstLowering {
   private AstLowering() {}
 
-  /** Lowers either half of the grammar's {@code expression} rule ({@code numExpr | strExpr}). */
+  /**
+   * Lowers either half of the grammar's {@code expression} rule ({@code numExpr | strExpr}).
+   *
+   * @param ctx the parsed expression.
+   * @param lineNumber the source line, for error reporting only.
+   * @return the lowered {@link NumExpr} or {@link StrExpr}.
+   */
   public static Expr lowerExpression(ExpressionContext ctx, int lineNumber) {
     if (ctx.numExpr() != null) {
       return lowerNum(ctx.numExpr(), lineNumber);
@@ -35,6 +41,13 @@ public final class AstLowering {
 
   // ===== Numeric expressions =====
 
+  /**
+   * Lowers a {@code numExpr} to the typed {@link NumExpr} AST.
+   *
+   * @param ctx the parsed numeric expression.
+   * @param lineNumber the source line, for error reporting only.
+   * @return the lowered node.
+   */
   public static NumExpr lowerNum(NumExprContext ctx, int lineNumber) {
     return switch (ctx) {
       case NumLiteralExprContext c ->
@@ -88,6 +101,10 @@ public final class AstLowering {
   /**
    * Lowers a {@code numAtom} (a function argument without parens) to the same node types as {@link
    * #lowerNum(NumExprContext, int)} - the atom/expr split is syntax-only.
+   *
+   * @param ctx the parsed numeric atom.
+   * @param lineNumber the source line, for error reporting only.
+   * @return the lowered node.
    */
   public static NumExpr lowerNum(NumAtomContext ctx, int lineNumber) {
     if (ctx.NUM_LITERAL() != null) {
@@ -249,6 +266,13 @@ public final class AstLowering {
 
   // ===== String expressions =====
 
+  /**
+   * Lowers a {@code strExpr} to the typed {@link StrExpr} AST.
+   *
+   * @param ctx the parsed string expression.
+   * @param lineNumber the source line, for error reporting only.
+   * @return the lowered node.
+   */
   public static StrExpr lowerStr(StrExprContext ctx, int lineNumber) {
     return switch (ctx) {
       case StrAndExprContext c ->
@@ -262,6 +286,10 @@ public final class AstLowering {
    * Lowers a {@code strTerm} (everything a {@code strExpr} can be except the top-level {@code AND}
    * - see {@code BazLang.g4}'s comment on the split) to the same node types as {@link
    * #lowerStr(StrExprContext, int)}.
+   *
+   * @param ctx the parsed string term.
+   * @param lineNumber the source line, for error reporting only.
+   * @return the lowered node.
    */
   public static StrExpr lowerStr(StrTermContext ctx, int lineNumber) {
     return switch (ctx) {
@@ -286,6 +314,10 @@ public final class AstLowering {
   /**
    * Lowers a {@code strAtom} (a function argument without parens) to the same node types as {@link
    * #lowerStr(StrExprContext, int)} - the atom/expr split is syntax-only.
+   *
+   * @param ctx the parsed string atom.
+   * @param lineNumber the source line, for error reporting only.
+   * @return the lowered node.
    */
   public static StrExpr lowerStr(StrAtomContext ctx, int lineNumber) {
     if (ctx.STR_LITERAL() != null) {
@@ -355,6 +387,10 @@ public final class AstLowering {
   /**
    * Lowers a {@code strSubscript}, shared between {@link StrExpr.StrSubscriptExpr} and (Phase 2)
    * string assignment targets.
+   *
+   * @param ctx the parsed subscript/slice.
+   * @param lineNumber the source line, for error reporting only.
+   * @return the lowered subscript/slice.
    */
   public static StrSubscript lowerStrSubscript(StrSubscriptContext ctx, int lineNumber) {
     final List<NumExpr> indices =
@@ -376,6 +412,10 @@ public final class AstLowering {
    * ProgramLine.flatten()} does today (the "flat skip-scan" quirk - see {@link Stmt}'s class
    * Javadoc). This is the list a {@code ProgramLine}/{@code Interpreter} walks for execution;
    * {@link Stmt.IfStmt#body()} itself holds the un-flattened nested form.
+   *
+   * @param ctx the parsed statement list.
+   * @param lineNumber the source line, for error reporting only.
+   * @return the flattened statement list.
    */
   public static List<Stmt> lowerStatements(StatementsContext ctx, int lineNumber) {
     final var flat = new ArrayList<Stmt>();

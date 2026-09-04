@@ -21,7 +21,12 @@ package com.davidconneely.bazlang.io;
  */
 public interface VirtualSpeaker {
 
-  /** Starts a square-wave tone at {@code durationSeconds}/{@code pitch}; see the class doc. */
+  /**
+   * Starts a square-wave tone at {@code durationSeconds}/{@code pitch}; see the class doc.
+   *
+   * @param durationSeconds the tone's duration, in seconds.
+   * @param pitch the tone's pitch, in Hz.
+   */
   default void beep(double durationSeconds, double pitch) {}
 
   /** Stops whatever tone is currently sounding, if any. No-op if nothing is playing. */
@@ -46,6 +51,11 @@ public interface VirtualSpeaker {
    * responsive to {@code BREAK}. Entirely independent of {@link #beep}/{@link #stopBeep}'s own
    * state - a {@code BEEP} sound effect can still sound while {@code PLAY}/{@code APLAY} music is
    * playing, matching the real hardware's independent beeper/AY circuits.
+   *
+   * @param a channel A's voice for this frame.
+   * @param b channel B's voice for this frame.
+   * @param c channel C's voice for this frame.
+   * @param durationSeconds how long this frame lasts, in seconds.
    */
   default void playFrame(VoiceFrame a, VoiceFrame b, VoiceFrame c, double durationSeconds) {}
 

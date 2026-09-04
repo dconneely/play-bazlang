@@ -85,26 +85,56 @@ public final class DebugEngine {
    * #stepOver}: where execution stopped.
    */
   public sealed interface PauseResult {
-    /** A location or condition breakpoint fired before executing this statement. */
+    /**
+     * A location or condition breakpoint fired before executing this statement.
+     *
+     * @param line the line number about to execute.
+     * @param stmt the flat statement index about to execute.
+     */
     record Break(int line, int stmt) implements PauseResult {}
 
     /** An {@code ELAPSE} condition fired. */
     record Elapse() implements PauseResult {}
 
-    /** {@link #stepInto}/{@link #stepOver} completed one step; this is where it landed. */
+    /**
+     * {@link #stepInto}/{@link #stepOver} completed one step; this is where it landed.
+     *
+     * @param line the line number stepped to.
+     * @param stmt the flat statement index stepped to.
+     */
     record Step(int line, int stmt) implements PauseResult {}
 
-    /** The per-call wall-clock safety deadline was exceeded with no other pause reason. */
+    /**
+     * The per-call wall-clock safety deadline was exceeded with no other pause reason.
+     *
+     * @param line the line number about to execute.
+     * @param stmt the flat statement index about to execute.
+     */
     record Limit(int line, int stmt) implements PauseResult {}
 
-    /** The programme ended: normally, via a {@code STOP} statement, or with a runtime error. */
+    /**
+     * The programme ended: normally, via a {@code STOP} statement, or with a runtime error.
+     *
+     * @param report the reason execution stopped; {@link ReportCode#OK} for a normal end or {@code
+     *     STOP}, a real error code otherwise.
+     */
     record Stopped(ReportException report) implements PauseResult {}
   }
 
   /** The outcome of {@link #evalExpression}: a numeric or string result. */
   public sealed interface EvalResult {
+    /**
+     * A numeric result.
+     *
+     * @param value the result value.
+     */
     record Num(double value) implements EvalResult {}
 
+    /**
+     * A string result.
+     *
+     * @param value the result value.
+     */
     record Str(String value) implements EvalResult {}
   }
 
@@ -131,6 +161,11 @@ public final class DebugEngine {
   private boolean stepOver = false;
   private int stepOverBaseDepth = -1;
 
+  /**
+   * Creates a debugging session with its own interpreter, breakpoint store, and mock screen.
+   *
+   * @param parser the parser to use for programs, expressions, and REPL commands.
+   */
   public DebugEngine(AntlrParser parser) {
     this.parser = parser;
     this.breaks = new BreakpointEngine(parser);
@@ -220,18 +255,38 @@ public final class DebugEngine {
 
   // ---- accessors shared with both adapters ----
 
+  /**
+   * The session's mock screen.
+   *
+   * @return the mock screen.
+   */
   public MockScreen screen() {
     return mockScreen;
   }
 
+  /**
+   * The session's breakpoint store.
+   *
+   * @return the breakpoint engine.
+   */
   public BreakpointEngine breakpoints() {
     return breaks;
   }
 
+  /**
+   * The session's interpreter state.
+   *
+   * @return the eval state.
+   */
   public EvalState state() {
     return state;
   }
 
+  /**
+   * Whether the session is currently paused at a breakpoint.
+   *
+   * @return {@code true} if paused.
+   */
   public boolean isPaused() {
     return paused;
   }
@@ -242,6 +297,8 @@ public final class DebugEngine {
    * Applies one REPL command line (a numbered line, {@code NEW}, {@code LOAD "path"}, {@code
    * DELETE}, {@code RENUM}, {@code REFORMAT}, {@code EDIT}, ...) exactly as the interactive REPL
    * would. Throws {@link DebugEngineException} (carrying the formatted status text) on failure.
+   *
+   * @param cmd the REPL command line to apply.
    */
   public void applyReplCommand(String cmd) {
     replHandler.handleReplInput(cmd);
@@ -276,6 +333,8 @@ public final class DebugEngine {
   /**
    * Replaces the whole programme with {@code source} (one BASIC line per {@code \n}-separated
    * entry).
+   *
+   * @param source the programme source, one line per {@code \n}-separated entry.
    */
   public void loadSource(String source) {
     applyReplCommand("NEW");
@@ -286,7 +345,11 @@ public final class DebugEngine {
     }
   }
 
-  /** Returns the current programme as {@code "<n> <stmt>"} lines joined with {@code \n}. */
+  /**
+   * Returns the current programme as {@code "<n> <stmt>"} lines joined with {@code \n}.
+   *
+   * @return the programme listing.
+   */
   public String listProgram() {
     var sb = new StringBuilder();
     boolean first = true;
@@ -305,7 +368,11 @@ public final class DebugEngine {
 
   // ---- run control ----
 
-  /** Clears runtime state and runs the programme from its first line, with the default timeout. */
+  /**
+   * Clears runtime state and runs the programme from its first line, with the default timeout.
+   *
+   * @return where execution stopped.
+   */
   public PauseResult run() {
     return run(DEFAULT_STEP_TIMEOUT_MS);
   }
@@ -314,6 +381,9 @@ public final class DebugEngine {
    * Clears runtime state and runs the programme from its first line. Pauses with {@link
    * PauseResult.Limit} if no other pause reason fires within {@code timeoutMs} (non-positive means
    * "use the default", not "disable" - see {@link #DEFAULT_STEP_TIMEOUT_MS}).
+   *
+   * @param timeoutMs the wall-clock safety cap, in milliseconds; non-positive to use the default.
+   * @return where execution stopped.
    */
   public PauseResult run(long timeoutMs) {
     state.clear();
@@ -326,12 +396,23 @@ public final class DebugEngine {
     return driveUntilPause(state.program().firstKey(), 1);
   }
 
-  /** Runs from line {@code lineNumber} without clearing variables, with the default timeout. */
+  /**
+   * Runs from line {@code lineNumber} without clearing variables, with the default timeout.
+   *
+   * @param lineNumber the line to start execution at.
+   * @return where execution stopped.
+   */
   public PauseResult gotoLine(int lineNumber) {
     return gotoLine(lineNumber, DEFAULT_STEP_TIMEOUT_MS);
   }
 
-  /** Runs from line {@code lineNumber} without clearing variables. See {@link #run(long)}. */
+  /**
+   * Runs from line {@code lineNumber} without clearing variables. See {@link #run(long)}.
+   *
+   * @param lineNumber the line to start execution at.
+   * @param timeoutMs the wall-clock safety cap, in milliseconds; non-positive to use the default.
+   * @return where execution stopped.
+   */
   public PauseResult gotoLine(int lineNumber, long timeoutMs) {
     disarmStep();
     breaks.resetTimer();
@@ -339,12 +420,21 @@ public final class DebugEngine {
     return driveUntilPause(lineNumber, 1);
   }
 
-  /** Resumes execution from a breakpoint, with the default timeout. Only valid when paused. */
+  /**
+   * Resumes execution from a breakpoint, with the default timeout. Only valid when paused.
+   *
+   * @return where execution stopped.
+   */
   public PauseResult go() {
     return go(DEFAULT_STEP_TIMEOUT_MS);
   }
 
-  /** Resumes execution from a breakpoint. See {@link #run(long)}. Only valid when paused. */
+  /**
+   * Resumes execution from a breakpoint. See {@link #run(long)}. Only valid when paused.
+   *
+   * @param timeoutMs the wall-clock safety cap, in milliseconds; non-positive to use the default.
+   * @return where execution stopped.
+   */
   public PauseResult go(long timeoutMs) {
     requirePaused();
     armResumeGuard();
@@ -357,12 +447,19 @@ public final class DebugEngine {
   /**
    * Executes exactly one statement and pauses, entering any {@code GOSUB} it calls. Only valid when
    * paused. With the default timeout.
+   *
+   * @return where execution stopped.
    */
   public PauseResult stepInto() {
     return stepInto(DEFAULT_STEP_TIMEOUT_MS);
   }
 
-  /** {@link #stepInto()} with an explicit timeout. See {@link #run(long)}. */
+  /**
+   * {@link #stepInto()} with an explicit timeout. See {@link #run(long)}.
+   *
+   * @param timeoutMs the wall-clock safety cap, in milliseconds; non-positive to use the default.
+   * @return where execution stopped.
+   */
   public PauseResult stepInto(long timeoutMs) {
     requirePaused();
     armResumeGuard();
@@ -377,12 +474,19 @@ public final class DebugEngine {
    * Executes exactly one statement and pauses, running any {@code GOSUB} it calls to completion
    * instead of pausing inside it (a breakpoint inside the call can still interrupt it). Only valid
    * when paused. With the default timeout.
+   *
+   * @return where execution stopped.
    */
   public PauseResult stepOver() {
     return stepOver(DEFAULT_STEP_TIMEOUT_MS);
   }
 
-  /** {@link #stepOver()} with an explicit timeout. See {@link #run(long)}. */
+  /**
+   * {@link #stepOver()} with an explicit timeout. See {@link #run(long)}.
+   *
+   * @param timeoutMs the wall-clock safety cap, in milliseconds; non-positive to use the default.
+   * @return where execution stopped.
+   */
   public PauseResult stepOver(long timeoutMs) {
     requirePaused();
     armResumeGuard();
@@ -450,7 +554,12 @@ public final class DebugEngine {
 
   // ---- expression evaluation ----
 
-  /** Evaluates a single BazLang expression in the live programme context. */
+  /**
+   * Evaluates a single BazLang expression in the live programme context.
+   *
+   * @param expr the expression source to parse and evaluate.
+   * @return the numeric or string result.
+   */
   public EvalResult evalExpression(String expr) {
     ExpressionEvaluator eval = executor.exprEvaluator();
     BazLangParser.NumExprContext numCtx = null;
@@ -467,7 +576,11 @@ public final class DebugEngine {
     return new EvalResult.Str(val.toJavaString());
   }
 
-  /** Executes a single {@code LET}-equivalent assignment to mutate programme state. */
+  /**
+   * Executes a single {@code LET}-equivalent assignment to mutate programme state.
+   *
+   * @param assignment the assignment source, e.g. {@code x = 1}.
+   */
   public void executeAssignment(String assignment) {
     BazLangParser.StatementsContext stmts;
     try {

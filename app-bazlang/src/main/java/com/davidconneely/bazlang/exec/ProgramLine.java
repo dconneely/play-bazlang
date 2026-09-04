@@ -15,16 +15,32 @@ public class ProgramLine {
   private final String sourceText;
   private List<Stmt> cachedFlatStatements;
 
+  /**
+   * Create a line with the given source text, not yet parsed.
+   *
+   * @param lineNumber the line number.
+   * @param sourceText the line's source text, after the line number.
+   */
   public ProgramLine(int lineNumber, String sourceText) {
     this.lineNumber = lineNumber;
     this.sourceText = sourceText;
     this.cachedFlatStatements = null;
   }
 
+  /**
+   * The line number.
+   *
+   * @return the line number.
+   */
   public int lineNumber() {
     return lineNumber;
   }
 
+  /**
+   * The line's source text, after the line number.
+   *
+   * @return the source text.
+   */
   public String sourceText() {
     return sourceText;
   }
@@ -34,6 +50,9 @@ public class ProgramLine {
    * first access. {@code IfStmt} bodies are inlined into the flat list - see {@link
    * AstLowering#lowerStatements} and {@link Stmt}'s class Javadoc for the "flat skip-scan" quirk
    * this preserves.
+   *
+   * @param parser the parser to use if this line hasn't been lowered yet.
+   * @return the flattened, lowered statement list.
    */
   public List<Stmt> getFlattenedStatements(AntlrParser parser) {
     if (cachedFlatStatements == null) {
@@ -52,6 +71,9 @@ public class ProgramLine {
    * operations ({@code REFORMAT} and various parser/grammar tests) that need the raw parse tree,
    * not the lowered AST used for execution. Always re-parses; shares no state with {@link
    * #getFlattenedStatements}, so callers never observe (or mutate) the cached execution form.
+   *
+   * @param parser the parser to use.
+   * @return the freshly parsed tree.
    */
   public StatementsContext getStatements(AntlrParser parser) {
     return parser.parseStatementsContext(sourceText);

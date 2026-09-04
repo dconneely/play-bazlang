@@ -8,20 +8,39 @@ package com.davidconneely.bazlang.exec.ast;
  * {@code AstLowering}'s statement Javadoc.
  */
 public sealed interface PrintElement {
-  /** A value to print: {@code PRINT x}, {@code PRINT a$}. */
+  /**
+   * A value to print: {@code PRINT x}, {@code PRINT a$}.
+   *
+   * @param value the expression to evaluate and print.
+   */
   record ValueItem(Expr value) implements PrintElement {}
 
-  /** {@code AT row, col}. */
+  /**
+   * {@code AT row, col}.
+   *
+   * @param row the target row.
+   * @param col the target column.
+   */
   record AtItem(NumExpr row, NumExpr col) implements PrintElement {}
 
-  /** {@code TAB col}. */
+  /**
+   * {@code TAB col}.
+   *
+   * @param col the target column.
+   */
   record TabItem(NumExpr col) implements PrintElement {}
 
-  /** An inline style setting within the print list, e.g. {@code PRINT INK 2; "x"}. */
+  /**
+   * An inline style setting within the print list, e.g. {@code PRINT INK 2; "x"}.
+   *
+   * @param style the style setting to apply.
+   */
   record StyleElement(StyleItem style) implements PrintElement {}
 
   /**
    * A {@code printSep}: {@code ,} (next tab stop), {@code ;} (concatenate), or {@code '} (newline).
+   *
+   * @param text the separator character.
    */
   record Sep(char text) implements PrintElement {}
 }

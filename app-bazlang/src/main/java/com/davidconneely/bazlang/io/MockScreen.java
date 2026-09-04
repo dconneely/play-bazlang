@@ -27,18 +27,37 @@ public class MockScreen extends AbstractCellBufferedScreen {
   private final Queue<BStr> uinkeyQueue = new ConcurrentLinkedQueue<>();
   private final Queue<String> inputQueue = new ConcurrentLinkedQueue<>();
 
+  /** Creates a default-sized (25x80) screen with no scripted {@code INPUT} responses. */
   public MockScreen() {
     this(25, 80, Collections.emptyList());
   }
 
+  /**
+   * Creates a default-sized (25x80) screen with scripted {@code INPUT} responses.
+   *
+   * @param inputs the responses to return from successive {@code INPUT} calls, in order.
+   */
   public MockScreen(List<String> inputs) {
     this(25, 80, inputs);
   }
 
+  /**
+   * Creates a screen of the given size with no scripted {@code INPUT} responses.
+   *
+   * @param rows the screen height, in character cells.
+   * @param cols the screen width, in character cells.
+   */
   public MockScreen(int rows, int cols) {
     this(rows, cols, Collections.emptyList());
   }
 
+  /**
+   * Creates a screen of the given size with scripted {@code INPUT} responses.
+   *
+   * @param rows the screen height, in character cells.
+   * @param cols the screen width, in character cells.
+   * @param inputs the responses to return from successive {@code INPUT} calls, in order.
+   */
   public MockScreen(int rows, int cols, List<String> inputs) {
     super(new CellBuffer(rows, cols, QuadrantMode.INSTANCE));
     this.rows = rows;
@@ -46,12 +65,23 @@ public class MockScreen extends AbstractCellBufferedScreen {
     this.inputs = inputs;
   }
 
+  /**
+   * Resizes the screen, preserving existing content at its top-left position.
+   *
+   * @param newRows the new height, in character cells.
+   * @param newCols the new width, in character cells.
+   */
   public void resize(int newRows, int newCols) {
     this.rows = newRows;
     this.cols = newCols;
     cellBuffer.resize(newRows, newCols);
   }
 
+  /**
+   * Everything printed to this screen so far, as plain text.
+   *
+   * @return the accumulated output.
+   */
   public String getOutput() {
     return output.toString();
   }
@@ -105,6 +135,12 @@ public class MockScreen extends AbstractCellBufferedScreen {
     println();
   }
 
+  /**
+   * Queues a response to be returned from the next {@code INPUT} call, ahead of the constructor's
+   * scripted {@code inputs}.
+   *
+   * @param text the response to queue.
+   */
   public void queueInput(String text) {
     inputQueue.add(text);
   }
@@ -160,6 +196,11 @@ public class MockScreen extends AbstractCellBufferedScreen {
     this.status = status;
   }
 
+  /**
+   * The status text last set via {@link #setStatus}.
+   *
+   * @return the status text, or {@code null} if never set.
+   */
   public String getStatus() {
     return status;
   }
@@ -169,10 +210,16 @@ public class MockScreen extends AbstractCellBufferedScreen {
     this.prefillText = text;
   }
 
+  /**
+   * The text last set via {@link #prefillInput}.
+   *
+   * @return the prefill text, or {@code null} if never set.
+   */
   public String getPrefillText() {
     return prefillText;
   }
 
+  /** Arms a simulated break (Ctrl+C), consumed by the next {@link #pollForBreak}. */
   public void triggerBreak() {
     simulatedBreak = true;
   }
@@ -186,10 +233,20 @@ public class MockScreen extends AbstractCellBufferedScreen {
     return false;
   }
 
+  /**
+   * Queues a value to be returned from the next {@code INKEY$} call.
+   *
+   * @param val the value to queue.
+   */
   public void queueInkey(BStr val) {
     inkeyQueue.add(val);
   }
 
+  /**
+   * Queues a value to be returned from the next {@code UINKEY$} call.
+   *
+   * @param val the value to queue.
+   */
   public void queueUinkey(BStr val) {
     uinkeyQueue.add(val);
   }
@@ -219,6 +276,11 @@ public class MockScreen extends AbstractCellBufferedScreen {
 
   private boolean interactive = true;
 
+  /**
+   * Sets whether {@link #isInteractive()} reports interactive.
+   *
+   * @param interactive the new value.
+   */
   public void setInteractive(boolean interactive) {
     this.interactive = interactive;
   }

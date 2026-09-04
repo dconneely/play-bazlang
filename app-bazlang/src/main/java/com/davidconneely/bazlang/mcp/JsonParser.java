@@ -9,6 +9,11 @@ public final class JsonParser {
 
   /** Thrown for malformed JSON input; mapped to a JSON-RPC {@code -32700 Parse error}. */
   public static final class JsonParseException extends RuntimeException {
+    /**
+     * Creates a parse exception.
+     *
+     * @param message a message describing the malformed input.
+     */
     public JsonParseException(String message) {
       super(message);
     }
@@ -22,6 +27,12 @@ public final class JsonParser {
     this.pos = 0;
   }
 
+  /**
+   * Parses a complete JSON document.
+   *
+   * @param text the JSON source text.
+   * @return the parsed value tree.
+   */
   public static JsonValue parse(String text) {
     JsonParser parser = new JsonParser(text);
     parser.skipWhitespace();

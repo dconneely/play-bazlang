@@ -12,18 +12,39 @@ import com.davidconneely.cell.PixelMode;
  */
 public abstract class AbstractCellBufferedScreen
     implements VirtualScreen, VirtualInput, VirtualSpeaker {
+  /** The underlying cell buffer holding this screen's text and pixel content. */
   protected final CellBuffer cellBuffer;
+
+  /** The cursor's current row, 0-based from the top. */
   protected int cursorRow = 0;
+
+  /** The cursor's current column, 0-based from the left. */
   protected int cursorCol = 0;
 
   // Active attribute states
+  /** Current default ink (foreground) colour, or {@code -1} for the screen's own default. */
   protected int activeInk = -1;
+
+  /** Current default paper (background) colour, or {@code -1} for the screen's own default. */
   protected int activePaper = -1;
+
+  /** Current default brightness. */
   protected int activeBright = 0;
+
+  /** Current default flash (blink) setting. */
   protected int activeFlash = 0;
+
+  /** Current default inverse-video setting. */
   protected int activeInverse = 0;
+
+  /** Current default overlay (XOR-plot) setting. */
   protected int activeOver = 0;
 
+  /**
+   * Create a screen backed by the given cell buffer.
+   *
+   * @param cellBuffer the buffer to render text and pixel content into.
+   */
   protected AbstractCellBufferedScreen(CellBuffer cellBuffer) {
     this.cellBuffer = cellBuffer;
   }

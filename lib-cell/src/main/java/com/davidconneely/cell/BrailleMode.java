@@ -1,6 +1,10 @@
 package com.davidconneely.cell;
 
+/**
+ * {@link PixelMode} for 2x4 Braille dot patterns (Unicode Braille Patterns block, U+2800-U+28FF).
+ */
 public enum BrailleMode implements PixelMode {
+  /** The single instance of this stateless mode. */
   INSTANCE;
 
   @Override

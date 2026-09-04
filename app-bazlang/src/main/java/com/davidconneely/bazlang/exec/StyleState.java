@@ -23,50 +23,113 @@ public final class StyleState {
   private int inverse = 0;
   private int over = 0;
 
+  /** Create a state at power-on defaults; see {@link #reset()}. */
+  public StyleState() {}
+
+  /**
+   * Default ink (foreground) colour.
+   *
+   * @return the colour code.
+   */
   public int ink() {
     return ink;
   }
 
+  /**
+   * Set the default ink (foreground) colour.
+   *
+   * @param ink the new colour code.
+   */
   public void setInk(int ink) {
     this.ink = ink;
   }
 
+  /**
+   * Default paper (background) colour.
+   *
+   * @return the colour code.
+   */
   public int paper() {
     return paper;
   }
 
+  /**
+   * Set the default paper (background) colour.
+   *
+   * @param paper the new colour code.
+   */
   public void setPaper(int paper) {
     this.paper = paper;
   }
 
+  /**
+   * Default brightness.
+   *
+   * @return the brightness value.
+   */
   public int bright() {
     return bright;
   }
 
+  /**
+   * Set the default brightness.
+   *
+   * @param bright the new brightness value.
+   */
   public void setBright(int bright) {
     this.bright = bright;
   }
 
+  /**
+   * Default flash (blink) setting.
+   *
+   * @return the flash value.
+   */
   public int flash() {
     return flash;
   }
 
+  /**
+   * Set the default flash (blink) setting.
+   *
+   * @param flash the new flash value.
+   */
   public void setFlash(int flash) {
     this.flash = flash;
   }
 
+  /**
+   * Default inverse-video setting.
+   *
+   * @return the inverse value.
+   */
   public int inverse() {
     return inverse;
   }
 
+  /**
+   * Set the default inverse-video setting.
+   *
+   * @param inverse the new inverse value.
+   */
   public void setInverse(int inverse) {
     this.inverse = inverse;
   }
 
+  /**
+   * Default overlay (XOR-plot) setting.
+   *
+   * @return the over value.
+   */
   public int over() {
     return over;
   }
 
+  /**
+   * Set the default overlay (XOR-plot) setting.
+   *
+   * @param over the new over value.
+   */
   public void setOver(int over) {
     this.over = over;
   }
@@ -81,7 +144,11 @@ public final class StyleState {
     over = 0;
   }
 
-  /** Pushes all six values onto the screen as the active attributes. */
+  /**
+   * Pushes all six values onto the screen as the active attributes.
+   *
+   * @param screen the screen to apply these styles to.
+   */
   public void applyTo(VirtualScreen screen) {
     screen.setInk(ink);
     screen.setPaper(paper);

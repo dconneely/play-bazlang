@@ -11,15 +11,24 @@ package com.davidconneely.bazlang.exec.ast;
  * - those are distinct {@link Stmt} cases, since (unlike a styleList/print-item setting) they also
  * update {@code EvalState}'s persistent default styles, not just the screen's active ones for the
  * current call.
+ *
+ * @param kind which of the six style settings this is.
+ * @param value the setting's new value.
  */
 public record StyleItem(StyleKind kind, NumExpr value) {
   /** Which of the six style settings this item is. */
   public enum StyleKind {
+    /** Foreground colour. */
     INK,
+    /** Background colour. */
     PAPER,
+    /** Brightness. */
     BRIGHT,
+    /** Blink. */
     FLASH,
+    /** Inverse video. */
     INVERSE,
+    /** Overlay (XOR-plot). */
     OVER
   }
 }

@@ -28,6 +28,14 @@ public class ProgramEditor {
   private final AntlrParser parser;
   private final ToDoubleFunction<BazLangParser.NumExprContext> numEval;
 
+  /**
+   * Creates a program editor.
+   *
+   * @param state the interpreter state to edit.
+   * @param screen the screen, for editor commands that report status.
+   * @param parser the parser to use for line ranges and re-parsing lines.
+   * @param numEval evaluates a numeric expression, for {@code RENUM}'s arguments.
+   */
   public ProgramEditor(
       EvalState state,
       VirtualScreen screen,
@@ -39,13 +47,21 @@ public class ProgramEditor {
     this.numEval = numEval;
   }
 
-  /** Execute DELETE command with parsed line range. */
+  /**
+   * Execute DELETE command with parsed line range.
+   *
+   * @param range the line range to delete.
+   */
   public void executeDelete(BazLangParser.LineRangeContext range) {
     final int[] bounds = parseDeleteReformatLineRange(range);
     state.program().clearRange(bounds[0], true, bounds[1], true);
   }
 
-  /** Execute REFORMAT command with optional line range. */
+  /**
+   * Execute REFORMAT command with optional line range.
+   *
+   * @param range the line range to reformat, or {@code null} for the whole program.
+   */
   public void executeReformat(BazLangParser.LineRangeContext range) {
     int start = Limits.MIN_TARGET_LABEL;
     int end = Limits.MAX_TARGET_LABEL;
@@ -73,7 +89,12 @@ public class ProgramEditor {
     }
   }
 
-  /** Execute RENUM command with parsed arguments. */
+  /**
+   * Execute RENUM command with parsed arguments.
+   *
+   * @param args the renumber arguments (new start/step, or a sub-range), or {@code null} for
+   *     defaults.
+   */
   public void executeRenum(BazLangParser.RenumArgsContext args) {
     final var program = state.program();
     if (program.isEmpty()) {

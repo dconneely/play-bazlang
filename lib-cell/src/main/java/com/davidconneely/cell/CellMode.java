@@ -1,6 +1,8 @@
 package com.davidconneely.cell;
 
+/** {@link PixelMode} for whole-cell blocks: one pixel per character cell, space or full block. */
 public enum CellMode implements PixelMode {
+  /** The single instance of this stateless mode. */
   INSTANCE;
 
   @Override

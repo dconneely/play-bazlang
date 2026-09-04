@@ -1,6 +1,22 @@
 package com.davidconneely.cell;
 
+/** Renders a {@link CellBuffer} to a stream of ANSI/VT100 escape sequences and text. */
 public class CellBufferRenderer {
+  /** Create a renderer. Stateless beyond its (reused, per-call) SGR scratch buffer. */
+  public CellBufferRenderer() {}
+
+  /**
+   * Append the ANSI/VT100 rendering of a region of {@code cellBuffer}, anchored at the top-left, to
+   * {@code out}. Emits one cursor-position escape per row followed by that row's content, with SGR
+   * (colour/style) escapes emitted only where a run's attributes change from the previous cell -
+   * not once per cell - and each row ends with an erase-to-end-of-line so any old, now-shorter
+   * content doesn't linger.
+   *
+   * @param out the destination to append escape sequences and text to.
+   * @param cellBuffer the buffer to render from.
+   * @param rowsToRender number of rows to render, starting at row 0.
+   * @param colsToRender number of columns to render, starting at column 0.
+   */
   public void renderContentRows(
       StringBuilder out, CellBuffer cellBuffer, int rowsToRender, int colsToRender) {
     final var sb = new StringBuilder();

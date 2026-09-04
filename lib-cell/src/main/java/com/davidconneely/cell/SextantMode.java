@@ -1,6 +1,8 @@
 package com.davidconneely.cell;
 
+/** {@link PixelMode} for 2x3 sextant block characters (Unicode Symbols for Legacy Computing). */
 public enum SextantMode implements PixelMode {
+  /** The single instance of this stateless mode. */
   INSTANCE;
 
   private static final int[] CODEPOINTS = new int[64];

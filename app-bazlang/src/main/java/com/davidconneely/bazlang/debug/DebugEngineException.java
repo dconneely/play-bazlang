@@ -8,6 +8,11 @@ package com.davidconneely.bazlang.debug;
  * structured report code and source location.
  */
 public final class DebugEngineException extends RuntimeException {
+  /**
+   * Creates a debug engine exception.
+   *
+   * @param message a message describing the failure.
+   */
   public DebugEngineException(String message) {
     super(message);
   }
