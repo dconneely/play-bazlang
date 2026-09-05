@@ -152,7 +152,8 @@ subprojects {
     excludeFilter.set(rootProject.file("config/spotbugs/exclude.xml"))
     reports {
       create("html") { required.set(true) }
-      create("xml") { required.set(true) }
+      // xml left unrequired - nothing in this repo consumes it.
+      create("xml") { required.set(false) }
     }
   }
 
@@ -183,7 +184,7 @@ subprojects {
       // javac/javadoc's default -Xmaxwarns is 100: with Xwerror active that silently truncates the
       // reported list rather than the actual violation count. Set high enough that a real
       // regression is never hidden by the cap.
-      addStringOption("Xmaxwarns", "10000")
+      addStringOption("Xmaxwarns", "1000")
     }
   }
 }
