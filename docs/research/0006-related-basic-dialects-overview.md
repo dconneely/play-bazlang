@@ -267,6 +267,11 @@ the workaround.
   `qlforum.co.uk` (now dead - no DNS record at all) to `theqlforum.com` in early 2025, keeping
   existing thread IDs, so an old `qlforum.co.uk/viewtopic.php?t=N` link's fix is usually just the
   domain swap.
+- **`dn760101.eu.archive.org` (the COMAL Reference Guide's `_djvu.txt`, cited from
+  `0003`/`0004`/`0005`) times out intermittently from GitHub Actions' runner network despite being a
+  live, working URL** - `link-check.yml` runs lychee with `--accept-timeouts` for this reason:
+  timeouts are reported but don't fail the job, while any other error type (403, DNS, etc.) for the
+  same URL still does, so a genuine future break of the item is still caught.
 - **Internet Archive's `_djvu.txt` full-text sibling is usually the fastest path to real text** -
   `https://archive.org/download/<item>/<item>_djvu.txt` - skipping PDF extraction entirely. But the
   actual filename can differ from the item's display title (a hyphen present in the title but absent

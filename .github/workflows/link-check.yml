@@ -19,5 +19,9 @@ jobs:
           # --method get, not the default HEAD: some hosts error on HEAD but answer GET.
           # theqlforum.com (incl. its qlwiki. subdomain) 403s every automated checker, UA or no UA -
           # it's a real, human-reachable site, just not link-checker-reachable.
-          args: --no-progress --method get --max-concurrency 4 --exclude 'theqlforum\.com' "docs/research/**/*.md" "docs/adr/**/*.md"
+          # --accept-timeouts: archive.org's dn760101.eu mirror node (COMAL Reference Guide, cited
+          # from 3 docs) is a live, working URL that's just consistently slow/flaky from GitHub's
+          # runner network - report timeouts, don't fail the job over them, but still fail on any
+          # other error (403, DNS, etc.) for that same URL.
+          args: --no-progress --method get --max-concurrency 4 --accept-timeouts --exclude 'theqlforum\.com' "docs/research/**/*.md" "docs/adr/**/*.md"
           fail: true
