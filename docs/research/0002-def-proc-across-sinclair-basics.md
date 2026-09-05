@@ -200,7 +200,7 @@ Sources disagree on whether parameters are by value or by reference; the primary
   no `FN` or `PROC` keyword at the call site, matching Beta BASIC's and SAM Coupé's "the name
   becomes a keyword" pattern rather than BBC's `PROCname`/NextBASIC's `PROC name`/`FN name` split.
 
-- <https://qlforum.co.uk/viewtopic.php?t=2199> - a forum thread claiming "scalars are by value
+- <https://theqlforum.com/viewtopic.php?t=2199> - a forum thread claiming "scalars are by value
   only", contradicted by the primary manual above. Possible reconciliation, unconfirmed: the forum
   poster may have been describing observed behaviour for simple read-only use (a parameter that's
   never assigned inside the proc looks exactly like by-value from the caller's side), or describing
@@ -285,7 +285,7 @@ repeated per topic note.
 
 ## Open questions
 
-- Does the qlforum.co.uk forum thread's "scalars by value" claim describe a different QL BASIC
+- Does the theqlforum.com forum thread's "scalars by value" claim describe a different QL BASIC
   dialect (the thread also mentions "SBasic"), a specific case that merely looks like by-value, or
   is it simply mistaken? Not resolved - see the reconciliation note in Evidence.
 - Is there a Sinclair-adjacent dialect not covered here (e.g. MasterBASIC on the SAM Coupé as an

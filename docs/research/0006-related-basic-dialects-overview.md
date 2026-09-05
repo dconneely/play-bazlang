@@ -260,6 +260,13 @@ the workaround.
 - **A `WebFetch` 403 doesn't mean the file is unreachable** - `worldofspectrum.net` is a repeat
   offender. Plain `curl -sL -A "Mozilla/5.0" -o file.pdf <url>` gets past it; a browser `User-Agent`
   is usually all a 403 like this is checking for.
+- **`theqlforum.com` (and its `qlwiki.` subdomain) 403s every automated request, UA or not** -
+  unlike `worldofspectrum.net` above, no `curl -A` workaround gets past it; the site is fine in a
+  real browser, just not link-checker-reachable. It's excluded from the `link-check.yml` lychee run
+  for this reason rather than treated as a dead link. The forum itself moved domains from
+  `qlforum.co.uk` (now dead - no DNS record at all) to `theqlforum.com` in early 2025, keeping
+  existing thread IDs, so an old `qlforum.co.uk/viewtopic.php?t=N` link's fix is usually just the
+  domain swap.
 - **Internet Archive's `_djvu.txt` full-text sibling is usually the fastest path to real text** -
   `https://archive.org/download/<item>/<item>_djvu.txt` - skipping PDF extraction entirely. But the
   actual filename can differ from the item's display title (a hyphen present in the title but absent

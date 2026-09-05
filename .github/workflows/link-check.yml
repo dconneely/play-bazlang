@@ -17,5 +17,7 @@ jobs:
       - uses: lycheeverse/lychee-action@e7477775783ea5526144ba13e8db5eec57747ce8 # v2.9.0
         with:
           # --method get, not the default HEAD: some hosts error on HEAD but answer GET.
-          args: --no-progress --method get --max-concurrency 4 "docs/research/**/*.md" "docs/adr/**/*.md"
+          # theqlforum.com (incl. its qlwiki. subdomain) 403s every automated checker, UA or no UA -
+          # it's a real, human-reachable site, just not link-checker-reachable.
+          args: --no-progress --method get --max-concurrency 4 --exclude 'theqlforum\.com' "docs/research/**/*.md" "docs/adr/**/*.md"
           fail: true
