@@ -77,9 +77,8 @@ subprojects {
     exclude("**/antlr/**")
   }
 
-  // JaCoCo - toolVersion pinned rather than left to the plugin's own default, same reasoning as
-  // identigon's own build.gradle.kts: a Gradle upgrade shouldn't be able to silently change the
-  // coverage tool underneath the build.
+  // JaCoCo - toolVersion pinned rather than left to the plugin's own default: a Gradle upgrade
+  // shouldn't be able to silently change the coverage tool underneath the build.
   configure<JacocoPluginExtension> {
     toolVersion = jacocoToolVersion
   }
@@ -146,8 +145,7 @@ subprojects {
     ignoreFailures = false
   }
 
-  // find-sec-bugs - security-focused SpotBugs ruleset, same plugin used by identigon's own
-  // build.gradle.kts.
+  // find-sec-bugs - security-focused SpotBugs ruleset.
   dependencies.add("spotbugsPlugins", findsecbugsPluginProvider)
 
   tasks.withType<com.github.spotbugs.snom.SpotBugsTask>().configureEach {
@@ -162,10 +160,9 @@ subprojects {
     dependsOn(tasks.withType<com.github.spotbugs.snom.SpotBugsTask>())
   }
 
-  // Javadoc/doclint - matches identigon/identigon's own build.gradle.kts (Xdoclint:all + Xwerror,
-  // unconditional on every subproject). lib-cell/lib-repl are consumed across module boundaries and
-  // app-bazlang's MCP server is a programmatic surface other tools call into, so undocumented public
-  // API is a real cost here, not just style.
+  // Javadoc/doclint, unconditional on every subproject: lib-cell/lib-repl are consumed across
+  // module boundaries and app-bazlang's MCP server is a programmatic surface other tools call
+  // into, so undocumented public API is a real cost here, not just style.
   tasks.withType<Javadoc>().configureEach {
     options.encoding = "UTF-8"
     // Generated ANTLR sources (BazLangLexer/Parser/Listener/Visitor/Base*) are regenerated every
@@ -184,10 +181,8 @@ subprojects {
       addBooleanOption("Xdoclint:all", true)
       addBooleanOption("Xwerror", true)
       // javac/javadoc's default -Xmaxwarns is 100: with Xwerror active that silently truncates the
-      // reported list rather than the actual violation count, which cost real time here chasing a
-      // moving "100 warnings" total across several rounds of fixes before the true (417-warning)
-      // scope became visible. Set high enough that a real regression is never hidden by the cap
-      // again.
+      // reported list rather than the actual violation count. Set high enough that a real
+      // regression is never hidden by the cap.
       addStringOption("Xmaxwarns", "10000")
     }
   }

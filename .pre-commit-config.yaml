@@ -1,6 +1,5 @@
 # `pre-commit install` alone only wires the `pre-commit` hook type unless told otherwise, which
-# would leave the `commit-msg` hook below installed but never invoked. Declaring it here means a
-# plain `pre-commit install` is enough - nobody has to remember `--hook-type commit-msg`.
+# would leave the `commit-msg` hook below installed but never invoked.
 default_install_hook_types: [pre-commit, commit-msg]
 
 repos:
@@ -13,17 +12,17 @@ repos:
         pass_filenames: false
         types: [java]
 
-      # Formatter, not linter - complements markdownlint-cli2 below rather than replacing it
-      # (Prettier doesn't catch MD024/MD032 and the rest; markdownlint-cli2's MD013 has no auto-fix
-      # in any markdownlint implementation - see the comment on that hook). `local`, not the
-      # `pre-commit/mirrors-prettier` repo: that mirror is stale (newest stable tag v3.1.0, several
-      # minor versions behind), so pinning the exact version via npx here instead, the same pattern
-      # used for every other npx-invoked tool in this file. All actual options -
-      # proseWrap/printWidth/embeddedLanguageFormatting - live in .prettierrc.json, not flags here;
-      # CLI flags alone were tried by one adopting repo and silently wrapped nothing (see ADR-0008).
-      # `*emphasis*` becomes `_emphasis_` on first run and forever after - Prettier's markdown
-      # printer has no config option for this; ADR-0008 accepts the one-time bulk rewrite as the
-      # cost.
+      # Formatter, not linter - complements markdownlint-cli2 below (Prettier doesn't catch
+      # MD024/MD032 and the rest; markdownlint-cli2's MD013 has no auto-fix). `local`, not
+      # `pre-commit/mirrors-prettier`: that mirror is stale (v3.1.0), so pinning the exact version
+      # via npx instead.
+      #
+      # Config lives in .prettierrc.json, not flags here (CLI flags alone silently wrapped nothing
+      # - see ADR-0008). printWidth there MUST match MD013's own line_length in
+      # .markdownlint-cli2.jsonc - change one, change both.
+      #
+      # `*emphasis*` becomes `_emphasis_` on first run and forever after - no config option to
+      # avoid it; ADR-0008 accepts the one-time bulk rewrite as the cost.
       - id: prettier-markdown
         name: Prettier (auto-format Markdown)
         language: system
@@ -39,15 +38,12 @@ repos:
         types: [java]
 
       # Checkstyle, PMD, SpotBugs, and test are omitted - too slow for pre-commit; `./gradlew build`
-      # (build.yml) already runs all of them via the `check` task, same reasoning as identigon's own
-      # .pre-commit-config.yaml, which defers the same set to CI.
+      # already runs all of them via the `check` task.
 
       # MADR status values are lowercase (proposed | rejected | accepted | deprecated | superseded
-      # by ADR-NNNN, per docs/adr/0000-template.md and DOC-MAP.md) - this catches a capitalised
-      # status or a capitalised "Superseded by ADR-" pointer before it lands. `Deprecated` is
-      # deliberately absent from the alternation: it's also a Keep a Changelog category name
-      # (DOC-MAP.md's own CHANGELOG.md description uses it in backticks), so matching it flags a
-      # legitimate line - confirmed the hard way, running this against the repo the first time.
+      # by ADR-NNNN, per docs/adr/0000-template.md and DOC-MAP.md). `Deprecated` is deliberately
+      # absent from the alternation: it's also a Keep a Changelog category name (DOC-MAP.md's own
+      # CHANGELOG.md description uses it in backticks), so matching it would flag a legitimate line.
       - id: lowercase-adr-status
         name: "ADR statuses are lowercase (MADR spelling)"
         language: pygrep
@@ -55,8 +51,7 @@ repos:
         files: ^docs/adr/
 
       # This project's ADRs use MADR front-matter (a `status:` field), not the older
-      # Michael Nygard-style "## Status" section - a stray one would mean a record was copied from
-      # a different convention rather than this repo's own template.
+      # Michael Nygard-style "## Status" section.
       - id: no-nygard-status-section
         name: "ADRs use MADR front-matter, not a Status section"
         language: pygrep
@@ -65,9 +60,8 @@ repos:
 
   # gitleaks-system, not the default gitleaks, which builds the binary from source with Go on
   # first run: that produces an unsigned, reputation-less executable in AppData, which Windows
-  # Smart App Control blocks outright (os error 4551). A packaged release carries enough download
-  # reputation to run even with Smart App Control enforced. Needs gitleaks on PATH (confirmed
-  # present via `scoop install gitleaks` in this environment).
+  # Smart App Control blocks outright (os error 4551). Needs gitleaks on PATH (`scoop install
+  # gitleaks`, `brew install gitleaks`, or a release binary).
   - repo: https://github.com/gitleaks/gitleaks
     rev: v8.30.1
     hooks:
@@ -90,9 +84,8 @@ repos:
       - id: check-shebang-scripts-are-executable
       # .gitattributes already pins eol=lf for *.sh/gradlew and eol=auto (LF) generally; this
       # guards against that being weakened rather than being the fix for it. Excludes *.bat:
-      # .gitattributes deliberately requires eol=crlf there (Windows batch scripts need it) -
-      # confirmed the hard way, this hook rewrote gradlew.bat to LF on the first run without the
-      # exclude.
+      # .gitattributes deliberately requires eol=crlf there (Windows batch scripts need it), and an
+      # unexcluded --fix=lf would rewrite gradlew.bat to LF, breaking it on Windows.
       - id: mixed-line-ending
         args: [--fix=lf]
         exclude: \.bat$
@@ -112,27 +105,25 @@ repos:
       - id: shellcheck
         exclude: ^gradlew$
 
-  # Conventional Commits, on the commit-msg stage. The type list matches what this repository's
-  # own history actually uses (`git log --format='%s' | grep -oE '^[a-z]+' | sort | uniq -c`) -
-  # canonical `feat`, not the couple of historical `feature` uses.
+  # Conventional Commits, on the commit-msg stage. No `args:` - left at the hook's own built-in
+  # default type list (build, chore, ci, docs, feat, fix, perf, refactor, revert, style, test),
+  # shared across every pre-commit-managed repo in this workspace rather than a repo-specific
+  # subset: one fewer list to keep in sync.
   - repo: https://github.com/compilerla/conventional-pre-commit
     rev: v4.4.0
     hooks:
       - id: conventional-pre-commit
         stages: [commit-msg]
-        args: [build, chore, ci, docs, feat, fix, perf, refactor, test]
 
   # Link rot, on demand only: `pre-commit run --hook-stage manual lychee`. Deliberately NOT on
   # commit - external hosts fail for reasons unrelated to the change under review, and a hook that
-  # blocks a commit because someone else's server is down is a hook that gets bypassed. Worth
-  # having now that docs/research/*.md cites dozens of external manuals and archive.org items.
+  # blocks a commit because someone else's server is down is a hook that gets bypassed.
   # `.github/workflows/link-check.yml` runs the same flags nightly, scoped to docs/research/ and
-  # docs/adr/ specifically, which is where routine rot detection belongs; this manual stage covers
-  # the whole repo and is for checking a link-heavy change before it's committed, not a stand-in
-  # for CI.
-  # --method get, not the default HEAD: some hosts answer HEAD with an error and GET with 200, so
-  # a HEAD-based sweep can report false failures. Needs lychee on PATH (confirmed present via
-  # `scoop install lychee` in this environment).
+  # docs/adr/; this manual stage covers the whole repo, for checking a link-heavy change before
+  # it's committed.
+  #
+  # --method get, not the default HEAD: some hosts answer HEAD with an error and GET with 200.
+  # Needs lychee on PATH (`scoop install lychee`, `brew install lychee`, or a release binary).
   - repo: https://github.com/lycheeverse/lychee
     rev: lychee-v0.24.2
     hooks:
