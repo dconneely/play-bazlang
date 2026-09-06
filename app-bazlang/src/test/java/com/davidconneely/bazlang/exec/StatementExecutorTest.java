@@ -49,11 +49,11 @@ class StatementExecutorTest {
   }
 
   private Stmt firstStmt(String source) {
-    return AstLowering.lowerStatements(PARSER.parseStatementsContext(source), 10).getFirst();
+    return AstLowering.lowerStatements(PARSER.parseStatementsContext(source), 10, state).getFirst();
   }
 
   private void exec(String source) {
-    for (var stmt : AstLowering.lowerStatements(PARSER.parseStatementsContext(source), 10)) {
+    for (var stmt : AstLowering.lowerStatements(PARSER.parseStatementsContext(source), 10, state)) {
       executor.execute(stmt);
     }
   }
@@ -190,7 +190,8 @@ class StatementExecutorTest {
     @Test
     void trueConditionFallsThroughToNextFlatStatement() {
       final var flat =
-          AstLowering.lowerStatements(PARSER.parseStatementsContext("IF 1 THEN LET A=1"), 10);
+          AstLowering.lowerStatements(
+              PARSER.parseStatementsContext("IF 1 THEN LET A=1"), 10, state);
       for (final var s : flat) {
         executor.execute(s);
       }
@@ -657,7 +658,7 @@ class StatementExecutorTest {
       final var recordingSpeaker = new RecordingSpeaker();
       final var recordingExecutor = new StatementExecutor(state, screen, screen, recordingSpeaker);
       for (final var stmt :
-          AstLowering.lowerStatements(PARSER.parseStatementsContext("APLAY \"1c\""), 10)) {
+          AstLowering.lowerStatements(PARSER.parseStatementsContext("APLAY \"1c\""), 10, state)) {
         recordingExecutor.execute(stmt);
       }
       // Waits for drainPlay() -- the background loop's own authoritative "just went idle" signal,
@@ -714,12 +715,12 @@ class StatementExecutorTest {
       final var recordingSpeaker = new FrequencyRecordingSpeaker();
       final var recordingExecutor = new StatementExecutor(state, screen, screen, recordingSpeaker);
       for (final var stmt :
-          AstLowering.lowerStatements(PARSER.parseStatementsContext("APLAY \"9c\""), 10)) {
+          AstLowering.lowerStatements(PARSER.parseStatementsContext("APLAY \"9c\""), 10, state)) {
         recordingExecutor.execute(stmt);
       }
       Thread.sleep(5); // background thread is now mid-way through its first ~20ms sleep
       for (final var stmt :
-          AstLowering.lowerStatements(PARSER.parseStatementsContext("APLAY \"9d\""), 10)) {
+          AstLowering.lowerStatements(PARSER.parseStatementsContext("APLAY \"9d\""), 10, state)) {
         recordingExecutor.execute(stmt);
       }
       // Checking at ~10ms total, well before that first sleep would naturally complete at ~20ms:

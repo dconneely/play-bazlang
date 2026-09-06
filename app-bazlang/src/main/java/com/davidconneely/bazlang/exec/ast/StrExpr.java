@@ -1,12 +1,11 @@
 package com.davidconneely.bazlang.exec.ast;
 
 import com.davidconneely.bazlang.BStr;
-import com.davidconneely.bazlang.exec.EvalState;
 import java.util.List;
 
 /**
  * A lowered string expression node. See {@link NumExpr}'s class Javadoc for the atom/expr collapse
- * and the mutable-reference-cache design shared by {@link StrVarExpr} and {@link StrSubscriptExpr}.
+ * and the immutable-id design shared by {@link StrVarExpr} and {@link StrSubscriptExpr}.
  */
 public sealed interface StrExpr extends Expr {
   /**
@@ -21,16 +20,18 @@ public sealed interface StrExpr extends Expr {
     /** The variable's name. */
     public final String name;
 
-    /** Lazily-populated variable-reference cache; see the class Javadoc. */
-    public EvalState.StrVarRef ref;
+    /** The variable's id, assigned at lowering time; see {@link NumExpr}'s class Javadoc. */
+    public final int id;
 
     /**
      * Create a reference to the named scalar variable.
      *
      * @param name the variable's name.
+     * @param id the variable's id, from {@link VarIdAllocator#strVarId}.
      */
-    public StrVarExpr(String name) {
+    public StrVarExpr(String name, int id) {
       this.name = name;
+      this.id = id;
     }
   }
 
@@ -42,18 +43,20 @@ public sealed interface StrExpr extends Expr {
     /** The element's index/slice. */
     public final StrSubscript subscript;
 
-    /** Lazily-populated variable-reference cache; see the class Javadoc. */
-    public EvalState.StrVarRef ref;
+    /** The array's id, assigned at lowering time; see {@link NumExpr}'s class Javadoc. */
+    public final int id;
 
     /**
      * Create a reference to one element/slice of the named array.
      *
      * @param name the array's name.
      * @param subscript the element's index/slice.
+     * @param id the array's id, from {@link VarIdAllocator#strVarId}.
      */
-    public StrSubscriptExpr(String name, StrSubscript subscript) {
+    public StrSubscriptExpr(String name, StrSubscript subscript, int id) {
       this.name = name;
       this.subscript = subscript;
+      this.id = id;
     }
   }
 

@@ -230,8 +230,10 @@ Facts an implementer needs before restructuring anything:
 - `AntlrParser` is injected everywhere it is used at runtime; the global singleton
   `AntlrParser.INSTANCE` is named only at composition roots (`MainClass`, `McpServer`) and in
   constructor defaults.
-- AST nodes carry per-`EvalState` reference caches (see below), so a `ProgramLine`'s cached `Stmt`
-  list must never be shared between two interpreter instances.
+- AST variable/array nodes carry an immutable `id` (see below), assigned by whichever
+  `VarIdAllocator` - normally an `EvalState` - first lowers the line; a `ProgramLine`'s cached
+  `Stmt` list must be lowered against the same allocator throughout its lifetime, so still must not
+  be shared between two interpreter instances that don't agree on ids.
 
 ### Parse tree vs. AST
 
@@ -300,8 +302,8 @@ Statement execution never calls back into the interpreter; it only returns a `Co
 ### State lifecycle
 
 `EvalState.clear()` blanks the _contents_ of the variable reference objects (`NumVarRef`,
-`NumArrayRef`, `StrVarRef`, `FnDefRef`) but keeps the objects themselves alive. This is what keeps
-references cached on AST nodes valid across `CLEAR`/`RUN`. Editing program lines preserves all
+`NumArrayRef`, `StrVarRef`, `FnDefRef`) but keeps the objects, and their ids, alive. This is what
+keeps ids cached on AST nodes valid across `CLEAR`/`RUN`. Editing program lines preserves all
 runtime state (hot-patching, see [quirks.md](../quirks.md)); only `NEW` and `CLEAR` reset it.
 
 ## I/O system (the `io` package)
@@ -423,15 +425,18 @@ effect:
   ANTLR-visitor predecessor this replaced at the parse-tree-to-AST migration had to use side fields,
   since a single visitor type parameter can't cleanly return `double` for one rule family and `BStr`
   for another without boxing; ordinary method returns don't have that restriction).
-- **Variable reference caching**: Variables are normally looked up in
+- **Variable id indexing**: Variables are normally looked up in
   [EvalState](../../app-bazlang/src/main/java/com/davidconneely/bazlang/exec/EvalState.java)'s
-  `VariableStore` maps by their name strings. To avoid continuous hash map lookups during execution
-  (especially in tight loops), the AST's variable/array/subscript nodes (`NumExpr.NumVarExpr`,
-  `NumExpr.NumArrayExpr`, `StrExpr.StrVarExpr`, `StrExpr.StrSubscriptExpr`, and the `AssignTarget`
-  variants) are small mutable classes, not plain records: each carries a nullable, typed `ref` field
-  (e.g. `EvalState.NumVarRef`) that is resolved once on first evaluation and reused thereafter.
-  (This is why cleared variables keep their ref objects, and why a `ProgramLine`'s cached `Stmt`
-  list is bound to one `EvalState` - see "State lifecycle" above.)
+  `VariableStore` by name, through a name-to-id map that also holds the id-indexed `Ref` list itself
+  (`NumVarRef`, `NumArrayRef`, `StrVarRef`). To avoid a hash-map lookup per access in tight loops,
+  the AST's variable/array/subscript nodes (`NumExpr.NumVarExpr`, `NumExpr.NumArrayExpr`,
+  `StrExpr.StrVarExpr`, `StrExpr.StrSubscriptExpr`, and the `AssignTarget` variants) carry a small
+  `final int id` field instead, assigned once by a `VarIdAllocator` (`EvalState` implements it) at
+  lowering time; execution looks the `Ref` back up by array index (`EvalState.numVarRefById` and its
+  siblings) rather than caching a direct reference to it on the node. This keeps every AST node a
+  genuinely immutable value - see `com.davidconneely.bazlang.exec.ast.VarIdAllocator`'s Javadoc for
+  why lowering needs this one narrow dependency, and why a `ProgramLine`'s cached `Stmt` list is
+  still bound to whichever allocator lowered it - see "State lifecycle" above.
 - **Literal and operator resolution at lowering time**: `AstLowering` resolves numeric, binary, and
   string literals, and arithmetic/comparison operators (`Op`), once when lowering a parse tree to
   AST - every other node in the AST is an immutable record - so evaluation never reparses literal

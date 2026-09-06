@@ -66,19 +66,6 @@ source snippets and feeding the resulting contexts to the component under test -
 `ExpressionEvaluatorTest`/`StatementExecutorTest` already use this approach, but cover only a
 handful of cases against a much larger statement and expression surface. Ongoing, not a one-shot.
 
-## Make the AST strictly immutable (Decouple reference caches from AST nodes)
-
-**Type:** debt - **Importance:** medium - **Effort:** medium
-
-AST nodes (`NumVarExpr`, `StrVarExpr`, etc.) currently carry mutable `ref` fields (e.g.
-`EvalState.NumVarRef`) to cache variable lookups. This permanently ties a lowered `ProgramLine`'s
-cached `Stmt` list to a single `EvalState` instance, preventing the sharing of a parsed program
-across multiple interpreter sessions. Moving these caches out of the AST nodes and into the
-`EvalState` (e.g. by assigning each variable reference a unique integer ID at lowering time and
-having `EvalState` hold a flat array of references indexed by that ID) would make the AST strictly
-immutable and thread-safe. This supersedes the "Resolve the threading model" item by enabling true
-concurrent execution of the same AST.
-
 ## Agent-friendly formatting and line-numbering maintenance
 
 **Type:** feature - **Importance:** medium - **Effort:** medium
@@ -208,10 +195,22 @@ separate mechanisms the way BazLang's own design already does.
 **Type:** debt - **Importance:** low - **Effort:** small
 
 `ExpressionEvaluator` still holds `ThreadLocal<DecimalFormat> SCI_FORMAT`/`DEC_FORMAT` for number
-formatting, implying concurrent execution is supported - but the AST's mutable ref-cache fields
-(`NumVarExpr.ref` etc.) already mean a `ProgramLine`'s cached `Stmt` list is not safe to execute
-concurrently. If execution is genuinely single-threaded (it appears to be), a plain field replaces
+formatting, implying concurrent execution is supported - but nothing else in `EvalState` (the
+`forLoops` map, the GOSUB return stack, `ProgramLine.cachedFlatStatements`'s plain, unsynchronized
+first-write) is safe to touch from more than one thread at a time either. AST nodes' variable ids
+are immutable now (see `docs/spec/architecture.md`), which was one barrier to sharing but was never
+the only one. If execution is genuinely single-threaded (it appears to be), a plain field replaces
 those two `ThreadLocal`s.
+
+## Cross-session AST sharing
+
+**Type:** feature - **Importance:** low - **Effort:** large
+
+See [docs/tasks/cross-session-ast-sharing.md](docs/tasks/cross-session-ast-sharing.md) - a
+forward-looking design sketch (not yet started) for letting a compiled `Program` be constructed
+independently of any one `EvalState` and executed by more than one, now that AST nodes carry an
+immutable variable id rather than a mutable per-`EvalState` reference cache. Revisit if a concrete
+use case for concurrent/shared execution appears.
 
 ## `AstLowering`'s over-long `BIN` literal error reports statement 1
 

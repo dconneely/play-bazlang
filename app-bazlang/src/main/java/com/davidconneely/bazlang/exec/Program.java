@@ -2,6 +2,7 @@ package com.davidconneely.bazlang.exec;
 
 import com.davidconneely.bazlang.antlr.AntlrParser;
 import com.davidconneely.bazlang.exec.ast.Stmt;
+import com.davidconneely.bazlang.exec.ast.VarIdAllocator;
 import java.util.Collection;
 import java.util.Map;
 import java.util.NavigableMap;
@@ -194,12 +195,14 @@ public class Program {
    *
    * @param fromLabel the line to start searching from.
    * @param parser the parser to use to flatten each candidate line's statements.
+   * @param ids assigns/reuses variable ids for any line not already lowered.
    * @return the found address, or {@code null} if there is no such statement.
    */
-  public EvalState.StatementAddress findFirstData(int fromLabel, AntlrParser parser) {
+  public EvalState.StatementAddress findFirstData(
+      int fromLabel, AntlrParser parser, VarIdAllocator ids) {
     Integer label = lines.ceilingKey(fromLabel);
     while (label != null) {
-      final var stmts = lines.get(label).getFlattenedStatements(parser);
+      final var stmts = lines.get(label).getFlattenedStatements(parser, ids);
       for (int i = 1; i <= stmts.size(); i++) {
         if (stmts.get(i - 1) instanceof Stmt.DataStmt) {
           return new EvalState.StatementAddress(label, i);
@@ -219,14 +222,19 @@ public class Program {
    * @param fromLabel the line to start searching from.
    * @param fromStatementIndex the flat statement index within {@code fromLabel} to start from.
    * @param parser the parser to use to flatten each candidate line's statements.
+   * @param ids assigns/reuses variable ids for any line not already lowered.
    * @return the found address, or {@code null} if there is no such statement.
    */
   public EvalState.StatementAddress findMatchingNext(
-      String forVar, int fromLabel, int fromStatementIndex, AntlrParser parser) {
+      String forVar,
+      int fromLabel,
+      int fromStatementIndex,
+      AntlrParser parser,
+      VarIdAllocator ids) {
     Integer label = lines.ceilingKey(fromLabel); // == fromLabel itself when present
     int startIdx = fromStatementIndex;
     while (label != null) {
-      final var stmts = lines.get(label).getFlattenedStatements(parser);
+      final var stmts = lines.get(label).getFlattenedStatements(parser, ids);
       for (int i = startIdx; i <= stmts.size(); i++) {
         if (stmts.get(i - 1) instanceof Stmt.NextStmt(String next)
             && next.equalsIgnoreCase(forVar)) {

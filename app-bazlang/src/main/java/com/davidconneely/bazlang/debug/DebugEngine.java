@@ -569,10 +569,10 @@ public final class DebugEngine {
       // numeric parse failed - fall through to a string-expression attempt below
     }
     if (numCtx != null) {
-      return new EvalResult.Num(eval.evalNum(AstLowering.lowerNum(numCtx, 0)));
+      return new EvalResult.Num(eval.evalNum(AstLowering.lowerNum(numCtx, 0, eval.state())));
     }
     var strCtx = parser.parseStrExpr(expr);
-    BStr val = eval.evalStr(AstLowering.lowerStr(strCtx, 0));
+    BStr val = eval.evalStr(AstLowering.lowerStr(strCtx, 0, eval.state()));
     return new EvalResult.Str(val.toJavaString());
   }
 
@@ -588,7 +588,7 @@ public final class DebugEngine {
     } catch (ReportException e) {
       throw new DebugEngineException("Parse error: " + e.getMessage());
     }
-    List<Stmt> lowered = AstLowering.lowerStatements(stmts, 0);
+    List<Stmt> lowered = AstLowering.lowerStatements(stmts, 0, executor.exprEvaluator().state());
     if (lowered.size() != 1 || !(lowered.get(0) instanceof Stmt.LetStmt letStmt)) {
       throw new DebugEngineException("! requires exactly one assignment statement");
     }

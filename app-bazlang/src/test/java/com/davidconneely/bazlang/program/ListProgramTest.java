@@ -35,7 +35,7 @@ class ListProgramTest extends BaseProgramTest {
   private void execute(String statement) {
     final var parsed = parser.parseReplLine(statement);
     if (parsed instanceof AntlrParser.ParsedLine.Immediate(var stmts)) {
-      for (var stmt : AstLowering.lowerStatements(stmts, 0)) {
+      for (var stmt : AstLowering.lowerStatements(stmts, 0, executor.exprEvaluator().state())) {
         executor.execute(stmt);
       }
     }

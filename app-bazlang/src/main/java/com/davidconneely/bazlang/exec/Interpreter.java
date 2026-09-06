@@ -120,7 +120,7 @@ public class Interpreter {
             state.currentStatementIndex(),
             "Statement lost");
       }
-      final var stmts = line.getFlattenedStatements(parser);
+      final var stmts = line.getFlattenedStatements(parser, state);
       if (startIndex < 1 || startIndex > stmts.size() + 1) {
         state.setRunning(false);
         throw new ReportException(

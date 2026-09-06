@@ -142,7 +142,7 @@ public class StatementExecutor {
    * @return the evaluated value.
    */
   public double evalNum(NumExprContext ctx) {
-    return exprEvaluator.evalNum(AstLowering.lowerNum(ctx, state.currentLineLabel()));
+    return exprEvaluator.evalNum(AstLowering.lowerNum(ctx, state.currentLineLabel(), state));
   }
 
   /**
@@ -288,7 +288,8 @@ public class StatementExecutor {
                   stmt.forVar(),
                   state.currentLineLabel(),
                   state.currentStatementIndex() + 1,
-                  parser);
+                  parser,
+                  state);
       if (addr == null) {
         throw codedException(ReportCode.FOR_WITHOUT_NEXT, "FOR without NEXT");
       }
@@ -386,7 +387,7 @@ public class StatementExecutor {
   // ===== DATA / READ / RESTORE =====
 
   private void restoreTo(int target) {
-    final var addr = state.program().findFirstData(target, parser);
+    final var addr = state.program().findFirstData(target, parser, state);
     if (addr != null) {
       state.setDataPointer(new EvalState.DataPointer(addr.lineLabel(), addr.statementIndex(), 0));
     } else {
@@ -407,7 +408,7 @@ public class StatementExecutor {
       if (line == null) {
         throw codedException(ReportCode.STATEMENT_LOST, "Statement lost");
       }
-      final var stmts = line.getFlattenedStatements(parser);
+      final var stmts = line.getFlattenedStatements(parser, state);
       final int stmtIdx = state.dataPointer().statementIndex();
       if (!(stmts.get(stmtIdx - 1) instanceof Stmt.DataStmt dataStmt)) {
         throw codedException(ReportCode.STATEMENT_LOST, "Statement lost");
@@ -1063,19 +1064,11 @@ public class StatementExecutor {
 
   private void assignNumTarget(AssignTarget target, double val) {
     if (target instanceof AssignTarget.NumScalarTarget scalar) {
-      var ref = scalar.ref;
-      if (ref == null) {
-        ref = state.getOrAddNumVar(scalar.name);
-        scalar.ref = ref;
-      }
+      final var ref = state.numVarRefById(scalar.id);
       ref.value = val;
       ref.initialised = true;
     } else if (target instanceof AssignTarget.NumArrayTarget array) {
-      var ref = array.ref;
-      if (ref == null) {
-        ref = state.getOrAddNumArray(array.name);
-        array.ref = ref;
-      }
+      final var ref = state.numArrayRefById(array.id);
       if (ref.array == null) {
         throw codedException(ReportCode.VARIABLE_NOT_FOUND, "Undefined array: " + array.name);
       }
@@ -1093,11 +1086,7 @@ public class StatementExecutor {
   }
 
   private void assignStrTarget(AssignTarget.StrTarget target, BStr val) {
-    var ref = target.ref;
-    if (ref == null) {
-      ref = state.getOrAddStrVar(target.name);
-      target.ref = ref;
-    }
+    final var ref = state.strVarRefById(target.id);
     final var subscript = target.subscript;
     if (subscript == null) {
       assignStrSubscriptNull(ref, val);

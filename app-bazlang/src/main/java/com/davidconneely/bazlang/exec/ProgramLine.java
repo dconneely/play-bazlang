@@ -4,6 +4,7 @@ import com.davidconneely.bazlang.antlr.AntlrParser;
 import com.davidconneely.bazlang.antlr.BazLangParser.StatementsContext;
 import com.davidconneely.bazlang.exec.ast.AstLowering;
 import com.davidconneely.bazlang.exec.ast.Stmt;
+import com.davidconneely.bazlang.exec.ast.VarIdAllocator;
 import java.util.List;
 
 /**
@@ -51,17 +52,21 @@ public class ProgramLine {
    * AstLowering#lowerStatements} and {@link Stmt}'s class Javadoc for the "flat skip-scan" quirk
    * this preserves.
    *
+   * <p>{@code ids} must be the same allocator across every line of one programme (normally the
+   * {@code EvalState} that owns it), so that two lines lowered at different times still agree on
+   * the id for a given variable name - each AST node bakes its id in as a {@code final} field at
+   * lowering time (see {@link com.davidconneely.bazlang.exec.ast.NumExpr} class Javadoc), so once a
+   * line is cached here, its ids don't change even if {@code CLEAR} resets the values they point
+   * at.
+   *
    * @param parser the parser to use if this line hasn't been lowered yet.
+   * @param ids assigns/reuses variable ids for the AST nodes constructed, if not already cached.
    * @return the flattened, lowered statement list.
    */
-  public List<Stmt> getFlattenedStatements(AntlrParser parser) {
+  public List<Stmt> getFlattenedStatements(AntlrParser parser, VarIdAllocator ids) {
     if (cachedFlatStatements == null) {
-      // Mutable state (like EvalState variable references) is cached directly on the AST nodes as
-      // an intentional performance optimisation. When CLEAR is executed, EvalState.clear() zeroes
-      // out the contents of those cached references in place rather than replacing the objects, so
-      // this cached statement list remains valid and does not need to be discarded.
       cachedFlatStatements =
-          AstLowering.lowerStatements(parser.parseStatementsContext(sourceText), lineNumber);
+          AstLowering.lowerStatements(parser.parseStatementsContext(sourceText), lineNumber, ids);
     }
     return cachedFlatStatements;
   }

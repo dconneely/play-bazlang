@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.davidconneely.bazlang.antlr.AntlrParser;
+import com.davidconneely.bazlang.exec.EvalState;
 import java.util.List;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -21,8 +22,10 @@ class AstLoweringStatementTest {
 
   private static final AntlrParser PARSER = new AntlrParser();
 
+  // A fresh EvalState per call is fine - these are structural checks, not behaviour tests, so no
+  // assertion depends on the specific ids assigned.
   private static List<Stmt> lower(String source) {
-    return AstLowering.lowerStatements(PARSER.parseStatementsContext(source), 10);
+    return AstLowering.lowerStatements(PARSER.parseStatementsContext(source), 10, new EvalState());
   }
 
   @Nested

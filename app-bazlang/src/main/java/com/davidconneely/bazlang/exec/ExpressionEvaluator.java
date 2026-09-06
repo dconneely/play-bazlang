@@ -49,6 +49,17 @@ public class ExpressionEvaluator {
   }
 
   /**
+   * The interpreter state this evaluator evaluates against - also the {@code VarIdAllocator} to use
+   * when lowering a further one-off expression (e.g. a breakpoint's {@code ?expr} condition) so it
+   * agrees with this evaluator's own variable ids.
+   *
+   * @return the state.
+   */
+  public EvalState state() {
+    return state;
+  }
+
+  /**
    * The screen this evaluator reads from.
    *
    * @return the screen.
@@ -97,11 +108,7 @@ public class ExpressionEvaluator {
   }
 
   private double evalNumVar(NumExpr.NumVarExpr v) {
-    var ref = v.ref;
-    if (ref == null) {
-      ref = state.getOrAddNumVar(v.name);
-      v.ref = ref;
-    }
+    final var ref = state.numVarRefById(v.id);
     if (!ref.initialised) {
       throw codedException(ReportCode.VARIABLE_NOT_FOUND, "Undefined variable: " + ref.name);
     }
@@ -109,11 +116,7 @@ public class ExpressionEvaluator {
   }
 
   private double evalNumArray(NumExpr.NumArrayExpr a) {
-    var ref = a.ref;
-    if (ref == null) {
-      ref = state.getOrAddNumArray(a.name);
-      a.ref = ref;
-    }
+    final var ref = state.numArrayRefById(a.id);
     if (ref.array == null) {
       throw codedException(ReportCode.VARIABLE_NOT_FOUND, "Undefined array: " + ref.name);
     }
@@ -344,11 +347,7 @@ public class ExpressionEvaluator {
   }
 
   private BStr evalStrVar(StrExpr.StrVarExpr v) {
-    var ref = v.ref;
-    if (ref == null) {
-      ref = state.getOrAddStrVar(v.name);
-      v.ref = ref;
-    }
+    final var ref = state.strVarRefById(v.id);
     if (ref.value == null) {
       throw codedException(ReportCode.VARIABLE_NOT_FOUND, "Undefined string: " + ref.name);
     }
@@ -367,11 +366,7 @@ public class ExpressionEvaluator {
   }
 
   private BStr evalStrSubscriptExpr(StrExpr.StrSubscriptExpr s) {
-    var ref = s.ref;
-    if (ref == null) {
-      ref = state.getOrAddStrVar(s.name);
-      s.ref = ref;
-    }
+    final var ref = state.strVarRefById(s.id);
     if (ref.value == null) {
       throw codedException(ReportCode.VARIABLE_NOT_FOUND, "Undefined string array: " + ref.name);
     }
@@ -640,7 +635,7 @@ public class ExpressionEvaluator {
       throw codedException(ReportCode.NONSENSE_IN_BASIC, "Empty expression");
     }
     final var exprCtx = parser.parseNumExpr(exprStr);
-    return evalNum(AstLowering.lowerNum(exprCtx, state.currentLineLabel()));
+    return evalNum(AstLowering.lowerNum(exprCtx, state.currentLineLabel(), state));
   }
 
   /**
@@ -655,7 +650,7 @@ public class ExpressionEvaluator {
       throw codedException(ReportCode.NONSENSE_IN_BASIC, "Empty expression");
     }
     final var exprCtx = parser.parseStrExpr(exprStr);
-    return evalStr(AstLowering.lowerStr(exprCtx, state.currentLineLabel()));
+    return evalStr(AstLowering.lowerStr(exprCtx, state.currentLineLabel(), state));
   }
 
   private static final double ULP0 = 1e-39;

@@ -3,6 +3,7 @@ package com.davidconneely.bazlang.exec;
 import com.davidconneely.bazlang.BStr;
 import com.davidconneely.bazlang.ReportCode;
 import com.davidconneely.bazlang.exec.ast.Expr;
+import com.davidconneely.bazlang.exec.ast.VarIdAllocator;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -18,8 +19,15 @@ import java.util.TreeMap;
  * styles/graphics-cursor state remain direct fields - see {@link #clear()} for exactly what each of
  * {@code NEW}/{@code CLEAR} resets. Where to jump or resume next is not state here at all - see
  * {@link Interpreter#resume(int, int)}.
+ *
+ * <p>Implements {@link VarIdAllocator}, delegating to {@link VariableStore}: {@code AstLowering}
+ * calls this to bake a stable numeric/string variable id into an AST node's immutable field at
+ * lowering time (see {@link com.davidconneely.bazlang.exec.ast.NumExpr.NumVarExpr} and its
+ * siblings), and the execution-time fast path looks the {@code Ref} back up by that id via {@link
+ * #numVarRefById}/{@link #numArrayRefById}/{@link #strVarRefById} instead of caching a direct
+ * reference to it on the node.
  */
-public class EvalState {
+public class EvalState implements VarIdAllocator {
   /**
    * A dimensioned numeric array's shape and contents, flattened into one {@code double[]}.
    *
@@ -404,6 +412,51 @@ public class EvalState {
    */
   public FnDefRef getOrAddFnDef(String name) {
     return variables.getOrAddFnDef(name);
+  }
+
+  @Override
+  public int numVarId(String name) {
+    return variables.numVarId(name);
+  }
+
+  @Override
+  public int numArrayId(String name) {
+    return variables.numArrayId(name);
+  }
+
+  @Override
+  public int strVarId(String name) {
+    return variables.strVarId(name);
+  }
+
+  /**
+   * The scalar numeric variable reference at the given id, as assigned by {@link #numVarId}.
+   *
+   * @param id the variable's id.
+   * @return the reference.
+   */
+  public NumVarRef numVarRefById(int id) {
+    return variables.numVarRefById(id);
+  }
+
+  /**
+   * The numeric array reference at the given id, as assigned by {@link #numArrayId}.
+   *
+   * @param id the array's id.
+   * @return the reference.
+   */
+  public NumArrayRef numArrayRefById(int id) {
+    return variables.numArrayRefById(id);
+  }
+
+  /**
+   * The string variable reference at the given id, as assigned by {@link #strVarId}.
+   *
+   * @param id the variable's id.
+   * @return the reference.
+   */
+  public StrVarRef strVarRefById(int id) {
+    return variables.strVarRefById(id);
   }
 
   // ===== Numeric scalar variables =====

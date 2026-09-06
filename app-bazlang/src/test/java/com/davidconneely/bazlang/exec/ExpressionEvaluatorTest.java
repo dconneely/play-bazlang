@@ -60,7 +60,7 @@ class ExpressionEvaluatorTest {
     state.setFn(
         name,
         new EvalState.FnDefinition(
-            name, params, AstLowering.lowerExpression(defStmt.expression(), 0)));
+            name, params, AstLowering.lowerExpression(defStmt.expression(), 0, state)));
   }
 
   @Nested

@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.fail;
 
 import com.davidconneely.bazlang.ReportException;
 import com.davidconneely.bazlang.antlr.AntlrParser;
+import com.davidconneely.bazlang.exec.EvalState;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -26,9 +27,12 @@ class ExampleParseTest {
                   final String content = Files.readString(p);
                   final var program = PARSER.parseProgramLines(content);
                   assertNotNull(program, "Failed to parse example: " + p);
-                  // Trigger lazy parsing of each line to ensure ANTLR successfully parses them
+                  // Trigger lazy parsing of each line to ensure ANTLR successfully parses them. A
+                  // throwaway EvalState is fine here - this test only cares that lowering succeeds,
+                  // not what variable ids it assigns.
+                  final var throwawayState = new EvalState();
                   for (final var line : program.values()) {
-                    line.getFlattenedStatements(PARSER);
+                    line.getFlattenedStatements(PARSER, throwawayState);
                   }
                 } catch (IOException | ReportException e) {
                   fail("Exception parsing example " + p + ": " + e.getMessage(), e);

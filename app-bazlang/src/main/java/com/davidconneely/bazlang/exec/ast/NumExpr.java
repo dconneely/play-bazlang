@@ -1,6 +1,5 @@
 package com.davidconneely.bazlang.exec.ast;
 
-import com.davidconneely.bazlang.exec.EvalState;
 import java.util.List;
 
 /**
@@ -9,11 +8,13 @@ import java.util.List;
  * SIN PI/2} parses as {@code SIN(PI)/2}): lowering either context type for the same underlying
  * expression produces the same node type here.
  *
- * <p>Most cases are plain records. {@link NumVarExpr} and {@link NumArrayExpr} are small mutable
- * classes instead: they carry a nullable, typed, lazily-populated variable-reference cache
- * (replacing the pre-AST grammar's untyped {@code ctx.varRef}, now removed) that avoids a hash-map
- * lookup per access in tight loops. The cache is resolved on first evaluation, not at lowering time
- * - see {@code AstLowering}'s class Javadoc for why.
+ * <p>Most cases are plain records. {@link NumVarExpr} and {@link NumArrayExpr} carry a small final
+ * {@code id} field instead (replacing the pre-AST grammar's untyped {@code ctx.varRef}, now
+ * removed): an integer assigned by a {@link VarIdAllocator} at lowering time, that the
+ * execution-time fast path uses to look its {@code EvalState.NumVarRef}/{@code NumArrayRef} up by
+ * array index instead of a hash-map lookup per access in tight loops. Baking the id in at
+ * construction, rather than caching the resolved {@code Ref} lazily on first evaluation, keeps
+ * these nodes strictly immutable - see {@code AstLowering}'s class Javadoc for why that matters.
  */
 public sealed interface NumExpr extends Expr {
   /**
@@ -29,16 +30,18 @@ public sealed interface NumExpr extends Expr {
     /** The variable's name. */
     public final String name;
 
-    /** Lazily-populated variable-reference cache; see the class Javadoc. */
-    public EvalState.NumVarRef ref;
+    /** The variable's id, assigned at lowering time; see the class Javadoc. */
+    public final int id;
 
     /**
      * Create a reference to the named scalar variable.
      *
      * @param name the variable's name.
+     * @param id the variable's id, from {@link VarIdAllocator#numVarId}.
      */
-    public NumVarExpr(String name) {
+    public NumVarExpr(String name, int id) {
       this.name = name;
+      this.id = id;
     }
   }
 
@@ -50,18 +53,20 @@ public sealed interface NumExpr extends Expr {
     /** The element's index expressions. */
     public final List<NumExpr> indices;
 
-    /** Lazily-populated variable-reference cache; see the class Javadoc. */
-    public EvalState.NumArrayRef ref;
+    /** The array's id, assigned at lowering time; see the class Javadoc. */
+    public final int id;
 
     /**
      * Create a reference to one element of the named array.
      *
      * @param name the array's name.
      * @param indices the element's index expressions.
+     * @param id the array's id, from {@link VarIdAllocator#numArrayId}.
      */
-    public NumArrayExpr(String name, List<NumExpr> indices) {
+    public NumArrayExpr(String name, List<NumExpr> indices, int id) {
       this.name = name;
       this.indices = indices;
+      this.id = id;
     }
   }
 

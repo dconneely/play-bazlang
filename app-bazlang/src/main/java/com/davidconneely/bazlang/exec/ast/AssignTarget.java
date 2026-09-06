@@ -1,12 +1,11 @@
 package com.davidconneely.bazlang.exec.ast;
 
-import com.davidconneely.bazlang.exec.EvalState;
 import java.util.List;
 
 /**
  * A lowered {@code assignmentTarget}: the destination of {@code LET}, {@code INPUT}, and {@code
- * READ}. Mirrors the mutable-reference-cache design of {@link NumExpr}'s variable nodes (see its
- * class Javadoc) - the cache is resolved on first assignment, not at lowering time.
+ * READ}. Mirrors the immutable-id design of {@link NumExpr}'s variable nodes (see its class
+ * Javadoc) - the id is assigned at lowering time, not resolved lazily on first assignment.
  */
 public sealed interface AssignTarget {
   /** A scalar numeric variable target, e.g. {@code x}. */
@@ -14,16 +13,18 @@ public sealed interface AssignTarget {
     /** The variable's name. */
     public final String name;
 
-    /** Lazily-populated variable-reference cache; see the class Javadoc. */
-    public EvalState.NumVarRef ref;
+    /** The variable's id, assigned at lowering time; see the class Javadoc. */
+    public final int id;
 
     /**
      * Create a target for the named scalar variable.
      *
      * @param name the variable's name.
+     * @param id the variable's id, from {@link VarIdAllocator#numVarId}.
      */
-    public NumScalarTarget(String name) {
+    public NumScalarTarget(String name, int id) {
       this.name = name;
+      this.id = id;
     }
   }
 
@@ -35,18 +36,20 @@ public sealed interface AssignTarget {
     /** The element's index expressions. */
     public final List<NumExpr> indices;
 
-    /** Lazily-populated variable-reference cache; see the class Javadoc. */
-    public EvalState.NumArrayRef ref;
+    /** The array's id, assigned at lowering time; see the class Javadoc. */
+    public final int id;
 
     /**
      * Create a target for one element of the named array.
      *
      * @param name the array's name.
      * @param indices the element's index expressions.
+     * @param id the array's id, from {@link VarIdAllocator#numArrayId}.
      */
-    public NumArrayTarget(String name, List<NumExpr> indices) {
+    public NumArrayTarget(String name, List<NumExpr> indices, int id) {
       this.name = name;
       this.indices = indices;
+      this.id = id;
     }
   }
 
@@ -61,18 +64,20 @@ public sealed interface AssignTarget {
     /** The subscript/slice, or {@code null} for a plain scalar target. */
     public final StrSubscript subscript;
 
-    /** Lazily-populated variable-reference cache; see the class Javadoc. */
-    public EvalState.StrVarRef ref;
+    /** The variable's id, assigned at lowering time; see the class Javadoc. */
+    public final int id;
 
     /**
      * Create a target for the named string variable, optionally subscripted.
      *
      * @param name the variable's name.
      * @param subscript the subscript/slice, or {@code null} for a plain scalar target.
+     * @param id the variable's id, from {@link VarIdAllocator#strVarId}.
      */
-    public StrTarget(String name, StrSubscript subscript) {
+    public StrTarget(String name, StrSubscript subscript, int id) {
       this.name = name;
       this.subscript = subscript;
+      this.id = id;
     }
   }
 }

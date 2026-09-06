@@ -15,6 +15,7 @@ The tense of the sentence you are writing usually settles it:
 | "we chose X because Y"                                                               | an ADR                                                                                 |
 | "X used to be Y, now it is Z"                                                        | the changelog                                                                          |
 | "we should do X"                                                                     | the plan                                                                               |
+| "here is how X will work, in more detail than one paragraph"                         | a `docs/tasks/*.md` working note, linked from the plan entry                           |
 | "we knowingly differ from Sinclair ZX BASIC (or from a reasonable expectation) here" | `docs/quirks.md`                                                                       |
 | "the disassembly/manual says X, another source says Y, and X won because..."         | a research note                                                                        |
 | "the schema / grammar / wire format accepts X"                                       | the machine-readable contract, linked from the specification - never restated in prose |
@@ -37,6 +38,7 @@ docs/
   testing.md                 test strategy, and what is deliberately not covered
   adr/*.md                   decisions about the interpreter's design
   research/*.md              reverse-engineering and reference notes
+  tasks/*.md                 working notes for a PLAN.md entry too large for one paragraph
 docs/spec/
   language.md                the language reference (BazLang programmers)
   architecture.md             grammar, Java structure, execution model (interpreter implementers);
@@ -78,6 +80,7 @@ description of one. See "Machine-readable and generated parts" below.
 | `docs/adr/*.md`                             | Why we chose this, for the interpreter's design. **Real convention:** [MADR](https://adr.github.io/madr/) minimal template, after Nygard 2011; see also [adr.github.io](https://adr.github.io) and [adr-tools](https://github.com/npryce/adr-tools)                                                                        | past       | immutable          | future maintainers                                                                                         |
 | `CHANGELOG.md`                              | What shipped, user-visible, across the whole repository. **Real standard:** [Keep a Changelog](https://keepachangelog.com) + [SemVer](https://semver.org); generatable from [Conventional Commits](https://www.conventionalcommits.org), which this repository already writes                                              | past       | append-only        | users                                                                                                      |
 | `PLAN.md`                                   | Single ranked backlog, items tagged bug/debt/feature/docs. **No standard**, and no named source - the closest analogue is the RFC/design-doc tradition, which prescribes no root-level file of this name                                                                                                                   | future     | volatile           | the team                                                                                                   |
+| `docs/tasks/*.md`                           | A working note for one `PLAN.md` entry too large for its one paragraph - design, approach, and progress for a single piece of backlog work. **No standard.** Nearest analogue is a design-doc/RFC, scoped down to one backlog item rather than a whole proposal process                                                    | future     | volatile           | whoever picks up that backlog item                                                                         |
 | `docs/quirks.md`                            | Deliberate deviations from Sinclair ZX BASIC, and bugs knowingly left unfixed - the one artifact that says _do not change this_. **No standard.** Nearest analogues are W3C conformance clauses and browser-compat tables                                                                                                  | present    | rewritten in place | BazLang programmers comparing against ZX BASIC, and anyone - human or agent - about to "fix" something odd |
 | `docs/research/*.md`                        | Sourced findings with explicit confidence levels - chiefly reverse-engineering reference material (disassemblies, ports, manuals) for BazLang features modelled on original Sinclair software. **No standard.** Orthodox home is an ADR's _Context_ section; splitting it out suits a project that does real investigation | past       | append-only        | implementers                                                                                               |
 | `docs/testing.md`                           | Test strategy, and what is deliberately _not_ covered. ISO/IEC/IEEE 29119-3 exists (superseded IEEE 829) but is enterprise-heavy for this project                                                                                                                                                                          | present    | rewritten in place | contributors                                                                                               |
@@ -87,38 +90,40 @@ description of one. See "Machine-readable and generated parts" below.
 
 ## Lifecycle
 
-| Artifact                                    | Created when                                    | Removed / closed when                                            |
-| ------------------------------------------- | ----------------------------------------------- | ---------------------------------------------------------------- |
-| `DOC-MAP.md`                                | the structure is first agreed                   | never - revised when an artifact is added, removed or repurposed |
-| `README.md`                                 | project starts                                  | never                                                            |
-| `app-bazlang/README.md`                     | the module is created                           | never                                                            |
-| `lib-cell/README.md`                        | the module is created                           | never                                                            |
-| `lib-repl/README.md`                        | the module is created                           | never                                                            |
-| `SPECIFICATION.md`                          | behaviour is decided                            | never - edited forever                                           |
-| `docs/spec/language.md`                     | behaviour is decided                            | never - edited forever                                           |
-| `docs/spec/architecture.md`                 | behaviour is decided                            | never - edited forever                                           |
-| `docs/spec/mcp.md`                          | behaviour is decided                            | never - edited forever                                           |
-| `docs/adr/*.md`                             | a choice a newcomer would question              | never - status flips to `superseded by ADR-NNNN`                 |
-| `CHANGELOG.md` entry                        | at release, if user-visible                     | never                                                            |
-| `PLAN.md` entry                             | idea occurs - one paragraph, no design          | **deleted** when done, not struck through                        |
-| `docs/quirks.md` entry                      | a deviation is chosen, or a bug accepted        | when the deviation ends                                          |
-| `docs/research/*.md`                        | a question is investigated                      | never - confidence gets revised                                  |
-| `docs/testing.md`                           | the second test approach appears (already true) | never                                                            |
-| `AGENTS.md`                                 | agents first work in this repository            | never                                                            |
-| `CLAUDE.md`                                 | agents first work in this repository            | never                                                            |
-| `.agents/skills/renumber_reformat/SKILL.md` | the skill is written                            | the skill is retired                                             |
+| Artifact                                    | Created when                                    | Removed / closed when                                              |
+| ------------------------------------------- | ----------------------------------------------- | ------------------------------------------------------------------ |
+| `DOC-MAP.md`                                | the structure is first agreed                   | never - revised when an artifact is added, removed or repurposed   |
+| `README.md`                                 | project starts                                  | never                                                              |
+| `app-bazlang/README.md`                     | the module is created                           | never                                                              |
+| `lib-cell/README.md`                        | the module is created                           | never                                                              |
+| `lib-repl/README.md`                        | the module is created                           | never                                                              |
+| `SPECIFICATION.md`                          | behaviour is decided                            | never - edited forever                                             |
+| `docs/spec/language.md`                     | behaviour is decided                            | never - edited forever                                             |
+| `docs/spec/architecture.md`                 | behaviour is decided                            | never - edited forever                                             |
+| `docs/spec/mcp.md`                          | behaviour is decided                            | never - edited forever                                             |
+| `docs/adr/*.md`                             | a choice a newcomer would question              | never - status flips to `superseded by ADR-NNNN`                   |
+| `CHANGELOG.md` entry                        | at release, if user-visible                     | never                                                              |
+| `PLAN.md` entry                             | idea occurs - one paragraph, no design          | **deleted** when done, not struck through                          |
+| `docs/tasks/*.md`                           | its `PLAN.md` entry outgrows one paragraph      | **deleted** when the work completes, alongside its `PLAN.md` entry |
+| `docs/quirks.md` entry                      | a deviation is chosen, or a bug accepted        | when the deviation ends                                            |
+| `docs/research/*.md`                        | a question is investigated                      | never - confidence gets revised                                    |
+| `docs/testing.md`                           | the second test approach appears (already true) | never                                                              |
+| `AGENTS.md`                                 | agents first work in this repository            | never                                                              |
+| `CLAUDE.md`                                 | agents first work in this repository            | never                                                              |
+| `.agents/skills/renumber_reformat/SKILL.md` | the skill is written                            | the skill is retired                                               |
 
 ## Flow
 
 A change moves through the documents in this order:
 
-`PLAN.md` entry -> **ADR** if a real choice was made -> **`SPECIFICATION.md`** (or the `docs/`
-member it indexes) updated in present tense -> **`CHANGELOG.md`** line if user-visible -> `PLAN.md`
-entry **deleted**.
+`PLAN.md` entry -> **`docs/tasks/*.md`** if the entry outgrows one paragraph -> **ADR** if a real
+choice was made -> **`SPECIFICATION.md`** (or the `docs/` member it indexes) updated in present
+tense -> **`CHANGELOG.md`** line if user-visible -> `PLAN.md` entry (and its `docs/tasks/*.md` note,
+if any) **deleted**.
 
-Most changes skip the ADR. Nothing skips the deletion. This repository's backlog has stayed small
-enough that no `docs/tasks/*.md` working-note step is needed; add one back (and a row for it in both
-tables above) if the backlog grows past roughly 20 open items.
+Most changes skip the ADR, and most skip `docs/tasks/*.md` too - introduced 2026-09-06 once the
+backlog reached the roughly-20-open-item mark this file used to name as the trigger. Nothing skips
+the deletion.
 
 ## Prescribed formats
 
@@ -146,8 +151,10 @@ reader to reach for the obvious thing may be searching rather than browsing.
 `Added`, `Changed`, `Deprecated`, `Removed`, `Fixed`, `Security`. Entries describe user-visible
 effects - new statements, functions, MCP tools, REPL commands - not internal refactors.
 
-**Plan entry** - a heading, a tag line, then one paragraph. No design; anything longer needs an ADR.
-Entries are deleted when done, never annotated.
+**Plan entry** - a heading, a tag line, then one paragraph. No design; a paragraph that doesn't fit
+becomes a one-line pointer to a `docs/tasks/*.md` note instead (or an ADR, if what's growing is a
+decision's rationale rather than its implementation detail). Entries are deleted when done, never
+annotated.
 
 ```markdown
 ## Short title, imperative
@@ -158,6 +165,13 @@ Entries are deleted when done, never annotated.
   debt-versus-feature trade-off can only be made inside one ordered list.
 - **Importance** - `low`, `medium`, `high`: what it costs to keep not doing this.
 - **Effort** - `low` under a day, `medium` under a week, `high` larger or not yet known.
+
+**Task note** (`docs/tasks/*.md`) - free-form, but starts with a **Context** section (why this
+change, what prompted it, the intended outcome) and ends with a **Status** section (what's done,
+what's left). Everything between is whatever the work needs - a design sketch, a benchmark
+methodology and its results, open questions. Deleted alongside its `PLAN.md` entry when the work
+completes; anything worth keeping past that point belongs in an ADR, the specification, or the
+changelog instead, per the normal Flow above.
 
 **Research note** - sources, and a confidence level of `high` (verified directly against the thing
 itself - e.g. against original disassembly or a working port), `medium` (sources agree, not verified
@@ -238,8 +252,6 @@ Absent on purpose, so that adding any of them later is a decision rather than a 
   archive rather than fix or delete - one stale Copilot-instructions file turned up during adoption
   (with a factually wrong claim, not just an outdated one) and was deleted outright rather than
   archived, since nothing in it was worth keeping.
-- **A general `docs/tasks/` backlog.** Below roughly 20 open items, `PLAN.md` entries hold their own
-  detail without needing a working-note file per item.
 - **A `SPECIFICATION.md`/ADR tree for `lib-cell` or `lib-repl`.** Both are small, internal-only
   libraries with a single consumer (`app-bazlang`) and no external users; their `README.md` already
   states their whole contract, and a library that size does not earn more.

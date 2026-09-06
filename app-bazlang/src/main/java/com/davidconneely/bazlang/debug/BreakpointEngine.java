@@ -126,11 +126,11 @@ public final class BreakpointEngine {
             case EXPR -> {
               try {
                 var numCtx = parser.parseNumExpr(brk.seeText());
-                yield eval.evalNum(AstLowering.lowerNum(numCtx, 0)) != 0.0;
+                yield eval.evalNum(AstLowering.lowerNum(numCtx, 0, eval.state())) != 0.0;
               } catch (ReportException e) {
                 try {
                   var strCtx = parser.parseStrExpr(brk.seeText());
-                  yield !eval.evalStr(AstLowering.lowerStr(strCtx, 0)).isEmpty();
+                  yield !eval.evalStr(AstLowering.lowerStr(strCtx, 0, eval.state())).isEmpty();
                 } catch (ReportException e2) {
                   yield false;
                 }
