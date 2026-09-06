@@ -162,8 +162,8 @@ BazLang's design already makes.
 
 ### COMAL
 
-- <https://dn760101.eu.archive.org/0/items/COMAL_Reference_Guide/COMAL_Reference_Guide_djvu.txt> -
-  full text of Borge R. Christensen's 1984 _COMAL Reference Guide_. Exact syntax:
+- <https://archive.org/download/COMAL_Reference_Guide/COMAL_Reference_Guide_djvu.txt> - full text of
+  Borge R. Christensen's 1984 _COMAL Reference Guide_. Exact syntax:
 
   ```text
   FUNC id [(paramlist)] [CLOSED]

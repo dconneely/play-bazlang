@@ -236,8 +236,8 @@ keyword pairs.
 
 Two independent primary sources cover different points in COMAL's version history.
 
-- <https://dn760101.eu.archive.org/0/items/COMAL_Reference_Guide/COMAL_Reference_Guide_djvu.txt> -
-  the 1984 standard. Two genuinely separate constructs, the BBC-style pair:
+- <https://archive.org/download/COMAL_Reference_Guide/COMAL_Reference_Guide_djvu.txt> - the 1984
+  standard. Two genuinely separate constructs, the BBC-style pair:
 
   ```text
   WHILE <numeric expression> [DO]

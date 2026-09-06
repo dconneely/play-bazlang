@@ -261,8 +261,8 @@ else in the language today.
 
 ### COMAL
 
-- <https://dn760101.eu.archive.org/0/items/COMAL_Reference_Guide/COMAL_Reference_Guide_djvu.txt> -
-  the 1984 _COMAL Reference Guide_. Real, chainable, properly-nested `IF`:
+- <https://archive.org/download/COMAL_Reference_Guide/COMAL_Reference_Guide_djvu.txt> - the 1984
+  _COMAL Reference Guide_. Real, chainable, properly-nested `IF`:
 
   ```text
   IF <logical expression> [THEN]

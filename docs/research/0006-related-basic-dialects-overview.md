@@ -267,11 +267,16 @@ the workaround.
   `qlforum.co.uk` (now dead - no DNS record at all) to `theqlforum.com` in early 2025, keeping
   existing thread IDs, so an old `qlforum.co.uk/viewtopic.php?t=N` link's fix is usually just the
   domain swap.
-- **`dn760101.eu.archive.org` (the COMAL Reference Guide's `_djvu.txt`, cited from
-  `0003`/`0004`/`0005`) times out intermittently from GitHub Actions' runner network despite being a
-  live, working URL** - `link-check.yml` runs lychee with `--accept-timeouts` for this reason:
-  timeouts are reported but don't fail the job, while any other error type (403, DNS, etc.) for the
-  same URL still does, so a genuine future break of the item is still caught.
+- **Never hardcode an archive.org datanode hostname** (`dnNNNNNN.<region>.archive.org`) **in a
+  citation** - `0003`/`0004`/`0005` used to cite the COMAL Reference Guide's `_djvu.txt` via a
+  specific resolved datanode (`dn760101.eu.archive.org`), which went stale: archive.org reassigns
+  items between datanodes over time, and the hardcoded one started erroring in `link-check.yml`
+  while the canonical `archive.org/download/...` form (see below) kept resolving fine, just to a
+  different current datanode. Always cite the canonical `/download/` URL and let it redirect.
+- **`element.zxfiles.net` (NextBASIC/SpecNext manual, cited from the table above) is a real, working
+  URL that's just consistently slow/flaky from GitHub Actions' runner network** - excluded from the
+  `link-check.yml` lychee run for this reason, same treatment as `theqlforum.com` above, rather than
+  treated as a dead link.
 - **Internet Archive's `_djvu.txt` full-text sibling is usually the fastest path to real text** -
   `https://archive.org/download/<item>/<item>_djvu.txt` - skipping PDF extraction entirely. But the
   actual filename can differ from the item's display title (a hyphen present in the title but absent
