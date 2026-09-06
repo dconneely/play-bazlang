@@ -1,6 +1,5 @@
 package com.davidconneely.bazlang.exec;
 
-import com.davidconneely.bazlang.exec.ast.VarIdAllocator;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -13,67 +12,38 @@ import java.util.TreeMap;
  * Extracted so {@code NEW}/{@code CLEAR} have one cohesive collaborator to reset, separate from
  * execution-position and control-flow state.
  *
- * <p>Also implements {@link VarIdAllocator}: each numeric/string scalar or array name is assigned a
- * small integer id, the first time it is seen, alongside its {@code Ref} object - the id and the
- * {@code Ref} are added together, so the two are always in step. {@code AstLowering} calls the
- * allocator once per name at lowering time and bakes the id into the AST node as a {@code final}
- * field (see {@link com.davidconneely.bazlang.exec.ast.NumExpr.NumVarExpr} and its siblings); the
- * execution-time fast path then looks the {@code Ref} up by id (an {@code ArrayList} index) instead
- * of caching a direct reference to it on the node. {@code DEF FN} definitions are looked up by name
- * on every call already (never cached on an AST node), so they carry no id.
+ * <p>Numeric/string scalar and array {@code Ref}s are stored by id, not name - the owning {@link
+ * Program} is the actual authority for "what id does variable name X have" (see its {@code
+ * VarIdAllocator} implementation), since a {@code Program} - unlike this store - can be reused
+ * across more than one {@code EvalState}. This store just holds one session's *values*, indexed by
+ * whatever id {@code Program} hands back for a name, growing its id-indexed lists on demand (asking
+ * {@code Program} for a newly-visible slot's name, since a slot minted by a *different* session may
+ * be new to this one). {@code DEF FN} definitions are looked up by name on every call already
+ * (never id-cached), so they stay name-keyed and per-session, with no `Program` involvement.
  */
-final class VariableStore implements VarIdAllocator {
-  private final Map<String, Integer> numScalarIds = new HashMap<>();
+final class VariableStore {
+  private final Program program;
+
   private final List<EvalState.NumVarRef> numScalarsById = new ArrayList<>();
-
-  private final Map<String, Integer> numArrayIds = new HashMap<>();
   private final List<EvalState.NumArrayRef> numArraysById = new ArrayList<>();
-
-  private final Map<String, Integer> strVarIds = new HashMap<>();
   private final List<EvalState.StrVarRef> strVarsById = new ArrayList<>();
 
   private final Map<String, EvalState.FnDefRef> fnDefinitions = new HashMap<>();
 
-  @Override
-  public int numVarId(String name) {
-    return numScalarIds.computeIfAbsent(
-        name,
-        n -> {
-          numScalarsById.add(new EvalState.NumVarRef(n));
-          return numScalarsById.size() - 1;
-        });
-  }
-
-  @Override
-  public int numArrayId(String name) {
-    return numArrayIds.computeIfAbsent(
-        name,
-        n -> {
-          numArraysById.add(new EvalState.NumArrayRef(n));
-          return numArraysById.size() - 1;
-        });
-  }
-
-  @Override
-  public int strVarId(String name) {
-    return strVarIds.computeIfAbsent(
-        name,
-        n -> {
-          strVarsById.add(new EvalState.StrVarRef(n));
-          return strVarsById.size() - 1;
-        });
+  VariableStore(Program program) {
+    this.program = program;
   }
 
   EvalState.NumVarRef getOrAddNumVar(String name) {
-    return numScalarsById.get(numVarId(name));
+    return numVarRefById(program.numVarId(name));
   }
 
   EvalState.NumArrayRef getOrAddNumArray(String name) {
-    return numArraysById.get(numArrayId(name));
+    return numArrayRefById(program.numArrayId(name));
   }
 
   EvalState.StrVarRef getOrAddStrVar(String name) {
-    return strVarsById.get(strVarId(name));
+    return strVarRefById(program.strVarId(name));
   }
 
   EvalState.FnDefRef getOrAddFnDef(String name) {
@@ -83,28 +53,35 @@ final class VariableStore implements VarIdAllocator {
   // ===== Id-based lookups (the AST fast path) =====
 
   EvalState.NumVarRef numVarRefById(int id) {
+    while (numScalarsById.size() <= id) {
+      numScalarsById.add(new EvalState.NumVarRef(program.numVarName(numScalarsById.size())));
+    }
     return numScalarsById.get(id);
   }
 
   EvalState.NumArrayRef numArrayRefById(int id) {
+    while (numArraysById.size() <= id) {
+      numArraysById.add(new EvalState.NumArrayRef(program.numArrayName(numArraysById.size())));
+    }
     return numArraysById.get(id);
   }
 
   EvalState.StrVarRef strVarRefById(int id) {
+    while (strVarsById.size() <= id) {
+      strVarsById.add(new EvalState.StrVarRef(program.strVarName(strVarsById.size())));
+    }
     return strVarsById.get(id);
   }
 
   // ===== Numeric scalar variables =====
 
   boolean hasNumVar(String name) {
-    Integer id = numScalarIds.get(name);
-    EvalState.NumVarRef ref = (id != null) ? numScalarsById.get(id) : null;
+    EvalState.NumVarRef ref = knownNumVarRef(name);
     return ref != null && ref.initialised;
   }
 
   double numVar(String name) {
-    Integer id = numScalarIds.get(name);
-    EvalState.NumVarRef ref = (id != null) ? numScalarsById.get(id) : null;
+    EvalState.NumVarRef ref = knownNumVarRef(name);
     if (ref != null && ref.initialised) {
       return ref.value;
     }
@@ -112,8 +89,7 @@ final class VariableStore implements VarIdAllocator {
   }
 
   EvalState.NumVarRef getNumVarRef(String name) {
-    Integer id = numScalarIds.get(name);
-    return (id != null) ? numScalarsById.get(id) : null;
+    return knownNumVarRef(name);
   }
 
   void setNumVar(String name, double val) {
@@ -123,29 +99,43 @@ final class VariableStore implements VarIdAllocator {
   }
 
   void removeNumVar(String name) {
-    Integer id = numScalarIds.get(name);
-    if (id != null) {
-      numScalarsById.get(id).initialised = false;
+    EvalState.NumVarRef ref = knownNumVarRef(name);
+    if (ref != null) {
+      ref.initialised = false;
     }
+  }
+
+  /**
+   * Looks up a scalar numeric variable by name without minting a new id, and without growing this
+   * session's storage past what it already holds - a name known to {@code Program} but never
+   * touched by *this* session (e.g. assigned by a different session reusing the same {@code
+   * Program}) correctly reports "not present" rather than an uninitialised slot it just created.
+   */
+  private EvalState.NumVarRef knownNumVarRef(String name) {
+    Integer id = program.numVarIdIfPresent(name);
+    return (id != null && id < numScalarsById.size()) ? numScalarsById.get(id) : null;
   }
 
   // ===== Numeric arrays =====
 
   boolean hasNumArray(String name) {
-    Integer id = numArrayIds.get(name);
-    EvalState.NumArrayRef ref = (id != null) ? numArraysById.get(id) : null;
+    EvalState.NumArrayRef ref = knownNumArrayRef(name);
     return ref != null && ref.array != null;
   }
 
   EvalState.NumArray numArray(String name) {
-    Integer id = numArrayIds.get(name);
-    EvalState.NumArrayRef ref = (id != null) ? numArraysById.get(id) : null;
+    EvalState.NumArrayRef ref = knownNumArrayRef(name);
     return (ref != null) ? ref.array : null;
   }
 
   void setNumArray(String name, EvalState.NumArray arr) {
     EvalState.NumArrayRef ref = getOrAddNumArray(name);
     ref.array = arr;
+  }
+
+  private EvalState.NumArrayRef knownNumArrayRef(String name) {
+    Integer id = program.numArrayIdIfPresent(name);
+    return (id != null && id < numArraysById.size()) ? numArraysById.get(id) : null;
   }
 
   /**
@@ -164,14 +154,12 @@ final class VariableStore implements VarIdAllocator {
   // ===== String variables (Scalar and Array) =====
 
   boolean hasStrVar(String name) {
-    Integer id = strVarIds.get(name);
-    EvalState.StrVarRef ref = (id != null) ? strVarsById.get(id) : null;
+    EvalState.StrVarRef ref = knownStrVarRef(name);
     return ref != null && ref.value != null;
   }
 
   EvalState.StrVar strVar(String name) {
-    Integer id = strVarIds.get(name);
-    EvalState.StrVarRef ref = (id != null) ? strVarsById.get(id) : null;
+    EvalState.StrVarRef ref = knownStrVarRef(name);
     return (ref != null) ? ref.value : null;
   }
 
@@ -181,10 +169,15 @@ final class VariableStore implements VarIdAllocator {
   }
 
   void removeStrVar(String name) {
-    Integer id = strVarIds.get(name);
-    if (id != null) {
-      strVarsById.get(id).value = null;
+    EvalState.StrVarRef ref = knownStrVarRef(name);
+    if (ref != null) {
+      ref.value = null;
     }
+  }
+
+  private EvalState.StrVarRef knownStrVarRef(String name) {
+    Integer id = program.strVarIdIfPresent(name);
+    return (id != null && id < strVarsById.size()) ? strVarsById.get(id) : null;
   }
 
   Map<String, Double> variablesSnapshot() {
@@ -250,8 +243,7 @@ final class VariableStore implements VarIdAllocator {
 
   /**
    * Clears every variable/array/function's *value* (matching {@code CLEAR}) without discarding the
-   * name-keyed ref objects or their ids - other AST nodes already hold the id baked in as an
-   * immutable field.
+   * ref objects or their ids - other AST nodes already hold the id baked in as an immutable field.
    */
   void clear() {
     for (EvalState.NumVarRef ref : numScalarsById) {

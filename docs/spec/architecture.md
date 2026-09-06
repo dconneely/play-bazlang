@@ -231,9 +231,11 @@ Facts an implementer needs before restructuring anything:
   `AntlrParser.INSTANCE` is named only at composition roots (`MainClass`, `McpServer`) and in
   constructor defaults.
 - AST variable/array nodes carry an immutable `id` (see below), assigned by whichever
-  `VarIdAllocator` - normally an `EvalState` - first lowers the line; a `ProgramLine`'s cached
-  `Stmt` list must be lowered against the same allocator throughout its lifetime, so still must not
-  be shared between two interpreter instances that don't agree on ids.
+  `VarIdAllocator` - `Program` itself - first lowers the line; a `ProgramLine`'s cached `Stmt` list
+  can be shared by more than one `EvalState` over the same `Program` (each still agrees on ids,
+  since `Program` is the one allocator), as long as sessions take turns rather than executing
+  concurrently
+  - see "Variable id indexing" below.
 
 ### Parse tree vs. AST
 
@@ -425,18 +427,29 @@ effect:
   ANTLR-visitor predecessor this replaced at the parse-tree-to-AST migration had to use side fields,
   since a single visitor type parameter can't cleanly return `double` for one rule family and `BStr`
   for another without boxing; ordinary method returns don't have that restriction).
-- **Variable id indexing**: Variables are normally looked up in
-  [EvalState](../../app-bazlang/src/main/java/com/davidconneely/bazlang/exec/EvalState.java)'s
-  `VariableStore` by name, through a name-to-id map that also holds the id-indexed `Ref` list itself
-  (`NumVarRef`, `NumArrayRef`, `StrVarRef`). To avoid a hash-map lookup per access in tight loops,
-  the AST's variable/array/subscript nodes (`NumExpr.NumVarExpr`, `NumExpr.NumArrayExpr`,
+- **Variable id indexing**: Variables are normally looked up by name, but not in `EvalState` -
+  [Program](../../app-bazlang/src/main/java/com/davidconneely/bazlang/exec/Program.java) is the
+  actual id authority (implements `VarIdAllocator`), so that a compiled `Program` - its
+  `ProgramLine`s, their lowered/cached `Stmt` lists, and the ids baked into those lists' AST nodes -
+  can be handed from one `EvalState` to a later one, letting a second session reuse the first's
+  lowering work without re-parsing (see `EvalState(Program)` and
+  `com.davidconneely.bazlang.exec.CrossSessionSharingTest`). `EvalState`'s own
+  [VariableStore](../../app-bazlang/src/main/java/com/davidconneely/bazlang/exec/VariableStore.java)
+  holds only per-session _values_, id-indexed (`NumVarRef`, `NumArrayRef`, `StrVarRef` lists),
+  growing on demand to whatever id `Program` hands back for a name - so two sessions sharing a
+  `Program` see the same ids but independent values. To avoid a hash-map lookup per access in tight
+  loops, the AST's variable/array/subscript nodes (`NumExpr.NumVarExpr`, `NumExpr.NumArrayExpr`,
   `StrExpr.StrVarExpr`, `StrExpr.StrSubscriptExpr`, and the `AssignTarget` variants) carry a small
-  `final int id` field instead, assigned once by a `VarIdAllocator` (`EvalState` implements it) at
-  lowering time; execution looks the `Ref` back up by array index (`EvalState.numVarRefById` and its
-  siblings) rather than caching a direct reference to it on the node. This keeps every AST node a
-  genuinely immutable value - see `com.davidconneely.bazlang.exec.ast.VarIdAllocator`'s Javadoc for
-  why lowering needs this one narrow dependency, and why a `ProgramLine`'s cached `Stmt` list is
-  still bound to whichever allocator lowered it - see "State lifecycle" above.
+  `final int id` field instead, assigned once by a `VarIdAllocator` (`EvalState` delegates to its
+  `Program`) at lowering time; execution looks the `Ref` back up by array index
+  (`EvalState.numVarRefById` and its siblings) rather than caching a direct reference to it on the
+  node. This keeps every AST node a genuinely immutable value - see
+  `com.davidconneely.bazlang.exec.ast.VarIdAllocator`'s Javadoc for why lowering needs this one
+  narrow dependency, and why a `ProgramLine`'s cached `Stmt` list is still bound to whichever
+  allocator lowered it - see "State lifecycle" above. Sessions sharing a `Program` must still take
+  turns: `Program`'s id tables use thread-safe collections, but `ProgramLine.cachedFlatStatements`'s
+  lazy first-write is a plain, unsynchronized field - true concurrent execution of a shared
+  `Program` remains future work, not attempted here.
 - **Literal and operator resolution at lowering time**: `AstLowering` resolves numeric, binary, and
   string literals, and arithmetic/comparison operators (`Op`), once when lowering a parse tree to
   AST - every other node in the AST is an immutable record - so evaluation never reparses literal

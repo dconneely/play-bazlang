@@ -202,15 +202,16 @@ are immutable now (see `docs/spec/architecture.md`), which was one barrier to sh
 the only one. If execution is genuinely single-threaded (it appears to be), a plain field replaces
 those two `ThreadLocal`s.
 
-## Cross-session AST sharing
+## True concurrent execution of a shared `Program`
 
-**Type:** feature - **Importance:** low - **Effort:** large
+**Type:** feature - **Importance:** low - **Effort:** medium
 
-See [docs/tasks/cross-session-ast-sharing.md](docs/tasks/cross-session-ast-sharing.md) - a
-forward-looking design sketch (not yet started) for letting a compiled `Program` be constructed
-independently of any one `EvalState` and executed by more than one, now that AST nodes carry an
-immutable variable id rather than a mutable per-`EvalState` reference cache. Revisit if a concrete
-use case for concurrent/shared execution appears.
+See [the task note](docs/tasks/true-concurrent-program-execution.md) - sequential reuse of a
+compiled `Program` across `EvalState`s is done (`EvalState(Program)`, `Program` now the id
+authority); this item is the narrower remaining gap - two sessions actually executing the same
+`Program` on separate threads at once, which `ProgramLine.cachedFlatStatements`'s unsynchronized
+lazy-init doesn't yet support. Revisit only if a concrete need for true concurrency (not just reuse)
+appears.
 
 ## `AstLowering`'s over-long `BIN` literal error reports statement 1
 

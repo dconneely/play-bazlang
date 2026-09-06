@@ -20,12 +20,15 @@ import java.util.TreeMap;
  * {@code NEW}/{@code CLEAR} resets. Where to jump or resume next is not state here at all - see
  * {@link Interpreter#resume(int, int)}.
  *
- * <p>Implements {@link VarIdAllocator}, delegating to {@link VariableStore}: {@code AstLowering}
- * calls this to bake a stable numeric/string variable id into an AST node's immutable field at
- * lowering time (see {@link com.davidconneely.bazlang.exec.ast.NumExpr.NumVarExpr} and its
- * siblings), and the execution-time fast path looks the {@code Ref} back up by that id via {@link
- * #numVarRefById}/{@link #numArrayRefById}/{@link #strVarRefById} instead of caching a direct
- * reference to it on the node.
+ * <p>Implements {@link VarIdAllocator}, delegating to {@link Program} - the actual id authority,
+ * since a {@code Program} (unlike this state) can be reused by more than one session in turn, see
+ * its class Javadoc. {@code AstLowering} calls this to bake a stable numeric/string variable id
+ * into an AST node's immutable field at lowering time (see {@link
+ * com.davidconneely.bazlang.exec.ast.NumExpr.NumVarExpr} and its siblings), and the execution-time
+ * fast path looks the {@code Ref} back up by that id via {@link #numVarRefById}/{@link
+ * #numArrayRefById}/{@link #strVarRefById} - backed by this state's own {@link VariableStore},
+ * which holds only per-session values, not ids - instead of caching a direct reference to it on the
+ * node.
  */
 public class EvalState implements VarIdAllocator {
   /**
@@ -175,8 +178,8 @@ public class EvalState implements VarIdAllocator {
     }
   }
 
-  private final Program program = new Program();
-  private final VariableStore variables = new VariableStore();
+  private final Program program;
+  private final VariableStore variables;
   private final ReturnStack returnStack = new ReturnStack();
   private final ProgramCounter programCounter = new ProgramCounter();
   private final DataCursor dataCursor = new DataCursor();
@@ -195,8 +198,24 @@ public class EvalState implements VarIdAllocator {
   // - 2^24..2^25-1: 24-bit RGB colour value + 2^24
   private final StyleState defaultStyles = new StyleState();
 
-  /** Create a fresh, empty state. */
-  public EvalState() {}
+  /** Create a fresh state with its own, newly-created {@link Program}. */
+  public EvalState() {
+    this(new Program());
+  }
+
+  /**
+   * Creates a state over an existing {@link Program}, letting a compiled programme - its lines,
+   * their lowered/cached {@code Stmt} lists, and the variable ids baked into them - be reused by a
+   * later session without re-lowering. Sessions sharing a {@code Program} this way must still take
+   * turns (see {@code Program}'s class Javadoc); this state's own variable values start empty
+   * regardless of what any earlier session using the same {@code Program} had set.
+   *
+   * @param program the programme to run against.
+   */
+  public EvalState(Program program) {
+    this.program = program;
+    this.variables = new VariableStore(program);
+  }
 
   /**
    * The stored program.
@@ -416,17 +435,17 @@ public class EvalState implements VarIdAllocator {
 
   @Override
   public int numVarId(String name) {
-    return variables.numVarId(name);
+    return program.numVarId(name);
   }
 
   @Override
   public int numArrayId(String name) {
-    return variables.numArrayId(name);
+    return program.numArrayId(name);
   }
 
   @Override
   public int strVarId(String name) {
-    return variables.strVarId(name);
+    return program.strVarId(name);
   }
 
   /**
