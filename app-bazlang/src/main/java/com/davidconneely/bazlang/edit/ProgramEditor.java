@@ -92,8 +92,8 @@ public class ProgramEditor {
   /**
    * Execute RENUM command with parsed arguments.
    *
-   * @param args the renumber arguments (new start/step, or a sub-range), or {@code null} for
-   *     defaults.
+   * @param args the renumber arguments (a sub-range of existing lines, a new start via {@code
+   *     LINE}, and/or a new {@code STEP}), or {@code null} for defaults.
    */
   public void executeRenum(BazLangParser.RenumArgsContext args) {
     final var program = state.program();
@@ -101,7 +101,7 @@ public class ProgramEditor {
       return;
     }
 
-    final int[] parsedArgs = parseRenumArgs(program, args);
+    final int[] parsedArgs = parseRenumArgs(args);
     final int newStart = parsedArgs[0];
     final int newStep = parsedArgs[1];
     final int oldStart = parsedArgs[2];
@@ -301,40 +301,27 @@ public class ProgramEditor {
   }
 
   /**
-   * Parses a line range for DELETE and REFORMAT: a single number means "just that line"; at least
-   * one number is required.
+   * Parses RENUM's arguments (SAM Coupé BASIC style: {@code [m? TO n?] [LINE l] [STEP s]}). The
+   * {@code m TO n} part reuses {@link #parseDeleteReformatLineRange}, so a single number there
+   * means "just that line", the same as DELETE/REFORMAT.
    */
-  private int[] parseRenumArgs(Program program, BazLangParser.RenumArgsContext args) {
+  private int[] parseRenumArgs(BazLangParser.RenumArgsContext args) {
     int newStart = 10;
     int newStep = 10;
-    int oldStart = program.firstKey();
-    int oldEnd = program.lastKey();
+    int oldStart = Limits.MIN_TARGET_LABEL;
+    int oldEnd = Limits.MAX_TARGET_LABEL;
 
     if (args != null) {
-      boolean seenStep = false;
-      boolean seenComma = false;
-      boolean seenTo = false;
-
-      for (int i = 0; i < args.getChildCount(); i++) {
-        var child = args.getChild(i);
-        if (child.equals(args.STEP())) {
-          seenStep = true;
-        } else if (child.getText().equals(",")) {
-          seenComma = true;
-        } else if (child.equals(args.TO())) {
-          seenTo = true;
-        } else if (child instanceof BazLangParser.NumExprContext) {
-          int val = (int) numEval.applyAsDouble((BazLangParser.NumExprContext) child);
-          if (!seenStep && !seenComma) {
-            newStart = val;
-          } else if (seenStep && !seenComma) {
-            newStep = val;
-          } else if (seenComma && !seenTo) {
-            oldStart = val;
-          } else if (seenTo) {
-            oldEnd = val;
-          }
-        }
+      if (args.lineRange() != null) {
+        final int[] bounds = parseDeleteReformatLineRange(args.lineRange());
+        oldStart = bounds[0];
+        oldEnd = bounds[1];
+      }
+      if (args.lineNum != null) {
+        newStart = (int) numEval.applyAsDouble(args.lineNum);
+      }
+      if (args.stepNum != null) {
+        newStep = (int) numEval.applyAsDouble(args.stepNum);
       }
     }
     return new int[] {newStart, newStep, oldStart, oldEnd};

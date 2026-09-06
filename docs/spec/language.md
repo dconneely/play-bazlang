@@ -521,15 +521,16 @@ part of a program.
   Reformats the specified range of lines (or all lines if no range is given). It converts keywords
   and function names to uppercase and normalises whitespace around operators and separators.
 
-- **`RENUM [numbering], [lines]`**: Renumber program lines.
+- **`RENUM [lines] [LINE l] [STEP s]`**: Renumber program lines.
 
   ```bas
   RENUM
-  RENUM 100
-  RENUM 100 STEP 5
-  RENUM 100, 50 TO 80
+  RENUM LINE 100
+  RENUM LINE 100 STEP 5
+  RENUM 50 TO 80 LINE 100
   ```
 
-  `RENUM` renumbers all lines starting at 10 with step 10. `RENUM n` starts at `n`. `RENUM n STEP s`
-  uses step `s`. A comma introduces a range: `RENUM n, from TO to` renumbers lines `from` through
-  `to` starting at `n`. Updates `GO TO`/`GO SUB` literal targets automatically.
+  `RENUM` renumbers all lines starting at 10 with step 10. `RENUM LINE l` starts at `l` instead;
+  `RENUM STEP s` uses step `s` instead. An optional leading line range (the same syntax as
+  `DELETE`/`REFORMAT`, e.g. `RENUM 50 TO 80 ...`) renumbers only that sub-range of existing lines,
+  leaving the rest untouched. Updates `GO TO`/`GO SUB` literal targets automatically.

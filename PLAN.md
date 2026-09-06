@@ -4,41 +4,21 @@ Single ranked backlog, most important first. Entries are **deleted** when done, 
 plan that accumulates completed items stops being read. **One paragraph each** - see
 [DOC-MAP.md](DOC-MAP.md).
 
-## Baseline output tests for the interactive example games
+## Scripted-playthrough tests for interactive, input-driven programs
 
 **Type:** debt - **Importance:** high - **Effort:** medium
 
-No automated comparison exists between a scripted playthrough's final screen state and a stored
-snapshot, for games like `lander.bas` or `monster.bas` (see `docs/testing.md` "What is deliberately
-not covered"). Snapshots should be text grids of the cell buffer, not images - the screen is a
-character-cell buffer, text snapshots diff cleanly in review, and `MockScreen` already provides most
-of the machinery.
-
-## Simplify `LIST`/`DELETE`/`REFORMAT`/`RENUM` line-range syntax
-
-**Type:** feature - **Importance:** medium - **Effort:** small
-
-`FOR` is the only place real Sinclair BASIC uses `TO`/`STEP`; `LIST`/`DELETE`/`REFORMAT`'s
-line-range arguments and `RENUM`'s are BazLang's own invention, with no Sinclair dialect having
-typed line-range or renumber syntax at all. Replace the `TO`/`STEP` keyword syntax with
-comma-positional arguments in all four (e.g. `DELETE 10, 100`, `RENUMBER 100, 10, 50, 80`), and
-rename `RENUM` to `RENUMBER` to match the real "Renumber" spelling (confirmed 2026-08-30 against the
-ZX Spectrum +3 manual, though real hardware's Renumber is a fixed-parameter menu option - a
-separate, deeper divergence this item doesn't attempt to close), keeping `RENUM` as a short alias.
-
-## Slash-prefix REPL-only commands (`/delete`, `/edit`, `/renumber`, `/reformat`, `/exit`)
-
-**Type:** feature - **Importance:** medium - **Effort:** medium
-
-`DELETE`, `EDIT`, `RENUM`/`RENUMBER`, and `REFORMAT` are BazLang's only REPL-only commands
-(`replCommand` in `BazLang.g4`), and none exist in any real Sinclair dialect - unlike `LIST`, which
-stays a real keyword because `10 LIST` is authentically valid inside a program. Prefix them with `/`
-(`/delete 10,100`, `/renumber 100,10`), resolving the command name by text at the dispatch layer
-instead of as dedicated keyword tokens, freeing `delete`/`edit`/`renum`/`renumber`/`reformat` for
-use as ordinary variable/array names. Add a new `/exit`, and let `STOP` drop its own undocumented
-REPL-exit special case: `InterpreterReplHandler` currently ends the whole REPL loop when `STOP` is
-typed at line label 0, which no real hardware does and which `Repl.loop`'s existing EOF handling
-already makes redundant.
+No automated coverage exists for a scripted, multi-turn playthrough of an input-driven programme
+that runs a small game loop over time (see `docs/testing.md` "What is deliberately not covered") -
+the shape of thing `lander.bas` or `monster.bas` do. Tests should not run those example files
+directly, though - the example programmes need to stay free to change (including fixing
+`monster.bas`'s known rendering bug) without a test fixture holding them in place. Instead, write
+small purpose-built BazLang fixtures inline in the test class, in the same style
+`ExampleProgramTest` already uses for non-interactive examples, driving `MockScreen`'s scripted
+`inputs`/`inkey`/`uinkey` queues over several turns. Assert on specific resulting state (a score
+variable, a win/lose flag, a cell at a known position) rather than a whole-screen snapshot, matching
+the exact-assertion style every other program-level test already uses rather than introducing
+snapshot or tolerance-based testing.
 
 ## Tab-completion for statement/REPL-command keywords (JLine)
 

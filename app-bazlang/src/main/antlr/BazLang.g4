@@ -104,19 +104,21 @@ dimDecl
     | STR_IDENTIFIER '(' numExpr (',' numExpr)* ')'        // string/char array
     ;
 
-// LIST/DELETE line range using TO (consistent with slice syntax)
+// LIST/DELETE/REFORMAT/RENUM line range using TO (consistent with slice syntax)
 // LIST, LIST 10, LIST 10 TO, LIST TO 100, LIST 10 TO 100, LIST TO
 lineRange
     : numExpr (TO numExpr?)?                               // start or start TO end or start TO
     | TO numExpr?                                          // TO end or just TO (all)
     ;
 
-// RENUM arguments: [new_start] [STEP new_step] [, [old_start] TO [old_end]]
-// At least one component required to avoid ANTLR warning about matching empty string
+// RENUM arguments (SAM Coupé BASIC style): [m? TO n?] [LINE l] [STEP s]
+// m/n reuse the lineRange rule (subset of existing lines to renumber); l is the new starting line
+// number; s is the new step. At least one component required to avoid ANTLR warning about matching
+// empty string.
 renumArgs
-    : numExpr (STEP numExpr)? (',' numExpr? TO numExpr?)?  // new_start with optional STEP and range
-    | STEP numExpr (',' numExpr? TO numExpr?)?             // STEP without new_start
-    | ',' numExpr? TO numExpr?                             // just the range part
+    : lineRange (LINE lineNum=numExpr)? (STEP stepNum=numExpr)?  // range, then optional LINE/STEP
+    | LINE lineNum=numExpr (STEP stepNum=numExpr)?                // LINE without a range
+    | STEP stepNum=numExpr                                        // STEP only
     ;
 
 assignmentTarget
@@ -327,6 +329,7 @@ INK      : 'INK';
 INPUT    : 'INPUT';
 INVERSE  : 'INVERSE';
 LET      : 'LET';
+LINE     : 'LINE';
 LIST     : 'LIST';
 LOAD     : 'LOAD';
 MERGE    : 'MERGE';

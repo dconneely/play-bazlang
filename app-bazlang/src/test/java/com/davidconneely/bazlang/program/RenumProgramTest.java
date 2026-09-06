@@ -61,7 +61,7 @@ class RenumProgramTest extends BaseProgramTest {
     state.program().put(10, new ProgramLine(10, "IF X = 1 THEN GOTO 20"));
     state.program().put(20, new ProgramLine(20, "PRINT \"Target\""));
 
-    final var parsed = PARSER.parseReplLine("RENUM 100");
+    final var parsed = PARSER.parseReplLine("RENUM LINE 100");
     final var ctx = ((AntlrParser.ParsedLine.ReplCommand) parsed).context();
     editor.executeRenum(((BazLangParser.RenumCmdContext) ctx).renumArgs());
 
@@ -77,7 +77,7 @@ class RenumProgramTest extends BaseProgramTest {
     state.program().put(10, new ProgramLine(10, "PRINT \"GOTO 20\""));
     state.program().put(20, new ProgramLine(20, "PRINT \"Target\""));
 
-    final var parsed = PARSER.parseReplLine("RENUM 100");
+    final var parsed = PARSER.parseReplLine("RENUM LINE 100");
     final var ctx = ((AntlrParser.ParsedLine.ReplCommand) parsed).context();
     editor.executeRenum(((BazLangParser.RenumCmdContext) ctx).renumArgs());
 
@@ -93,7 +93,7 @@ class RenumProgramTest extends BaseProgramTest {
     state.program().put(10, new ProgramLine(10, "GOTO 20"));
     state.program().put(20, new ProgramLine(20, "PRINT \"Target\""));
 
-    final var parsed = PARSER.parseReplLine("RENUM 100");
+    final var parsed = PARSER.parseReplLine("RENUM LINE 100");
     final var ctx = ((AntlrParser.ParsedLine.ReplCommand) parsed).context();
     editor.executeRenum(((BazLangParser.RenumCmdContext) ctx).renumArgs());
 
@@ -131,7 +131,7 @@ class RenumProgramTest extends BaseProgramTest {
     state.program().put(10, new ProgramLine(10, "GOTO 15"));
     state.program().put(20, new ProgramLine(20, "PRINT \"Target\""));
 
-    final var parsed = PARSER.parseReplLine("RENUM 100");
+    final var parsed = PARSER.parseReplLine("RENUM LINE 100");
     final var ctx = ((AntlrParser.ParsedLine.ReplCommand) parsed).context();
     editor.executeRenum(((BazLangParser.RenumCmdContext) ctx).renumArgs());
 
@@ -184,11 +184,32 @@ class RenumProgramTest extends BaseProgramTest {
     state.program().put(30, new ProgramLine(30, "PRINT \"WORLD\""));
     state.program().put(40, new ProgramLine(40, "STOP"));
 
-    executeRenumCommand("RENUM 100 STEP 10", editor);
+    executeRenumCommand("RENUM LINE 100 STEP 10", editor);
     // Original line 20 had "GOTO 40", should now be "GOTO 130"
     final var line = state.program().get(110);
     assertNotNull(line);
     assertEquals("GOTO 130", line.sourceText());
+  }
+
+  @Test
+  void testRenumWithRange() {
+    final var state = new EvalState();
+    final var editor = makeEditor(state);
+
+    state.program().put(10, new ProgramLine(10, "GOTO 30"));
+    state.program().put(20, new ProgramLine(20, "PRINT \"HELLO\""));
+    state.program().put(30, new ProgramLine(30, "PRINT \"WORLD\""));
+    state.program().put(40, new ProgramLine(40, "STOP"));
+
+    // Only the 20 TO 30 sub-range is renumbered; 10 and 40 are left in place.
+    executeRenumCommand("RENUM 20 TO 30 LINE 21 STEP 1", editor);
+
+    assertEquals("GOTO 22", state.program().get(10).sourceText());
+    assertTrue(state.program().containsKey(21));
+    assertTrue(state.program().containsKey(22));
+    assertFalse(state.program().containsKey(20));
+    assertFalse(state.program().containsKey(30));
+    assertTrue(state.program().containsKey(40));
   }
 
   @Test
@@ -201,7 +222,7 @@ class RenumProgramTest extends BaseProgramTest {
     state.program().put(30, new ProgramLine(30, "PRINT \"WORLD\""));
     state.program().put(40, new ProgramLine(40, "STOP"));
 
-    executeRenumCommand("RENUM 100", editor);
+    executeRenumCommand("RENUM LINE 100", editor);
     assertTrue(state.program().containsKey(100));
     assertTrue(state.program().containsKey(110));
     assertTrue(state.program().containsKey(120));
@@ -219,7 +240,7 @@ class RenumProgramTest extends BaseProgramTest {
     state.program().put(30, new ProgramLine(30, "PRINT \"WORLD\""));
     state.program().put(40, new ProgramLine(40, "STOP"));
 
-    executeRenumCommand("RENUM 100 STEP 5", editor);
+    executeRenumCommand("RENUM LINE 100 STEP 5", editor);
     assertTrue(state.program().containsKey(100));
     assertTrue(state.program().containsKey(105));
     assertTrue(state.program().containsKey(110));
