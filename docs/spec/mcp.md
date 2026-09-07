@@ -201,7 +201,8 @@ line - `GOSUB`, `PRINT`, `DIM`, `CLS`, `RESTORE`, `RANDOMIZE`, a bare numbered l
 `bazlang_program`'s structured actions for programme management (`new`/`load_file`/`edit_line`/
 etc.) - `exec` supports them too, but without the friendlier per-action argument shape or
 `load_file`/`save_file`'s path-escaping (see above); it's meant for one-off statements like `GOSUB`
-that have no dedicated tool at all.
+that have no dedicated tool at all. `EXIT` is accepted the same way but has no effect - it reports
+`OK` and does nothing, since a debug session has no interactive REPL loop for it to leave.
 
 `vars` returns `structuredContent.numeric`/`.string` (scalar name -> value), `.numericArrays`/
 `.stringArrays` (array name -> dimensions - a string array's entry also carries `stringLength`, the

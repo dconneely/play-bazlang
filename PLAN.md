@@ -4,22 +4,6 @@ Single ranked backlog, most important first. Entries are **deleted** when done, 
 plan that accumulates completed items stops being read. **One paragraph each** - see
 [DOC-MAP.md](DOC-MAP.md).
 
-## Scripted-playthrough tests for interactive, input-driven programs
-
-**Type:** debt - **Importance:** high - **Effort:** medium
-
-No automated coverage exists for a scripted, multi-turn playthrough of an input-driven programme
-that runs a small game loop over time (see `docs/testing.md` "What is deliberately not covered") -
-the shape of thing `lander.bas` or `monster.bas` do. Tests should not run those example files
-directly, though - the example programmes need to stay free to change (including fixing
-`monster.bas`'s known rendering bug) without a test fixture holding them in place. Instead, write
-small purpose-built BazLang fixtures inline in the test class, in the same style
-`ExampleProgramTest` already uses for non-interactive examples, driving `MockScreen`'s scripted
-`inputs`/`inkey`/`uinkey` queues over several turns. Assert on specific resulting state (a score
-variable, a win/lose flag, a cell at a known position) rather than a whole-screen snapshot, matching
-the exact-assertion style every other program-level test already uses rather than introducing
-snapshot or tolerance-based testing.
-
 ## Tab-completion for statement/REPL-command keywords (JLine)
 
 **Type:** feature - **Importance:** medium - **Effort:** medium
@@ -92,6 +76,23 @@ short quiet-window would assume. The working fix waits for `drainPlay()` instead
 [ADR-0007](docs/adr/0007-synchronous-per-call-play-rendering.md)) - rather than inferring idleness
 from any timing heuristic. Worth auditing any other test using `Thread.sleep` for synchronization
 the same way, but confirm this Windows failure actually recurs before spending more effort on it.
+
+## Scripted-playthrough tests for interactive, input-driven programs
+
+**Type:** debt - **Importance:** medium - **Effort:** medium
+
+No automated coverage exists for a scripted, multi-turn playthrough of an input-driven programme
+that runs a small game loop over time (see `docs/testing.md` "What is deliberately not covered") -
+the shape of thing `lander.bas` or `monster.bas` do. Tests should not run those example files
+directly, though - the example programmes need to stay free to change (including fixing
+`monster.bas`'s known rendering bug) without a test fixture holding them in place. Instead, write
+small purpose-built BazLang fixtures inline in the test class, in the same style
+`ExampleProgramTest` already uses for non-interactive examples, driving `MockScreen`'s scripted
+`inputs`/`inkey`/`uinkey` queues over several turns. Assert on specific resulting state (a score
+variable, a win/lose flag, a cell at a known position) rather than a whole-screen snapshot, matching
+the exact-assertion style every other program-level test already uses rather than introducing
+snapshot or tolerance-based testing. Downgraded from high 2026-09-07: other work takes priority
+right now, not a flaw in the item itself.
 
 ## MCP: true `tools/call` cancellation
 

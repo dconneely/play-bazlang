@@ -47,6 +47,7 @@ strExprInput
 replCommand
     : DELETE lineRange?                                    # DeleteCmd
     | EDIT numExpr                                         # EditCmd
+    | EXIT                                                 # ExitCmd
     | RENUM renumArgs?                                     # RenumCmd
     | REFORMAT lineRange?                                  # ReformatCmd
     ;
@@ -317,6 +318,7 @@ DELETE   : 'DELETE';
 DIM      : 'DIM';
 DRAW     : 'DRAW';
 EDIT     : 'EDIT';
+EXIT     : 'EXIT';
 FAST     : 'FAST';
 FLASH    : 'FLASH';
 FN       : 'FN';

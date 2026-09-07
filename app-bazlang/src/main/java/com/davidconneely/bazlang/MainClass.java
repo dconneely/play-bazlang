@@ -90,7 +90,7 @@ public class MainClass {
     final var executor = new StatementExecutor(state, screen, input, speaker);
     final var interpreter = new Interpreter(state, executor);
     final var editor = new ProgramEditor(state, screen, PARSER, executor::evalNum);
-    screen.systemPrintln("BazLang REPL. Type 'STOP' or Ctrl+D at the prompt to exit.");
+    screen.systemPrintln("BazLang REPL. Type 'EXIT' or Ctrl+D at the prompt to exit.");
     final var handler =
         new InterpreterReplHandler(screen, input, PARSER, state, executor, editor, interpreter);
     Repl.loop(input, handler);

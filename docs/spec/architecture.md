@@ -87,9 +87,10 @@ alternative for a numbered program line, one for a REPL command, one for immedia
 
 - **Statements** (`PRINT`, `LET`, `IF`, etc.) can be placed inside numbered program lines, or
   chained together with colons in immediate execution mode (e.g., `PRINT 1 : PRINT 2`).
-- **REPL commands** (`RENUM`, `REFORMAT`, `EDIT`, `DELETE`) modify the program or interact with the
-  editor. They **cannot** be placed inside numbered program lines, they **cannot** be combined with
-  other statements using a colon, and they **must** be the only instruction entered on the line.
+- **REPL commands** (`RENUM`, `REFORMAT`, `EDIT`, `DELETE`, `EXIT`) modify the program, interact
+  with the editor, or control the REPL session itself. They **cannot** be placed inside numbered
+  program lines, they **cannot** be combined with other statements using a colon, and they **must**
+  be the only instruction entered on the line.
 
 ### Adding new features
 
@@ -189,8 +190,11 @@ Under `com.davidconneely.bazlang`:
 - **`BStr`**: The immutable byte-string value type used for all BazLang string values (see
   [language.md](language.md) for its byte semantics).
 - **`InterpreterReplHandler`**: Routes each REPL line - numbered entry (store/delete), REPL-only
-  command (`DELETE`/`EDIT`/`RENUM`/`REFORMAT`, delegated to `ProgramEditor`), or immediate
-  execution - and records the last-report state consumed by `CONT` and shown in the status bar.
+  command (`DELETE`/`EDIT`/`RENUM`/`REFORMAT`, delegated to `ProgramEditor`; `EXIT`, handled
+  inline), or immediate execution - and records the last-report state consumed by `CONT` and shown
+  in the status bar. `EXIT` is the only REPL command that ends the session (`handleReplInput`
+  returning `false`); `STOP` (a statement, not a REPL command) only ever raises `9 STOP statement`
+  and leaves the session running, matching real ZX81/ZX Spectrum BASIC.
 - **`ProgramEditor` / `ReformatVisitor`**: Program-editing commands; `RENUM` also rewrites
   `GO TO`/`GO SUB`/`RESTORE`/`RUN` targets.
 - **`ProgramStorage`**: `SAVE` (plain text, one numbered line per file line, line 0 skipped) and

@@ -115,8 +115,9 @@ class ReplProgramTest extends BaseProgramTest {
   }
 
   @Test
-  void testImmediateModeStopExitsRepl() {
-    // Tests that STOP executed from REPL as an immediate statement returns false to exit the REPL
+  void testImmediateModeStopDoesNotExitRepl() {
+    // STOP only raises a report; it never exits the REPL (matching real ZX81/ZX Spectrum BASIC) -
+    // that's EXIT's job (see testExitCommandExitsRepl below).
     final var state = new EvalState();
     final var screen = new MockScreen(List.of());
     final var executor = new StatementExecutor(state, screen, screen, screen);
@@ -127,7 +128,7 @@ class ReplProgramTest extends BaseProgramTest {
 
     final boolean continueRepl = handler.handleReplInput("STOP");
 
-    assertFalse(continueRepl, "Immediate STOP should return false to exit the REPL");
+    assertTrue(continueRepl, "Immediate STOP should not exit the REPL");
     assertEquals("9 STOP statement, 0:1", screen.getStatus());
   }
 
@@ -148,6 +149,39 @@ class ReplProgramTest extends BaseProgramTest {
 
     assertTrue(continueRepl, "Stored STOP should return true to continue the REPL");
     assertEquals("9 STOP statement, 20:1", screen.getStatus());
+  }
+
+  @Test
+  void testExitCommandExitsRepl() {
+    // EXIT is the dedicated REPL-only command for ending the session.
+    final var state = new EvalState();
+    final var screen = new MockScreen(List.of());
+    final var executor = new StatementExecutor(state, screen, screen, screen);
+    final var interpreter = new Interpreter(state, executor);
+    final var editor = new ProgramEditor(state, screen, PARSER, executor::evalNum);
+    final var handler =
+        new InterpreterReplHandler(screen, screen, PARSER, state, executor, editor, interpreter);
+
+    final boolean continueRepl = handler.handleReplInput("EXIT");
+
+    assertFalse(continueRepl, "EXIT should return false to exit the REPL");
+  }
+
+  @Test
+  void testExitCommandCannotBeStoredInProgramLine() {
+    // EXIT, like the other REPL-only commands, is not a valid statement inside a numbered line.
+    final var state = new EvalState();
+    final var screen = new MockScreen(List.of());
+    final var executor = new StatementExecutor(state, screen, screen, screen);
+    final var interpreter = new Interpreter(state, executor);
+    final var editor = new ProgramEditor(state, screen, PARSER, executor::evalNum);
+    final var handler =
+        new InterpreterReplHandler(screen, screen, PARSER, state, executor, editor, interpreter);
+
+    final boolean continueRepl = handler.handleReplInput("10 EXIT");
+
+    assertTrue(continueRepl);
+    assertEquals(ReportCode.NONSENSE_IN_BASIC, state.lastReport().code());
   }
 
   @Test

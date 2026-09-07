@@ -30,6 +30,8 @@ All notable changes to this project are documented here, following
 - `TL$ s$` - string with the first byte removed (ZX80 BASIC's "truncate left"), and `UTL$ s$` -
   BazLang's Unicode-aware counterpart, removing the first whole codepoint instead. Together with
   `CODE`/`UCODE`, iterate a string byte-by-byte or codepoint-by-codepoint.
+- `EXIT` - a REPL-only command (alongside `DELETE`/`EDIT`/`RENUM`/`REFORMAT`) that ends the REPL
+  session, the same as Ctrl+D.
 
 ### Changed
 
@@ -39,6 +41,9 @@ All notable changes to this project are documented here, following
 - `RENUM` now takes SAM Coupé BASIC-style arguments: `RENUM [lines] [LINE l] [STEP s]`. An optional
   leading line range (the same `TO` syntax as `LIST`/`DELETE`/`REFORMAT`) selects which existing
   lines to renumber; `LINE l` sets the new starting line number; `STEP s` sets the new increment.
+- `STOP` typed directly at the REPL prompt no longer exits the session - it now only raises
+  `9 STOP statement` and leaves the REPL running, matching real ZX81/ZX Spectrum BASIC. Use the new
+  `EXIT` command (or Ctrl+D) to quit instead.
 
 ### Removed
 

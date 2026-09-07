@@ -507,6 +507,16 @@ part of a program.
   Pre-fills the input with the contents of line 100 for editing. If the line doesn't exist,
   pre-fills with just the line number followed by a space.
 
+- **`EXIT`**: Leave the REPL.
+
+  ```bas
+  EXIT
+  ```
+
+  Ends the REPL session, the same as Ctrl+D at the prompt. Unlike `STOP`, which only raises a report
+  and leaves the session running (matching real ZX81/ZX Spectrum BASIC), `EXIT` is the dedicated way
+  to quit.
+
 - **`REFORMAT [lines]`**: Normalise program formatting.
 
   ```bas

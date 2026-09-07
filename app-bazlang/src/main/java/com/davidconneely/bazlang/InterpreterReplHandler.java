@@ -65,7 +65,7 @@ public final class InterpreterReplHandler implements ReplHandler {
         // REPL command is immediate execution at 0:1
         state.setCurrentLineLabel(0);
         state.setCurrentStatementIndex(1);
-        handleReplCommand(ctx);
+        result = handleReplCommand(ctx);
       } else if (parsed instanceof AntlrParser.ParsedLine.Immediate(var _)) {
         if (screen != null) {
           screen.systemPrintln("❯ " + line.trim());
@@ -93,9 +93,6 @@ public final class InterpreterReplHandler implements ReplHandler {
       if (screen != null) {
         screen.setStatus(e.format());
       }
-      if (e.reportCode() == ReportCode.STOP_STATEMENT) {
-        return e.lineLabel() != 0;
-      }
     }
     return true;
   }
@@ -116,7 +113,7 @@ public final class InterpreterReplHandler implements ReplHandler {
     return true;
   }
 
-  private void handleReplCommand(BazLangParser.ReplCommandContext ctx) {
+  private boolean handleReplCommand(BazLangParser.ReplCommandContext ctx) {
     if (ctx instanceof BazLangParser.DeleteCmdContext delete) {
       programEditor.executeDelete(delete.lineRange());
     } else if (ctx instanceof BazLangParser.EditCmdContext edit) {
@@ -133,11 +130,14 @@ public final class InterpreterReplHandler implements ReplHandler {
           input.prefillInput(lineNum + " ");
         }
       }
+    } else if (ctx instanceof BazLangParser.ExitCmdContext) {
+      return false;
     } else if (ctx instanceof BazLangParser.RenumCmdContext renum) {
       programEditor.executeRenum(renum.renumArgs());
     } else if (ctx instanceof BazLangParser.ReformatCmdContext reformat) {
       programEditor.executeReformat(reformat.lineRange());
     }
+    return true;
   }
 
   private boolean handleImmediateStatement(String rawLine) {
