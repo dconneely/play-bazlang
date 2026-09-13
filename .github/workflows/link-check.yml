@@ -33,8 +33,22 @@ jobs:
           install -D -t "$HOME/.local/bin" "$tmp/lychee-${arch}-unknown-linux-gnu/lychee"
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
 
+      # lychee's own --output writes the report to a file rather than stdout, so a failure's
+      # detail was previously visible only in the (browser-only, unfetchable-by-API) job summary.
+      # Capture the exit status separately from `set -e` so it survives the `cat`, and print the
+      # report into the plain step log too - `gh run view --log` alone is then enough to diagnose
+      # a failure, no browser needed.
       - name: Check links
-        run: sh scripts/check-links.sh --format markdown --output lychee-report.md
+        shell: bash
+        run: |
+          set +e
+          sh scripts/check-links.sh --format markdown --output lychee-report.md
+          status=$?
+          set -e
+          echo "::group::lychee report"
+          cat lychee-report.md
+          echo "::endgroup::"
+          exit "$status"
 
       - name: Job summary
         if: ${{ always() }}
