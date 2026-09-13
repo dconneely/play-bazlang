@@ -21,22 +21,25 @@ detailed language and architecture references live in the repository-level `docs
 
 ## Running the interpreter
 
+`scripts/bazlang` (`scripts/bazlang.bat` on Windows) wraps the commands below, building the jar
+first if needed. Run it from the repository root; the examples here do too.
+
 To launch the interactive REPL:
 
 ```bash
-./run.sh
+./scripts/bazlang
 ```
 
 To run a specific `.bas` source file:
 
 ```bash
-./run.sh path/to/program.bas
+./scripts/bazlang path/to/program.bas
 ```
 
 Alternatively, you can run the built JAR directly (Gradle build required first):
 
 ```bash
-java --enable-native-access=ALL-UNNAMED -jar build/libs/bazlang-1.0.0-SNAPSHOT.jar [program.bas]
+java --enable-native-access=ALL-UNNAMED -jar app-bazlang/build/libs/bazlang-1.0.0-SNAPSHOT.jar [program.bas]
 ```
 
 ## Running the MCP server
@@ -55,7 +58,7 @@ A selection of classic game and graphics demo examples can be found under `src/e
 can execute them directly:
 
 ```bash
-./run.sh src/example/bas/pontoon.bas
+./scripts/bazlang app-bazlang/src/example/bas/pontoon.bas
 ```
 
 Available demos include:

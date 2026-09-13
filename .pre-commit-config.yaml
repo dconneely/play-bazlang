@@ -58,6 +58,18 @@ repos:
         entry: '^## Status$'
         files: ^docs/adr/
 
+      # `.sh` is a promise: POSIX sh, runnable under dash/ash, not just bash - see scripts/bazlang,
+      # check-links.sh, coverage-summary.sh for the current examples, all `dash -n`-checked as part
+      # of writing them. A script that genuinely needs bash (arrays, [[, etc.) is welcome to exist -
+      # name it `.bash` instead so shellcheck (below), which picks its dialect up from each file's
+      # own shebang, checks it against the right rules rather than silently accepting bash syntax
+      # under a `.sh` name that implies POSIX portability it doesn't have.
+      - id: sh-scripts-are-posix
+        name: ".sh scripts must not declare a bash shebang (use .bash for bash-specific scripts)"
+        language: pygrep
+        entry: '^#!.*\bbash\b'
+        files: \.sh$
+
   # gitleaks-system, not the default gitleaks, which builds the binary from source with Go on
   # first run: that produces an unsigned, reputation-less executable in AppData, which Windows
   # Smart App Control blocks outright (os error 4551). Needs gitleaks on PATH (`scoop install
@@ -80,12 +92,13 @@ repos:
       - id: check-merge-conflict
       - id: check-case-conflict
       # Caught nowhere else: a script committed without its executable bit is silent on Windows
-      # but fails outright on Linux/macOS checkouts (`./app-bazlang/run.sh`, `./gradlew`).
+      # but fails outright on Linux/macOS checkouts (`./scripts/bazlang`, `./gradlew`).
       - id: check-shebang-scripts-are-executable
-      # .gitattributes already pins eol=lf for *.sh/gradlew and eol=auto (LF) generally; this
-      # guards against that being weakened rather than being the fix for it. Excludes *.bat:
-      # .gitattributes deliberately requires eol=crlf there (Windows batch scripts need it), and an
-      # unexcluded --fix=lf would rewrite gradlew.bat to LF, breaking it on Windows.
+      # .gitattributes already pins eol=lf for *.sh/gradlew/scripts/bazlang and eol=auto (LF)
+      # generally; this guards against that being weakened rather than being the fix for it.
+      # Excludes *.bat: .gitattributes deliberately requires eol=crlf there (Windows batch scripts
+      # need it), and an unexcluded --fix=lf would rewrite gradlew.bat/scripts/bazlang.bat to LF,
+      # breaking them on Windows.
       - id: mixed-line-ending
         args: [--fix=lf]
         exclude: \.bat$
@@ -97,8 +110,11 @@ repos:
     hooks:
       - id: markdownlint-cli2
 
-  # app-bazlang/run.sh is the only hand-authored shell script here; gradlew is Gradle-vendored
-  # boilerplate, not ours to fix shellcheck findings in.
+  # scripts/bazlang, check-links.sh, and coverage-summary.sh are the hand-authored shell scripts
+  # here; gradlew is Gradle-vendored boilerplate, not ours to fix shellcheck findings in.
+  # No `files:` pattern needed for scripts/bazlang despite having no .sh extension - `types:
+  # [shell]` below (the hook's own default) is satisfied by identify's shebang detection, the same
+  # mechanism that already requires excluding gradlew.
   - repo: https://github.com/shellcheck-py/shellcheck-py
     rev: v0.11.0.1
     hooks:

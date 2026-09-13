@@ -5,6 +5,7 @@
 # Explicit entries for files that must always be LF to run (POSIX shells).
 *.sh text eol=lf
 gradlew text eol=lf
+scripts/bazlang text eol=lf
 
 # Windows batch scripts require CRLF in the working tree.
 *.bat text eol=crlf

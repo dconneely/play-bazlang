@@ -14,14 +14,28 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - uses: lycheeverse/lychee-action@e7477775783ea5526144ba13e8db5eec57747ce8 # v2.9.0
-        with:
-          # --method get, not the default HEAD: some hosts error on HEAD but answer GET.
-          # theqlforum.com (incl. its qlwiki. subdomain) 403s every automated checker, UA or no UA -
-          # it's a real, human-reachable site, just not link-checker-reachable.
-          # element.zxfiles.net (NextBASIC manual) is a live, working URL that's just consistently
-          # slow/flaky from GitHub's runner network - excluded rather than accepted as a timeout,
-          # since lychee's in-run cache re-reports a cached timeout as a generic (non-timeout) error
-          # for every doc after the first that cites the same URL, defeating --accept-timeouts.
-          args: --no-progress --method get --max-concurrency 4 --exclude 'theqlforum\.com|element\.zxfiles\.net' "docs/research/**/*.md" "docs/adr/**/*.md"
-          fail: true
+      # Installed manually rather than via lycheeverse/lychee-action, so this step's only job is
+      # getting the pinned lychee binary onto PATH - the actual check (exclude/accept rules
+      # included) lives in scripts/check-links.sh, the same script you'd run locally, so the two
+      # can never drift apart.
+      - name: Install lychee
+        shell: bash
+        env:
+          LYCHEE_VERSION: v0.24.2
+        run: |
+          set -euo pipefail
+          tmp="$(mktemp -d)"
+          arch="$(uname -m)"
+          filename="lychee-${arch}-unknown-linux-gnu.tar.gz"
+          curl -sfL -o "$tmp/$filename" \
+            "https://github.com/lycheeverse/lychee/releases/download/lychee-${LYCHEE_VERSION}/${filename}"
+          tar -xzf "$tmp/$filename" -C "$tmp"
+          install -D -t "$HOME/.local/bin" "$tmp/lychee-${arch}-unknown-linux-gnu/lychee"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Check links
+        run: sh scripts/check-links.sh --format markdown --output lychee-report.md
+
+      - name: Job summary
+        if: ${{ always() }}
+        run: cat lychee-report.md >> "$GITHUB_STEP_SUMMARY" || true

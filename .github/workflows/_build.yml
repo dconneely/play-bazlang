@@ -31,21 +31,7 @@ jobs:
         if: matrix.os == 'ubuntu-latest' # one canonical summary per run, not once per OS
         shell: bash
         continue-on-error: true # never let a formatting hiccup here fail the build
-        run: |
-          {
-            echo "## Test coverage"
-            echo
-            echo "| Module | Instructions | Branches |"
-            echo "| --- | --- | --- |"
-            for module in app-bazlang lib-cell lib-repl; do
-              report="$module/build/reports/jacoco/test/html/index.html"
-              row=$(grep -oP '(?<=<tfoot><tr>).*?(?=</tr></tfoot>)' "$report" || true)
-              pcts=$(printf '%s' "$row" | grep -oP '(?<=class="ctr2">)\d+%' || true)
-              instructions=$(printf '%s' "$pcts" | sed -n 1p)
-              branches=$(printf '%s' "$pcts" | sed -n 2p)
-              echo "| $module | ${instructions:-n/a} | ${branches:-n/a} |"
-            done
-          } >> "$GITHUB_STEP_SUMMARY"
+        run: sh scripts/coverage-summary.sh >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload build reports
         if: ${{ !cancelled() }} # keep reports from a failed run too, unlike always()
