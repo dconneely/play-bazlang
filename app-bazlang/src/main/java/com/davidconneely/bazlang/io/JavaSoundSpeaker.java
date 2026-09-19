@@ -42,6 +42,20 @@ public final class JavaSoundSpeaker implements VirtualSpeaker, AutoCloseable {
   private static final float BEEP_SAMPLE_RATE = 44_100f;
   private static final int BEEP_CHUNK_SAMPLES = 4_410; // ~100ms/chunk: how often stopBeep() polls
   private static final short BEEP_AMPLITUDE = (short) (Short.MAX_VALUE * 0.3);
+  // Asymmetric one-pole edge-rounding filter modelling the real beeper's output-stage smoothing -
+  // a mathematically ideal (if band-limited) square wave still switches instantaneously, unlike
+  // real hardware, whose driver cannot. Seeded with the Fuse emulator's own published "ula_filter"
+  // rise/fall time constants (see docs/research/0007-zx-spectrum-beeper-output-smoothing.md) -
+  // arrived at there via listening tests against real-hardware recordings, not derived from a
+  // circuit value of this project's own. An asymmetric filter (separate rise/fall time constants)
+  // is deliberate: a single symmetric RC low-pass cannot produce the same shape, and Fuse's own
+  // authors apparently found the asymmetry necessary to match real hardware by ear.
+  private static final double BEEP_FILTER_RISE_TAU_SECONDS = 36.535_584_959_338_05e-6;
+  private static final double BEEP_FILTER_FALL_TAU_SECONDS = 68.860_731_729_821_08e-6;
+  private static final double BEEP_FILTER_ALPHA_RISE =
+      -Math.expm1(-1.0 / (BEEP_SAMPLE_RATE * BEEP_FILTER_RISE_TAU_SECONDS));
+  private static final double BEEP_FILTER_ALPHA_FALL =
+      -Math.expm1(-1.0 / (BEEP_SAMPLE_RATE * BEEP_FILTER_FALL_TAU_SECONDS));
   // Explicit buffer size for both persistent lines, rather than whatever line.open(format) would
   // pick. Deliberately modest: since nothing ever queues idle silence (see playFrame's contract),
   // this bounds how much *real* audio can sit queued ahead of the speaker, and therefore the worst
@@ -136,9 +150,14 @@ public final class JavaSoundSpeaker implements VirtualSpeaker, AutoCloseable {
       final SourceDataLine line = ensureBeepLine();
       final byte[] chunk = new byte[BEEP_CHUNK_SAMPLES * 2];
       long samplesWritten = 0;
+      // Filter state resets to silence at the start of every beep() call, same as samplesWritten's
+      // phase above - consistent with the rest of this class rather than carrying continuity across
+      // separate BEEP statements (which may not even be contiguous, once BREAK/stopBeep() is
+      // considered).
+      double filterState = 0.0;
       while (samplesWritten < totalSamples && playing.get()) {
         final int chunkSamples = (int) Math.min(BEEP_CHUNK_SAMPLES, totalSamples - samplesWritten);
-        fillSquareWave(chunk, chunkSamples, frequencyHz, samplesWritten);
+        filterState = fillSquareWave(chunk, chunkSamples, frequencyHz, samplesWritten, filterState);
         line.write(chunk, 0, chunkSamples * 2);
         samplesWritten += chunkSamples;
       }
@@ -150,16 +169,42 @@ public final class JavaSoundSpeaker implements VirtualSpeaker, AutoCloseable {
     }
   }
 
-  /** Fills {@code buffer} with {@code sampleCount} 16-bit signed LE mono square-wave samples. */
-  private static void fillSquareWave(
-      byte[] buffer, int sampleCount, double frequencyHz, long startSampleIndex) {
+  /**
+   * Fills {@code buffer} with {@code sampleCount} 16-bit signed LE mono square-wave samples,
+   * band-limited via {@link #squareWaveAverage} (matching {@code PLAY}/{@code APLAY}'s {@code
+   * voiceSample}, rather than point-sampling the ideal wave) and then shaped by the asymmetric
+   * one-pole edge-rounding filter described at {@link #BEEP_FILTER_RISE_TAU_SECONDS}. {@code
+   * filterStateIn} is the filter's carried-over output level (in the same -1..1 range as {@link
+   * #squareWaveAverage}) from the previous call, or 0.0 for a fresh tone; returns the filter's
+   * state at the end of this chunk, to pass into the next one.
+   */
+  private static double fillSquareWave(
+      byte[] buffer,
+      int sampleCount,
+      double frequencyHz,
+      long startSampleIndex,
+      double filterStateIn) {
     final double samplesPerCycle = BEEP_SAMPLE_RATE / frequencyHz;
+    double filterState = filterStateIn;
     for (int i = 0; i < sampleCount; i++) {
-      final boolean highHalf = (startSampleIndex + i) % samplesPerCycle < samplesPerCycle / 2;
-      final short sample = highHalf ? BEEP_AMPLITUDE : (short) -BEEP_AMPLITUDE;
+      final double ideal = squareWaveAverage(startSampleIndex + i, samplesPerCycle);
+      filterState = applyBeepEdgeFilter(filterState, ideal);
+      final short sample = (short) Math.round(filterState * BEEP_AMPLITUDE);
       buffer[i * 2] = (byte) (sample & 0xFF);
       buffer[i * 2 + 1] = (byte) ((sample >> 8) & 0xFF);
     }
+    return filterState;
+  }
+
+  /**
+   * Moves {@code filterState} one sample closer to {@code ideal}, using the rise time constant when
+   * {@code ideal} is above the current state and the fall time constant otherwise - see {@link
+   * #BEEP_FILTER_RISE_TAU_SECONDS}. Both arguments and the result are in the same -1..1 range as
+   * {@link #squareWaveAverage}. Package-visible for testing.
+   */
+  static double applyBeepEdgeFilter(double filterState, double ideal) {
+    final double alpha = ideal > filterState ? BEEP_FILTER_ALPHA_RISE : BEEP_FILTER_ALPHA_FALL;
+    return filterState + alpha * (ideal - filterState);
   }
 
   // ===== PLAY / APLAY =====
