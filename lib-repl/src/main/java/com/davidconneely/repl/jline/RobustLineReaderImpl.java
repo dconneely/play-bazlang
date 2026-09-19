@@ -49,7 +49,27 @@ class RobustLineReaderImpl extends LineReaderImpl {
         .get(EMACS)
         .bind(new org.jline.reader.Reference("shift-backward-char"), "\033[1;2D");
     getKeyMaps().get(EMACS).bind(new org.jline.reader.Reference("shift-forward-char"), "\033[1;2C");
+
+    // LineReaderImpl.bindConsoleChars() rebinds backward-delete-char away from DEL (0x7F) onto
+    // whatever control char the terminal's Attributes report as VERASE, moving DEL itself onto
+    // self-insert. Under some PTY layers (e.g. terminal multiplexers) the reported VERASE doesn't
+    // match what the physical Backspace key actually transmits, so DEL ends up self-inserting an
+    // unprintable character instead of deleting. Force both DEL and Ctrl-H back onto
+    // backward-delete-char regardless of what the terminal claims VERASE is.
+    final var backwardDeleteChar = new org.jline.reader.Reference(BACKWARD_DELETE_CHAR);
+    getKeyMaps().get(EMACS).bind(backwardDeleteChar, KeyMap.del());
+    getKeyMaps().get(EMACS).bind(backwardDeleteChar, KeyMap.ctrl('H'));
   }
+
+  /**
+   * The Unicode noncharacter that JLine's native Win32 provider spuriously surfaces for physical
+   * Backspace in some nested-console setups (e.g. a terminal multiplexer wrapping an MSYS2/Cygwin
+   * shell) - almost certainly a leaked {@code (char) -1} sentinel from a stray, empty key event. It
+   * can never legitimately appear in typed or pasted text. Binding it in the key map has no effect
+   * (this value bypasses normal key-map dispatch), so it is intercepted directly in {@link
+   * #selfInsert()} instead.
+   */
+  private static final String STRAY_BACKSPACE_NONCHARACTER = String.valueOf((char) 0xffff);
 
   boolean shiftBackwardChar() {
     if (regionActive == RegionType.NONE) {
@@ -105,6 +125,9 @@ class RobustLineReaderImpl extends LineReaderImpl {
   @Override
   protected boolean selfInsert() {
     deleteSelectionIfNeeded();
+    if (STRAY_BACKSPACE_NONCHARACTER.equals(getLastBinding())) {
+      return backwardDeleteChar();
+    }
     return super.selfInsert();
   }
 
