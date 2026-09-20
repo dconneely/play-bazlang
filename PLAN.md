@@ -17,18 +17,6 @@ library - so this needs a small neutral interface `lib-repl` wires into JLine in
 than a hand-maintained list. Scope to the first token of a statement for v1; completing
 `GOTO`/`GOSUB` targets or `LOAD`/`SAVE` filenames is a separate, larger follow-on.
 
-## Syntax highlighting in the REPL (JLine)
-
-**Type:** feature - **Importance:** medium - **Effort:** medium
-
-A `lib-repl` enhancement, related to but independent of the tab-completion item above - same
-`RobustLineReaderImpl` extension point (no `Highlighter` set), same module-boundary constraint:
-`lib-repl` must not gain an ANTLR/BazLang dependency, `app-bazlang` must not gain a direct
-`org.jline.*` one. `lib-repl` should expose a small neutral tokenizing interface it wires into
-JLine's `Highlighter` internally; `app-bazlang` supplies an implementation built on the real
-`BazLangLexer` - the same lexer used for actual parsing, not a hand-maintained regex scheme that
-could drift from the grammar.
-
 ## Unify read/write subscript-and-slice resolution
 
 **Type:** debt - **Importance:** medium - **Effort:** medium

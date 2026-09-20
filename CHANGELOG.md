@@ -32,6 +32,9 @@ All notable changes to this project are documented here, following
   `CODE`/`UCODE`, iterate a string byte-by-byte or codepoint-by-codepoint.
 - `EXIT` - a REPL-only command (alongside `DELETE`/`EDIT`/`RENUM`/`REFORMAT`) that ends the REPL
   session, the same as Ctrl+D.
+- Syntax highlighting, both while typing at the REPL prompt and in `LIST` output: keywords in teal,
+  a numbered line's leading line number in dark grey, and the REPL-only commands (`DELETE`, `EDIT`,
+  `EXIT`, `RENUM`, `REFORMAT`) in green.
 
 ### Changed
 

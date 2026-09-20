@@ -1,9 +1,12 @@
 package com.davidconneely.repl.jline;
 
 import com.davidconneely.repl.BreakException;
+import com.davidconneely.repl.LineTokenizer;
 import com.davidconneely.repl.TerminalEngine;
+import com.davidconneely.repl.TextStyle;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.util.Map;
 import java.util.function.IntConsumer;
 import org.jline.reader.EndOfFileException;
 import org.jline.reader.LineReader;
@@ -31,6 +34,21 @@ public class JLineTerminalEngine implements TerminalEngine {
    * @throws IOException if the underlying terminal cannot be opened.
    */
   public JLineTerminalEngine() throws IOException {
+    this(null, Map.of());
+  }
+
+  /**
+   * Acquire the system terminal, enter raw mode and the alternate screen buffer, and install
+   * SIGINT/SIGWINCH handlers.
+   *
+   * @param tokenizer classifies spans of the input line for syntax highlighting, or {@code null}
+   *     for none.
+   * @param styles the palette {@code tokenizer}'s spans name-lookup into; ignored if {@code
+   *     tokenizer} is {@code null}.
+   * @throws IOException if the underlying terminal cannot be opened.
+   */
+  public JLineTerminalEngine(LineTokenizer tokenizer, Map<String, TextStyle> styles)
+      throws IOException {
     this.terminal = TerminalBuilder.builder().system(true).nativeSignals(true).build();
     this.savedAttributes = terminal.enterRawMode();
     final var attr = terminal.getAttributes();
@@ -44,6 +62,9 @@ public class JLineTerminalEngine implements TerminalEngine {
     this.inputStream = NonBlocking.nonBlocking("terminal", terminal.input());
     this.lineReader = new RobustLineReaderImpl(terminal, "BazLang");
     this.lineReader.option(LineReader.Option.MOUSE, true);
+    if (tokenizer != null) {
+      this.lineReader.setHighlighter(new TokenizingHighlighter(tokenizer, styles));
+    }
 
     terminal.handle(
         Terminal.Signal.INT,

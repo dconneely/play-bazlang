@@ -67,9 +67,7 @@ public final class InterpreterReplHandler implements ReplHandler {
         state.setCurrentStatementIndex(1);
         result = handleReplCommand(ctx);
       } else if (parsed instanceof AntlrParser.ParsedLine.Immediate(var _)) {
-        if (screen != null) {
-          screen.systemPrintln("❯ " + line.trim());
-        }
+        echoAcceptedLine(line.trim());
         result = handleImmediateStatement(line);
       }
 
@@ -106,11 +104,27 @@ public final class InterpreterReplHandler implements ReplHandler {
       }
     } else {
       state.program().put(lineNumber, new ProgramLine(lineNumber, statementText));
-      if (screen != null) {
-        screen.systemPrintln("❯ " + originalLine.trim());
-      }
+      echoAcceptedLine(originalLine.trim());
     }
     return true;
+  }
+
+  /**
+   * Echoes an accepted line back as REPL/system chrome (see {@link VirtualScreen#systemMessage}),
+   * syntax-highlighted the same way as JLine's live REPL-input highlighting and {@code LIST}.
+   *
+   * @param code the accepted line's text, with or without a leading line number.
+   */
+  private void echoAcceptedLine(String code) {
+    if (screen == null) {
+      return;
+    }
+    screen.systemMessage(
+        () -> {
+          screen.print("❯ ");
+          HighlightedLinePrinter.print(screen, code);
+          screen.println();
+        });
   }
 
   private boolean handleReplCommand(BazLangParser.ReplCommandContext ctx) {

@@ -33,7 +33,10 @@ public class MainClass {
   public static void main(String[] args) {
     int exitCode = 0;
     if (System.console() != null) {
-      try (var term = new TerminalScreen(new JLineTerminalEngine());
+      try (var term =
+              new TerminalScreen(
+                  new JLineTerminalEngine(
+                      new BazLangLineTokenizer(), BazLangLineTokenizer.STYLES));
           var speaker = new JavaSoundSpeaker()) {
         exitCode = dispatch(args, term, term, speaker);
       } catch (IOException ignored) {

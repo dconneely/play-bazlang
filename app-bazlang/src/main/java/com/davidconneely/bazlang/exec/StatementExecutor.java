@@ -1052,12 +1052,30 @@ public class StatementExecutor {
         end = (int) exprEvaluator.evalNum(range.to());
       }
     }
-    for (final var entry : state.program().subMapEntries(start, true, end, true)) {
-      final var line = entry.getValue();
-      if (line.lineNumber() >= Limits.MIN_LINE_LABEL) {
-        screen.println(line.lineNumber() + " " + line.sourceText());
-      }
-    }
+    final int rangeStart = start;
+    final int rangeEnd = end;
+    withRestoredStyles(
+        () -> {
+          for (final var entry : state.program().subMapEntries(rangeStart, true, rangeEnd, true)) {
+            final var line = entry.getValue();
+            if (line.lineNumber() >= Limits.MIN_LINE_LABEL) {
+              listLine(line.lineNumber(), line.sourceText());
+            }
+          }
+        });
+  }
+
+  // Full name rather than importing it -- this file already sits at PMD's ExcessiveImports
+  // threshold (30).
+  private void listLine(int lineNumber, String sourceText) {
+    screen.setInk(
+        com.davidconneely.bazlang.BazLangLineTokenizer.inkFor(
+            com.davidconneely.bazlang.BazLangLineTokenizer.STYLE_LINE_NUMBER));
+    screen.print(Integer.toString(lineNumber));
+    screen.setInk(-1);
+    screen.print(" ");
+    com.davidconneely.bazlang.HighlightedLinePrinter.print(screen, sourceText);
+    screen.println();
   }
 
   // ===== Assignment helpers =====

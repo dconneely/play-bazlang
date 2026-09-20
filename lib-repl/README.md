@@ -18,3 +18,7 @@ from the application logic.
   gracefully (e.g., stopping execution but keeping the program state intact).
 - **System clipboard access:** Standard platform interfaces (`Clipboard`, `NativeProcessClipboard`)
   to read and write to the operating system's clipboard using system commands.
+- **Syntax highlighting:** Wires a host-supplied `LineTokenizer` - a small neutral
+  span-classification interface carrying no knowledge of any particular language - into JLine's
+  `Highlighter`, so the application can colour keywords, commands, and other spans of the input line
+  without `lib-repl` gaining a dependency on it.

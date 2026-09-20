@@ -772,6 +772,38 @@ class StatementExecutorTest {
       exec("LIST 10 TO 20");
       assertEquals("10 LET X=1\n20 LET Y=2\n", screen.getOutput());
     }
+
+    @Test
+    void highlightsTheLineNumberAndKeywordsButNotIdentifiersOrOperators() {
+      state.setProgram(PARSER.parseProgramLines("10 LET X=1\n"));
+      exec("LIST");
+      assertEquals("10 LET X=1\n", screen.getOutput());
+
+      // com.davidconneely.cell.CellAttributes by full name rather than importing it -- this file
+      // already sits at PMD's ExcessiveImports threshold (30).
+      final int teal = com.davidconneely.cell.CellAttributes.rgb(0x00D7D7);
+      final int darkGrey = com.davidconneely.cell.CellAttributes.rgb(0x808080);
+      final int dflt = com.davidconneely.cell.CellAttributes.COLOUR_DEFAULT;
+      assertEquals(darkGrey, screen.fgColourAt(0, 0), "'1' of the line number");
+      assertEquals(darkGrey, screen.fgColourAt(0, 1), "'0' of the line number");
+      assertEquals(dflt, screen.fgColourAt(0, 2), "space");
+      assertEquals(teal, screen.fgColourAt(0, 3), "'L' of LET");
+      assertEquals(teal, screen.fgColourAt(0, 5), "'T' of LET");
+      assertEquals(dflt, screen.fgColourAt(0, 7), "identifier X");
+      assertEquals(dflt, screen.fgColourAt(0, 8), "'=' operator");
+    }
+
+    @Test
+    void highlightingDoesNotLeakIntoTheAmbientDefaultInkAfterwards() {
+      state.setProgram(PARSER.parseProgramLines("10 LET X=1\n"));
+      exec("INK 4");
+      exec("LIST");
+      exec("PRINT \"Z\"");
+      assertEquals(
+          com.davidconneely.cell.CellAttributes.rgb(0x00D700), // ZX green (ink 4), non-bright
+          screen.fgColourAt(1, 0),
+          "ambient ink should be restored after LIST, not left at the highlighting colours");
+    }
   }
 
   @Nested

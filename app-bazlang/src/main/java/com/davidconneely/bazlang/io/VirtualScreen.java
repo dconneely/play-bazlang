@@ -245,4 +245,19 @@ public interface VirtualScreen extends AutoCloseable {
    * @param text the text to print.
    */
   default void systemPrintln(String text) {}
+
+  /**
+   * Runs {@code action} - which should print via {@link #print}/{@link #println}/{@link
+   * #setInk}/etc. - as a single system message distinct from the program's own output, e.g.
+   * rendered on its own background so it reads as REPL/system chrome rather than {@code PRINT}
+   * output. The default implementation just runs {@code action} as-is with no special styling; a
+   * screen that wants to suppress system messages entirely (e.g. an internal buffer whose caller
+   * formats its own responses, rather than something a person reads directly) overrides this to a
+   * no-op instead of running {@code action}.
+   *
+   * @param action prints the message's content.
+   */
+  default void systemMessage(Runnable action) {
+    action.run();
+  }
 }

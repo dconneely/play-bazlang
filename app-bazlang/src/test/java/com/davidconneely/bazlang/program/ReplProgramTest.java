@@ -97,6 +97,31 @@ class ReplProgramTest extends BaseProgramTest {
   }
 
   @Test
+  void testAcceptedLineEchoIsSyntaxHighlighted() {
+    // "❯ 10 PRINT \"HELLO\"": column 0 is the marker, 2-3 is the line number, 5-9 is PRINT.
+    final var state = new EvalState();
+    final var screen = new MockScreen(List.of());
+    final var executor = new StatementExecutor(state, screen, screen, screen);
+    final var interpreter = new Interpreter(state, executor);
+    final var editor = new ProgramEditor(state, screen, PARSER, executor::evalNum);
+    final var handler =
+        new InterpreterReplHandler(screen, screen, PARSER, state, executor, editor, interpreter);
+
+    handler.handleReplInput("10 PRINT \"HELLO\"");
+
+    assertEquals("❯ 10 PRINT \"HELLO\"\n", screen.getOutput());
+    final int teal = com.davidconneely.cell.CellAttributes.rgb(0x00D7D7);
+    final int darkGrey = com.davidconneely.cell.CellAttributes.rgb(0x808080);
+    final int dflt = com.davidconneely.cell.CellAttributes.COLOUR_DEFAULT;
+    assertEquals(dflt, screen.fgColourAt(0, 0), "marker");
+    assertEquals(darkGrey, screen.fgColourAt(0, 2), "'1' of the line number");
+    assertEquals(darkGrey, screen.fgColourAt(0, 3), "'0' of the line number");
+    assertEquals(teal, screen.fgColourAt(0, 5), "'P' of PRINT");
+    assertEquals(teal, screen.fgColourAt(0, 9), "'T' of PRINT");
+    assertEquals(dflt, screen.fgColourAt(0, 12), "inside the string literal");
+  }
+
+  @Test
   void testImmediateModeRun() {
     // Tests that RUN executed from REPL properly runs a stored program without infinite loop
     final var state = new EvalState();

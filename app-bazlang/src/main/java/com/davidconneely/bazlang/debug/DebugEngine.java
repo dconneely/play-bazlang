@@ -147,6 +147,11 @@ public final class DebugEngine {
         public void systemPrintln(String text) {
           // Both front-ends format their own responses; suppress REPL echo here.
         }
+
+        @Override
+        public void systemMessage(Runnable action) {
+          // Both front-ends format their own responses; suppress REPL echo here.
+        }
       };
   private final StatementExecutor executor;
   private final Interpreter interpreter;

@@ -13,6 +13,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 /** Terminal-based Screen implementation with dynamic screen regions. */
 public class TerminalScreen extends AbstractCellBufferedScreen {
+  // Very dark grey, distinct from any BASIC ink/paper colour a program is likely to be using.
+  private static final int SYSTEM_MESSAGE_BACKGROUND = CellAttributes.rgb(0x303030);
+
   private boolean printingSystemPrompt = false;
   private int currentInputHeight = 1;
 
@@ -252,8 +255,10 @@ public class TerminalScreen extends AbstractCellBufferedScreen {
                   final int currentStyle = cellBuffer.getStyle(cursorRow, cursorCol);
                   final int cellStyle = getMappedStyle(currentStyle);
                   if (printingSystemPrompt) {
-                    cellFg = CellAttributes.COLOUR_TYPE_INDEX | 4; // ANSI Blue
-                    cellBg = CellAttributes.COLOUR_DEFAULT; // Default terminal background
+                    // Marks this line as REPL/system chrome rather than PRINT output. A background
+                    // (not a forced foreground colour) so callers remain free to colour the text
+                    // itself, e.g. InterpreterReplHandler's syntax-highlighted accepted-line echo.
+                    cellBg = SYSTEM_MESSAGE_BACKGROUND;
                   }
                   cellBuffer.setCell(cursorRow, cursorCol, cp, cellFg, cellBg, cellStyle);
                   cursorCol++;
@@ -286,6 +291,9 @@ public class TerminalScreen extends AbstractCellBufferedScreen {
 
   @Override
   public void println() {
+    if (printingSystemPrompt) {
+      padCurrentLineWithSystemBackground();
+    }
     cursorRow++;
     cursorCol = 0;
     if (cursorRow >= cellBuffer.rows()) {
@@ -508,11 +516,37 @@ public class TerminalScreen extends AbstractCellBufferedScreen {
 
   @Override
   public void systemPrintln(String text) {
+    systemMessage(() -> println(text));
+  }
+
+  // PMD's dataflow analysis can't see that `action.run()` reads printingSystemPrompt indirectly
+  // (via print()/println()), so it misreads the field as dead between these two assignments.
+  @SuppressWarnings("PMD.UnusedAssignment")
+  @Override
+  public void systemMessage(Runnable action) {
     printingSystemPrompt = true;
     try {
-      println(text);
+      action.run();
     } finally {
       printingSystemPrompt = false;
+    }
+  }
+
+  private void padCurrentLineWithSystemBackground() {
+    if (cursorRow < 0 || cursorRow >= cellBuffer.rows()) {
+      return;
+    }
+    while (cursorCol < cellBuffer.cols()) {
+      final int currentStyle = cellBuffer.getStyle(cursorRow, cursorCol);
+      final int cellStyle = getMappedStyle(currentStyle);
+      cellBuffer.setCell(
+          cursorRow,
+          cursorCol,
+          ' ',
+          CellAttributes.COLOUR_DEFAULT,
+          SYSTEM_MESSAGE_BACKGROUND,
+          cellStyle);
+      cursorCol++;
     }
   }
 }

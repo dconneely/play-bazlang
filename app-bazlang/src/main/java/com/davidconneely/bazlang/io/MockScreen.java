@@ -86,6 +86,18 @@ public class MockScreen extends AbstractCellBufferedScreen {
     return output.toString();
   }
 
+  /**
+   * The foreground colour of a cell, as a {@link com.davidconneely.cell.CellAttributes}-encoded
+   * value.
+   *
+   * @param row the cell's row.
+   * @param col the cell's column.
+   * @return the encoded foreground colour.
+   */
+  public int fgColourAt(int row, int col) {
+    return cellBuffer.getFgColour(row, col);
+  }
+
   @Override
   public void cls() {
     cursorRow = 0;
