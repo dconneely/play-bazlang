@@ -34,7 +34,8 @@ All notable changes to this project are documented here, following
   session, the same as Ctrl+D.
 - Syntax highlighting, both while typing at the REPL prompt and in `LIST` output: keywords in teal,
   a numbered line's leading line number in dark grey, and the REPL-only commands (`DELETE`, `EDIT`,
-  `EXIT`, `RENUM`, `REFORMAT`) in green.
+  `EXIT`, `RENUM`, `REFORMAT`) in green. The REPL's accepted-line echo is highlighted the same way,
+  with its `❯` marker in blue, matching the live input prompt's own marker.
 
 ### Changed
 

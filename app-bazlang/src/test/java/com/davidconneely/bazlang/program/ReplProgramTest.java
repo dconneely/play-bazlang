@@ -110,10 +110,11 @@ class ReplProgramTest extends BaseProgramTest {
     handler.handleReplInput("10 PRINT \"HELLO\"");
 
     assertEquals("❯ 10 PRINT \"HELLO\"\n", screen.getOutput());
+    final int blue = com.davidconneely.cell.CellAttributes.rgb(0x0000D7);
     final int teal = com.davidconneely.cell.CellAttributes.rgb(0x00D7D7);
     final int darkGrey = com.davidconneely.cell.CellAttributes.rgb(0x808080);
     final int dflt = com.davidconneely.cell.CellAttributes.COLOUR_DEFAULT;
-    assertEquals(dflt, screen.fgColourAt(0, 0), "marker");
+    assertEquals(blue, screen.fgColourAt(0, 0), "marker");
     assertEquals(darkGrey, screen.fgColourAt(0, 2), "'1' of the line number");
     assertEquals(darkGrey, screen.fgColourAt(0, 3), "'0' of the line number");
     assertEquals(teal, screen.fgColourAt(0, 5), "'P' of PRINT");

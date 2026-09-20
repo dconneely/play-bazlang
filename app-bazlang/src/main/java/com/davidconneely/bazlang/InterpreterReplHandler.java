@@ -109,6 +109,9 @@ public final class InterpreterReplHandler implements ReplHandler {
     return true;
   }
 
+  // ZX blue, matching the live REPL prompt's own "\033[34m❯ \033[m" (ANSI blue).
+  private static final int MARKER_INK = 1;
+
   /**
    * Echoes an accepted line back as REPL/system chrome (see {@link VirtualScreen#systemMessage}),
    * syntax-highlighted the same way as JLine's live REPL-input highlighting and {@code LIST}.
@@ -121,7 +124,9 @@ public final class InterpreterReplHandler implements ReplHandler {
     }
     screen.systemMessage(
         () -> {
+          screen.setInk(MARKER_INK);
           screen.print("❯ ");
+          screen.setInk(-1);
           HighlightedLinePrinter.print(screen, code);
           screen.println();
         });
