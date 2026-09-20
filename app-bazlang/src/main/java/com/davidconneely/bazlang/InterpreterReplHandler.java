@@ -109,8 +109,11 @@ public final class InterpreterReplHandler implements ReplHandler {
     return true;
   }
 
-  // ZX blue, matching the live REPL prompt's own "\033[34m❯ \033[m" (ANSI blue).
-  private static final int MARKER_INK = 1;
+  // Terminal-themed ANSI blue (index 4 of the 256-colour range - see AbstractCellBufferedScreen's
+  // colour-code Javadoc - renders as the literal "\033[34m" SGR code), not the ZX ink 1 RGB
+  // constant: the live REPL prompt's own "\033[34m❯ \033[m" uses the terminal's own blue, which
+  // can differ from ZX blue's fixed RGB under most terminal colour themes.
+  private static final int MARKER_INK = 256 + 4;
 
   /**
    * Echoes an accepted line back as REPL/system chrome (see {@link VirtualScreen#systemMessage}),

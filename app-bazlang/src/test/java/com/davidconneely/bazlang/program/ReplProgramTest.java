@@ -110,7 +110,7 @@ class ReplProgramTest extends BaseProgramTest {
     handler.handleReplInput("10 PRINT \"HELLO\"");
 
     assertEquals("❯ 10 PRINT \"HELLO\"\n", screen.getOutput());
-    final int blue = com.davidconneely.cell.CellAttributes.rgb(0x0000D7);
+    final int blue = com.davidconneely.cell.CellAttributes.index(4); // terminal-themed ANSI blue
     final int teal = com.davidconneely.cell.CellAttributes.rgb(0x00D7D7);
     final int darkGrey = com.davidconneely.cell.CellAttributes.rgb(0x808080);
     final int dflt = com.davidconneely.cell.CellAttributes.COLOUR_DEFAULT;
