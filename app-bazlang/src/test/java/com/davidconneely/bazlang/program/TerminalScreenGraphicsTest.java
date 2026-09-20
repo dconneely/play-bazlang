@@ -261,4 +261,22 @@ class TerminalScreenGraphicsTest {
         50 PRINT INK COLOUR(255, 128, 0); "D";
         """);
   }
+
+  @Test
+  void testStatusLineFullWidthDoesNotEraseItsLastCharacter() {
+    // Auto-wrap is off for the whole render (see the ?7l/?7h pair in render()), so once the status
+    // line exactly fills the terminal width, the cursor sits on its last column rather than past
+    // it - and \033[K erases from and including that cell. A \033[K immediately after a full-width
+    // line would erase the character it just wrote there (confirmed live on Windows Terminal:
+    // "BazLang REPL" rendered as "BazLang REP").
+    engine = new TestTerminalEngine();
+    try (var screen = new TerminalScreen(engine)) {
+      screen.readReplInput();
+    }
+    final String output = engine.getOutput();
+    assertTrue(output.contains("BazLang REPL"), "status line's right-hand text should be intact");
+    assertFalse(
+        output.contains("BazLang REPL\033[m\033[K"),
+        "a full-width line must not be followed directly by \\033[K");
+  }
 }

@@ -149,10 +149,15 @@ public class TerminalScreen extends AbstractCellBufferedScreen {
 
   private void renderInputRows(StringBuilder out, int rowsToRender, int termWidth) {
     if (inputVisible) {
+      // Auto-wrap is off for this whole render (see the ?7l/?7h pair around it), so the cursor
+      // stops at the last column instead of past it once a full-width line is written there - and
+      // \033[K erases from and including the cursor's own cell. Appending \033[K right after a line
+      // that exactly fills termWidth would erase the character that line just wrote in that column,
+      // so it's only emitted when the line is actually shorter than the terminal.
       out.append(String.format("\033[%d;1H", rowsToRender + 1))
           .append("\033[90m")
           .append("─".repeat(Math.max(0, termWidth)))
-          .append("\033[m\033[K");
+          .append("\033[m");
 
       for (int i = 0; i < currentInputHeight; i++) {
         out.append(String.format("\033[%d;1H\033[K", rowsToRender + 2 + i));
@@ -161,14 +166,16 @@ public class TerminalScreen extends AbstractCellBufferedScreen {
       out.append(String.format("\033[%d;1H", rowsToRender + 2 + currentInputHeight))
           .append("\033[90m")
           .append("─".repeat(Math.max(0, termWidth)))
-          .append("\033[m\033[K");
+          .append("\033[m");
 
       final String lineText = getStatusLine(termWidth);
       out.append(String.format("\033[%d;1H", rowsToRender + 3 + currentInputHeight))
           .append("\033[37m")
-          .append(lineText)
-          .append("\033[m\033[K")
-          .append(String.format("\033[%d;1H", rowsToRender + 2));
+          .append(lineText);
+      if (lineText.length() < termWidth) {
+        out.append("\033[K");
+      }
+      out.append("\033[m").append(String.format("\033[%d;1H", rowsToRender + 2));
     }
   }
 

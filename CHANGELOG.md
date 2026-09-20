@@ -55,6 +55,10 @@ All notable changes to this project are documented here, following
 
 ### Fixed
 
+- The REPL's bottom status line no longer loses its last character (e.g. "BazLang REPL" rendering as
+  "BazLang REP" on Windows Terminal) - a `\033[K` immediately after a line that exactly filled the
+  terminal width erased the cell it had just written, since auto-wrap is off for this render and the
+  cursor sits on the last column rather than past it.
 - `bazlang_program(load_file/save_file)` no longer lets a `path` containing an unescaped `"` close
   the synthesised `LOAD`/`SAVE` statement early and have the remainder parsed as further BASIC
   statements; a syntactically invalid path for the host platform now reports as a normal
