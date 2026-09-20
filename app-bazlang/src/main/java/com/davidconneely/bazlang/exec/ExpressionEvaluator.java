@@ -465,9 +465,11 @@ public class ExpressionEvaluator {
         final int cp = screen.getScreenCodepoint(row, col);
         if (call.kind() == StrFuncKind.SCREEN_STR) {
           yield cp >= 0 && cp <= 127 ? BStr.fromByte(cp) : BStr.EMPTY;
+        } else if (cp < 0 || !Character.isValidCodePoint(cp)) {
+          yield BStr.EMPTY;
         } else {
-          yield cp < 0 || !Character.isValidCodePoint(cp)
-              ? BStr.EMPTY
+          yield cp <= 0x7F
+              ? BStr.fromByte(cp)
               : BStr.fromJavaString(new String(Character.toChars(cp)));
         }
       }
@@ -481,7 +483,9 @@ public class ExpressionEvaluator {
         if (code < 0 || !Character.isValidCodePoint(code)) {
           throw codedException(ReportCode.INTEGER_OUT_OF_RANGE, "UCHR$ argument out of range");
         }
-        yield BStr.fromJavaString(new String(Character.toChars(code)));
+        yield code <= 0x7F
+            ? BStr.fromByte(code)
+            : BStr.fromJavaString(new String(Character.toChars(code)));
       }
       case UINKEY_STR -> input.uinkey();
       case UTL_STR -> {

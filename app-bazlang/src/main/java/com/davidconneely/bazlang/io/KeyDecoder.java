@@ -54,7 +54,8 @@ final class KeyDecoder {
         }
       }
     }
-    return BStr.fromBytes(bos.toByteArray());
+    final byte[] b = bos.toByteArray();
+    return BStr.fromBytes(b, 0, b.length);
   }
 
   private KeyDecoder() {}
