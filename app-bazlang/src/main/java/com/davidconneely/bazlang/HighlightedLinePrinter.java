@@ -12,7 +12,8 @@ public final class HighlightedLinePrinter {
 
   /**
    * Prints {@code text}, painting each span {@link BazLangLineTokenizer#tokenize} returns with its
-   * ink and everything else at the screen's current ink. Does not print a trailing newline.
+   * ink (and italic, for a {@code REM} comment) and everything else at the screen's current ink.
+   * Does not print a trailing newline.
    *
    * @param screen the screen to print to.
    * @param text the BazLang source line (with or without a leading line number).
@@ -23,9 +24,16 @@ public final class HighlightedLinePrinter {
       if (span.start() > pos) {
         screen.print(text.substring(pos, span.start()));
       }
+      final boolean italic = BazLangLineTokenizer.STYLES.get(span.style()).italic();
       screen.setInk(BazLangLineTokenizer.inkFor(span.style()));
+      if (italic) {
+        screen.setItalic(true);
+      }
       screen.print(text.substring(span.start(), span.end()));
       screen.setInk(-1);
+      if (italic) {
+        screen.setItalic(false);
+      }
       pos = span.end();
     }
     if (pos < text.length()) {

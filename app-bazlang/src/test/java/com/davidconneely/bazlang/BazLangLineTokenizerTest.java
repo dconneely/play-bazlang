@@ -12,13 +12,26 @@ class BazLangLineTokenizerTest {
   private final BazLangLineTokenizer tokenizer = new BazLangLineTokenizer();
 
   @Test
-  void numberedLineHighlightsLineNumberAndKeyword() {
+  void numberedLineHighlightsLineNumberKeywordAndStringLiteral() {
     List<LineTokenizer.Span> spans = tokenizer.tokenize("10 PRINT \"HI\"");
 
     assertEquals(
         List.of(
             new LineTokenizer.Span(0, 2, BazLangLineTokenizer.STYLE_LINE_NUMBER),
-            new LineTokenizer.Span(3, 8, BazLangLineTokenizer.STYLE_KEYWORD)),
+            new LineTokenizer.Span(3, 8, BazLangLineTokenizer.STYLE_KEYWORD),
+            new LineTokenizer.Span(9, 13, BazLangLineTokenizer.STYLE_STRING)),
+        spans);
+  }
+
+  @Test
+  void stringLiteralsAreHighlighted() {
+    List<LineTokenizer.Span> spans = tokenizer.tokenize("LET A$ = \"hello\"");
+
+    assertEquals(
+        List.of(
+            new LineTokenizer.Span(0, 3, BazLangLineTokenizer.STYLE_KEYWORD), // LET
+            new LineTokenizer.Span(9, 16, BazLangLineTokenizer.STYLE_STRING) // "hello"
+            ),
         spans);
   }
 
@@ -56,13 +69,28 @@ class BazLangLineTokenizerTest {
   }
 
   @Test
-  void remHighlightsTheWholeCommentAsOneKeywordSpan() {
+  void remSplitsIntoAKeywordSpanAndACommentSpan() {
     String line = "REM this is a comment";
     List<LineTokenizer.Span> spans = tokenizer.tokenize(line);
 
     assertEquals(
-        List.of(new LineTokenizer.Span(0, line.length(), BazLangLineTokenizer.STYLE_KEYWORD)),
+        List.of(
+            new LineTokenizer.Span(0, 3, BazLangLineTokenizer.STYLE_KEYWORD),
+            new LineTokenizer.Span(3, line.length(), BazLangLineTokenizer.STYLE_COMMENT)),
         spans);
+  }
+
+  @Test
+  void bareRemWithNoCommentTextDoesNotLexAsRemAtAll() {
+    // A separate, pre-existing grammar quirk (not something this tokenizer can or should work
+    // around): 'REM' with nothing after it ties in length with a NUM_IDENTIFIER match, and
+    // NUM_IDENTIFIER - declared earlier in BazLang.g4 - wins that tie, so this lexes as an
+    // identifier, not the REM token. Confirmed the real parser rejects "10 REM" outright with
+    // "mismatched input 'REM' expecting {..., REM}" - i.e. this is a real parse failure, not just
+    // a highlighting gap. Matching that reality here (rather than asserting an idealised span this
+    // tokenizer doesn't actually produce) is the point: this class must never drift from the
+    // grammar's real behaviour, warts included.
+    assertEquals(List.of(), tokenizer.tokenize("REM"));
   }
 
   @Test
@@ -115,6 +143,20 @@ class BazLangLineTokenizerTest {
         16_777_216 + 0x00D700, BazLangLineTokenizer.inkFor(BazLangLineTokenizer.STYLE_COMMAND));
     assertEquals(
         16_777_216 + 0x808080, BazLangLineTokenizer.inkFor(BazLangLineTokenizer.STYLE_LINE_NUMBER));
+    assertEquals(
+        16_777_216 + 0x808080, BazLangLineTokenizer.inkFor(BazLangLineTokenizer.STYLE_COMMENT));
+    assertEquals(
+        16_777_216 + 0xD7D700, BazLangLineTokenizer.inkFor(BazLangLineTokenizer.STYLE_STRING));
+  }
+
+  @Test
+  void onlyTheCommentStyleIsItalic() {
+    for (final var entry : BazLangLineTokenizer.STYLES.entrySet()) {
+      assertEquals(
+          BazLangLineTokenizer.STYLE_COMMENT.equals(entry.getKey()),
+          entry.getValue().italic(),
+          "unexpected italic setting for style '" + entry.getKey() + "'");
+    }
   }
 
   @Test

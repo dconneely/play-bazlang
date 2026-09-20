@@ -127,6 +127,14 @@ public interface VirtualScreen extends AutoCloseable {
   default void setOver(int over) {}
 
   /**
+   * Set italic styling for subsequent output. Not a BASIC style statement - used only by REPL/
+   * system chrome that highlights BazLang source (e.g. a {@code REM} comment). No-op by default.
+   *
+   * @param italic whether subsequent output renders italic.
+   */
+  default void setItalic(boolean italic) {}
+
+  /**
    * Plot a pixel. No-op by default (a screen without pixel graphics support simply ignores it).
    *
    * @param x pixel x-coordinate.

@@ -40,6 +40,9 @@ public abstract class AbstractCellBufferedScreen
   /** Current default overlay (XOR-plot) setting. */
   protected int activeOver = 0;
 
+  /** Current italic setting - not a BASIC style, see {@link VirtualScreen#setItalic}. */
+  protected boolean activeItalic = false;
+
   /**
    * Create a screen backed by the given cell buffer.
    *
@@ -118,6 +121,11 @@ public abstract class AbstractCellBufferedScreen
   @Override
   public void setOver(int over) {
     this.activeOver = over;
+  }
+
+  @Override
+  public void setItalic(boolean italic) {
+    this.activeItalic = italic;
   }
 
   @Override
@@ -285,6 +293,9 @@ public abstract class AbstractCellBufferedScreen
       style |= currentStyle & CellAttributes.STYLE_BOLD;
     } else if (activeBright == 1) {
       style |= CellAttributes.STYLE_BOLD;
+    }
+    if (activeItalic) {
+      style |= CellAttributes.STYLE_ITALIC;
     }
     return style;
   }

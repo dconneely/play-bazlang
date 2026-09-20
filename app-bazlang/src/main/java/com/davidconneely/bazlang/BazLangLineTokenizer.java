@@ -32,12 +32,20 @@ public final class BazLangLineTokenizer implements LineTokenizer {
   /** Style name for a line number. */
   public static final String STYLE_LINE_NUMBER = "lineNumber";
 
-  /** The palette {@link #STYLE_KEYWORD}/{@link #STYLE_COMMAND}/{@link #STYLE_LINE_NUMBER} name. */
+  /** Style name for a {@code REM} comment's text (excluding the {@code REM} keyword itself). */
+  public static final String STYLE_COMMENT = "comment";
+
+  /** Style name for a string literal. */
+  public static final String STYLE_STRING = "string";
+
+  /** The palette {@code STYLE_*} names above map into. */
   public static final Map<String, TextStyle> STYLES =
       Map.of(
           STYLE_KEYWORD, new TextStyle(0, 0xD7, 0xD7), // Teal.
           STYLE_COMMAND, new TextStyle(0, 0xD7, 0), // Green.
-          STYLE_LINE_NUMBER, new TextStyle(0x80, 0x80, 0x80)); // Dark grey.
+          STYLE_LINE_NUMBER, new TextStyle(0x80, 0x80, 0x80), // Dark grey.
+          STYLE_COMMENT, new TextStyle(0x80, 0x80, 0x80, true), // Dark grey, italic.
+          STYLE_STRING, new TextStyle(0xD7, 0xD7, 0)); // Yellow.
 
   private static final Set<Integer> REPL_COMMAND_TYPES =
       Set.of(
@@ -48,8 +56,9 @@ public final class BazLangLineTokenizer implements LineTokenizer {
           BazLangLexer.REFORMAT);
 
   // Every alphabetic reserved word BazLangLexer's vocabulary defines, derived structurally so this
-  // cannot drift from the grammar. REM is added explicitly: its lexer rule consumes the rest of the
-  // line as part of the token ('REM' ~[\r\n]*), so ANTLR gives it no quoted literal name.
+  // cannot drift from the grammar. REM is deliberately excluded: its lexer rule consumes the rest
+  // of the line as part of the token ('REM' ~[\r\n]*), so ANTLR gives it no quoted literal name -
+  // and it needs its own two-span treatment (see tokenize()) rather than one keyword-coloured span.
   private static final Set<Integer> KEYWORD_TYPES = computeKeywordTypes();
 
   private static Set<Integer> computeKeywordTypes() {
@@ -64,7 +73,6 @@ public final class BazLangLineTokenizer implements LineTokenizer {
         }
       }
     }
-    types.add(BazLangLexer.REM);
     return types;
   }
 
@@ -98,6 +106,16 @@ public final class BazLangLineTokenizer implements LineTokenizer {
         spans.add(new Span(start, end, STYLE_LINE_NUMBER));
       } else if (REPL_COMMAND_TYPES.contains(token.getType())) {
         spans.add(new Span(start, end, STYLE_COMMAND));
+      } else if (token.getType() == BazLangLexer.REM) {
+        // 'REM' itself is a keyword; anything after it on the line is comment text, not a
+        // separate token - REM's own lexer rule swallows it all as one token.
+        final int keywordEnd = start + 3; // The literal 'REM' is always exactly 3 characters.
+        spans.add(new Span(start, keywordEnd, STYLE_KEYWORD));
+        if (keywordEnd < end) {
+          spans.add(new Span(keywordEnd, end, STYLE_COMMENT));
+        }
+      } else if (token.getType() == BazLangLexer.STR_LITERAL) {
+        spans.add(new Span(start, end, STYLE_STRING));
       } else if (KEYWORD_TYPES.contains(token.getType())) {
         spans.add(new Span(start, end, STYLE_KEYWORD));
       }

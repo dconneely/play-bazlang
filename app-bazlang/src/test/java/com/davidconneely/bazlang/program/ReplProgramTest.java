@@ -113,13 +113,15 @@ class ReplProgramTest extends BaseProgramTest {
     final int blue = com.davidconneely.cell.CellAttributes.index(4); // terminal-themed ANSI blue
     final int teal = com.davidconneely.cell.CellAttributes.rgb(0x00D7D7);
     final int darkGrey = com.davidconneely.cell.CellAttributes.rgb(0x808080);
+    final int yellow = com.davidconneely.cell.CellAttributes.rgb(0xD7D700);
     final int dflt = com.davidconneely.cell.CellAttributes.COLOUR_DEFAULT;
     assertEquals(blue, screen.fgColourAt(0, 0), "marker");
     assertEquals(darkGrey, screen.fgColourAt(0, 2), "'1' of the line number");
     assertEquals(darkGrey, screen.fgColourAt(0, 3), "'0' of the line number");
     assertEquals(teal, screen.fgColourAt(0, 5), "'P' of PRINT");
     assertEquals(teal, screen.fgColourAt(0, 9), "'T' of PRINT");
-    assertEquals(dflt, screen.fgColourAt(0, 12), "inside the string literal");
+    assertEquals(dflt, screen.fgColourAt(0, 10), "space before the string literal");
+    assertEquals(yellow, screen.fgColourAt(0, 12), "inside the string literal");
   }
 
   @Test

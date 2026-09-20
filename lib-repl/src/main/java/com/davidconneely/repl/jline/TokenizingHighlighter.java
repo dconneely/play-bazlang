@@ -31,7 +31,12 @@ class TokenizingHighlighter implements Highlighter {
   }
 
   private static AttributedStyle toAttributedStyle(TextStyle style) {
-    return AttributedStyle.DEFAULT.foreground(style.red(), style.green(), style.blue());
+    var attributedStyle =
+        AttributedStyle.DEFAULT.foreground(style.red(), style.green(), style.blue());
+    if (style.italic()) {
+      attributedStyle = attributedStyle.italic();
+    }
+    return attributedStyle;
   }
 
   @Override
