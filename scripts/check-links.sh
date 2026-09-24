@@ -34,7 +34,11 @@ fi
 # network specifically - confirmed 2026-09-13 still live and returning 200 over plain HTTP from
 # elsewhere, so this is the same "reachable but not from here" class as the two above, not a dead
 # link.
-: "${EXCLUDE:=theqlforum\.com|element\.zxfiles\.net|fruitcake\.plus\.com}"
+# manpages.ubuntu.com (Fuse's man page, cited in docs/research/0007) 503s from GitHub's runner
+# network specifically - confirmed 2026-09-24 still live and returning 200 with or without a UA
+# override from elsewhere, on three consecutive scheduled runs (2026-09-22 to -24), same URL each
+# time - the same "reachable but not from here" class as the three above, not a dead link.
+: "${EXCLUDE:=theqlforum\.com|element\.zxfiles\.net|fruitcake\.plus\.com|manpages\.ubuntu\.com}"
 
 # Transient rate-limiting from whichever host is having a bad day (seen on
 # blog.tynemouthsoftware.co.uk and news.ycombinator.com on different runs, different URLs each
