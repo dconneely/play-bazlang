@@ -1,6 +1,7 @@
 package com.davidconneely.bazlang.io;
 
 import com.davidconneely.bazlang.BStr;
+import com.davidconneely.cell.CellAttributes;
 import com.davidconneely.cell.CellBuffer;
 import com.davidconneely.cell.QuadrantMode;
 import java.util.Collections;
@@ -96,6 +97,17 @@ public class MockScreen extends AbstractCellBufferedScreen {
    */
   public int fgColourAt(int row, int col) {
     return cellBuffer.getFgColour(row, col);
+  }
+
+  /**
+   * Whether a cell was written with italic active.
+   *
+   * @param row the cell's row.
+   * @param col the cell's column.
+   * @return {@code true} if the cell's style has the italic bit set.
+   */
+  public boolean isItalicAt(int row, int col) {
+    return (cellBuffer.getStyle(row, col) & CellAttributes.STYLE_ITALIC) != 0;
   }
 
   @Override

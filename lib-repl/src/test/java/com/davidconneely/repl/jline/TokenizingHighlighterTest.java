@@ -75,4 +75,22 @@ class TokenizingHighlighterTest {
 
     assertEquals(AttributedStyle.DEFAULT, result.styleAt(0));
   }
+
+  @Test
+  void anItalicPaletteEntryRendersItalicAndANonItalicOneDoesNot() {
+    Map<String, TextStyle> palette =
+        Map.of(
+            "comment", new TextStyle(0x80, 0x80, 0x80, true),
+            "keyword", new TextStyle(0, 0xD7, 0xD7, false));
+    LineTokenizer fake =
+        line ->
+            List.of(
+                new LineTokenizer.Span(0, 4, "comment"), new LineTokenizer.Span(5, 8, "keyword"));
+    TokenizingHighlighter highlighter = new TokenizingHighlighter(fake, palette);
+
+    var result = highlighter.highlight(null, "REM! LET");
+
+    assertEquals(AttributedStyle.DEFAULT.foreground(0x80, 0x80, 0x80).italic(), result.styleAt(0));
+    assertEquals(AttributedStyle.DEFAULT.foreground(0, 0xD7, 0xD7), result.styleAt(5));
+  }
 }

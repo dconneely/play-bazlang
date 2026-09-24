@@ -1,6 +1,8 @@
 package com.davidconneely.bazlang;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.davidconneely.bazlang.io.MockScreen;
 import com.davidconneely.cell.CellAttributes;
@@ -33,6 +35,22 @@ class HighlightedLinePrinterTest {
     assertEquals(darkGrey, screen.fgColourAt(0, 0), "'1' of the line number");
     assertEquals(darkGrey, screen.fgColourAt(0, 1), "'0' of the line number");
     assertEquals(teal, screen.fgColourAt(0, 3), "'P' of PRINT");
+  }
+
+  @Test
+  void remCommentIsItalicDarkGreyAndTheKeywordItselfIsTealAndUpright() {
+    final var screen = new MockScreen();
+
+    HighlightedLinePrinter.print(screen, "REM a comment");
+
+    final int teal = CellAttributes.rgb(0x00D7D7);
+    final int darkGrey = CellAttributes.rgb(0x808080);
+    assertEquals(teal, screen.fgColourAt(0, 0), "'R' of REM");
+    assertFalse(screen.isItalicAt(0, 0), "'R' of REM is not italic");
+    assertEquals(darkGrey, screen.fgColourAt(0, 3), "the space right after REM");
+    assertTrue(screen.isItalicAt(0, 3), "the space right after REM is italic, part of the comment");
+    assertEquals(darkGrey, screen.fgColourAt(0, 4), "'a' of the comment text");
+    assertTrue(screen.isItalicAt(0, 4), "'a' of the comment text is italic");
   }
 
   @Test

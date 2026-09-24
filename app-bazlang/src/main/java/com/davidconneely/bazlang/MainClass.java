@@ -36,7 +36,7 @@ public class MainClass {
       try (var term =
               new TerminalScreen(
                   new JLineTerminalEngine(
-                      new BazLangLineTokenizer(), BazLangLineTokenizer.STYLES));
+                      BazLangLineTokenizer.INSTANCE, BazLangLineTokenizer.STYLES));
           var speaker = new JavaSoundSpeaker()) {
         exitCode = dispatch(args, term, term, speaker);
       } catch (IOException ignored) {
