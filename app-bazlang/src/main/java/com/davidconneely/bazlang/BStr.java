@@ -2,6 +2,7 @@ package com.davidconneely.bazlang;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.Objects;
 
 /**
  * BazLang string value: an immutable sequence of bytes, normally containing valid UTF-8 but capable
@@ -103,6 +104,20 @@ public final class BStr implements Comparable<BStr> {
       return EMPTY;
     }
     return new BStr(Arrays.copyOfRange(bytes, offset, offset + length), 0, length);
+  }
+
+  /**
+   * Copies this BStr's first {@code count} bytes into {@code dest}, correctly even when this BStr
+   * is a view over the same range of {@code dest} (overlapping copies behave as if via a temporary
+   * buffer).
+   *
+   * @param count how many bytes to copy, at most {@link #length()}.
+   * @param dest the destination array.
+   * @param destOffset the destination start offset.
+   */
+  public void copyTo(int count, byte[] dest, int destOffset) {
+    Objects.checkFromIndexSize(0, count, length);
+    System.arraycopy(bytes, offset, dest, destOffset, count);
   }
 
   /**

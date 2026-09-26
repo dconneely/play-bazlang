@@ -1148,12 +1148,8 @@ public class StatementExecutor {
         throw codedException(ReportCode.SUBSCRIPT_WRONG, "Subscript wrong");
       }
       final int copyLen = Math.min(stringLength, val.length());
-      for (int i = 0; i < copyLen; i++) {
-        data[i] = (byte) val.byteAt(i);
-      }
-      for (int i = copyLen; i < stringLength; i++) {
-        data[i] = (byte) 32;
-      }
+      val.copyTo(copyLen, data, 0);
+      Arrays.fill(data, copyLen, stringLength, (byte) 32);
     } else {
       ref.value = new EvalState.StrVar.Scalar(val.copy());
     }
@@ -1183,12 +1179,10 @@ public class StatementExecutor {
     final int sliceLen = bounds.length();
     final int copyLen = Math.min(sliceLen, val.length());
     final int offset = arrayIdx * ca.stringLength() + (bounds.start() - 1);
-    for (int i = 0; i < copyLen; i++) {
-      ca.data()[offset + i] = (byte) val.byteAt(i);
-    }
-    for (int i = copyLen; i < sliceLen; i++) {
-      ca.data()[offset + i] = (byte) 32;
-    }
+    // val may be a view into ca.data() itself (e.g. LET b$(1, 2 TO) = b$(1)), so copy
+    // overlap-safely
+    val.copyTo(copyLen, ca.data(), offset);
+    Arrays.fill(ca.data(), offset + copyLen, offset + sliceLen, (byte) 32);
   }
 
   private void assignStrScalarTarget(

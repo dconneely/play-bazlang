@@ -429,6 +429,10 @@ LET board$(1) = board$(8)   : REM copy row 8 to row 1
 IF board$(3) = board$(4) THEN ...  : REM compare two rows
 ```
 
+An assignment takes a copy of its whole right-hand side before writing, as ZX Spectrum BASIC does,
+so copying part of a string onto an overlapping part of itself is safe: `LET b$(1, 2 TO) = b$(1)`
+turns `"ABCDE"` into `"AABCD"`.
+
 ### String array initialisation
 
 String arrays (both fixed-length scalars and 2D arrays) are initialised to all spaces (`CHR$ 32`).

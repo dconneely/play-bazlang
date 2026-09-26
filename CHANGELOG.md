@@ -65,6 +65,11 @@ All notable changes to this project are documented here, following
 
 ### Fixed
 
+- A one-dimensional fixed-length string (`DIM a$(5)`) can now be indexed and sliced (`a$(2 TO)`,
+  `a$(4)`, `LET a$(2 TO 3)="XY"`); these previously failed with `3 Incorrect dimensions`.
+- Assigning a string-array element to an overlapping later slice of itself
+  (`LET b$(1, 2 TO) = b$(1)`) no longer repeats the first byte (`AAAAA`); it copies the original
+  bytes (`AABCD`), as ZX Spectrum BASIC does.
 - The REPL's bottom status line no longer loses its last character (e.g. "BazLang REPL" rendering as
   "BazLang REP" on Windows Terminal) - a `\033[K` immediately after a line that exactly filled the
   terminal width erased the cell it had just written, since auto-wrap is off for this render and the

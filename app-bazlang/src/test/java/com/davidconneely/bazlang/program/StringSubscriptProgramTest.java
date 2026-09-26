@@ -249,4 +249,54 @@ class StringSubscriptProgramTest extends BaseProgramTest {
         """,
         "OK\n");
   }
+
+  @Test
+  void aOneDimensionalFixedStringCanBeSlicedAndIndexed() {
+    // Output checked against a real ZX Spectrum emulator.
+    runProgram(
+        """
+        10 DIM a$(5): LET a$="ABCDE"
+        20 PRINT a$(2 TO ); a$(4); a$( TO 2)
+        30 LET a$(2 TO 3)="XY"
+        40 PRINT a$
+        50 LET a$(5)="Z"
+        60 PRINT a$
+        """,
+        "BCDEDAB\nAXYDE\nAXYDZ\n");
+  }
+
+  @Test
+  void aOneDimensionalFixedStringRejectsAnArrayStyleIndex() {
+    final var e =
+        assertThrows(ReportException.class, () -> runProgram("10 DIM a$(5)\n20 PRINT a$(1, 2)"));
+    assertEquals(ReportCode.SUBSCRIPT_WRONG, e.reportCode());
+  }
+
+  @Test
+  void assigningAnArrayElementToAnOverlappingLaterSliceOfItselfCopiesTheOriginalBytes() {
+    // Output checked against a real ZX Spectrum emulator: AABCD, not AAAAA.
+    runProgram(
+        """
+        10 DIM b$(2,5): LET b$(1)="ABCDE"
+        20 LET b$(1, 2 TO )=b$(1)
+        30 PRINT b$(1)
+        40 LET b$(2)="VWXYZ"
+        50 LET b$(2, 1 TO 4)=b$(2, 2 TO )
+        60 PRINT b$(2)
+        """,
+        "AABCD\nWXYZZ\n");
+  }
+
+  @Test
+  void assigningAOneDimensionalFixedStringToAnOverlappingSliceOfItselfCopiesTheOriginalBytes() {
+    runProgram(
+        """
+        10 DIM a$(5): LET a$="ABCDE"
+        20 LET a$(2 TO )=a$
+        30 PRINT a$
+        40 LET a$=a$(3 TO )
+        50 PRINT a$
+        """,
+        "AABCD\nBCD  \n");
+  }
 }

@@ -545,7 +545,8 @@ public class ExpressionEvaluator {
       throw codedException(ReportCode.SUBSCRIPT_WRONG, "Subscript wrong");
     }
     final int n = dimensions.length;
-    if (indicesCount != n || n < 1) {
+    // n == 0 is a one-dimensional fixed-length string (DIM a$(5)): its single element is at 0
+    if (indicesCount != n) {
       throw codedException(ReportCode.SUBSCRIPT_WRONG, "Incorrect dimensions");
     }
     if (offset < 0 || offset + indicesCount > indices.length) {
