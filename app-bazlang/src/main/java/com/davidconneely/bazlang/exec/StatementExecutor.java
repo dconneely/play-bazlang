@@ -1030,16 +1030,12 @@ public class StatementExecutor {
   // ===== Program management =====
 
   private void executeRandStmt(Stmt.RandStmt stmt) {
-    long seed = stmt.seed() != null ? Math.round(exprEvaluator.evalNum(stmt.seed())) : 0;
-    // RAND with 0 or no argument seeds from system state
+    final long seed = stmt.seed() != null ? Math.round(exprEvaluator.evalNum(stmt.seed())) : 0;
     if (seed == 0) {
-      // Combine multiple entropy sources and mix with XorShift
-      seed = System.nanoTime() ^ java.util.concurrent.ThreadLocalRandom.current().nextLong();
-      seed ^= seed << 17;
-      seed ^= seed >>> 31;
-      seed ^= seed << 8;
+      state.seedRandomFromEntropy();
+    } else {
+      state.seedRandom(seed);
     }
-    state.seedRandom(seed);
   }
 
   private void executeListStmt(Stmt.ListStmt stmt) {

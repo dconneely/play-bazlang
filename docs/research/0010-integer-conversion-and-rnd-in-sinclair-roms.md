@@ -54,5 +54,5 @@ make seeded sequences match real hardware exactly, at the cost of the short peri
 ## Open questions
 
 - The ZX80 (4K ROM) has integer-only BASIC with its own `RND n`; it was not checked here.
-- Whether BazLang should adopt the ROM generator (and a 16-bit `SEED`) is a design decision, not
-  settled by this note.
+- None for BazLang's own use: it deliberately keeps `java.util.Random` (see
+  [quirks.md](../quirks.md#random-number-quirks)).

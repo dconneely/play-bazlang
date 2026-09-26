@@ -34,6 +34,28 @@ class EvalStateTest {
   }
 
   @Test
+  void rndUsesTheInjectedGeneratorFactoryAndReseedsReproducibly() {
+    final List<Long> seeds = new java.util.ArrayList<>();
+    final var seeded =
+        new EvalState(
+            new Program(),
+            seed -> {
+              seeds.add(seed);
+              return new java.util.SplittableRandom(seed);
+            });
+    assertEquals(1, seeds.size(), "one generator built at construction, from entropy");
+
+    seeded.seedRandom(42);
+    final double first = seeded.nextRandom();
+    seeded.seedRandom(42);
+    assertEquals(first, seeded.nextRandom(), "same seed, same sequence");
+    assertEquals(List.of(42L, 42L), seeds.subList(1, 3));
+
+    seeded.seedRandomFromEntropy();
+    assertEquals(4, seeds.size());
+  }
+
+  @Test
   void testForLoops() {
     assertFalse(state.hasForLoop("I"));
     final var data = new EvalState.ForLoopData(10.0, 1.0, 100, 2);

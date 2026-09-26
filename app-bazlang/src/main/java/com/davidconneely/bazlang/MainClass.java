@@ -5,6 +5,7 @@ import com.davidconneely.bazlang.edit.ProgramEditor;
 import com.davidconneely.bazlang.exec.EvalState;
 import com.davidconneely.bazlang.exec.ExpressionEvaluator;
 import com.davidconneely.bazlang.exec.Interpreter;
+import com.davidconneely.bazlang.exec.Program;
 import com.davidconneely.bazlang.exec.ProgramStorage;
 import com.davidconneely.bazlang.exec.StatementExecutor;
 import com.davidconneely.bazlang.io.JavaSoundSpeaker;
@@ -18,6 +19,7 @@ import com.davidconneely.repl.jline.JLineTerminalEngine;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Random;
 
 /** CLI entry point: runs a source file, or the interactive REPL when given no arguments. */
 public class MainClass {
@@ -70,7 +72,7 @@ public class MainClass {
     try {
       final String source = Files.readString(Path.of(sourceFile));
       final var program = PARSER.parseProgramLines(source);
-      final var state = new EvalState();
+      final var state = new EvalState(new Program(), Random::new);
       final var executor = newExecutor(state, screen, input, speaker);
       final var interpreter = new Interpreter(state, executor, PARSER);
       interpreter.execute(program);
@@ -91,7 +93,7 @@ public class MainClass {
   }
 
   private static int runRepl(VirtualScreen screen, VirtualInput input, VirtualSpeaker speaker) {
-    final var state = new EvalState();
+    final var state = new EvalState(new Program(), Random::new);
     final var executor = newExecutor(state, screen, input, speaker);
     final var interpreter = new Interpreter(state, executor, PARSER);
     final var editor = new ProgramEditor(state, screen, PARSER, executor::evalNum);

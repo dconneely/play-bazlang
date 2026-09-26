@@ -254,8 +254,10 @@ current pixel state (which is slightly confusing, but consistent with the Sincla
 - **`VERIFY "file"`**: Check that the program text in the file matches the current program exactly
   (line numbers and source text). Succeeds silently on a match; reports `R Tape loading error` if
   the contents differ.
-- **`RANDOMIZE n`** (aliases **`RAND n`**, **`RANDOMISE n`**): Seed the random number generator. If
-  `n` is `0` or omitted, it seeds dynamically using system entropy.
+- **`RANDOMIZE n`** (aliases **`RAND n`**, **`RANDOMISE n`**): Seed the random number generator, so
+  the `RND` sequence that follows is reproducible. If `n` is `0` or omitted, it seeds dynamically
+  using system entropy. The sequence differs from real hardware's - see
+  [quirks.md](../quirks.md#random-number-quirks).
 
 ### Data
 
@@ -476,7 +478,7 @@ an exhaustive list):
 | APLAY           | Non-blocking (deliberate addition)   | No equivalent command exists     |
 | FRAMES epoch    | Fractional, epoch-relative           | Integer interrupts from power-on |
 | File I/O        | File system                          | Tape                             |
-| RND algorithm   | Java Random                          | Lehmer generator, period 65536   |
+| RND algorithm   | Java Random (see quirks.md)          | Lehmer generator, period 65536   |
 | Report codes    | Same codes & messages, extra context | Same codes & messages            |
 | PRINT AT bounds | Clamps to terminal bounds            | Throws "5 Out of screen"         |
 | POINT bounds    | Returns 0                            | Throws "B Integer out of range"  |

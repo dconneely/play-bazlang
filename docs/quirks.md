@@ -45,6 +45,19 @@ those behaviours. It serves two audiences:
   Rather than crashing the JVM, this is caught and surfaced as report code
   `4 Out of memory, <line>:<statement>`, matching real ZX Spectrum behaviour.
 
+## Random number quirks
+
+- **`RND` is not the Sinclair ROM's generator**: On a ZX81 or ZX Spectrum, `RND` is a Lehmer
+  generator over a 16-bit `SEED` (`SEED = ((SEED + 1) * 75) mod 65537 - 1`, returning
+  `SEED / 65536`), so its sequence repeats after 65,536 values and a given `RANDOMIZE n` always
+  produces the same, hardware-specific sequence - see
+  [research note 0010](research/0010-integer-conversion-and-rnd-in-sinclair-roms.md). BazLang
+  deliberately uses `java.util.Random` instead: `RANDOMIZE n` is still reproducible run to run, but
+  the numbers differ from real hardware, `n` is not limited to `0..65535`, and there is no short
+  period. `RANDOMIZE` or `RANDOMIZE 0` seeds unpredictably, as on the Spectrum. The generator is
+  injected into `EvalState` as a seed-to-`RandomGenerator` factory, so a ROM-accurate one could be
+  substituted without touching the interpreter.
+
 ## Data quirks
 
 - **DATA statements in IF bodies**: `DATA` statements are indexed globally at parse time, not at

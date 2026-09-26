@@ -10,6 +10,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.TreeMap;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.function.LongFunction;
+import java.util.random.RandomGenerator;
 
 /**
  * The program's memory - a thin facade over four cohesive collaborators: {@link VariableStore}
@@ -185,7 +188,8 @@ public class EvalState implements VarIdAllocator {
   private final DataCursor dataCursor = new DataCursor();
 
   private final Map<String, ForLoopData> forLoops = new HashMap<>();
-  private final Random random = new Random();
+  private final LongFunction<? extends RandomGenerator> randomFactory;
+  private RandomGenerator random;
 
   private ReportState lastReport = new ReportState(ReportCode.OK, 0, 1);
 
@@ -213,8 +217,24 @@ public class EvalState implements VarIdAllocator {
    * @param program the programme to run against.
    */
   public EvalState(Program program) {
+    this(program, Random::new);
+  }
+
+  /**
+   * Creates a state over an existing {@link Program} (see {@link #EvalState(Program)}) whose {@code
+   * RND} values come from generators built by {@code randomFactory}. A factory rather than a single
+   * generator, because {@code RANDOMIZE} reseeds and {@link RandomGenerator} has no seed of its own
+   * to set: each reseed builds a fresh generator from the new seed. Deliberately not the Sinclair
+   * ROM's generator by default - see {@code docs/quirks.md}.
+   *
+   * @param program the programme to run against.
+   * @param randomFactory builds a generator from a seed; e.g. {@code Random::new}.
+   */
+  public EvalState(Program program, LongFunction<? extends RandomGenerator> randomFactory) {
     this.program = program;
     this.variables = new VariableStore(program);
+    this.randomFactory = randomFactory;
+    this.random = randomFactory.apply(entropySeed());
   }
 
   /**
@@ -773,7 +793,7 @@ public class EvalState implements VarIdAllocator {
   // ===== Randomness =====
 
   /**
-   * The next pseudorandom value from the {@code RAND()} builtin's RNG.
+   * The next pseudorandom value for {@code RND}.
    *
    * @return a value in {@code [0.0, 1.0)}.
    */
@@ -782,12 +802,27 @@ public class EvalState implements VarIdAllocator {
   }
 
   /**
-   * Reseeds the {@code RAND()} builtin's RNG.
+   * Reseeds {@code RND} with a fixed seed ({@code RANDOMIZE n}), so the sequence that follows is
+   * reproducible.
    *
    * @param seed the new seed.
    */
   public void seedRandom(long seed) {
-    random.setSeed(seed);
+    random = randomFactory.apply(seed);
+  }
+
+  /** Reseeds {@code RND} unpredictably ({@code RANDOMIZE} or {@code RANDOMIZE 0}). */
+  public void seedRandomFromEntropy() {
+    seedRandom(entropySeed());
+  }
+
+  // Combines two entropy sources and mixes them with an xorshift step.
+  private static long entropySeed() {
+    long seed = System.nanoTime() ^ ThreadLocalRandom.current().nextLong();
+    seed ^= seed << 17;
+    seed ^= seed >>> 31;
+    seed ^= seed << 8;
+    return seed;
   }
 
   /**

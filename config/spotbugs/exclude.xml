@@ -37,8 +37,8 @@
         <Bug pattern="DLS_DEAD_LOCAL_STORE" />
     </Match>
 
-    <!-- find-sec-bugs false positive: this java.util.Random backs the language's own RAND()
-         builtin, seedable via SEED() for reproducible scripts - it is not a security token or
+    <!-- find-sec-bugs false positive: this java.util.Random backs the language's own RND function,
+         seedable via RANDOMIZE for reproducible programs - it is not a security token or
          credential, so its predictability is the point, not a vulnerability. -->
     <Match>
         <Class name="com.davidconneely.bazlang.exec.EvalState" />
@@ -46,11 +46,11 @@
         <Bug pattern="PREDICTABLE_RANDOM" />
     </Match>
 
-    <!-- find-sec-bugs false positive: ThreadLocalRandom here only mixes extra entropy into the
-         same RAND() builtin's seed when no explicit seed is given - again not a security token. -->
+    <!-- find-sec-bugs false positive: ThreadLocalRandom here only mixes extra entropy into RND's
+         seed when RANDOMIZE is given no explicit seed - again not a security token. -->
     <Match>
-        <Class name="com.davidconneely.bazlang.exec.StatementExecutor" />
-        <Method name="executeRandStmt" />
+        <Class name="com.davidconneely.bazlang.exec.EvalState" />
+        <Method name="entropySeed" />
         <Bug pattern="PREDICTABLE_RANDOM" />
     </Match>
 
