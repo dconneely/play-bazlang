@@ -1,7 +1,7 @@
 # Cell buffer library (`lib-cell`)
 
 `lib-cell` is a lightweight, pure-Java library that provides a high-performance grid buffer for
-character-cell based displays, supporting advanced styling, true color (24-bit RGB), and
+character-cell based displays, supporting advanced styling, true colour (24-bit RGB), and
 sub-character pixel mapping.
 
 This library is used by the BazLang interpreter to implement screen rendering and pixel drawing
@@ -12,7 +12,7 @@ terminal user interfaces (TUIs).
 
 - **Structure-of-arrays layout:** For maximum cache efficiency and rendering speed, the cell grid
   data (codepoints and style/colour attributes) is stored in a Structure-of-Arrays (SoA) layout.
-- **Packed attributes:** Foreground colors, background colors, and formatting styles (bold, blink,
+- **Packed attributes:** Foreground colours, background colours, and formatting styles (bold, blink,
   italic, strikethrough, etc.) are packed into a single 64-bit `long` per cell.
 - **Pluggable graphics modes (`PixelMode`):** Provides sub-character rendering by mapping multiple
   virtual "pixels" onto single Unicode block/Braille characters:

@@ -4,7 +4,7 @@ This module houses the interpreter, execution runtime, and interactive REPL for 
 language.
 
 BazLang is a BASIC dialect based on the 1981 / 1982 Sinclair ZX BASIC (ZX80, ZX81, and ZX Spectrum),
-modernized with 24-bit colour support, sub-pixel terminal graphics (using Braille and block
+modernised with 24-bit colour support, sub-pixel terminal graphics (using Braille and block
 characters), and UTF-8 string encoding.
 
 ## Documentation

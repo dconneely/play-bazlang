@@ -85,7 +85,7 @@ GC pause on a loaded runner can space two still-legitimate mid-note chunks furth
 short quiet-window would assume. The working fix waits for `drainPlay()` instead -
 `StatementExecutor`'s own single-fire, unambiguous "just went idle" signal (see
 [ADR-0007](docs/adr/0007-synchronous-per-call-play-rendering.md)) - rather than inferring idleness
-from any timing heuristic. Worth auditing any other test using `Thread.sleep` for synchronization
+from any timing heuristic. Worth auditing any other test using `Thread.sleep` for synchronisation
 the same way, but confirm this Windows failure actually recurs before spending more effort on it.
 
 ## Scripted-playthrough tests for interactive, input-driven programs
