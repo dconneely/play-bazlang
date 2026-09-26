@@ -7,6 +7,7 @@ import com.davidconneely.bazlang.antlr.AntlrParser;
 import com.davidconneely.bazlang.antlr.BazLangLexer;
 import com.davidconneely.bazlang.antlr.BazLangParser;
 import com.davidconneely.bazlang.exec.EvalState;
+import com.davidconneely.bazlang.exec.ExpressionEvaluator;
 import com.davidconneely.bazlang.exec.Program;
 import com.davidconneely.bazlang.exec.ProgramLine;
 import com.davidconneely.bazlang.io.VirtualScreen;
@@ -259,7 +260,7 @@ public class ProgramEditor {
 
       if (targetToken != null) {
         final double val = Double.parseDouble(targetToken.getText());
-        final int target = (int) Math.round(val);
+        final int target = ExpressionEvaluator.toInt(val);
 
         Integer newTarget = null;
         if (mapping.containsKey(target)) {
@@ -318,10 +319,10 @@ public class ProgramEditor {
         oldEnd = bounds[1];
       }
       if (args.lineNum != null) {
-        newStart = (int) numEval.applyAsDouble(args.lineNum);
+        newStart = ExpressionEvaluator.toInt(numEval.applyAsDouble(args.lineNum));
       }
       if (args.stepNum != null) {
-        newStep = (int) numEval.applyAsDouble(args.stepNum);
+        newStep = ExpressionEvaluator.toInt(numEval.applyAsDouble(args.stepNum));
       }
     }
     return new int[] {newStart, newStep, oldStart, oldEnd};
@@ -341,19 +342,19 @@ public class ProgramEditor {
     int end = Limits.MAX_TARGET_LABEL;
     if (range.TO() != null) {
       if (nums.size() == 2) {
-        start = (int) numEval.applyAsDouble(nums.get(0));
-        end = (int) numEval.applyAsDouble(nums.get(1));
+        start = ExpressionEvaluator.toInt(numEval.applyAsDouble(nums.get(0)));
+        end = ExpressionEvaluator.toInt(numEval.applyAsDouble(nums.get(1)));
       } else if (nums.size() == 1) {
         if (range.getText().toUpperCase().startsWith("TO")) {
-          end = (int) numEval.applyAsDouble(nums.getFirst());
+          end = ExpressionEvaluator.toInt(numEval.applyAsDouble(nums.getFirst()));
         } else {
-          start = (int) numEval.applyAsDouble(nums.getFirst());
+          start = ExpressionEvaluator.toInt(numEval.applyAsDouble(nums.getFirst()));
         }
       }
       // Just TO: start=MIN, end=MAX (already set)
     } else {
       // Command n (no TO): just that single line
-      start = (int) numEval.applyAsDouble(nums.getFirst());
+      start = ExpressionEvaluator.toInt(numEval.applyAsDouble(nums.getFirst()));
       end = start;
     }
     return new int[] {start, end};

@@ -4,6 +4,7 @@ import com.davidconneely.bazlang.antlr.AntlrParser;
 import com.davidconneely.bazlang.antlr.BazLangParser;
 import com.davidconneely.bazlang.edit.ProgramEditor;
 import com.davidconneely.bazlang.exec.EvalState;
+import com.davidconneely.bazlang.exec.ExpressionEvaluator;
 import com.davidconneely.bazlang.exec.Interpreter;
 import com.davidconneely.bazlang.exec.ProgramLine;
 import com.davidconneely.bazlang.exec.StatementExecutor;
@@ -139,7 +140,7 @@ public final class InterpreterReplHandler implements ReplHandler {
     if (ctx instanceof BazLangParser.DeleteCmdContext delete) {
       programEditor.executeDelete(delete.lineRange());
     } else if (ctx instanceof BazLangParser.EditCmdContext edit) {
-      final int lineNum = (int) executor.evalNum(edit.numExpr());
+      final int lineNum = ExpressionEvaluator.toInt(executor.evalNum(edit.numExpr()));
       if (lineNum < Limits.MIN_LINE_LABEL || lineNum > Limits.MAX_LINE_LABEL) {
         throw new ReportException(
             ReportCode.INTEGER_OUT_OF_RANGE, 0, 1, "Line number out of range");

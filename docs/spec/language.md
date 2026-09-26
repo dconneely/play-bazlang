@@ -31,6 +31,10 @@ Spectrum BASIC). This file lists the available commands, functions, and syntax r
 
 - **Simple variables**: `a`, `b1`, `count`. These are double-precision decimals.
 - **Arrays**: `DIM a(10)`. Access with `a(1)`. Indices start at 1.
+- **Integer arguments**: Wherever a whole number is required - line numbers, array and string
+  subscripts, `DIM` sizes, colours, coordinates, character codes - the value is rounded to the
+  nearest integer, with halves rounded up (`1.5` gives `2`, `-1.5` gives `-1`), as Sinclair ZX BASIC
+  does. `INT` rounds down instead.
 
 ### Strings
 
@@ -464,7 +468,6 @@ an exhaustive list):
 | :-------------- | :----------------------------------- | :------------------------------- |
 | Character set   | UTF-8                                | Proprietary ZX charset           |
 | Variable names  | Multi-character allowed              | Single letters for arrays/FOR    |
-| GOTO target     | Rounds to nearest line               | Truncates to integer             |
 | PAUSE >= 32767  | Waits that many frames               | Waits forever until keypress     |
 | PAUSE 0         | Immediate no-op                      | Waits forever until keypress     |
 | BEEP (headless) | Silent no-op                         | N/A (always has a real speaker)  |
@@ -473,7 +476,7 @@ an exhaustive list):
 | APLAY           | Non-blocking (deliberate addition)   | No equivalent command exists     |
 | FRAMES epoch    | Fractional, epoch-relative           | Integer interrupts from power-on |
 | File I/O        | File system                          | Tape                             |
-| RND algorithm   | Java Random                          | Linear feedback shift register   |
+| RND algorithm   | Java Random                          | Lehmer generator, period 65536   |
 | Report codes    | Same codes & messages, extra context | Same codes & messages            |
 | PRINT AT bounds | Clamps to terminal bounds            | Throws "5 Out of screen"         |
 | POINT bounds    | Returns 0                            | Throws "B Integer out of range"  |

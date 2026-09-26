@@ -32,8 +32,7 @@ import java.util.function.Supplier;
 
 /**
  * Walks the typed {@link Stmt} AST via {@code switch} pattern matching, delegating expression
- * evaluation to {@link ExpressionEvaluator}. Replaced the original ANTLR-visitor-based executor at
- * the Phase 4 cutover (see {@code localonly-plan-CUSTOM-AST.md}).
+ * evaluation to {@link ExpressionEvaluator}.
  *
  * <p>{@code switch (stmt)} in {@link #execute} is exhaustive over the sealed {@link Stmt} with no
  * {@code default} arm, so adding a new {@code Stmt} case is a compile error here, not a silent gap.
@@ -134,9 +133,9 @@ public class StatementExecutor {
 
   /**
    * Evaluates an already-parsed ANTLR {@code numExpr} - used by {@code ProgramEditor} and the
-   * {@code EDIT} REPL command, which (by design; see {@code localonly-plan-CUSTOM-AST.md} Phase 0)
-   * still work directly off raw parse trees. Lowers fresh on every call, same "parse/lower fresh
-   * each time" shape as {@code VAL}/{@code INPUT}.
+   * {@code EDIT} REPL command, which by design work directly off raw parse trees (see {@code
+   * docs/spec/architecture.md} "Parse tree vs. AST"). Lowers fresh on every call, same "parse/lower
+   * fresh each time" shape as {@code VAL}/{@code INPUT}.
    *
    * @param ctx the parsed numeric expression.
    * @return the evaluated value.
@@ -163,7 +162,7 @@ public class StatementExecutor {
       case Stmt.DimStmt s -> executeDimStmt(s);
       case Stmt.ForStmt s -> flow = executeForStmt(s);
       case Stmt.NextStmt s -> flow = executeNextStmt(s);
-      case Stmt.GotoStmt s -> flow = gotoLabel((int) Math.round(exprEvaluator.evalNum(s.target())));
+      case Stmt.GotoStmt s -> flow = gotoLabel(exprEvaluator.evalInt(s.target()), "GO TO");
       case Stmt.GosubStmt s -> flow = executeGosubStmt(s);
       case Stmt.ReturnStmt _ -> flow = executeReturnStmt();
       case Stmt.IfStmt s -> flow = executeIfStmt(s);
@@ -230,7 +229,7 @@ public class StatementExecutor {
     final int numDims = stmt.dims().size();
     final int[] dims = new int[numDims];
     for (int i = 0; i < numDims; i++) {
-      final int d = (int) exprEvaluator.evalNum(stmt.dims().get(i));
+      final int d = exprEvaluator.evalInt(stmt.dims().get(i));
       if (d < 1) {
         throw codedException(ReportCode.SUBSCRIPT_WRONG, "Subscript wrong");
       }
@@ -315,10 +314,18 @@ public class StatementExecutor {
     return ControlFlow.CONTINUE;
   }
 
-  private ControlFlow gotoLabel(int target) {
+  private void checkTargetLabel(int target, String keyword) {
     if (target < Limits.MIN_TARGET_LABEL || target > Limits.MAX_TARGET_LABEL) {
-      throw codedException(ReportCode.INTEGER_OUT_OF_RANGE, "GO TO line label out of range");
+      throw codedException(ReportCode.INTEGER_OUT_OF_RANGE, keyword + " line label out of range");
     }
+  }
+
+  private ControlFlow gotoLabel(int target, String keyword) {
+    checkTargetLabel(target, keyword);
+    return jumpToLabel(target);
+  }
+
+  private ControlFlow jumpToLabel(int target) {
     // Prevent jumping to line 0 (the immediate statement buffer)
     final int searchTarget = Math.max(target, Limits.MIN_LINE_LABEL);
     final Integer label = state.program().ceilingKey(searchTarget);
@@ -329,7 +336,7 @@ public class StatementExecutor {
     state.pushReturn(
         new EvalState.StatementAddress(
             state.currentLineLabel(), state.currentStatementIndex() + 1));
-    return gotoLabel((int) Math.round(exprEvaluator.evalNum(stmt.target())));
+    return gotoLabel(exprEvaluator.evalInt(stmt.target()), "GO SUB");
   }
 
   private ControlFlow executeReturnStmt() {
@@ -374,14 +381,10 @@ public class StatementExecutor {
 
   private ControlFlow executeRunStmt(Stmt.RunStmt stmt) {
     final int target =
-        stmt.target() != null
-            ? (int) Math.round(exprEvaluator.evalNum(stmt.target()))
-            : Limits.MIN_TARGET_LABEL;
-    if (target < Limits.MIN_TARGET_LABEL || target > Limits.MAX_TARGET_LABEL) {
-      throw codedException(ReportCode.INTEGER_OUT_OF_RANGE, "RUN line label out of range");
-    }
+        stmt.target() != null ? exprEvaluator.evalInt(stmt.target()) : Limits.MIN_TARGET_LABEL;
+    checkTargetLabel(target, "RUN"); // before clear(): an out-of-range RUN leaves state intact
     state.clear();
-    return gotoLabel(target);
+    return jumpToLabel(target);
   }
 
   // ===== DATA / READ / RESTORE =====
@@ -457,8 +460,7 @@ public class StatementExecutor {
   private void executeRestoreStmt(Stmt.RestoreStmt stmt) {
     int target = 0;
     if (stmt.target() != null) {
-      final double val = exprEvaluator.evalNum(stmt.target());
-      target = (int) Math.round(val);
+      target = exprEvaluator.evalInt(stmt.target());
       if (target < 0 || target > Limits.MAX_TARGET_LABEL) {
         throw codedException(ReportCode.INTEGER_OUT_OF_RANGE, "Line label out of range");
       }
@@ -496,7 +498,7 @@ public class StatementExecutor {
    * only ever touches the screen - see {@link StyleItem}'s class Javadoc).
    */
   private void executeColourStmt(NumExpr value, IntConsumer screenSetter, IntConsumer stateSetter) {
-    final int colour = (int) exprEvaluator.evalNum(value);
+    final int colour = exprEvaluator.evalInt(value);
     stateSetter.accept(colour);
     screenSetter.accept(colour);
   }
@@ -512,7 +514,7 @@ public class StatementExecutor {
   // (Checkstyle wins) and suppress the PMD complaint.
   @SuppressWarnings("PMD.ExhaustiveSwitchHasDefault")
   private void applyStyleItem(StyleItem style) {
-    final int value = (int) exprEvaluator.evalNum(style.value());
+    final int value = exprEvaluator.evalInt(style.value());
     switch (style.kind()) {
       case INK -> screen.setInk(value);
       case PAPER -> screen.setPaper(value);
@@ -539,7 +541,7 @@ public class StatementExecutor {
   // ===== Graphics =====
 
   private void executePlotmodeStmt(Stmt.PlotmodeStmt stmt) {
-    final int mode = (int) exprEvaluator.evalNum(stmt.mode());
+    final int mode = exprEvaluator.evalInt(stmt.mode());
     final var pixelMode =
         switch (mode) {
           case 1 -> CellMode.INSTANCE;
@@ -559,8 +561,8 @@ public class StatementExecutor {
         () -> {
           applyStyleList(stmt.styles());
           try {
-            final int x = (int) exprEvaluator.evalNum(stmt.x());
-            final int y = (int) exprEvaluator.evalNum(stmt.y());
+            final int x = exprEvaluator.evalInt(stmt.x());
+            final int y = exprEvaluator.evalInt(stmt.y());
             screen.plot(x, y);
             state.setGraphicsCursorX(x);
             state.setGraphicsCursorY(y);
@@ -574,8 +576,8 @@ public class StatementExecutor {
     withRestoredStyles(
         () -> {
           applyStyleList(stmt.styles());
-          final int dx = (int) Math.round(exprEvaluator.evalNum(stmt.dx()));
-          final int dy = (int) Math.round(exprEvaluator.evalNum(stmt.dy()));
+          final int dx = exprEvaluator.evalInt(stmt.dx());
+          final int dy = exprEvaluator.evalInt(stmt.dy());
           drawLine(
               state.graphicsCursorX(),
               state.graphicsCursorY(),
@@ -616,9 +618,9 @@ public class StatementExecutor {
     withRestoredStyles(
         () -> {
           applyStyleList(stmt.styles());
-          final int cx = (int) Math.round(exprEvaluator.evalNum(stmt.cx()));
-          final int cy = (int) Math.round(exprEvaluator.evalNum(stmt.cy()));
-          final int r = (int) Math.round(exprEvaluator.evalNum(stmt.radius()));
+          final int cx = exprEvaluator.evalInt(stmt.cx());
+          final int cy = exprEvaluator.evalInt(stmt.cy());
+          final int r = exprEvaluator.evalInt(stmt.radius());
           try {
             drawCircle(cx, cy, r);
           } catch (IllegalArgumentException e) {
@@ -677,8 +679,8 @@ public class StatementExecutor {
                 suppressNewline = false;
               }
               case PrintElement.AtItem at -> {
-                final int row = (int) exprEvaluator.evalNum(at.row());
-                final int col = (int) exprEvaluator.evalNum(at.col());
+                final int row = exprEvaluator.evalInt(at.row());
+                final int col = exprEvaluator.evalInt(at.col());
                 if (row < 0 || col < 0) {
                   throw codedException(ReportCode.OUT_OF_SCREEN, "Screen out of bounds");
                 }
@@ -687,7 +689,7 @@ public class StatementExecutor {
                 suppressNewline = false;
               }
               case PrintElement.TabItem tab -> {
-                int t = (int) exprEvaluator.evalNum(tab.col());
+                int t = exprEvaluator.evalInt(tab.col());
                 if (t < 0) {
                   t = ((tabPos / Limits.TAB_WIDTH) + 1) * Limits.TAB_WIDTH;
                 }
@@ -1046,10 +1048,10 @@ public class StatementExecutor {
     final var range = stmt.range();
     if (range != null) {
       if (range.from() != null) {
-        start = (int) exprEvaluator.evalNum(range.from());
+        start = exprEvaluator.evalInt(range.from());
       }
       if (range.to() != null) {
-        end = (int) exprEvaluator.evalNum(range.to());
+        end = exprEvaluator.evalInt(range.to());
       }
     }
     final int rangeStart = start;
@@ -1094,7 +1096,7 @@ public class StatementExecutor {
       final int count = array.indices.size();
       final int[] indices = new int[count];
       for (int i = 0; i < count; i++) {
-        indices[i] = (int) exprEvaluator.evalNum(array.indices.get(i));
+        indices[i] = exprEvaluator.evalInt(array.indices.get(i));
       }
       final int idx = exprEvaluator.calculateArrayIndex(na.dimensions(), indices, 0, count);
       na.data()[idx] = val;
@@ -1114,17 +1116,17 @@ public class StatementExecutor {
     final int indicesCount = subscript.indices().size();
     final int[] indices = new int[indicesCount];
     for (int i = 0; i < indicesCount; i++) {
-      indices[i] = (int) exprEvaluator.evalNum(subscript.indices().get(i));
+      indices[i] = exprEvaluator.evalInt(subscript.indices().get(i));
     }
     int sliceStart = -1;
     int sliceEnd = -1;
     final boolean hasSlice = subscript.slice() != null;
     if (hasSlice) {
       if (subscript.slice().start() != null) {
-        sliceStart = (int) exprEvaluator.evalNum(subscript.slice().start());
+        sliceStart = exprEvaluator.evalInt(subscript.slice().start());
       }
       if (subscript.slice().end() != null) {
-        sliceEnd = (int) exprEvaluator.evalNum(subscript.slice().end());
+        sliceEnd = exprEvaluator.evalInt(subscript.slice().end());
       }
     }
 

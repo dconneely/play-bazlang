@@ -50,6 +50,12 @@ All notable changes to this project are documented here, following
 - `STOP` typed directly at the REPL prompt no longer exits the session - it now only raises
   `9 STOP statement` and leaves the REPL running, matching real ZX81/ZX Spectrum BASIC. Use the new
   `EXIT` command (or Ctrl+D) to quit instead.
+- Numbers used where a whole number is required - array and string subscripts, slice bounds, `DIM`
+  sizes, colours, `PLOT`/`PRINT AT`/`TAB` positions, `CHR$`/`UCHR$` codes, `LIST`/`RENUM` ranges -
+  are now rounded to the nearest integer, as Sinclair ZX BASIC does, instead of truncated; e.g.
+  `a(1.6)` now reads `a(2)`. `GO TO`/`GO SUB`/`RUN`/`RESTORE` already rounded.
+- MCP: a legacy `initialize` request now gets `-32022 Unsupported protocol version` naming the one
+  supported revision (`2026-07-28`), instead of `-32601 Method not found`.
 
 ### Removed
 
@@ -87,3 +93,6 @@ All notable changes to this project are documented here, following
   regardless of where the triggering statement actually was on its line. `ReportException`'s
   constructor now always requires an explicit statement index, so this class of bug can't recur
   silently.
+- A very large line number in `GO TO`/`GO SUB`/`RUN`/`RESTORE` (e.g. `GO TO 4294967326`, which is
+  2^32 + 30) now reports `B Integer out of range` instead of wrapping round and jumping to an
+  unrelated line (here, line 30).

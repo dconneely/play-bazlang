@@ -19,9 +19,9 @@ import java.util.List;
 
 /**
  * Walks the typed {@link NumExpr}/{@link StrExpr} AST directly via {@code switch} pattern matching
- * and returns {@code double}/{@link BStr} directly from {@link #evalNum}/{@link #evalStr} - no
- * {@code numResult}/{@code strResult} side fields, unlike the original ANTLR-visitor-based
- * evaluator this replaced at the Phase 4 cutover (see {@code localonly-plan-CUSTOM-AST.md}).
+ * and returns {@code double}/{@link BStr} directly from {@link #evalNum}/{@link #evalStr}, with no
+ * boxing and no side fields - see {@code docs/spec/architecture.md} "Performance & memory
+ * optimisations".
  */
 public class ExpressionEvaluator {
   private final EvalState state;
@@ -85,6 +85,31 @@ public class ExpressionEvaluator {
   // ===== Numeric expressions =====
 
   /**
+   * Converts a numeric value to an integer the way the Sinclair ROM's {@code FP-TO-BC}/{@code
+   * FP-TO-A} do wherever an integer is required (line numbers, subscripts, colours, coordinates,
+   * character codes): {@code INT(x + 0.5)}, i.e. round half up, so {@code 1.5} gives {@code 2} and
+   * {@code -1.5} gives {@code -1} - exactly {@link Math#round(double)}. Saturates at the {@code
+   * int} range rather than wrapping, so an out-of-range value still fails the caller's own range
+   * check. See {@code docs/research/0010-integer-conversion-and-rnd-in-sinclair-roms.md}.
+   *
+   * @param value the value to convert.
+   * @return the rounded value, clamped to the {@code int} range.
+   */
+  public static int toInt(double value) {
+    return Math.clamp(Math.round(value), Integer.MIN_VALUE, Integer.MAX_VALUE);
+  }
+
+  /**
+   * Evaluates a numeric expression and converts the result with {@link #toInt}.
+   *
+   * @param expr the expression to evaluate.
+   * @return the rounded result.
+   */
+  public int evalInt(NumExpr expr) {
+    return toInt(evalNum(expr));
+  }
+
+  /**
    * Evaluates a numeric expression.
    *
    * @param expr the expression to evaluate.
@@ -129,7 +154,7 @@ public class ExpressionEvaluator {
     this.indexStackPtr += count;
     try {
       for (int i = 0; i < count; i++) {
-        indexStack[ptr + i] = (int) evalNum(a.indices.get(i));
+        indexStack[ptr + i] = evalInt(a.indices.get(i));
       }
       final int idx = calculateArrayIndex(na.dimensions(), indexStack, ptr, count);
       return na.data()[idx];
@@ -223,8 +248,8 @@ public class ExpressionEvaluator {
         yield Math.asin(arg);
       }
       case ATTR -> {
-        final int row = (int) Math.round(argNum(args, 0));
-        final int col = (int) Math.round(argNum(args, 1));
+        final int row = toInt(argNum(args, 0));
+        final int col = toInt(argNum(args, 1));
         if (row < 0 || row >= screen.printHeight() || col < 0 || col >= screen.printWidth()) {
           throw codedException(ReportCode.INTEGER_OUT_OF_RANGE, "Screen coordinates out of bounds");
         }
@@ -237,9 +262,9 @@ public class ExpressionEvaluator {
         yield s.isEmpty() ? 0 : s.byteAt(0);
       }
       case COLOUR -> {
-        final int r = (int) Math.round(argNum(args, 0));
-        final int g = (int) Math.round(argNum(args, 1));
-        final int b = (int) Math.round(argNum(args, 2));
+        final int r = toInt(argNum(args, 0));
+        final int g = toInt(argNum(args, 1));
+        final int b = toInt(argNum(args, 2));
         if (r < 0 || r > 255 || g < 0 || g > 255 || b < 0 || b > 255) {
           throw codedException(
               ReportCode.INVALID_ARGUMENT, "COLOUR components must be between 0 and 255");
@@ -266,8 +291,8 @@ public class ExpressionEvaluator {
       case PLOTX -> state.graphicsCursorX();
       case PLOTY -> state.graphicsCursorY();
       case POINT -> {
-        final int x = (int) Math.round(argNum(args, 0));
-        final int y = (int) Math.round(argNum(args, 1));
+        final int x = toInt(argNum(args, 0));
+        final int y = toInt(argNum(args, 1));
         yield screen.point(x, y);
       }
       case RND -> state.nextRandom();
@@ -287,7 +312,7 @@ public class ExpressionEvaluator {
       case TEXTY -> screen.currentRow();
       case UCNEXT -> {
         final var s = argStr(args, 0);
-        final int pos = (int) argNum(args, 1); // 1-based byte position
+        final int pos = toInt(argNum(args, 1)); // 1-based byte position
         if (pos < 1 || pos > s.length() + 1) {
           throw codedException(ReportCode.INTEGER_OUT_OF_RANGE, "UCNEXT position out of range");
         }
@@ -303,9 +328,9 @@ public class ExpressionEvaluator {
       case ULEN -> argStr(args, 0).codepointLength();
       case VAL -> evaluateNumericExpression(argStr(args, 0).toJavaString().trim());
       case XATTR -> {
-        final int row = (int) Math.round(argNum(args, 0));
-        final int col = (int) Math.round(argNum(args, 1));
-        final int select = (int) Math.round(argNum(args, 2));
+        final int row = toInt(argNum(args, 0));
+        final int col = toInt(argNum(args, 1));
+        final int select = toInt(argNum(args, 2));
         if (row < 0 || row >= screen.printHeight() || col < 0 || col >= screen.printWidth()) {
           throw codedException(ReportCode.INTEGER_OUT_OF_RANGE, "Screen coordinates out of bounds");
         }
@@ -382,17 +407,17 @@ public class ExpressionEvaluator {
     this.indexStackPtr += indicesCount;
     try {
       for (int i = 0; i < indicesCount; i++) {
-        indexStack[ptr + i] = (int) evalNum(subscript.indices().get(i));
+        indexStack[ptr + i] = evalInt(subscript.indices().get(i));
       }
       int sliceStart = -1;
       int sliceEnd = -1;
       final boolean hasSlice = subscript.slice() != null;
       if (hasSlice) {
         if (subscript.slice().start() != null) {
-          sliceStart = (int) evalNum(subscript.slice().start());
+          sliceStart = evalInt(subscript.slice().start());
         }
         if (subscript.slice().end() != null) {
-          sliceEnd = (int) evalNum(subscript.slice().end());
+          sliceEnd = evalInt(subscript.slice().end());
         }
       }
 
@@ -448,7 +473,7 @@ public class ExpressionEvaluator {
     final var args = call.args();
     return switch (call.kind()) {
       case CHR_STR -> {
-        final int code = (int) argNum(args, 0);
+        final int code = toInt(argNum(args, 0));
         if (code < 0 || code > 255) {
           throw codedException(
               ReportCode.INTEGER_OUT_OF_RANGE, "CHR$ argument out of range (0-255); use UCHR$");
@@ -457,8 +482,8 @@ public class ExpressionEvaluator {
       }
       case INKEY_STR -> input.inkey();
       case SCREEN_STR, USCREEN_STR -> {
-        final int row = (int) Math.round(argNum(args, 0));
-        final int col = (int) Math.round(argNum(args, 1));
+        final int row = toInt(argNum(args, 0));
+        final int col = toInt(argNum(args, 1));
         if (row < 0 || row >= screen.printHeight() || col < 0 || col >= screen.printWidth()) {
           throw codedException(ReportCode.INTEGER_OUT_OF_RANGE, "Screen coordinates out of bounds");
         }
@@ -479,7 +504,7 @@ public class ExpressionEvaluator {
         yield s.isEmpty() ? BStr.EMPTY : s.slice(2, s.length());
       }
       case UCHR_STR -> {
-        final int code = (int) argNum(args, 0);
+        final int code = toInt(argNum(args, 0));
         if (code < 0 || !Character.isValidCodePoint(code)) {
           throw codedException(ReportCode.INTEGER_OUT_OF_RANGE, "UCHR$ argument out of range");
         }
