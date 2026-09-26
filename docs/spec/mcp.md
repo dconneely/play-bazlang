@@ -7,9 +7,25 @@ breakpoints, and mock screen for the session.
 
 ## Running the server
 
+Build the jar once, then have the MCP client launch the server with `java` directly:
+
 ```bash
-./gradlew :app-bazlang:runMcpServer
+./gradlew :app-bazlang:build
+java -cp app-bazlang/build/libs/bazlang-1.0.0-SNAPSHOT.jar com.davidconneely.bazlang.mcp.McpServer
 ```
+
+For example, to register it with Claude Code (use an absolute jar path, since the client may start
+the server from any directory):
+
+```bash
+claude mcp add bazlang -- java -cp /path/to/play-bazlang/app-bazlang/build/libs/bazlang-1.0.0-SNAPSHOT.jar com.davidconneely.bazlang.mcp.McpServer
+```
+
+Rebuild the jar after changing the source; the client keeps running whatever jar it finds. If
+launching through Gradle instead, pass `-q --console=plain`
+(`./gradlew -q --console=plain :app-bazlang:runMcpServer`). Without them, Gradle writes its own
+progress and `BUILD SUCCESSFUL` lines to stdout, mixed in with the JSON-RPC responses, and MCP
+clients reject the stream.
 
 The server prints one line to stderr on startup (agents should ignore stderr) and then waits on
 stdin for newline-delimited JSON-RPC requests. There is no `+READY` line and no preload-by-argument
@@ -343,6 +359,10 @@ errors and tool execution errors.
   `timeoutMs` safety cap (see above) is a mitigation, not a substitute: it guarantees a runaway
   programme with no breakpoint of its own can't block forever, but doesn't let an agent interrupt a
   call early on demand.
+- **Unrestricted file access.** `bazlang_program(load_file/save_file)`, and `LOAD`/`SAVE` run
+  through `bazlang_eval(exec)` or a running programme, read and write any path the server process's
+  user can reach, relative to the server's working directory. There is no sandbox or allow-list: the
+  server trusts its client as much as the user who launched it does.
 - **No `listChanged`.** The tool set is static, so `tools/list`'s long `ttlMs` is safe to cache.
 - **One implicit session per process.** There's no protocol-level session (2026-07-28 has none) and
   no explicit session handle - the whole server process _is_ the session, one process per debugging

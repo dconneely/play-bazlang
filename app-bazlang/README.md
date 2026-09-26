@@ -47,10 +47,13 @@ java --enable-native-access=ALL-UNNAMED -jar app-bazlang/build/libs/bazlang-1.0.
 To let an MCP client (e.g. Claude Code) debug a programme via the `bazlang_*` tools:
 
 ```bash
-./gradlew :app-bazlang:runMcpServer
+./gradlew :app-bazlang:build
+java -cp app-bazlang/build/libs/bazlang-1.0.0-SNAPSHOT.jar com.davidconneely.bazlang.mcp.McpServer
 ```
 
-See [../docs/spec/mcp.md](../docs/spec/mcp.md) for the full tool and protocol reference.
+Don't launch it with a plain `./gradlew :app-bazlang:runMcpServer`: Gradle's own output goes to
+stdout and corrupts the JSON-RPC stream. See [../docs/spec/mcp.md](../docs/spec/mcp.md) for client
+registration, the `-q --console=plain` Gradle alternative, and the full tool and protocol reference.
 
 ## Example programs
 
