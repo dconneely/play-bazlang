@@ -73,32 +73,41 @@ class PlayAgainProgramTest extends BaseProgramTest {
   }
 
   @Test
-  void theParenthesisedFourWayPromptGuardAcceptsBothYesAndNo() {
-    // The exact guard hangman uses at line 5035. Worth testing all four accepted spellings and a
-    // rejected one: the unparenthesised version of this guard happened to accept "Y" while
-    // rejecting "N", so a test that only tried "Y" would have passed against the broken form.
-    final String guard =
-        """
-        10 LET r$ = INKEY$
-        20 IF LEN (r$) <> 1 THEN GO TO 10
-        30 IF (r$ <> "Y") AND (r$ <> "y") AND (r$ <> "N") AND (r$ <> "n") THEN GO TO 10
-        40 IF r$ = "Y" OR r$ = "y" THEN GO TO 100
-        50 PRINT "ENDED"
-        60 STOP
-        100 PRINT "RESTARTED"
-        110 STOP
-        """;
-    for (final String accepted : new String[] {"Y", "y"}) {
-      final var result =
-          runWithKeys(
-              guard, List.of(BStr.fromJavaString("k"), BStr.fromJavaString(accepted)), List.of());
-      assertEquals("RESTARTED\n", result.output(), "'" + accepted + "' should restart");
-    }
-    for (final String accepted : new String[] {"N", "n"}) {
-      final var result =
-          runWithKeys(
-              guard, List.of(BStr.fromJavaString("k"), BStr.fromJavaString(accepted)), List.of());
-      assertEquals("ENDED\n", result.output(), "'" + accepted + "' should end the game");
+  void theFourWayPromptGuardAcceptsBothYesAndNoWithOrWithoutParentheses() {
+    // The unparenthesised form is the exact guard hangman uses at line 5035. Worth testing all four
+    // accepted spellings and a rejected one: a misparse of the unparenthesised guard once accepted
+    // "Y" while rejecting "N", so a test that only tried "Y" would pass against a broken grammar.
+    for (final String condition :
+        new String[] {
+          "r$ <> \"Y\" AND r$ <> \"y\" AND r$ <> \"N\" AND r$ <> \"n\"",
+          "(r$ <> \"Y\") AND (r$ <> \"y\") AND (r$ <> \"N\") AND (r$ <> \"n\")"
+        }) {
+      final String guard =
+          """
+          10 LET r$ = INKEY$
+          20 IF LEN (r$) <> 1 THEN GO TO 10
+          30 IF CONDITION THEN GO TO 10
+          40 IF r$ = "Y" OR r$ = "y" THEN GO TO 100
+          50 PRINT "ENDED"
+          60 STOP
+          100 PRINT "RESTARTED"
+          110 STOP
+          """
+              .replace("CONDITION", condition);
+      for (final String accepted : new String[] {"Y", "y"}) {
+        final var result =
+            runWithKeys(
+                guard, List.of(BStr.fromJavaString("k"), BStr.fromJavaString(accepted)), List.of());
+        assertEquals(
+            "RESTARTED\n", result.output(), "'" + accepted + "' should restart: " + condition);
+      }
+      for (final String accepted : new String[] {"N", "n"}) {
+        final var result =
+            runWithKeys(
+                guard, List.of(BStr.fromJavaString("k"), BStr.fromJavaString(accepted)), List.of());
+        assertEquals(
+            "ENDED\n", result.output(), "'" + accepted + "' should end the game: " + condition);
+      }
     }
   }
 

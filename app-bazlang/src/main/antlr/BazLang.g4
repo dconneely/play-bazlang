@@ -196,8 +196,7 @@ numExpr
 // trailing AND: without this split, `r$ <> "Y" AND r$ <> "n"` parses as
 // `r$ <> ("Y" AND (r$ <> "n"))` instead of `(r$ <> "Y") AND (r$ <> "n")`, because the strExpr
 // invoked for the comparison's right-hand operand matches its own (lowest-precedence) AND
-// alternative too - see docs/quirks.md's former "AND misparses..." entry (now fixed) and
-// PlayAgainProgramTest.
+// alternative too - see PlayAgainProgramTest.
 strExpr
     : strTerm AND numExpr                                  # StrAndExpr
     | strTerm                                               # StrTermExpr

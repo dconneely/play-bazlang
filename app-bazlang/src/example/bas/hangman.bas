@@ -73,7 +73,7 @@
 5010 PRINT AT oy + eh - 1, ox; INK 4; "Play again (Y/N)? "; INK 5;
 5020 LET r$ = INKEY$
 5030 IF LEN (r$) <> 1 THEN GO TO 5020
-5035 IF (r$ <> "Y") AND (r$ <> "y") AND (r$ <> "N") AND (r$ <> "n") THEN GO TO 5020 : REM ### Ignore any other key, incl. the just-guessed letter INKEY$ still reports. Parens are required: see AND misparse note in localonly-BAZLANG-IMPROVEMENTS.md ###
+5035 IF r$ <> "Y" AND r$ <> "y" AND r$ <> "N" AND r$ <> "n" THEN GO TO 5020 : REM ### Ignore any other key, incl. the just-guessed letter INKEY$ still reports ###
 5040 PRINT r$
 5050 IF r$ = "Y" OR r$ = "y" THEN GO TO 1080
 5060 PRINT AT oy + eh - 1, ox + 18; INK 6; "Thanks for playing!"
