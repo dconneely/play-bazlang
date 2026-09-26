@@ -2,7 +2,7 @@
 
 <!--
 Copy to a descriptive filename. Keep this file as 0000; it is the template.
-Confidence levels and what counts as research are in ../../../DOC-MAP.md.
+Confidence levels and what counts as research are in ../../DOC-MAP.md.
 Delete this comment in the copy.
 -->
 

@@ -13,7 +13,7 @@ decision-makers: {who decided - required once the status is not "proposed"}
 Copy to NNNN-kebab-case-title.md, four-digit zero-padded, unique and never reused. The heading
 number matches the filename. Keep this file as 0000; it is the template.
 
-Follows the MADR minimal template (https://adr.github.io/madr/). ../../../DOC-MAP.md carries the
+Follows the MADR minimal template (https://adr.github.io/madr/). ../../DOC-MAP.md carries the
 rules about status, immutability and who may change one.
 
 Write it when the decision is made, not later. A record reconstructed years afterwards is usually an
