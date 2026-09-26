@@ -1,7 +1,7 @@
 ---
-status: "proposed"
+status: "accepted"
 date: 2026-09-26
-decision-makers: {who decided - required once the status is not "proposed"}
+decision-makers: David Conneely
 ---
 
 # 10. Answer the legacy MCP `initialize` handshake for the tools-only subset, honestly versioned
