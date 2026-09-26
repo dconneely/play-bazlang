@@ -11,12 +11,12 @@ import java.util.function.IntFunction;
 /**
  * Parses one {@code PLAY}/{@code APLAY} channel string into a flat {@link PlayToken} list. The DSL
  * here is exactly what was confirmed from the Spectrum 128 ROM 0 disassembly and cross-checked
- * against real 128K/+2/+3 hardware (see {@code localonly-BAZLANG-ROADMAP.md}'s {@code PLAY} entry)
- * - with one deliberate simplification: a duration-digit sequence and the note/rest it modifies are
- * folded into one parse step here, rather than the ROM's own two separate per-character dispatch
- * cycles. The observable musical result is identical either way, and every prose description of
- * this DSL (both primary manual sources) documents duration-then-note as one conceptual unit, so
- * this keeps the token stream simpler without changing behaviour.
+ * against real 128K/+2/+3 hardware - with one deliberate simplification: a duration-digit sequence
+ * and the note/rest it modifies are folded into one parse step here, rather than the ROM's own two
+ * separate per-character dispatch cycles. The observable musical result is identical either way,
+ * and every prose description of this DSL (both primary manual sources) documents
+ * duration-then-note as one conceptual unit, so this keeps the token stream simpler without
+ * changing behaviour.
  *
  * <p>Bracket repeats are resolved structurally here - {@code (}/{@code )} nesting up to 4 levels
  * (the ROM's own limit) and a trailing unmatched {@code )} marked {@link

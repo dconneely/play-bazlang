@@ -422,8 +422,8 @@ public final class AstLowering {
   }
 
   /**
-   * Lowers a {@code strSubscript}, shared between {@link StrExpr.StrSubscriptExpr} and (Phase 2)
-   * string assignment targets.
+   * Lowers a {@code strSubscript}, shared between {@link StrExpr.StrSubscriptExpr} and string
+   * assignment targets.
    *
    * @param ctx the parsed subscript/slice.
    * @param lineNumber the source line, for error reporting only.

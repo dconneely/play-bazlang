@@ -1,15 +1,14 @@
 package com.davidconneely.bazlang.io;
 
 /**
- * Audio output for {@code BEEP}. Deliberately its own interface rather than another {@link
- * VirtualScreen} default method: audio is not a screen concern at all (unlike graphics vs. text,
- * which are at least both visual), and {@code VirtualScreen} is already flagged as too wide (see
- * the architecture assessment in {@code localonly-BAZLANG-IMPROVEMENTS.md}) - defining this at
- * birth avoids ever having a "wide VirtualScreen" problem for audio in the first place.
+ * Audio output for {@code BEEP}/{@code PLAY}/{@code APLAY}. Deliberately its own interface rather
+ * than another {@link VirtualScreen} default method: audio is not a screen concern at all (unlike
+ * graphics vs. text, which are at least both visual), and {@code VirtualScreen} is already wide -
+ * see ADR-0002 ({@code docs/adr/0002-virtualspeaker-separate-interface.md}).
  *
- * <p>Both methods default to a no-op, so headless implementations ({@link MockScreen}, {@link
- * StreamScreen}, {@link TerminalScreen}) get silent {@code BEEP} for free, exactly like {@link
- * VirtualScreen#setFastMode}. Only {@link JavaSoundSpeaker} overrides them, playing a real tone.
+ * <p>Every method defaults to a no-op, so screen implementations ({@link MockScreen}, {@link
+ * StreamScreen}, {@link TerminalScreen}) get silent audio for free, exactly like {@link
+ * VirtualScreen#setFastMode}. Only {@link JavaSoundSpeaker} overrides them, playing real audio.
  *
  * <p>{@link #beep} is expected to start playback and return promptly rather than block for {@code
  * durationSeconds} - the caller ({@code StatementExecutor.executeBeepStmt}) drives its own chunked

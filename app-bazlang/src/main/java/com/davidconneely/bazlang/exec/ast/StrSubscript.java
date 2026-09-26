@@ -5,7 +5,7 @@ import java.util.List;
 /**
  * A lowered {@code strSubscript}: zero or more array indices, optionally followed by a slice.
  * Shared between string-expression subscripting ({@link StrExpr.StrSubscriptExpr}) and string
- * assignment targets (statement AST, Phase 2). Mirrors the grammar rule of the same name.
+ * assignment targets ({@link AssignTarget.StrTarget}). Mirrors the grammar rule of the same name.
  *
  * @param indices zero or more index expressions (e.g. {@code A$(1, 2)}); empty when only a slice is
  *     present (e.g. {@code A$(TO 5)})
