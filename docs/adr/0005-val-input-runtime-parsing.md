@@ -45,5 +45,3 @@ never be the _literal-style_ cache, and that its value is speculative rather tha
   call's line number every time rather than reuse a tree lowered against a stale one - a `BIN`
   literal's value resolves using the `lineNumber` `AstLowering.lowerNum`/`lowerStr` were called
   with, for the "exceeds 64 digits" error's line attribution.
-
-<!-- Extracted during the doc-kit migration (see docs/tasks/adopt-doc-kit.md). -->

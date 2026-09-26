@@ -41,6 +41,3 @@ interpreter, `BreakpointEngine`, and `MockScreen`, and `McpServer` is its sole a
 - Neutral: `BreakpointEngine.parseCondition` (the text protocol's `CSC`/`ELAPSE`/`?expr`/`EVERY`
   condition-string parser) was deleted with it - `McpServer` builds `BreakCondition`s from
   structured JSON directly and never needed a string parser.
-
-<!-- Extracted from docs/mcp_server.md's "Protocol version" note during the doc-kit migration (see
-     docs/tasks/adopt-doc-kit.md). -->

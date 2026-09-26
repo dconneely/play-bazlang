@@ -38,6 +38,3 @@ argument-binding tightness, and the statement/REPL-command split are all readabl
   just Java, to touch the parser.
 - Neutral: the generated `BazLangLexer`/`BazLangParser` classes are build output, never
   hand-edited - see `DOC-MAP.md` "Machine-readable and generated parts".
-
-<!-- Extracted from the former docs/grammar.md ("Why ANTLR?") during a doc-kit restructuring pass;
-     the rest of that file folded into docs/spec/architecture.md's "Grammar" section. -->

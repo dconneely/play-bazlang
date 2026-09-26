@@ -35,7 +35,3 @@ already works.
   ~21 call sites) instead of one.
 - Neutral: matches the no-op-default pattern `VirtualScreen`'s own graphics/attribute methods
   already use.
-
-<!-- Extracted from docs/implementation.md, I/O system section ("VirtualSpeaker is deliberately its
-     own interface...") during the doc-kit migration (see docs/tasks/adopt-doc-kit.md); a pointer
-     was left there. -->

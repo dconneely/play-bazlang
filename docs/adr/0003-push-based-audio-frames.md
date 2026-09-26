@@ -39,5 +39,3 @@ mirroring `executeBeepStmt`'s chunked-sleep/BREAK-poll shape exactly.
   separate "nothing ever queues idle silence" rule in
   [`docs/spec/architecture.md`](../spec/architecture.md) ("I/O system") governs buffering and still
   holds under the push model.
-
-<!-- Extracted during the doc-kit migration (see docs/tasks/adopt-doc-kit.md). -->

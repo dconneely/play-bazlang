@@ -48,6 +48,3 @@ that same resume guard.
   design - a full fix would move `Interpreter.resume()` onto a worker thread so a cancellation
   notification arriving on stdin could interrupt it mid-run, reintroducing the concurrency this
   decision avoids.
-
-<!-- Extracted from docs/implementation.md "Debugger architecture decision" during the doc-kit
-     migration (see docs/tasks/adopt-doc-kit.md); a pointer was left there. -->

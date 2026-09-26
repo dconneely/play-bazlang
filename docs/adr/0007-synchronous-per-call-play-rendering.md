@@ -70,6 +70,3 @@ this record only replaces the implementation detail it got wrong.
   this was already true of the pull loop's ~20ms cadence, so nothing new had to be built for it.
 - Neutral: `VirtualSpeaker` implementations get a third overridable method (`drainPlay`, default
   no-op), matching the existing default-no-op pattern for headless implementations.
-
-<!-- Supersedes the "persistent background render thread" consequence of ADR-0003; that decision's
-     own core choice (push over pull) is unaffected and not revisited here. -->
