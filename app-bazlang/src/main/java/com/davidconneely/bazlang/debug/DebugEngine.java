@@ -194,7 +194,7 @@ public final class DebugEngine {
     this.executor =
         new StatementExecutor(
             state, mockScreen, mockScreen, mockScreen, storage, exprEvaluator, parser);
-    this.interpreter = new Interpreter(state, executor);
+    this.interpreter = new Interpreter(state, executor, parser);
     ProgramEditor programEditor = new ProgramEditor(state, mockScreen, parser, executor::evalNum);
     this.replHandler =
         new InterpreterReplHandler(
@@ -212,8 +212,7 @@ public final class DebugEngine {
       // Interpreter.resume() reaches executor.execute(stmt), and silently cancel the command -
       // e.g. a `LOAD "x"` that never actually loads anything, while still reporting success,
       // because the REPL handler has no way to distinguish "cancelled by a breakpoint" from
-      // "ran fine". See the 2026-08-16 entry in localonly-BAZLANG-IMPROVEMENTS.md for how this
-      // was found.
+      // "ran fine". Pinned by DebugEngineTest.breakpointsDoNotInterceptReplCommands.
       return;
     }
     if (line == resumeGuardLine && stmt == resumeGuardStmt) {

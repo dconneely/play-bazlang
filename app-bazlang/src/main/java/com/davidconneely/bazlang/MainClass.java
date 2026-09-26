@@ -3,7 +3,9 @@ package com.davidconneely.bazlang;
 import com.davidconneely.bazlang.antlr.AntlrParser;
 import com.davidconneely.bazlang.edit.ProgramEditor;
 import com.davidconneely.bazlang.exec.EvalState;
+import com.davidconneely.bazlang.exec.ExpressionEvaluator;
 import com.davidconneely.bazlang.exec.Interpreter;
+import com.davidconneely.bazlang.exec.ProgramStorage;
 import com.davidconneely.bazlang.exec.StatementExecutor;
 import com.davidconneely.bazlang.io.JavaSoundSpeaker;
 import com.davidconneely.bazlang.io.StreamScreen;
@@ -69,8 +71,8 @@ public class MainClass {
       final String source = Files.readString(Path.of(sourceFile));
       final var program = PARSER.parseProgramLines(source);
       final var state = new EvalState();
-      final var executor = new StatementExecutor(state, screen, input, speaker);
-      final var interpreter = new Interpreter(state, executor);
+      final var executor = newExecutor(state, screen, input, speaker);
+      final var interpreter = new Interpreter(state, executor, PARSER);
       interpreter.execute(program);
       screen.waitForKey();
       return 0;
@@ -90,13 +92,25 @@ public class MainClass {
 
   private static int runRepl(VirtualScreen screen, VirtualInput input, VirtualSpeaker speaker) {
     final var state = new EvalState();
-    final var executor = new StatementExecutor(state, screen, input, speaker);
-    final var interpreter = new Interpreter(state, executor);
+    final var executor = newExecutor(state, screen, input, speaker);
+    final var interpreter = new Interpreter(state, executor, PARSER);
     final var editor = new ProgramEditor(state, screen, PARSER, executor::evalNum);
     screen.systemPrintln("BazLang REPL. Type 'EXIT' or Ctrl+D at the prompt to exit.");
     final var handler =
         new InterpreterReplHandler(screen, input, PARSER, state, executor, editor, interpreter);
     Repl.loop(input, handler);
     return 0;
+  }
+
+  private static StatementExecutor newExecutor(
+      EvalState state, VirtualScreen screen, VirtualInput input, VirtualSpeaker speaker) {
+    return new StatementExecutor(
+        state,
+        screen,
+        input,
+        speaker,
+        new ProgramStorage(state, PARSER),
+        new ExpressionEvaluator(state, screen, input, PARSER),
+        PARSER);
   }
 }

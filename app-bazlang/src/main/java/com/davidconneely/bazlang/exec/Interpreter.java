@@ -25,15 +25,27 @@ public class Interpreter {
   private ExecutionListener executionListener;
 
   /**
-   * Creates an interpreter over the given state and statement executor.
+   * Creates an interpreter over the given state and statement executor, using the shared {@link
+   * AntlrParser#INSTANCE}.
    *
    * @param state the interpreter state to run against.
    * @param executor the statement executor to dispatch each statement to.
    */
   public Interpreter(EvalState state, StatementExecutor executor) {
+    this(state, executor, AntlrParser.INSTANCE);
+  }
+
+  /**
+   * Creates an interpreter over the given state and statement executor.
+   *
+   * @param state the interpreter state to run against.
+   * @param executor the statement executor to dispatch each statement to.
+   * @param parser the parser used to lower each program line on first execution.
+   */
+  public Interpreter(EvalState state, StatementExecutor executor, AntlrParser parser) {
     this.state = state;
     this.executor = executor;
-    this.parser = AntlrParser.INSTANCE;
+    this.parser = parser;
   }
 
   /**
@@ -102,7 +114,7 @@ public class Interpreter {
         // is "inside" a wait loop here to catch it - this is the one place every BREAK passes
         // through regardless of what statement is currently executing, so Ctrl+C reliably stops
         // background audio no matter what's running when it's pressed. A deliberate divergence
-        // from real hardware: see the PLAY/APLAY entry in localonly-BAZLANG-ROADMAP.md.
+        // from real hardware: see "Divergences" in docs/spec/language.md.
         executor.stopBackgroundAudio();
         throw new ReportException(
             ReportCode.BREAK_INTO_PROGRAM,
