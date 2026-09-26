@@ -69,6 +69,7 @@ Available demos include:
 - `pong.bas` / `invaders.bas` / `racer.bas` - Interactive arcade games using terminal cells.
 - `pontoon.bas` / `hangman.bas` - Card and puzzle games using interactive screen grids.
 - `cube.bas` / `torus.bas` - 3D wireframe graphics projections using sub-pixel mode.
+- `ball.bas` - A rotating 3D football with filled panels, drawn in sub-pixel mode.
 - `life.bas` - Conway's Game of Life.
 - `lander.bas` - Lunar lander text simulation.
 - `hammurabi.bas` / `wumpus.bas` - Classic text-only adventure/simulation games.
