@@ -69,11 +69,14 @@ public final class JavaSoundSpeaker implements VirtualSpeaker, AutoCloseable {
   // startup latency - commonly tens of milliseconds - which is negligible against a 300ms+ jingle
   // note but can dominate (or exceed) a short ~50ms feedback blip's *nominal* duration, making it
   // barely audible. Reuse removes that latency from every call after the first, and also closes
-  // the gap between chained notes in a jingle. Guarded by beepLock since beep() calls run on their
-  // own short-lived thread (see beep()) and could otherwise race to open it concurrently - in
-  // practice this can't happen from normal BASIC execution (StatementExecutor blocks for one
-  // BEEP's duration before the interpreter can issue another), but the lock costs nothing and
-  // keeps the field access correct regardless.
+  // the gap between chained notes in a jingle. beepLock guards only the lazy open and reads of this
+  // field, not writes to the line itself. Each beep() runs on its own short-lived thread, and
+  // successive threads can overlap: StatementExecutor waits out one BEEP's nominal duration by the
+  // wall clock, not until its thread finishes, so when the next beep() arrives the previous thread
+  // may still be in drain() or blocked mid-write() on its last chunk (a chunk is larger than the
+  // line buffer). stopBeep() clears that thread's `playing` flag and flushes, but a write already
+  // in progress can still complete, so for a moment two threads may write to this line and a
+  // fragment of the old tone can interleave with the start of the new one.
   private final ReentrantLock beepLock = new ReentrantLock();
   private SourceDataLine beepLine;
   private volatile AtomicBoolean beepPlaying;
