@@ -27,6 +27,29 @@ _algorithm_ is still duplicated: `ExpressionEvaluator.evalStrSubscriptCore` vers
 index from a slice, call `SliceBounds.resolve`, and compute the array element offset the same way.
 Extract a shared resolver so the read and write paths cannot drift apart.
 
+## Split `StatementExecutor` into focused collaborators
+
+**Type:** debt - **Importance:** medium - **Effort:** medium
+
+See [the task note](docs/tasks/split-statement-executor.md) - `StatementExecutor` mixes statement
+dispatch with `APLAY` thread management, raster algorithms, `PRINT` layout and duplicated
+BREAK-polling waits, and already works around PMD's `ExcessiveImports` limit.
+
+## Decide where rationale lives: code comments versus documents
+
+**Type:** docs - **Importance:** medium - **Effort:** medium
+
+Many source comments narrate history ("an earlier design...", "this was a real bug", "used to") and
+repeat rationale that also appears in ADRs or `docs/spec/architecture.md`, which makes the code slow
+to read and lets the two copies drift. `DOC-MAP.md` currently maps facts to documents only; it says
+nothing about code comments, so nothing tells an author or agent that "X used to be Y" belongs in
+the changelog or a commit message rather than a Javadoc. Extend `DOC-MAP.md` with a rule for
+comments (for example: comments state the current invariant and why it matters, link to an ADR or
+spec section for longer rationale, and never tell history), then prune the existing comments against
+it. Also decide how the map is enforced rather than just believed: options include a `docs/`
+link-and-reference check in CI that fails on references to files not in the repository (such as
+gitignored `localonly-*` notes), a review checklist item, or an `AGENTS.md` rule.
+
 ## Programmatic component tests
 
 **Type:** debt - **Importance:** medium - **Effort:** medium
@@ -216,6 +239,18 @@ parameter can't carry a value that doesn't exist yet at the point `parseBinLiter
 means computing final flat positions structurally on the parse tree first (mirroring `flattenInto`'s
 walk, but over `StatementContext`/`IfStmtContext` before lowering), then lowering each statement
 with both `lineNumber` and `statementIndex` in hand.
+
+## Find a way to test `lib-repl` meaningfully
+
+**Type:** debt - **Importance:** low - **Effort:** medium
+
+`lib-repl`'s JaCoCo floor is 5% (roughly 9% actual), so the coverage gate cannot catch a regression
+there - see `docs/testing.md` "What is deliberately not covered" for why terminal-wrapping code is
+hard to unit-test. Investigate an approach before choosing one: JLine's `DumbTerminal` or a
+`Terminal` built over piped streams to drive `JLineTerminalEngine`/`RobustLineReaderImpl`
+headlessly; extracting more pure logic (key decoding, highlighting, break handling) out of the
+JLine-facing classes so it can be tested directly; or accepting low line coverage but adding a small
+set of scripted end-to-end REPL tests. Then raise the floor to match whatever is chosen.
 
 ## `VirtualScreen` is still wide (~30 methods)
 
