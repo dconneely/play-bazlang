@@ -19,7 +19,8 @@ rules about status, immutability and who may change one.
 Write it when the decision is made, not later. A record reconstructed years afterwards is usually an
 argument for what you already do, and it dilutes the ones written contemporaneously.
 
-Delete this comment in the copy.
+Delete this comment, and every other HTML comment in this template, in the copy: they are
+guidance for the author, not part of the record.
 -->
 
 ## Context and Problem Statement
@@ -40,6 +41,8 @@ option to consider is usually a specification entry that has been misfiled.
 
 Include the option you rejected even when it now looks obviously wrong - especially then. The next
 person will think of it too, and this is what stops them re-litigating it.
+
+Delete this comment in the copy.
 -->
 
 ## Decision Outcome
@@ -57,4 +60,6 @@ Then, if needed, a paragraph on what the decision does _not_ settle.
 <!--
 The honest ones are the useful ones. A record listing only benefits tells a future reader nothing
 about whether the trade-off still holds - which is the question they came here to answer.
+
+Delete this comment in the copy.
 -->
