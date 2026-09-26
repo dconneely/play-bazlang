@@ -28,7 +28,10 @@ only that revision. Two consequences worth knowing before integrating:
 - **No legacy fallback.** A client still speaking the pre-2026-07-28 `initialize`-handshake protocol
   cannot use this server - per the spec's own compatibility matrix, "modern server, legacy client"
   fails outright. This was a deliberate scope decision - see
-  [ADR-0004](../adr/0004-mcp-modern-only-protocol.md) for why, including what it replaced.
+  [ADR-0004](../adr/0004-mcp-modern-only-protocol.md) for why, including what it replaced. An
+  `initialize` request gets an `UnsupportedProtocolVersionError` (code `-32022`) naming `2026-07-28`
+  as the only supported version, so a legacy client can at least show its user why it failed. A
+  dual-era client probes with `server/discover` first and connects normally.
 - **Lenient version checking.** If a request omits `_meta`'s protocol version field entirely, the
   server proceeds anyway rather than rejecting it - some early modern clients may not yet send it on
   every request. If a version _is_ present and doesn't match, the server responds with
@@ -312,14 +315,14 @@ the wrong key and want to cancel it before the programme consumes it).
 
 ## Error codes
 
-| Code     | Meaning                                                               |
-| -------- | --------------------------------------------------------------------- |
-| `-32700` | Parse error - the line wasn't valid JSON                              |
-| `-32600` | Invalid Request - not a JSON object, or missing `method`              |
-| `-32601` | Method not found                                                      |
-| `-32602` | Invalid params - unknown tool name, or missing `tools/call.name`      |
-| `-32603` | Internal error - an unexpected exception while dispatching a request  |
-| `-32022` | Unsupported protocol version (see `error.data.supported`/`requested`) |
+| Code     | Meaning                                                                                                 |
+| -------- | ------------------------------------------------------------------------------------------------------- |
+| `-32700` | Parse error - the line wasn't valid JSON                                                                |
+| `-32600` | Invalid Request - not a JSON object, or missing `method`                                                |
+| `-32601` | Method not found                                                                                        |
+| `-32602` | Invalid params - unknown tool name, or missing `tools/call.name`                                        |
+| `-32603` | Internal error - an unexpected exception while dispatching a request                                    |
+| `-32022` | Unsupported protocol version, or a legacy `initialize` request (see `error.data.supported`/`requested`) |
 
 A tool that fails because of bad arguments or a BASIC runtime error (e.g. an undefined variable, an
 invalid breakpoint condition, calling `bazlang_step(go)` when not paused) is **not** one of these -

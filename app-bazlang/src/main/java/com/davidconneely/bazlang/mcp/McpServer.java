@@ -88,6 +88,7 @@ public final class McpServer {
       JsonValue id, String method, JsonValue.JsonObject params, McpDebugAdapter adapter) {
     switch (method) {
       case "server/discover" -> handleDiscover(id);
+      case "initialize" -> handleLegacyInitialize(id, params);
       case "tools/list" -> {
         if (checkProtocolVersion(id, params)) {
           handleToolsList(id);
@@ -119,6 +120,27 @@ public final class McpServer {
             .put("requested", requested);
     writeError(id, -32_022, "Unsupported protocol version", data);
     return false;
+  }
+
+  /**
+   * Rejects a legacy {@code initialize} handshake. The spec says a modern-only server SHOULD name
+   * the versions it supports in this error, since a legacy client has no fall-forward mechanism and
+   * this message may be the only diagnostic it can show its user.
+   */
+  private static void handleLegacyInitialize(JsonValue id, JsonValue.JsonObject params) {
+    String requested = params != null ? params.getString("protocolVersion") : null;
+    JsonValue.JsonObject data =
+        JsonValue.object().put("supported", JsonValue.array().add(JsonValue.of(PROTOCOL_VERSION)));
+    if (requested != null) {
+      data.put("requested", requested);
+    }
+    writeError(
+        id,
+        -32_022,
+        "Unsupported protocol version: this server supports only MCP "
+            + PROTOCOL_VERSION
+            + " (stateless, no initialize handshake)",
+        data);
   }
 
   private static void handleDiscover(JsonValue id) {

@@ -185,6 +185,26 @@ class McpServerProtocolTest {
   }
 
   @Test
+  void legacyInitializeIsRejectedNamingTheSupportedVersion() throws Exception {
+    List<JsonValue.JsonObject> responses =
+        runSession(
+            request(
+                1,
+                "initialize",
+                JsonValue.object()
+                    .put("protocolVersion", "2025-11-25")
+                    .put("capabilities", JsonValue.object())));
+    assertEquals(1, responses.size());
+    JsonValue.JsonObject err = error(responses.get(0));
+    assertEquals(-32_022, err.getInt("code", 0));
+    assertTrue(err.getString("message").contains(PROTOCOL_VERSION));
+    JsonValue.JsonObject data = err.getObject("data");
+    assertEquals("2025-11-25", data.getString("requested"));
+    assertEquals(
+        PROTOCOL_VERSION, ((JsonValue.JsonString) data.getArray("supported").get(0)).value());
+  }
+
+  @Test
   void malformedJsonIsParseError() throws Exception {
     List<JsonValue.JsonObject> responses = runSession("{not json");
     assertEquals(1, responses.size());
