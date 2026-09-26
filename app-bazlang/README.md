@@ -21,8 +21,8 @@ detailed language and architecture references live in the repository-level `docs
 
 ## Running the interpreter
 
-`scripts/bazlang` (`scripts/bazlang.bat` on Windows) wraps the commands below, building the jar
-first if needed. Run it from the repository root; the examples here do too.
+`scripts/bazlang` (`scripts/bazlang.bat` on Windows) wraps the commands below, rebuilding the jar
+first if the source has changed. Run it from the repository root; the examples here do too.
 
 To launch the interactive REPL:
 

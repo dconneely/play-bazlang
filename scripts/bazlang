@@ -6,10 +6,9 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 ROOT_DIR="${SCRIPT_DIR}/.."
 JAR_FILE="${ROOT_DIR}/app-bazlang/build/libs/bazlang-1.0.0-SNAPSHOT.jar"
 
-if [ ! -f "$JAR_FILE" ]; then
-    echo "Building project..."
-    "${ROOT_DIR}/gradlew" -p "${ROOT_DIR}" -q --console=plain :app-bazlang:jar :app-bazlang:copyDependencies
-fi
+# Always (re)build: Gradle's up-to-date checks make this quick when nothing has changed, and it
+# stops an existing jar silently running stale code after a source edit.
+"${ROOT_DIR}/gradlew" -p "${ROOT_DIR}" -q --console=plain :app-bazlang:jar :app-bazlang:copyDependencies || exit $?
 
 # Pass all arguments through, preserving your original working directory
 java --enable-native-access=ALL-UNNAMED -jar "$JAR_FILE" "$@"

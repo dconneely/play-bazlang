@@ -11,10 +11,10 @@ set ROOT_DIR=%SCRIPT_DIR%\..
 
 set JAR_FILE=%ROOT_DIR%\app-bazlang\build\libs\bazlang-1.0.0-SNAPSHOT.jar
 
-if not exist "%JAR_FILE%" (
-    echo Building project...
-    call "%ROOT_DIR%\gradlew.bat" -p "%ROOT_DIR%" -q --console=plain :app-bazlang:jar :app-bazlang:copyDependencies
-)
+:: Always (re)build: Gradle's up-to-date checks make this quick when nothing has changed, and it
+:: stops an existing jar silently running stale code after a source edit.
+call "%ROOT_DIR%\gradlew.bat" -p "%ROOT_DIR%" -q --console=plain :app-bazlang:jar :app-bazlang:copyDependencies
+if errorlevel 1 exit /b %errorlevel%
 
 :: Pass all arguments through, preserving your original working directory
 java --enable-native-access=ALL-UNNAMED -jar "%JAR_FILE%" %*
