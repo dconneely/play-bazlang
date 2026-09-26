@@ -6,17 +6,34 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 
 /**
  * MCP (Model Context Protocol) server entrypoint: a newline-delimited JSON-RPC 2.0 stdio server
  * exposing the {@link McpTools} catalog over one shared {@link DebugEngine} instance - one implicit
- * debugging session per server subprocess. Targets the stateless 2026-07-28 protocol revision only:
- * there is no {@code initialize} handshake and no legacy-protocol fallback. See docs/spec/mcp.md
- * for the full protocol surface, tool catalog, and known limitations.
+ * debugging session per server subprocess. Targets the stateless 2026-07-28 protocol revision, and
+ * also answers the legacy {@code initialize} handshake for the legacy revisions listed in {@link
+ * #LEGACY_PROTOCOL_VERSIONS}. See docs/spec/mcp.md for the full protocol surface, tool catalog, and
+ * known limitations.
  */
 public final class McpServer {
 
   private static final String PROTOCOL_VERSION = "2026-07-28";
+
+  /**
+   * Legacy ({@code initialize}-handshake) revisions this server genuinely implements for its
+   * tools-only stdio surface, newest first. Both define {@code structuredContent} and neither
+   * allows JSON-RPC batching, matching what this server does; 2025-03-26 and earlier require batch
+   * support, so they are not listed. The first entry is the reply to a request for any version not
+   * listed here, as the legacy lifecycle's version negotiation requires.
+   */
+  static final List<String> LEGACY_PROTOCOL_VERSIONS = List.of("2025-11-25", "2025-06-18");
+
+  private static final String SERVER_NAME = "bazlang-mcp";
+  private static final String SERVER_VERSION = "1.0.0";
+  private static final String INSTRUCTIONS =
+      "Debug BazLang programmes: load a programme, set breakpoints, step through "
+          + "execution, and inspect state via the bazlang_* tools.";
   private static final String META_PROTOCOL_VERSION_KEY = "io.modelcontextprotocol/protocolVersion";
   private static final String META_SERVER_INFO_KEY = "io.modelcontextprotocol/serverInfo";
 
@@ -89,6 +106,7 @@ public final class McpServer {
     switch (method) {
       case "server/discover" -> handleDiscover(id);
       case "initialize" -> handleLegacyInitialize(id, params);
+      case "ping" -> writeResult(id, JsonValue.object());
       case "tools/list" -> {
         if (checkProtocolVersion(id, params)) {
           handleToolsList(id);
@@ -123,24 +141,27 @@ public final class McpServer {
   }
 
   /**
-   * Rejects a legacy {@code initialize} handshake. The spec says a modern-only server SHOULD name
-   * the versions it supports in this error, since a legacy client has no fall-forward mechanism and
-   * this message may be the only diagnostic it can show its user.
+   * Answers a legacy {@code initialize} handshake. Version negotiation follows the legacy
+   * lifecycle: the requested version is echoed only if it is one of {@link
+   * #LEGACY_PROTOCOL_VERSIONS}; otherwise the reply names the newest of those, and it is the
+   * client's job to disconnect if it cannot speak it. The following {@code
+   * notifications/initialized} needs no handling - notifications never get a response - and the
+   * session then proceeds through the same {@code tools/list}/{@code tools/call} handlers, which
+   * already accept requests without a {@code _meta} protocol version.
    */
   private static void handleLegacyInitialize(JsonValue id, JsonValue.JsonObject params) {
     String requested = params != null ? params.getString("protocolVersion") : null;
-    JsonValue.JsonObject data =
-        JsonValue.object().put("supported", JsonValue.array().add(JsonValue.of(PROTOCOL_VERSION)));
-    if (requested != null) {
-      data.put("requested", requested);
-    }
-    writeError(
-        id,
-        -32_022,
-        "Unsupported protocol version: this server supports only MCP "
-            + PROTOCOL_VERSION
-            + " (stateless, no initialize handshake)",
-        data);
+    String negotiated =
+        LEGACY_PROTOCOL_VERSIONS.contains(requested) ? requested : LEGACY_PROTOCOL_VERSIONS.get(0);
+    JsonValue.JsonObject result =
+        JsonValue.object()
+            .put("protocolVersion", negotiated)
+            .put(
+                "capabilities",
+                JsonValue.object().put("tools", JsonValue.object().put("listChanged", false)))
+            .put("serverInfo", JsonValue.objectOf("name", SERVER_NAME, "version", SERVER_VERSION))
+            .put("instructions", INSTRUCTIONS);
+    writeResult(id, result);
   }
 
   private static void handleDiscover(JsonValue id) {
@@ -148,7 +169,7 @@ public final class McpServer {
         JsonValue.object()
             .put(
                 META_SERVER_INFO_KEY,
-                JsonValue.objectOf("name", "bazlang-mcp", "version", "1.0.0"));
+                JsonValue.objectOf("name", SERVER_NAME, "version", SERVER_VERSION));
     JsonValue.JsonObject result =
         JsonValue.object()
             .put("resultType", "complete")
@@ -157,10 +178,7 @@ public final class McpServer {
                 "capabilities",
                 JsonValue.object().put("tools", JsonValue.object().put("listChanged", false)))
             .put("_meta", meta)
-            .put(
-                "instructions",
-                "Debug BazLang programmes: load a programme, set breakpoints, step through "
-                    + "execution, and inspect state via the bazlang_* tools.")
+            .put("instructions", INSTRUCTIONS)
             .put("ttlMs", 3_600_000L)
             .put("cacheScope", "public");
     writeResult(id, result);

@@ -15,23 +15,28 @@ The server prints one line to stderr on startup (agents should ignore stderr) an
 stdin for newline-delimited JSON-RPC requests. There is no `+READY` line and no preload-by-argument
 mode - load a programme with the `bazlang_program` tool once connected.
 
-## Protocol version: 2026-07-28, modern-only
+## Protocol versions: 2026-07-28, plus the legacy handshake for 2025-11-25 and 2025-06-18
 
 This server targets the **2026-07-28 MCP specification** - the stateless protocol revision - and
-only that revision. Two consequences worth knowing before integrating:
+also answers the legacy `initialize` handshake so that clients which have not adopted 2026-07-28 yet
+can connect. See [ADR-0004](../adr/0004-mcp-modern-only-protocol.md) and
+[ADR-0010](../adr/0010-answer-the-legacy-mcp-initialize-handshake.md).
 
-- **No `initialize` handshake, no protocol session.** Every request carries its own protocol version
-  in `_meta`; there is nothing to negotiate up front. State (the loaded programme, breakpoints,
-  variables) lives in one `DebugEngine` instance for the lifetime of the server process - since
-  stdio is already one subprocess per client, this is equivalent to a protocol session without
-  needing one.
-- **No legacy fallback.** A client still speaking the pre-2026-07-28 `initialize`-handshake protocol
-  cannot use this server - per the spec's own compatibility matrix, "modern server, legacy client"
-  fails outright. This was a deliberate scope decision - see
-  [ADR-0004](../adr/0004-mcp-modern-only-protocol.md) for why, including what it replaced. An
-  `initialize` request gets an `UnsupportedProtocolVersionError` (code `-32022`) naming `2026-07-28`
-  as the only supported version, so a legacy client can at least show its user why it failed. A
-  dual-era client probes with `server/discover` first and connects normally.
+- **Modern clients: no handshake, no protocol session.** Every request carries its own protocol
+  version in `_meta`; there is nothing to negotiate up front. State (the loaded programme,
+  breakpoints, variables) lives in one `DebugEngine` instance for the lifetime of the server
+  process. Since stdio is already one subprocess per client, this is equivalent to a protocol
+  session without needing one. A dual-era client probes with `server/discover` first and stays
+  modern.
+- **Legacy clients: `initialize`, then the same tools.** The server implements the tools-only stdio
+  subset of legacy revisions **2025-11-25** and **2025-06-18** - both define `structuredContent` and
+  neither allows JSON-RPC batching, matching what this server does. An `initialize` request asking
+  for either gets that version back; a request for any other version (including 2025-03-26, which
+  requires batching) gets `2025-11-25`, per the legacy version-negotiation rule, and the client
+  decides whether to continue. The reply advertises only `tools` (`listChanged: false`).
+  `notifications/initialized` needs no reply, `ping` returns `{}`, and `tools/list`/`tools/call`
+  then work exactly as below. Nothing else from the legacy protocol is implemented - no resources,
+  prompts, logging, progress, or server-to-client requests.
 - **Lenient version checking.** If a request omits `_meta`'s protocol version field entirely, the
   server proceeds anyway rather than rejecting it - some early modern clients may not yet send it on
   every request. If a version _is_ present and doesn't match, the server responds with
@@ -315,14 +320,14 @@ the wrong key and want to cancel it before the programme consumes it).
 
 ## Error codes
 
-| Code     | Meaning                                                                                                 |
-| -------- | ------------------------------------------------------------------------------------------------------- |
-| `-32700` | Parse error - the line wasn't valid JSON                                                                |
-| `-32600` | Invalid Request - not a JSON object, or missing `method`                                                |
-| `-32601` | Method not found                                                                                        |
-| `-32602` | Invalid params - unknown tool name, or missing `tools/call.name`                                        |
-| `-32603` | Internal error - an unexpected exception while dispatching a request                                    |
-| `-32022` | Unsupported protocol version, or a legacy `initialize` request (see `error.data.supported`/`requested`) |
+| Code     | Meaning                                                                          |
+| -------- | -------------------------------------------------------------------------------- |
+| `-32700` | Parse error - the line wasn't valid JSON                                         |
+| `-32600` | Invalid Request - not a JSON object, or missing `method`                         |
+| `-32601` | Method not found                                                                 |
+| `-32602` | Invalid params - unknown tool name, or missing `tools/call.name`                 |
+| `-32603` | Internal error - an unexpected exception while dispatching a request             |
+| `-32022` | Unsupported protocol version in `_meta` (see `error.data.supported`/`requested`) |
 
 A tool that fails because of bad arguments or a BASIC runtime error (e.g. an undefined variable, an
 invalid breakpoint condition, calling `bazlang_step(go)` when not paused) is **not** one of these -
@@ -331,8 +336,8 @@ errors and tool execution errors.
 
 ## Known limitations
 
-- **Modern-only, no legacy fallback** (see above) - a real compatibility risk with MCP clients that
-  haven't adopted 2026-07-28 yet.
+- **Legacy support is tools-only.** A legacy client gets `tools` and nothing else, and one asking
+  for a revision older than 2025-06-18 is offered 2025-11-25 and may disconnect.
 - **No true cancellation.** `notifications/cancelled` is accepted but has no effect - a `tools/call`
   always runs to completion; there is no cancel-while-running mechanism. `bazlang_step`'s
   `timeoutMs` safety cap (see above) is a mitigation, not a substitute: it guarantees a runaway

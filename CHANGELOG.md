@@ -42,7 +42,7 @@ All notable changes to this project are documented here, following
 ### Changed
 
 - MCP debugging moved from the hand-rolled `AgentDebugger` text protocol to a native MCP server
-  (`McpServer`/`DebugEngine`) targeting the 2026-07-28 MCP specification, modern-only - see
+  (`McpServer`/`DebugEngine`) targeting the 2026-07-28 MCP specification - see
   [ADR-0004](docs/adr/0004-mcp-modern-only-protocol.md).
 - `RENUM` now takes SAM Coupé BASIC-style arguments: `RENUM [lines] [LINE l] [STEP s]`. An optional
   leading line range (the same `TO` syntax as `LIST`/`DELETE`/`REFORMAT`) selects which existing
@@ -54,8 +54,9 @@ All notable changes to this project are documented here, following
   sizes, colours, `PLOT`/`PRINT AT`/`TAB` positions, `CHR$`/`UCHR$` codes, `LIST`/`RENUM` ranges -
   are now rounded to the nearest integer, as Sinclair ZX BASIC does, instead of truncated; e.g.
   `a(1.6)` now reads `a(2)`. `GO TO`/`GO SUB`/`RUN`/`RESTORE` already rounded.
-- MCP: a legacy `initialize` request now gets `-32022 Unsupported protocol version` naming the one
-  supported revision (`2026-07-28`), instead of `-32601 Method not found`.
+- MCP: the server now also answers the legacy `initialize` handshake (and `ping`) for revisions
+  2025-11-25 and 2025-06-18, so clients that have not adopted 2026-07-28 yet - including Claude
+  Code - can connect and use the same tools. Previously `initialize` failed with `-32601`.
 
 ### Removed
 

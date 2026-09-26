@@ -184,24 +184,59 @@ class McpServerProtocolTest {
     assertEquals(-32_601, error(responses.get(0)).getInt("code", 0));
   }
 
+  private static String legacyInitialize(long id, String protocolVersion) {
+    return request(
+        id,
+        "initialize",
+        JsonValue.object()
+            .put("protocolVersion", protocolVersion)
+            .put("capabilities", JsonValue.object())
+            .put("clientInfo", JsonValue.objectOf("name", "legacy-test-client", "version", "0")));
+  }
+
   @Test
-  void legacyInitializeIsRejectedNamingTheSupportedVersion() throws Exception {
+  void legacyClientCanInitializeListAndCallTools() throws Exception {
+    // The shape of a legacy (initialize-handshake) session: no _meta protocol version anywhere.
     List<JsonValue.JsonObject> responses =
         runSession(
-            request(
-                1,
-                "initialize",
-                JsonValue.object()
-                    .put("protocolVersion", "2025-11-25")
-                    .put("capabilities", JsonValue.object())));
+            legacyInitialize(1, "2025-11-25"),
+            notification("notifications/initialized"),
+            request(2, "tools/list"),
+            toolCall(
+                3,
+                "bazlang_program",
+                JsonValue.objectOf("action", "load_source", "source", "10 PRINT 1")));
+    assertEquals(3, responses.size(), "the initialized notification must not get a response");
+
+    JsonValue.JsonObject init = result(responses.get(0));
+    assertEquals("2025-11-25", init.getString("protocolVersion"));
+    assertFalse(init.getObject("capabilities").getObject("tools").getBoolean("listChanged", true));
+    assertEquals("bazlang-mcp", init.getObject("serverInfo").getString("name"));
+
+    assertEquals(7, result(responses.get(1)).getArray("tools").size());
+    assertFalse(result(responses.get(2)).getBoolean("isError", true));
+  }
+
+  @Test
+  void legacyInitializeEchoesOnlyVersionsItImplements() throws Exception {
+    List<JsonValue.JsonObject> responses =
+        runSession(
+            legacyInitialize(1, "2025-06-18"),
+            legacyInitialize(2, "2025-03-26"),
+            legacyInitialize(3, "2099-01-01"));
+    assertEquals(3, responses.size());
+    assertEquals("2025-06-18", result(responses.get(0)).getString("protocolVersion"));
+    // Not implemented (2025-03-26 requires JSON-RPC batching) or unknown: the reply names the
+    // newest legacy version this server does implement, and the client decides whether to stay.
+    assertEquals("2025-11-25", result(responses.get(1)).getString("protocolVersion"));
+    assertEquals("2025-11-25", result(responses.get(2)).getString("protocolVersion"));
+  }
+
+  @Test
+  void pingGetsAnEmptyResult() throws Exception {
+    List<JsonValue.JsonObject> responses = runSession(request(1, "ping"));
     assertEquals(1, responses.size());
-    JsonValue.JsonObject err = error(responses.get(0));
-    assertEquals(-32_022, err.getInt("code", 0));
-    assertTrue(err.getString("message").contains(PROTOCOL_VERSION));
-    JsonValue.JsonObject data = err.getObject("data");
-    assertEquals("2025-11-25", data.getString("requested"));
-    assertEquals(
-        PROTOCOL_VERSION, ((JsonValue.JsonString) data.getArray("supported").get(0)).value());
+    assertTrue(result(responses.get(0)).members().isEmpty());
   }
 
   @Test
