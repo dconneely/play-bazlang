@@ -46,6 +46,4 @@ never be the _literal-style_ cache, and that its value is speculative rather tha
   literal's value resolves using the `lineNumber` `AstLowering.lowerNum`/`lowerStr` were called
   with, for the "exceeds 64 digits" error's line attribution.
 
-<!-- Extracted from the gitignored localonly-BAZLANG-IMPROVEMENTS.md ("VAL / VAL$ / INPUT parse at
-     runtime - intentional; memoization is marginal") during the doc-kit migration (see
-     docs/tasks/adopt-doc-kit.md). -->
+<!-- Extracted during the doc-kit migration (see docs/tasks/adopt-doc-kit.md). -->

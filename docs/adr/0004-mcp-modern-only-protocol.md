@@ -42,6 +42,5 @@ interpreter, `BreakpointEngine`, and `MockScreen`, and `McpServer` is its sole a
   condition-string parser) was deleted with it - `McpServer` builds `BreakCondition`s from
   structured JSON directly and never needed a string parser.
 
-<!-- Extracted from docs/mcp_server.md's "Protocol version" note and the gitignored
-     localonly-BAZLANG-IMPROVEMENTS.md's AgentDebugger-retirement narrative during the doc-kit
-     migration (see docs/tasks/adopt-doc-kit.md). -->
+<!-- Extracted from docs/mcp_server.md's "Protocol version" note during the doc-kit migration (see
+     docs/tasks/adopt-doc-kit.md). -->

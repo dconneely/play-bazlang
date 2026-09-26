@@ -40,5 +40,4 @@ mirroring `executeBeepStmt`'s chunked-sleep/BREAK-poll shape exactly.
   [`docs/spec/architecture.md`](../spec/architecture.md) ("I/O system") governs buffering and still
   holds under the push model.
 
-<!-- Extracted from the gitignored localonly-BAZLANG-IMPROVEMENTS.md (2026-08-19 pass) during the
-     doc-kit migration (see docs/tasks/adopt-doc-kit.md). -->
+<!-- Extracted during the doc-kit migration (see docs/tasks/adopt-doc-kit.md). -->
