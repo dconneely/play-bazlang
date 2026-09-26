@@ -97,3 +97,5 @@ All notable changes to this project are documented here, following
 - A very large line number in `GO TO`/`GO SUB`/`RUN`/`RESTORE` (e.g. `GO TO 4294967326`, which is
   2^32 + 30) now reports `B Integer out of range` instead of wrapping round and jumping to an
   unrelated line (here, line 30).
+- A `GO SUB` that fails with `B Integer out of range` no longer leaves a return address on the
+  `GO SUB` stack for a later `RETURN` to jump to.

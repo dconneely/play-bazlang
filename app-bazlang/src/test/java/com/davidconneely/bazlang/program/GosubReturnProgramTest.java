@@ -84,6 +84,20 @@ class GosubReturnProgramTest extends BaseProgramTest {
   }
 
   @Test
+  void anOutOfRangeGosubLeavesNoReturnAddressBehind() {
+    final var state = new EvalState();
+    final var screen = new MockScreen(List.of());
+    final var interpreter =
+        new Interpreter(state, new StatementExecutor(state, screen, screen, screen));
+    final var ex =
+        assertThrows(
+            ReportException.class,
+            () -> interpreter.execute(PARSER.parseProgramLines("10 GO SUB 99999999999\n")));
+    assertEquals(ReportCode.INTEGER_OUT_OF_RANGE, ex.reportCode());
+    assertEquals(0, state.returnStackDepth());
+  }
+
+  @Test
   void testReturnWithoutGosub() {
     final var ex = assertThrows(ReportException.class, () -> runProgram("10 RETURN"));
     assertEquals(ReportCode.RETURN_WITHOUT_GOSUB, ex.reportCode());

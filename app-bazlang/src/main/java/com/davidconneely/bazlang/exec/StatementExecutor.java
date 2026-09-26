@@ -333,10 +333,13 @@ public class StatementExecutor {
   }
 
   private ControlFlow executeGosubStmt(Stmt.GosubStmt stmt) {
+    // Evaluate and range-check before pushing, so a failing GO SUB leaves no return address behind.
+    final int target = exprEvaluator.evalInt(stmt.target());
+    checkTargetLabel(target, "GO SUB");
     state.pushReturn(
         new EvalState.StatementAddress(
             state.currentLineLabel(), state.currentStatementIndex() + 1));
-    return gotoLabel(exprEvaluator.evalInt(stmt.target()), "GO SUB");
+    return jumpToLabel(target);
   }
 
   private ControlFlow executeReturnStmt() {
