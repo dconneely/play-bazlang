@@ -131,19 +131,21 @@ class DebugEngineTest {
     // construction time; run()/gotoLine() must reset it, or a DebugEngine that has been alive for a
     // while sees an already-"overdue" breakpoint fire on the very first statement of the next run,
     // before the programme has done anything. Simulate "alive for a while" with a sleep before the
-    // programme is even loaded, well past the breakpoint's own threshold.
-    Thread.sleep(300);
+    // programme is even loaded, past the breakpoint's own threshold. The threshold is deliberately
+    // generous: with the clock correctly reset, the first statements (class loading, JIT warm-up)
+    // must finish inside it, and a slow CI runner once took longer than a 50ms threshold.
+    Thread.sleep(600);
     engine.loadSource("10 LET N = 0\n20 LET N = N + 1\n30 GO TO 20");
     engine
         .breakpoints()
         .add(
             new BreakpointEngine.BreakCondition(
-                -1, -1, BreakpointEngine.ConditionType.ELAPSE, null, 50, true, 0, null));
+                -1, -1, BreakpointEngine.ConditionType.ELAPSE, null, 500, true, 0, null));
 
     DebugEngine.PauseResult result = engine.run();
     assertTrue(result instanceof DebugEngine.PauseResult.Elapse);
-    // If the clock had measured from construction, the 50ms threshold was already exceeded by the
-    // 300ms sleep above, and this would fire before line 20 ever ran, leaving N at 0.
+    // If the clock had measured from construction, the 500ms threshold was already exceeded by the
+    // 600ms sleep above, and this would fire before line 20 ever ran, leaving N at 0.
     assertTrue(((DebugEngine.EvalResult.Num) engine.evalExpression("N")).value() > 0);
   }
 
