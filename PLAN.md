@@ -4,6 +4,37 @@ Single ranked backlog, most important first. Entries are **deleted** when done, 
 plan that accumulates completed items stops being read. **One paragraph each** - see
 [DOC-MAP.md](DOC-MAP.md).
 
+## MCP: `bazlang_eval(exec)` while paused loses the resume point
+
+**Type:** bug - **Importance:** high - **Effort:** small
+
+Found 2026-09-28. Paused at a breakpoint, any `exec` - `LET x = 100`, `PRINT 5`, `CLS` alike - moves
+the reported pause position to the immediate-mode sentinel `0:1` (`bazlang_step(status)` then says
+`PAUSED AT 0:1`), so the next `go` fails with `N Statement lost, 0:1` instead of resuming the
+programme; `eval` with `LET x = 100` at the same point resumes correctly. `callEvalExec` goes
+through `DebugEngine.applyReplCommand` -> `InterpreterReplHandler.handleReplInput`, which runs the
+statement as line 0 and overwrites the execution position that `go` resumes from, whereas
+`executeAssignment` executes the `LET` directly. `docs/spec/mcp.md` pitches `exec` for exactly this
+mid-session use (`GOSUB 1000` is its worked example), and nothing in `docs/quirks.md` claims this is
+deliberate. Fix by saving and restoring the resume point around `exec` while paused, and pin it with
+an `McpServerProtocolTest` case for `exec` followed by `go`.
+
+## MCP server dies when its jar is rebuilt underneath it
+
+**Type:** bug - **Importance:** high - **Effort:** small
+
+Found 2026-09-28: a Claude Code session's `bazlang` server, launched as
+`java -cp app-bazlang/build/libs/bazlang-1.0.0-SNAPSHOT.jar ...McpServer` as `app-bazlang/README.md`
+suggests, failed its first `load_file` 31 hours in with "Connection closed" - the jar had been
+rebuilt seven minutes earlier. Reproduced by overwriting a running server's jar in place: the next
+call that needs a class not yet loaded (here `BazLangLexer`, first touched by `load_file`) throws
+`NoClassDefFoundError`, which escapes `McpServer.main` and ends the process. `scripts/bazlang`'s
+rebuild-on-every-run makes this likely whenever the REPL and the MCP server are used side by side.
+Two parts: launch the server from a copy of the jar (or its own install directory) so a build cannot
+replace classes under a live JVM, and have `McpServer`'s request loop turn an unexpected `Throwable`
+into a JSON-RPC error reply rather than exiting silently, so a client at least sees why a call
+failed.
+
 ## Tab-completion for statement/REPL-command keywords (JLine)
 
 **Type:** feature - **Importance:** medium - **Effort:** medium
@@ -127,6 +158,28 @@ graphical display sidecar (e.g. a native canvas using OpenGL or WebAssembly). Th
 `VirtualInput` interface split is the enabling precondition and is already in place. Streaming
 cell-buffer diffs over WebSocket to a browser canvas is the most practical first target.
 
+## MCP: `bazlang_eval`'s tool description says bare `SCORE=0` assigns
+
+**Type:** bug - **Importance:** low - **Effort:** small
+
+The `expression` property in `McpTools` reads "or an assignment (e.g. \"SCORE=0\") to execute as a
+LET statement", but `McpDebugAdapter.callEvalExpression` only assigns when the text starts with
+`LET` - deliberately, as `docs/spec/mcp.md` explains, since bare `SCORE=0` is a valid equality
+expression. An agent following the description gets `0` or `1` back and silently changes nothing
+(found 2026-09-28 setting rotation angles in `torus.bas`). Change the example to `LET SCORE=0` and
+say that a leading `LET` is required.
+
+## MCP: results carried only in `structuredContent` have no text fallback
+
+**Type:** debt - **Importance:** low - **Effort:** small
+
+`bazlang_eval(array)` and `(vars)` put their payload only in `structuredContent`; the text block
+says just "192 element(s)". MCP 2025-06-18 onwards says a tool returning structured content SHOULD
+also return the serialised JSON in a text block for clients that don't read `structuredContent`, and
+a client that shows the model only text content sees no values at all. Append the serialised JSON to
+the text content in `McpDebugAdapter.success` (or only for the list-shaped results), and update
+`docs/spec/mcp.md`'s examples to match.
+
 ## Fix `monster.bas`'s maze-view rendering
 
 **Type:** bug - **Importance:** low - **Effort:** medium
@@ -224,6 +277,15 @@ authority); this item is the narrower remaining gap - two sessions actually exec
 `Program` on separate threads at once, which `ProgramLine.cachedFlatStatements`'s unsynchronized
 lazy-init doesn't yet support. Revisit only if a concrete need for true concurrency (not just reuse)
 appears.
+
+## Define which operations force a terminal render
+
+**Type:** debt - **Importance:** medium - **Effort:** small
+
+See [the task note](docs/tasks/terminal-render-policy.md) - `FAST` doesn't reliably stop rendering
+(`INKEY$`/`UINKEY$`, `INPUT` and every `PRINT`'s trailing flush can still render mid-frame), the
+rule isn't written down anywhere, and each `INKEY$` poll blocks for up to 1ms when no key is
+waiting.
 
 ## `AstLowering`'s over-long `BIN` literal error reports statement 1
 
