@@ -339,14 +339,13 @@ Two independent primary sources cover different points in COMAL's version histor
 
 ### Acorn Atom BASIC (see `0006`)
 
-- <https://www.theoddys.com/acorn/acorn_system_computers/atom/Atomic%20Theory%20and%20Practice.pdf>.
-  The Atom BASIC language manual (227pp - not to be confused with a same-vintage-looking "Technical
-  Manual" that turns out to be a hardware/construction guide, see `0006`). Section 5.2,
-  "`DO...UNTIL` Loops": "ATOM BASIC provides an alternative pair of loop-control statements: `DO`
-  and `UNTIL`. The `UNTIL` statement is followed by a condition, and everything between the `DO`
-  statement and the `UNTIL` statement is repeatedly executed until the condition becomes true."
-  Worked examples confirm both a same-line form (`DO PRINT "ATOM-"; UNTIL 0`) and a multi-line
-  indented form:
+- <https://archive.org/download/atomic_theory_and_practice/ATAP_Hoglet_20220811-V3.pdf>. The Atom
+  BASIC language manual (227pp - not to be confused with a same-vintage-looking "Technical Manual"
+  that turns out to be a hardware/construction guide, see `0006`). Section 5.2, "`DO...UNTIL`
+  Loops": "ATOM BASIC provides an alternative pair of loop-control statements: `DO` and `UNTIL`. The
+  `UNTIL` statement is followed by a condition, and everything between the `DO` statement and the
+  `UNTIL` statement is repeatedly executed until the condition becomes true." Worked examples
+  confirm both a same-line form (`DO PRINT "ATOM-"; UNTIL 0`) and a multi-line indented form:
 
   ```basic
   10 I=0
