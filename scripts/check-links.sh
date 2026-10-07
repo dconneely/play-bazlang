@@ -38,7 +38,12 @@ fi
 # network specifically - confirmed 2026-09-24 still live and returning 200 with or without a UA
 # override from elsewhere, on three consecutive scheduled runs (2026-09-22 to -24), same URL each
 # time - the same "reachable but not from here" class as the three above, not a dead link.
-: "${EXCLUDE:=theqlforum\.com|element\.zxfiles\.net|fruitcake\.plus\.com|manpages\.ubuntu\.com}"
+# archive.org/download/ (full-file PDF/djvu-text downloads) redirects to a storage node that often
+# can't deliver the whole body within lychee's timeout from GitHub's runner network - timed out on
+# four consecutive scheduled runs (2026-10-03 to -06), confirmed 2026-10-07 still returning 200
+# from elsewhere. Only the /download/ paths are excluded; archive.org item and details pages are
+# still checked.
+: "${EXCLUDE:=theqlforum\.com|element\.zxfiles\.net|fruitcake\.plus\.com|manpages\.ubuntu\.com|archive\.org/download/}"
 
 # Transient rate-limiting from whichever host is having a bad day (seen on
 # blog.tynemouthsoftware.co.uk and news.ycombinator.com on different runs, different URLs each
