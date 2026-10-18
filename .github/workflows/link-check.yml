@@ -5,39 +5,52 @@ on:
     - cron: "0 3 * * *" # 03:00 UTC daily
   workflow_dispatch:
 
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
 jobs:
   lychee:
     name: "lychee"
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     permissions:
       contents: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       # Installed manually rather than via lycheeverse/lychee-action, so this step's only job is
       # getting the pinned lychee binary onto PATH - the actual check (exclude/accept rules
       # included) lives in scripts/check-links.sh, the same script you'd run locally, so the two
       # can never drift apart.
+      # LYCHEE_SHA256 pins the x86_64 archive itself (GitHub's recorded asset digest), not the
+      # release's own .sha256 file, which a replaced release would replace too. Bump both together.
       - name: Install lychee
         shell: bash
         env:
           LYCHEE_VERSION: v0.24.2
+          LYCHEE_SHA256: 1f4e0ef7f6554a6ed33dd7ac144fb2e1bbed98598e7af973042fc5cd43951c9a
         run: |
           set -euo pipefail
           tmp="$(mktemp -d)"
-          arch="$(uname -m)"
-          filename="lychee-${arch}-unknown-linux-gnu.tar.gz"
+          filename="lychee-x86_64-unknown-linux-gnu.tar.gz"
           curl -sfL -o "$tmp/$filename" \
             "https://github.com/lycheeverse/lychee/releases/download/lychee-${LYCHEE_VERSION}/${filename}"
+          echo "${LYCHEE_SHA256}  $tmp/$filename" | sha256sum -c -
           tar -xzf "$tmp/$filename" -C "$tmp"
-          install -D -t "$HOME/.local/bin" "$tmp/lychee-${arch}-unknown-linux-gnu/lychee"
+          install -D -t "$HOME/.local/bin" "$tmp/lychee-x86_64-unknown-linux-gnu/lychee"
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
 
       # lychee's own --output writes the report to a file rather than stdout, so a failure's
       # detail was previously visible only in the (browser-only, unfetchable-by-API) job summary.
       # Capture the exit status separately from `set -e` so it survives the `cat`, and print the
       # report into the plain step log too - `gh run view --log` alone is then enough to diagnose
-      # a failure, no browser needed.
+      # a failure, no browser needed. The report quotes error text from remote hosts, so the log
+      # copy is wrapped in stop-commands to keep a `::` line in it from acting as a workflow command.
       - name: Check links
         shell: bash
         run: |
@@ -45,11 +58,22 @@ jobs:
           sh scripts/check-links.sh --format markdown --output lychee-report.md
           status=$?
           set -e
+          token="$(openssl rand -hex 16)"
           echo "::group::lychee report"
+          echo "::stop-commands::${token}"
           cat lychee-report.md
+          echo "::${token}::"
           echo "::endgroup::"
           exit "$status"
 
+      # Fenced rather than rendered, for the same reason: remote error text must not become links
+      # or images on the run page.
       - name: Job summary
         if: ${{ always() }}
-        run: cat lychee-report.md >> "$GITHUB_STEP_SUMMARY" || true
+        shell: bash
+        run: |
+          {
+            echo '~~~~~~~~~~text'
+            cat lychee-report.md || echo "(no report written)"
+            echo '~~~~~~~~~~'
+          } >> "$GITHUB_STEP_SUMMARY"

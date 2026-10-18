@@ -1,0 +1,8 @@
+rules:
+  # GitHub resolves a `./` reusable-workflow call at the calling commit, not from the runner's
+  # checkout, so `$/` gains nothing here - and actionlint 1.7.12 rejects it (rhysd/actionlint#711).
+  # Revisit once actionlint supports the self-repository syntax.
+  self-repository:
+    ignore:
+      - main.yml
+      - pull-request.yml
