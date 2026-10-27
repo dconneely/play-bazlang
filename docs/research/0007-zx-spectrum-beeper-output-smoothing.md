@@ -205,14 +205,15 @@ mechanism claim as settled.
 - <https://vtrd.in/book/ZXSWORLD.ZIP> (a sound reference linked from forgottencomputer.com) was not
   fetched - a `.zip` download rather than a directly readable page, and the evidence already
   gathered was judged sufficient without it.
-- <http://www.zxdesign.info/soundbeeper.shtml> (ZX Spectrum Reverse Engineering and Clone Design
-  blog, by the author of the published Harlequin ULA-replacement project) corroborates that "this
-  ULA pin is connected directly to the analogue IO circuit" with no filtering component named
-  between the ULA and the speaker coil on the _original_ machine - consistent with
-  forgottencomputer.com's "goes straight to a transistor" - but the rest of that page's circuit
-  detail (an emitter-follower driving a TV SCART input through a 100nF DC-blocking capacitor)
-  describes the author's own Harlequin clone replacement design, not the original Spectrum's stock
-  circuit, and should not be cited as evidence about original hardware.
+- <https://web.archive.org/web/20251205063143/http://www.zxdesign.info/soundbeeper.shtml> (archived
+  snapshot of the ZX Spectrum Reverse Engineering and Clone Design blog, by the author of the
+  published Harlequin ULA-replacement project) corroborates that "this ULA pin is connected directly
+  to the analogue IO circuit" with no filtering component named between the ULA and the speaker coil
+  on the _original_ machine - consistent with forgottencomputer.com's "goes straight to a
+  transistor" - but the rest of that page's circuit detail (an emitter-follower driving a TV SCART
+  input through a 100nF DC-blocking capacitor) describes the author's own Harlequin clone
+  replacement design, not the original Spectrum's stock circuit, and should not be cited as evidence
+  about original hardware.
 - Fuse's `sound.c` and `sound/output_mixer.c` were fetched first, expecting to find the filter
   constants directly there - they only contain the _calls_ into the separate `*_filter.c`/`.h`
   files. The actual numbers are one directory-listing hop further in (`sound/<name>_filter.{c,h}`),
