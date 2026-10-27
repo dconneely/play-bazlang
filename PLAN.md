@@ -353,3 +353,12 @@ for 50 Hz-era game workloads, so this should wait for profiling evidence of need
 a typed AST to compile from - is already satisfied. `PEEK`/`POKE` support is really a separate
 feature (a simulated memory map with defined layout) that does not require a bytecode VM and should
 be planned independently.
+
+## Remove temporary Guava dependency constraint once Checkstyle updates upstream
+
+**Type:** debt - **Importance:** low - **Effort:** low
+
+Checkstyle 13.11.0 transitively pulls in Guava 33.6.0-jre, which is vulnerable to CVE-2026-102554
+(GHSA-xxph-c9ww-hj94 / Dependabot alert #3). `gradle/temporary-dependency-overrides.gradle.kts`
+temporarily constrains Checkstyle's Guava dependency to 33.7.2-jre. Remove this constraint once
+Checkstyle releases a version bundling Guava 33.7.2 or newer upstream and `checkstyle` is bumped.

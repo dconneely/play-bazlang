@@ -104,3 +104,9 @@ All notable changes to this project are documented here, following
   unrelated line (here, line 30).
 - A `GO SUB` that fails with `B Integer out of range` no longer leaves a return address on the
   `GO SUB` stack for a later `RETURN` to jump to.
+
+### Security
+
+- Constrain Checkstyle's transitive `com.google.guava:guava` dependency to `33.7.2-jre` via
+  `gradle/temporary-dependency-overrides.gradle.kts` to patch CVE-2026-102554 (GHSA-xxph-c9ww-hj94 /
+  Dependabot alert #3) until Checkstyle releases an upstream update bundling Guava 33.7.2+.
