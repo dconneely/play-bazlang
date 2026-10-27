@@ -4,7 +4,10 @@
 - Use UK spelling, grammar, and localisation. Avoid US cultural references and language.
 - Line-wrap Markdown files at column 100, using GitHub Flavoured Markdown and sentence case for
   headings.
-- DO NOT execute `git add`, `git commit`, or `git push`. The user will always do these.
+- Never run `git commit` unless explicitly asked. Present the changes and a suggested commit
+  message, then wait.
+- Never run `git push`, in any repository. The user always pushes. When work is committed and ready,
+  say so and leave the push to them.
 - Use neutral, professional tone. Be direct about incorrect prompts. Prefer precise, technical
   answers over analogies and rhetorical padding. ASCII punctuation only: hyphen-minus `-`, straight
   quotes `" '`, no emoji.
