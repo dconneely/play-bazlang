@@ -6,15 +6,16 @@ Index of decision records. Only **accepted** records bind.
 
 ## In force
 
-| Record                                                                                | Date       | Deciders       | Question                                                                              | Confirmation |
-| ------------------------------------------------------------------------------------- | ---------- | -------------- | ------------------------------------------------------------------------------------- | ------------ |
-| [ADR-0001](decisions/0001-synchronous-debugger.md)                                    | 2026-08-17 | David Conneely | Run the debugger synchronously on the caller's thread, with no reentrant command loop | -            |
-| [ADR-0002](decisions/0002-how-is-audio-output-structured-and-rendered.md)             | 2026-10-29 | David Conneely | How is audio output structured and rendered?                                          | -            |
-| [ADR-0004](decisions/0004-which-mcp-protocol-revisions-and-front-ends.md)             | 2026-10-29 | David Conneely | Which MCP protocol revisions and debugging front-ends does the server support?        | -            |
-| [ADR-0005](decisions/0005-val-input-runtime-parsing.md)                               | 2026-08-03 | David Conneely | Re-parse `VAL`/`VAL$`/`INPUT` expressions at runtime; do not cache the lowered AST    | -            |
-| [ADR-0006](decisions/0006-use-antlr-for-the-grammar.md)                               | 2026-01-05 | David Conneely | Use ANTLR 4 for the grammar, instead of a hand-written parser                         | -            |
-| [ADR-0008](decisions/0008-adopt-prettier-for-markdown-alongside-markdownlint-cli2.md) | 2026-09-03 | David Conneely | Adopt Prettier for Markdown alongside markdownlint-cli2                               | -            |
-| [ADR-0009](decisions/0009-beep-edge-rounding-filter.md)                               | 2026-09-19 | David Conneely | Band-limit and edge-round `BEEP`'s square wave                                        | -            |
+| Record                                                                                | Date       | Deciders       | Question                                                                              | Confirmation                                                                                  |
+| ------------------------------------------------------------------------------------- | ---------- | -------------- | ------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| [ADR-0001](decisions/0001-synchronous-debugger.md)                                    | 2026-08-17 | David Conneely | Run the debugger synchronously on the caller's thread, with no reentrant command loop | -                                                                                             |
+| [ADR-0002](decisions/0002-how-is-audio-output-structured-and-rendered.md)             | 2026-10-29 | David Conneely | How is audio output structured and rendered?                                          | -                                                                                             |
+| [ADR-0004](decisions/0004-which-mcp-protocol-revisions-and-front-ends.md)             | 2026-10-29 | David Conneely | Which MCP protocol revisions and debugging front-ends does the server support?        | -                                                                                             |
+| [ADR-0005](decisions/0005-val-input-runtime-parsing.md)                               | 2026-08-03 | David Conneely | Re-parse `VAL`/`VAL$`/`INPUT` expressions at runtime; do not cache the lowered AST    | -                                                                                             |
+| [ADR-0006](decisions/0006-use-antlr-for-the-grammar.md)                               | 2026-01-05 | David Conneely | Use ANTLR 4 for the grammar, instead of a hand-written parser                         | -                                                                                             |
+| [ADR-0008](decisions/0008-adopt-prettier-for-markdown-alongside-markdownlint-cli2.md) | 2026-09-03 | David Conneely | Adopt Prettier for Markdown alongside markdownlint-cli2                               | -                                                                                             |
+| [ADR-0009](decisions/0009-beep-edge-rounding-filter.md)                               | 2026-09-19 | David Conneely | Band-limit and edge-round `BEEP`'s square wave                                        | -                                                                                             |
+| [ADR-0011](decisions/0011-how-the-documentation-is-organised.md)                      | 2026-10-29 | David Conneely | How the documentation is organised                                                    | `sh ../doc-kit/tools/doc-kit-check.sh passes, and the owner reviews the map and the ADR set.` |
 
 ## Non-binding
 
@@ -23,4 +24,3 @@ Index of decision records. Only **accepted** records bind.
 | [ADR-0003](decisions/0003-push-based-audio-frames.md)                    | `deprecated` | 2026-10-29 | Push resolved audio frames to `VirtualSpeaker`, rather than a pull/`isPlaying()` model     |
 | [ADR-0007](decisions/0007-synchronous-per-call-play-rendering.md)        | `deprecated` | 2026-10-29 | Render `PLAY`/`APLAY` audio synchronously per call; no persistent render thread            |
 | [ADR-0010](decisions/0010-answer-the-legacy-mcp-initialize-handshake.md) | `deprecated` | 2026-10-29 | Answer the legacy MCP `initialize` handshake for the tools-only subset, honestly versioned |
-| [ADR-0011](decisions/0011-how-the-documentation-is-organised.md)         | `proposed`   | 2026-10-29 | How the documentation is organised                                                         |
