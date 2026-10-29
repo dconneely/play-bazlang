@@ -2,6 +2,7 @@
 status: "accepted"
 date: 2026-09-19
 decision-makers: David Conneely
+approval: "Approved."
 ---
 
 # 9. Band-limit and edge-round `BEEP`'s square wave

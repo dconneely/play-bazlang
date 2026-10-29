@@ -1,20 +1,24 @@
 ---
-status: "accepted"
-date: 2026-09-26
+status: "deprecated"
+date: 2026-10-29
 decision-makers: David Conneely
+approval: "Approved."
 ---
 
 # 10. Answer the legacy MCP `initialize` handshake for the tools-only subset, honestly versioned
 
+> **Deprecated:** absorbed into [ADR-0004](0004-which-mcp-protocol-revisions-and-front-ends.md). The
+> current answer is there.
+
 ## Context and Problem Statement
 
-[ADR-0004](0004-mcp-modern-only-protocol.md) made `McpServer` modern-only (MCP 2026-07-28, no
-`initialize` handshake), reasoning that "modern server, legacy client" fails regardless, so
-supporting the legacy handshake "would have bought nothing". In practice the project's main agent
-client, Claude Code (2.1.283 at the time of writing), still opens a stdio session with a legacy
-`initialize` request rather than probing with `server/discover`, so it cannot connect at all. Other
-clients in use (GitHub Copilot, Antigravity) do connect, which is consistent with them being
-dual-era and probing first.
+[ADR-0004](0004-which-mcp-protocol-revisions-and-front-ends.md) made `McpServer` modern-only (MCP
+2026-07-28, no `initialize` handshake), reasoning that "modern server, legacy client" fails
+regardless, so supporting the legacy handshake "would have bought nothing". In practice the
+project's main agent client, Claude Code (2.1.283 at the time of writing), still opens a stdio
+session with a legacy `initialize` request rather than probing with `server/discover`, so it cannot
+connect at all. Other clients in use (GitHub Copilot, Antigravity) do connect, which is consistent
+with them being dual-era and probing first.
 
 The 2026-07-28 specification explicitly permits a server to support both eras ("A server that wishes
 to support both legacy clients ... and modern clients ... MAY implement both behaviors"). The legacy
@@ -66,5 +70,4 @@ This does not revisit the rest of ADR-0004: the modern revision remains the prim
 - Bad, because a legacy client asking for 2025-03-26 or older is offered a newer revision it may not
   speak, and will then disconnect.
 - Neutral: `docs/spec/mcp.md` changes from "modern-only, no legacy fallback" to describe both entry
-  paths. If accepted, ADR-0004's status would gain a pointer to this record (for example
-  `accepted (refined by ADR-0010)`) - a change only a person may make.
+  paths.

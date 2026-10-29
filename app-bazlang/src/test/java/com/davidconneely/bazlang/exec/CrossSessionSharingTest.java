@@ -14,7 +14,7 @@ import org.junit.jupiter.api.Test;
  * lists, and the variable ids baked into those lists' AST nodes - can be reused by a second {@link
  * EvalState} without re-lowering, while each session's own variable values stay independent. See
  * {@code docs/spec/architecture.md}'s "Variable id indexing" section and {@code
- * docs/tasks/cross-session-ast-sharing.md} for the design this exercises.
+ * docs/plan/true-concurrent-program-execution.md} for the design this exercises.
  */
 class CrossSessionSharingTest {
 

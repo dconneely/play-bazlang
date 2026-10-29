@@ -1,6 +1,6 @@
 # How do Sinclair-family BASICs (and COMAL) implement `PROC`/`DEF PROC`, and does any of them do local variables without reference parameters?
 
-<!-- Confidence levels and what counts as research are in ../../DOC-MAP.md. -->
+<!-- Confidence levels and what counts as research are in 0000-template.md. -->
 
 **Confidence:** high - primary manual text was read directly for all nine dialects covered here. See
 `0006-related-basic-dialects-overview.md` for the wider dialect genealogy, YS MegaBasic's much
@@ -48,11 +48,11 @@ manual!)"** in the guide itself - direct evidence that SAM BASIC's procedure des
 modelled on Beta BASIC's, not arrived at independently.
 
 **Implication for BazLang:** a `DEF PROC` with an optional `LOCAL` statement but no reference
-parameters at all (see the design discussed against `PLAN.md`'s `DEF PROC & local scoping` entry)
-sits deliberately outside every precedent surveyed here, rather than reproducing one of them -
-value-only parameters with no reference mechanism at all isn't a documented choice in any of the
-seven dialects surveyed, not even partially. It stays closest in spirit to `DEF FN`'s own existing
-by-value shadowing, just extended from a single expression to a statement body.
+parameters at all (see the design discussed against `docs/plan.md`'s `DEF PROC & local scoping`
+entry) sits deliberately outside every precedent surveyed here, rather than reproducing one of
+them - value-only parameters with no reference mechanism at all isn't a documented choice in any of
+the seven dialects surveyed, not even partially. It stays closest in spirit to `DEF FN`'s own
+existing by-value shadowing, just extended from a single expression to a statement body.
 
 ## Design axes and where each dialect lands
 

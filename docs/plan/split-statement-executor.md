@@ -14,7 +14,7 @@ lines and does several unrelated jobs besides dispatching statements:
   newline-suppression rule in `executePrintStmt`.
 - **String assignment** - `assignStrTarget` and its scalar/array helpers, which duplicate the
   read-side logic in `ExpressionEvaluator.evalStrSubscriptCore` (already tracked as "Unify
-  read/write subscript-and-slice resolution" in `PLAN.md`).
+  read/write subscript-and-slice resolution" in `docs/plan.md`).
 - **Two identical chunked BREAK-polling wait loops** in `executePauseStmt` and `executeBeepStmt`.
 
 The class also sits at PMD's `ExcessiveImports` threshold, and `listLine` uses fully-qualified class
@@ -50,7 +50,7 @@ In rough order of value versus risk:
 
 - Keep the exhaustive `switch (stmt)` with no `default` arm in `execute`.
 - Preserve `withRestoredStyles` semantics for `PLOT`/`DRAW`/`CIRCLE`/`PRINT`/`LIST`.
-- Do not change `VirtualSpeaker`'s push-based, no-idle-silence contract (ADR-0003, ADR-0007).
+- Do not change `VirtualSpeaker`'s push-based, no-idle-silence contract (ADR-0002).
 - `docs/spec/architecture.md` describes `StatementExecutor`'s responsibilities and the audio
   threading; update it in the same change as each extraction.
 

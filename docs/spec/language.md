@@ -461,7 +461,7 @@ Examples: `42`, `3.14159`, `1.23E+15`, `-5E-8`
 When something goes wrong (e.g. dividing by zero), the interpreter stops execution and reports a
 Sinclair ZX BASIC-style code: `<Code> <Message>, <Line>:<Statement> (Optional details)` - for
 example, `6 Number too big, 100:1 (Arithmetic overflow)`. The report code and `<line>:<statement>`
-location are the part you can rely on; the exact wording of the message is not (`SPECIFICATION.md`
+location are the part you can rely on; the exact wording of the message is not (`docs/spec.md`
 "Deliberately unspecified"). Immediate-mode statements report against line 0 - see
 [quirks.md](../quirks.md#interpreter--application-behaviours).
 

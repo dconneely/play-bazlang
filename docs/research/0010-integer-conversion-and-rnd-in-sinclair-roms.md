@@ -1,6 +1,6 @@
 # How do the ZX81 and ZX Spectrum ROMs convert numbers to integers, and how does `RND` work?
 
-<!-- Confidence levels and what counts as research are in ../../DOC-MAP.md. -->
+<!-- Confidence levels and what counts as research are in 0000-template.md. -->
 
 **Confidence:** high for the ZX Spectrum (read directly from an annotated ROM disassembly); medium
 for the ZX81's `RND` (a disassembly and an independent description agree, but the ZX81 ROM itself

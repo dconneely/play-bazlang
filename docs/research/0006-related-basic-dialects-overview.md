@@ -1,6 +1,6 @@
 # What are the Sinclair-heritage and Sinclair-adjacent BASIC dialects this project keeps comparing against, and how do they relate to each other?
 
-<!-- Confidence levels and what counts as research are in ../../DOC-MAP.md. -->
+<!-- Confidence levels and what counts as research are in 0000-template.md. -->
 
 **Confidence:** high - genealogy and "does it extend X" answers are sourced from primary manual text
 for nearly every dialect below; exact syntax for any given feature lives in the topic-specific
@@ -133,7 +133,7 @@ changing the underlying tokenizer/interpreter model:
   `IF...THEN...ELSE` is nestable but **single-line only, no block form** and no `ENDIF`/`END IF` at
   all ("the whole structure... must be on a single program line," in the manual's own words); a
   genuine `WHILE...WEND` (the actual source, in this whole combined survey, of the "`WEND`" spelling
-  `PLAN.md`'s item is named after - see `0004`); no `REPEAT` anywhere in the full text; no
+  `docs/plan.md`'s item is named after - see `0004`); no `REPEAT` anywhere in the full text; no
   `DEF PROC`/`SUB`-style procedure mechanism either - only plain `GOSUB`/`RETURN`; and classic
   single-line `DEF FN function-name(params) = expr`, unextended. So the one dialect in this entire
   combined survey that spells the loop terminator `WEND` is also the one dialect that isn't

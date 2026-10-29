@@ -25,23 +25,23 @@ need two of these is usually two sentences, not one (see "Which member, for a gi
 All three live under `docs/spec/` - the one place in `docs/` you can glob for "is this part of the
 contract" (`docs/spec/*.md`) without reading this file at all:
 
-- **[`docs/spec/language.md`](docs/spec/language.md)** - the language reference: lines, variables,
-  operators, commands, functions, slicing, errors. Audience: **BazLang programmers**, who never need
-  to read Java or a wire protocol to use the language.
-- **[`docs/spec/architecture.md`](docs/spec/architecture.md)** - the interpreter's grammar, Java
-  package/class structure, execution model, and the performance-load-bearing patterns a refactoring
-  must preserve. The grammar file itself,
-  [`app-bazlang/src/main/antlr/BazLang.g4`](app-bazlang/src/main/antlr/BazLang.g4), is the
+- **[`spec/language.md`](spec/language.md)** - the language reference: lines, variables, operators,
+  commands, functions, slicing, errors. Audience: **BazLang programmers**, who never need to read
+  Java or a wire protocol to use the language.
+- **[`spec/architecture.md`](spec/architecture.md)** - the interpreter's grammar, Java package/class
+  structure, execution model, and the performance-load-bearing patterns a refactoring must preserve.
+  The grammar file itself,
+  [`../app-bazlang/src/main/antlr/BazLang.g4`](../app-bazlang/src/main/antlr/BazLang.g4), is the
   machine-readable member and the actual source of truth for syntax - `architecture.md`'s "Grammar"
   section explains it and must never restate a production. Audience: **interpreter implementers**,
   including agents modifying the code.
-- **[`docs/spec/mcp.md`](docs/spec/mcp.md)** - the MCP debugger's JSON-RPC protocol and tool
-  reference. Audience: **MCP client developers** - a population that includes people who will never
-  read `architecture.md` or touch this codebase's Java at all.
+- **[`spec/mcp.md`](spec/mcp.md)** - the MCP debugger's JSON-RPC protocol and tool reference.
+  Audience: **MCP client developers** - a population that includes people who will never read
+  `architecture.md` or touch this codebase's Java at all.
 
-Read [`docs/quirks.md`](docs/quirks.md) alongside these - it is not itself part of this contract
-(see `DOC-MAP.md`: deviations, not behaviour, is its own category), but every member above assumes
-it before "fixing" anything that looks wrong.
+Read [`quirks.md`](quirks.md) alongside these - it is not itself part of this contract (see
+`DOC-MAP.md`: deviations, not behaviour, is its own category), but every member above assumes it
+before "fixing" anything that looks wrong.
 
 ### Which member, for a given fact
 
@@ -79,6 +79,6 @@ consistent with `language.md`, not as a second, independent description of the l
 
 Behaviour callers MUST NOT rely on: the exact wording of a `ReportException` message beyond its
 report code and `<line>:<statement>` location; `RND`'s underlying algorithm (Java `Random`, not a
-faithful reproduction of the ZX81's linear feedback shift register - see `docs/spec/language.md`
+faithful reproduction of the ZX81's linear feedback shift register - see `spec/language.md`
 "Divergences"); the internal thread a background `APLAY` runs on; and anything documented in
-`docs/quirks.md` as **accepted-wrong**, which by definition may change without notice once fixed.
+`quirks.md` as **accepted-wrong**, which by definition may change without notice once fixed.

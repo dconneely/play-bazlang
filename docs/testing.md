@@ -47,7 +47,7 @@ assert exact screen/variable state, and component tests assert exact values.
 - **Whole-screen baseline/snapshot output for the interactive example games** (e.g. `lander.bas`,
   `monster.bas`) - there is no automated comparison of a scripted playthrough's final screen state
   against a stored snapshot. Program-level tests cover individual language features in isolation
-  instead. This is a known gap, not an oversight; see `PLAN.md`.
+  instead. This is a known gap, not an oversight; see `docs/plan.md`.
 
 ## Running them
 

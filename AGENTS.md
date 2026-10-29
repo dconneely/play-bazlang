@@ -45,17 +45,30 @@ writing anything down.
 
 When documents disagree, tense settles it:
 
-- `SPECIFICATION.md` - present tense, authoritative about what BazLang does now.
+- `docs/spec.md` - present tense, authoritative about what BazLang does now.
 - `CHANGELOG.md` - past tense. What changed, never what is true today.
-- `PLAN.md` - intent. Nothing described in it exists yet.
-- `docs/adr/` - why. Only `accepted` records bind; check the status before relying on one.
+- `docs/plan.md` - intent. Nothing described in it exists yet.
+- `docs/decisions.md` - why: index of decision records; only `accepted` records bind.
 - `docs/quirks.md` - deliberate deviations. **Do not "fix" anything listed here.**
+- `docs/research/` - sourced findings with confidence levels.
+- `docs/testing.md` - test strategy, and what is deliberately not covered.
 
 Before you edit:
 
 - The specification follows the work. Change it because behaviour changed, not because it would read
   better. Its purpose and scope are not yours to revise.
-- Never change an ADR's `status`, and never edit one that says `accepted`. Drafting a record is
-  yours; deciding one is not - leave `decision-makers` as the template's placeholder too.
-- Delete completed `PLAN.md` entries rather than marking them done.
+- An agent may create a decision record as `proposed`, by copying `docs/decisions/0000-template.md`
+  rather than an existing record, and may revise a `proposed` record. Accepting, rejecting,
+  reopening, deprecating or deleting a record needs the owner's explicit permission, asked for
+  first. The owner may also approve a combine of records; absorbed records become `deprecated` and
+  link to the surviving record. Never change a status or edit an accepted record without that
+  permission.
+- On accepting, set `decision-makers`, `approval` (the owner's words, verbatim) and `date` (today).
+- Cite records as `ADR-NNNN`, and another repository's record by a link. Fix every citation a change
+  makes untrue in the same commit.
+- Delete completed `docs/plan.md` entries rather than marking them done.
+- Write the least that is true: no history or account of how you got there, in documents or code
+  comments.
+- A code comment states why the code is as it is now. History goes in the commit message; a reason
+  spanning more than one site goes in a decision record the comment names.
 - Adding a document means updating `DOC-MAP.md` in the same commit.

@@ -1,6 +1,6 @@
 # How do Sinclair-family BASICs (and COMAL) implement `IF...THEN...ELSE`, single-line and block?
 
-<!-- Confidence levels and what counts as research are in ../../DOC-MAP.md. -->
+<!-- Confidence levels and what counts as research are in 0000-template.md. -->
 
 **Confidence:** high - primary manual text was read directly for all dialects covered here except
 Pascalated ZX BASIC, sourced from one real worked example program rather than a full manual. See
@@ -9,10 +9,10 @@ Pascalated ZX BASIC, sourced from one real worked example program rather than a 
 ## Finding
 
 Every dialect surveyed that has `ELSE` at all (all seven core dialects do, plus SpecBAS) draws the
-same basic distinction `PLAN.md`'s own item anticipates: a same-line, colon-joined `ELSE` that needs
-no terminator, and - in most, but not all, cases - a genuine block form that does. Where they differ
-is _how_ the two forms are told apart (where a block form exists at all), whether the block form
-truly nests, and what the terminator is spelled.
+same basic distinction `docs/plan.md`'s own item anticipates: a same-line, colon-joined `ELSE` that
+needs no terminator, and - in most, but not all, cases - a genuine block form that does. Where they
+differ is _how_ the two forms are told apart (where a block form exists at all), whether the block
+form truly nests, and what the terminator is spelled.
 
 **Three dialects have no real block form whatsoever - one of them is Beta BASIC itself, the dialect
 every other Sinclair-heritage `PROC`/structured-programming extension in this survey either directly
@@ -103,17 +103,17 @@ using a real block form with its own terminator per `IF` - a cost none of BBC/QL
 real-nesting block forms pay, since each nested `IF` there closes with its own `ENDIF`/`END IF`
 regardless of whether it has an `ELSE`.
 
-**Implication for BazLang:** `PLAN.md`'s own downgrade rationale for this item ("Sinclair BASIC's
-`IF`/`THEN` has no `ELSE` clause at all") holds up completely - none of the seven surveyed dialects'
-`ELSE` is inherited from Sinclair BASIC itself; every one of them added it as an extension, the same
-judgement `PLAN.md` already reaches independently. The two-tier design `PLAN.md` sketches (single-
-line `ELSE` first, block `IF` as a larger follow-on step) matches the shape practically every
-dialect here converged on independently. The one genuinely open design choice this survey surfaces
-is SAM Coupé's/NextBASIC's "is there a `THEN`" rule for telling short-form from long-form apart,
-versus BBC's/QL's/Boriel's "is `THEN` the last token on the line" rule - the former needs no `THEN`
-at all in the long form, which reads slightly oddly next to BazLang's existing single-line
-`IF...THEN`; the latter keeps `THEN` meaningful in both forms, matching how it's used everywhere
-else in the language today.
+**Implication for BazLang:** `docs/plan.md`'s own downgrade rationale for this item ("Sinclair
+BASIC's `IF`/`THEN` has no `ELSE` clause at all") holds up completely - none of the seven surveyed
+dialects' `ELSE` is inherited from Sinclair BASIC itself; every one of them added it as an
+extension, the same judgement `docs/plan.md` already reaches independently. The two-tier design
+`docs/plan.md` sketches (single-line `ELSE` first, block `IF` as a larger follow-on step) matches
+the shape practically every dialect here converged on independently. The one genuinely open design
+choice this survey surfaces is SAM Coupé's/NextBASIC's "is there a `THEN`" rule for telling
+short-form from long-form apart, versus BBC's/QL's/Boriel's "is `THEN` the last token on the line"
+rule - the former needs no `THEN` at all in the long form, which reads slightly oddly next to
+BazLang's existing single-line `IF...THEN`; the latter keeps `THEN` meaningful in both forms,
+matching how it's used everywhere else in the language today.
 
 ## Evidence
 

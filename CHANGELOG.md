@@ -2,6 +2,8 @@
 
 All notable changes to this project are documented here, following
 [Keep a Changelog](https://keepachangelog.com) and [Semantic Versioning](https://semver.org).
+Entries describe effects users can see, under `Added`, `Changed`, `Deprecated`, `Removed`, `Fixed`
+or `Security` - never internal refactors.
 
 ## Unreleased
 
@@ -43,7 +45,7 @@ All notable changes to this project are documented here, following
 
 - MCP debugging moved from the hand-rolled `AgentDebugger` text protocol to a native MCP server
   (`McpServer`/`DebugEngine`) targeting the 2026-07-28 MCP specification - see
-  [ADR-0004](docs/adr/0004-mcp-modern-only-protocol.md).
+  [ADR-0004](docs/decisions/0004-which-mcp-protocol-revisions-and-front-ends.md).
 - `RENUM` now takes SAM Coupé BASIC-style arguments: `RENUM [lines] [LINE l] [STEP s]`. An optional
   leading line range (the same `TO` syntax as `LIST`/`DELETE`/`REFORMAT`) selects which existing
   lines to renumber; `LINE l` sets the new starting line number; `STEP s` sets the new increment.

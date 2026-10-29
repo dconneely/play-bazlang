@@ -9,6 +9,12 @@ those behaviours. It serves two audiences:
   refactoring must preserve every behaviour on this page. See
   [architecture.md](spec/architecture.md) for how the interpreter is built.
 
+Each entry states the expected behaviour, the actual behaviour, and whether the deviation is
+**deliberate** or **accepted-wrong**. An accepted-wrong entry names the test pinning today's output,
+so nobody "fixes" it, and states what would have to change for the entry to go. Entries name the
+code they govern, so a search for the symbol finds the entry; new entries use a **Where:** field,
+and existing entries name it in their title or text.
+
 ## Flow control quirks
 
 - **FOR loop stale loop variable value**: The loop variable retains its last value after loop

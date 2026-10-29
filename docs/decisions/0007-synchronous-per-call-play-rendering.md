@@ -1,10 +1,14 @@
 ---
-status: "accepted"
-date: 2026-08-22
+status: "deprecated"
+date: 2026-10-29
 decision-makers: David Conneely
+approval: "Approved."
 ---
 
 # 7. Render `PLAY`/`APLAY` audio synchronously per call; no persistent render thread
+
+> **Deprecated:** absorbed into [ADR-0002](0002-how-is-audio-output-structured-and-rendered.md). The
+> current answer is there.
 
 ## Context and Problem Statement
 

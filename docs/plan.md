@@ -1,12 +1,19 @@
 # Plan
 
 Single ranked backlog, most important first. Entries are **deleted** when done, never annotated - a
-plan that accumulates completed items stops being read. **One paragraph each** - see
-[DOC-MAP.md](DOC-MAP.md).
+plan that accumulates completed items stops being read.
+
+Each entry is a heading, a tag line, then **one paragraph**. No design; anything longer needs a task
+note or an ADR. If you keep task notes under `docs/plan/`, copy `0000-template.md` for the optional
+starting shape.
+
+- **Type** - `bug`, `debt`, `feature` or `docs`.
+- **Importance** - `low`, `medium`, `high`: what it costs to keep not doing this.
+- **Effort** - `low` under a day, `medium` under a week, `high` larger or not yet known.
 
 ## MCP: `bazlang_eval(exec)` while paused loses the resume point
 
-**Type:** bug - **Importance:** high - **Effort:** small
+**Type:** bug - **Importance:** high - **Effort:** low
 
 Found 2026-09-28. Paused at a breakpoint, any `exec` - `LET x = 100`, `PRINT 5`, `CLS` alike - moves
 the reported pause position to the immediate-mode sentinel `0:1` (`bazlang_step(status)` then says
@@ -21,7 +28,7 @@ an `McpServerProtocolTest` case for `exec` followed by `go`.
 
 ## MCP server dies when its jar is rebuilt underneath it
 
-**Type:** bug - **Importance:** high - **Effort:** small
+**Type:** bug - **Importance:** high - **Effort:** low
 
 Found 2026-09-28: a Claude Code session's `bazlang` server, launched as
 `java -cp app-bazlang/build/libs/bazlang-1.0.0-SNAPSHOT.jar ...McpServer` as `app-bazlang/README.md`
@@ -62,24 +69,21 @@ Extract a shared resolver so the read and write paths cannot drift apart.
 
 **Type:** debt - **Importance:** medium - **Effort:** medium
 
-See [the task note](docs/tasks/split-statement-executor.md) - `StatementExecutor` mixes statement
-dispatch with `APLAY` thread management, raster algorithms, `PRINT` layout and duplicated
-BREAK-polling waits, and already works around PMD's `ExcessiveImports` limit.
+See [the task note](plan/split-statement-executor.md) - `StatementExecutor` mixes statement dispatch
+with `APLAY` thread management, raster algorithms, `PRINT` layout and duplicated BREAK-polling
+waits, and already works around PMD's `ExcessiveImports` limit.
 
-## Decide where rationale lives: code comments versus documents
+## Prune source comments against the new comment rule
 
 **Type:** docs - **Importance:** medium - **Effort:** medium
 
 Many source comments narrate history ("an earlier design...", "this was a real bug", "used to") and
-repeat rationale that also appears in ADRs or `docs/spec/architecture.md`, which makes the code slow
-to read and lets the two copies drift. `DOC-MAP.md` currently maps facts to documents only; it says
-nothing about code comments, so nothing tells an author or agent that "X used to be Y" belongs in
-the changelog or a commit message rather than a Javadoc. Extend `DOC-MAP.md` with a rule for
-comments (for example: comments state the current invariant and why it matters, link to an ADR or
-spec section for longer rationale, and never tell history), then prune the existing comments against
-it. Also decide how the map is enforced rather than just believed: options include a `docs/`
-link-and-reference check in CI that fails on references to files not in the repository (such as
-gitignored `localonly-*` notes), a review checklist item, or an `AGENTS.md` rule.
+repeat rationale that also appears in ADRs or `docs/spec/architecture.md`. `DOC-MAP.md` now routes a
+present-tense reason to a comment beside the code, history to the commit message, and a reason
+spanning more than one site to an ADR the comment names, and `AGENTS.md` states the same rule. Prune
+the existing comments against it. Enforcement remains a separate question: the kit's checker covers
+the structure but not code comments, so a review checklist item or a targeted CI check is still
+needed.
 
 ## Programmatic component tests
 
@@ -115,9 +119,10 @@ properly: a first pass (polling until the recorded call count went quiet) was st
 GC pause on a loaded runner can space two still-legitimate mid-note chunks further apart than a
 short quiet-window would assume. The working fix waits for `drainPlay()` instead -
 `StatementExecutor`'s own single-fire, unambiguous "just went idle" signal (see
-[ADR-0007](docs/adr/0007-synchronous-per-call-play-rendering.md)) - rather than inferring idleness
-from any timing heuristic. Worth auditing any other test using `Thread.sleep` for synchronisation
-the same way, but confirm this Windows failure actually recurs before spending more effort on it.
+[ADR-0002](decisions/0002-how-is-audio-output-structured-and-rendered.md)) - rather than inferring
+idleness from any timing heuristic. Worth auditing any other test using `Thread.sleep` for
+synchronisation the same way, but confirm this Windows failure actually recurs before spending more
+effort on it.
 
 ## Scripted-playthrough tests for interactive, input-driven programs
 
@@ -138,7 +143,7 @@ right now, not a flaw in the item itself.
 
 ## MCP: true `tools/call` cancellation
 
-**Type:** feature - **Importance:** medium - **Effort:** large
+**Type:** feature - **Importance:** medium - **Effort:** high
 
 `bazlang_step(run/goto/go/step_into/step_over)` blocks the calling thread until the programme next
 pauses; `notifications/cancelled` is accepted but has no effect (see `docs/spec/mcp.md` "Known
@@ -146,12 +151,12 @@ limitations"). The `timeoutMs` safety cap already guarantees a programme with no
 own can't block a call forever, but an agent still can't interrupt one early on demand. A full fix
 would run `Interpreter.resume()` on a worker thread so a cancellation notification arriving on stdin
 could interrupt it mid-run - reintroducing the shared-state concurrency
-[ADR-0001](docs/adr/0001-synchronous-debugger.md) deliberately avoided. Only worth doing if the
+[ADR-0001](decisions/0001-synchronous-debugger.md) deliberately avoided. Only worth doing if the
 safety cap turns out to be insufficient in practice.
 
 ## External render sidecars
 
-**Type:** feature - **Importance:** medium - **Effort:** large
+**Type:** feature - **Importance:** medium - **Effort:** high
 
 Execute the interpreter headless while routing a streaming frame buffer (via TCP or WebSockets) to a
 graphical display sidecar (e.g. a native canvas using OpenGL or WebAssembly). The `VirtualScreen`/
@@ -160,7 +165,7 @@ cell-buffer diffs over WebSocket to a browser canvas is the most practical first
 
 ## MCP: `bazlang_eval`'s tool description says bare `SCORE=0` assigns
 
-**Type:** bug - **Importance:** low - **Effort:** small
+**Type:** bug - **Importance:** low - **Effort:** low
 
 The `expression` property in `McpTools` reads "or an assignment (e.g. \"SCORE=0\") to execute as a
 LET statement", but `McpDebugAdapter.callEvalExpression` only assigns when the text starts with
@@ -171,7 +176,7 @@ say that a leading `LET` is required.
 
 ## MCP: results carried only in `structuredContent` have no text fallback
 
-**Type:** debt - **Importance:** low - **Effort:** small
+**Type:** debt - **Importance:** low - **Effort:** low
 
 `bazlang_eval(array)` and `(vars)` put their payload only in `structuredContent`; the text block
 says just "192 element(s)". MCP 2025-06-18 onwards says a tool returning structured content SHOULD
@@ -232,7 +237,7 @@ picking the terminator/nesting shape deliberately when this is implemented, not 
 
 ## `DEF PROC` & local scoping
 
-**Type:** feature - **Importance:** low - **Effort:** large
+**Type:** feature - **Importance:** low - **Effort:** high
 
 Multi-line procedures with parameters passed by value or reference, and local variable namespaces
 (using `LOCAL`). Shifts BazLang from a flat line-number-based execution flow toward a modern,
@@ -257,7 +262,7 @@ separate mechanisms the way BazLang's own design already does.
 
 ## Resolve the threading model; remove the `DecimalFormat` `ThreadLocal`s if single-threaded
 
-**Type:** debt - **Importance:** low - **Effort:** small
+**Type:** debt - **Importance:** low - **Effort:** low
 
 `ExpressionEvaluator` still holds `ThreadLocal<DecimalFormat> SCI_FORMAT`/`DEC_FORMAT` for number
 formatting, implying concurrent execution is supported - but nothing else in `EvalState` (the
@@ -271,25 +276,24 @@ those two `ThreadLocal`s.
 
 **Type:** feature - **Importance:** low - **Effort:** medium
 
-See [the task note](docs/tasks/true-concurrent-program-execution.md) - sequential reuse of a
-compiled `Program` across `EvalState`s is done (`EvalState(Program)`, `Program` now the id
-authority); this item is the narrower remaining gap - two sessions actually executing the same
-`Program` on separate threads at once, which `ProgramLine.cachedFlatStatements`'s unsynchronized
-lazy-init doesn't yet support. Revisit only if a concrete need for true concurrency (not just reuse)
-appears.
+See [the task note](plan/true-concurrent-program-execution.md) - sequential reuse of a compiled
+`Program` across `EvalState`s is done (`EvalState(Program)`, `Program` now the id authority); this
+item is the narrower remaining gap - two sessions actually executing the same `Program` on separate
+threads at once, which `ProgramLine.cachedFlatStatements`'s unsynchronized lazy-init doesn't yet
+support. Revisit only if a concrete need for true concurrency (not just reuse) appears.
 
 ## Define which operations force a terminal render
 
-**Type:** debt - **Importance:** medium - **Effort:** small
+**Type:** debt - **Importance:** medium - **Effort:** low
 
-See [the task note](docs/tasks/terminal-render-policy.md) - `FAST` doesn't reliably stop rendering
+See [the task note](plan/terminal-render-policy.md) - `FAST` doesn't reliably stop rendering
 (`INKEY$`/`UINKEY$`, `INPUT` and every `PRINT`'s trailing flush can still render mid-frame), the
 rule isn't written down anywhere, and each `INKEY$` poll blocks for up to 1ms when no key is
 waiting.
 
 ## `AstLowering`'s over-long `BIN` literal error reports statement 1
 
-**Type:** bug - **Importance:** low - **Effort:** small
+**Type:** bug - **Importance:** low - **Effort:** low
 
 `AstLowering.parseBinLiteral`'s "Binary literal exceeds 64 digits" error hardcodes statement index 1
 rather than the literal's real statement, the one gap left after a pass that fixed every other
@@ -316,7 +320,7 @@ set of scripted end-to-end REPL tests. Then raise the floor to match whatever is
 
 ## `VirtualScreen` is still wide (~30 methods)
 
-**Type:** debt - **Importance:** low - **Effort:** small
+**Type:** debt - **Importance:** low - **Effort:** low
 
 Default methods keep individual implementations small, so this isn't urgent. If the external render
 sidecar item above proceeds, consider splitting the graphics surface (`plot`, `point`,
@@ -334,7 +338,7 @@ the current approach is well-contained. Optional.
 
 ## 64-bit explicit integers (`%` suffix)
 
-**Type:** feature - **Importance:** low - **Effort:** large
+**Type:** feature - **Importance:** low - **Effort:** high
 
 Support for variables (e.g. `count%`, `grid%(10)`) with exact 64-bit semantics and fast bitwise
 operations. The value is semantic correctness (exact integer arithmetic, well-defined bit ops), not
@@ -345,7 +349,7 @@ arrays, and `DEF FN`.
 
 ## Virtual machine / bytecode tier
 
-**Type:** feature - **Importance:** low - **Effort:** large (the largest item on this list)
+**Type:** feature - **Importance:** low - **Effort:** high (the largest item on this list)
 
 Transition the interpreter from AST-`switch` execution to compiling into a custom, compact bytecode
 run on a lightweight VM stack. The most speculative item: AST execution is already comfortably fast

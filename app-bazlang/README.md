@@ -9,8 +9,8 @@ characters), and UTF-8 string encoding.
 
 ## Documentation
 
-[`../SPECIFICATION.md`](../SPECIFICATION.md) is the index over the behaviour contract below; the
-detailed language and architecture references live in the repository-level `docs/` directory:
+[`../docs/spec.md`](../docs/spec.md) is the index over the behaviour contract below; the detailed
+language and architecture references live in the repository-level `docs/` directory:
 
 - **[Language](../docs/spec/language.md)** - Guide to variables, commands, and REPL operations.
 - **[Architecture](../docs/spec/architecture.md)** - Grammar, AST architecture, execution model,

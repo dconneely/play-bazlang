@@ -1,6 +1,6 @@
 # Does the ZX Spectrum 128K/+2/+3's on-board circuit around the AY-3-8912 chip filter or shape its audio output, the way the 48K beeper's output stage does?
 
-<!-- Confidence levels and what counts as research are in ../../DOC-MAP.md. -->
+<!-- Confidence levels and what counts as research are in 0000-template.md. -->
 
 **Confidence:** medium for the AY-3-8912 chip's own output characteristics (a primary datasheet was
 read directly); medium for the on-board amplifier circuit's topology and its well-documented

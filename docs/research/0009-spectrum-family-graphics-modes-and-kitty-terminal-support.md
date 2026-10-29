@@ -1,6 +1,6 @@
 # What graphics modes do ZX Spectrum-family hardware variants add beyond the base machine's attribute clash, and which Windows-usable terminals support the Kitty graphics protocol's Unicode Placeholder addressing?
 
-<!-- Confidence levels and what counts as research are in ../../DOC-MAP.md. -->
+<!-- Confidence levels and what counts as research are in 0000-template.md. -->
 
 **Confidence:** medium overall - hardware resolution/colour-depth numbers are corroborated by at
 least two independent sources for every machine below and verified directly against a primary or
@@ -27,7 +27,7 @@ bitmap pixel data, potentially breaking the attribute-clash constraint entirely.
 the two pieces of sourced background needed before any design work: what real Spectrum-family
 hardware actually did about attribute clash beyond the base machine, and which terminals BazLang
 might realistically run in today support the protocol this new mode would need. It does not propose
-a design, and no Java code or `PLAN.md` entry accompanies it.
+a design, and no Java code or `docs/plan.md` entry accompanies it.
 
 ## Finding: ZX Spectrum-family graphics modes and attribute-clash behaviour
 

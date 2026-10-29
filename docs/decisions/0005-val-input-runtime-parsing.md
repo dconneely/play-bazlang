@@ -2,6 +2,7 @@
 status: "accepted"
 date: 2026-08-03
 decision-makers: David Conneely
+approval: "Approved."
 ---
 
 # 5. Re-parse `VAL`/`VAL$`/`INPUT` expressions at runtime; do not cache the lowered AST

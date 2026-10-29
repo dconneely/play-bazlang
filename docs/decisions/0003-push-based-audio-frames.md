@@ -1,10 +1,14 @@
 ---
-status: "accepted (refined by ADR-0007)"
-date: 2026-08-22
+status: "deprecated"
+date: 2026-10-29
 decision-makers: David Conneely
+approval: "Approved."
 ---
 
 # 3. Push resolved audio frames to `VirtualSpeaker`, rather than a pull/`isPlaying()` model
+
+> **Deprecated:** absorbed into [ADR-0002](0002-how-is-audio-output-structured-and-rendered.md). The
+> current answer is there.
 
 ## Context and Problem Statement
 

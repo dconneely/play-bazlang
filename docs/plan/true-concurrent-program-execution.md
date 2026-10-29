@@ -11,8 +11,8 @@ captures what's still missing for genuine concurrent execution - two `EvalState`
 `Program`'s statements on separate threads at the same instant - since that's a real further step,
 not a side effect of the reuse work already done.
 
-**Not scheduled.** No `PLAN.md` entry currently points anywhere else - this is a design note to save
-re-deriving the gap later, not committed work.
+**Not scheduled.** No `docs/plan.md` entry currently points anywhere else - this is a design note to
+save re-deriving the gap later, not committed work.
 
 ## What's already safe
 

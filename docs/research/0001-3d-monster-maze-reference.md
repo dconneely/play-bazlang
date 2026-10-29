@@ -18,7 +18,7 @@ off Rex's distance and line of sight to the player.
 `app-bazlang/src/example/bas/monster.bas` (446 lines, added 2026-07-06) contains a substantial
 implementation attempt - including the ringmaster introduction text and tables that look like
 `DISTCOL`/`DISTWALL` analogues - but it is incomplete and still has a rendering bug in the maze view
-(confirmed 2026-08-22). See `PLAN.md`.
+(confirmed 2026-08-22). See `docs/plan.md`.
 
 ## Evidence
 
@@ -133,6 +133,6 @@ plotting cell-by-cell) rather than attempting the original's exact segment table
   confidence from medium to high.
 - What exactly is wrong with `monster.bas`'s maze-view rendering - closer to the "coarse rectangular
   walls" dead end, the "broken `DISTCOL`/`DISTWALL` port" one, both, or something else not yet
-  described here? Worth pinning down precisely when the fix in `PLAN.md` is picked up, since it
+  described here? Worth pinning down precisely when the fix in `docs/plan.md` is picked up, since it
   changes which of this note's two logged dead ends (or the untried PET-port simplification) is the
   right starting point.

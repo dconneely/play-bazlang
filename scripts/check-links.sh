@@ -64,4 +64,4 @@ if [ -n "$EXCLUDE" ]; then
   set -- "$@" --exclude "$EXCLUDE"
 fi
 
-exec lychee "$@" "docs/research/**/*.md" "docs/adr/**/*.md"
+exec lychee "$@" "docs/research/**/*.md" "docs/decisions/**/*.md"

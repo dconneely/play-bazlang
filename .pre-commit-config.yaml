@@ -40,15 +40,15 @@ repos:
       # Checkstyle, PMD, SpotBugs, and test are omitted - too slow for pre-commit; `./gradlew build`
       # already runs all of them via the `check` task.
 
-      # MADR status values are lowercase (proposed | rejected | accepted | deprecated | superseded
-      # by ADR-NNNN, per docs/adr/0000-template.md and DOC-MAP.md). `Deprecated` is deliberately
-      # absent from the alternation: it's also a Keep a Changelog category name (DOC-MAP.md's own
-      # CHANGELOG.md description uses it in backticks), so matching it would flag a legitimate line.
+      # MADR status values are lowercase (proposed | accepted | rejected | deprecated, per
+      # docs/decisions/0000-template.md and DOC-MAP.md). `Deprecated` is deliberately absent from
+      # the alternation: it's also a Keep a Changelog category name (DOC-MAP.md's own CHANGELOG.md
+      # description uses it in backticks), so matching it would flag a legitimate line.
       - id: lowercase-adr-status
         name: "ADR statuses are lowercase (MADR spelling)"
         language: pygrep
         entry: 'Superseded by ADR-|`(Accepted|Proposed|Rejected)`'
-        files: ^docs/adr/
+        files: ^docs/decisions/
 
       # This project's ADRs use MADR front-matter (a `status:` field), not the older
       # Michael Nygard-style "## Status" section.
@@ -56,7 +56,7 @@ repos:
         name: "ADRs use MADR front-matter, not a Status section"
         language: pygrep
         entry: '^## Status$'
-        files: ^docs/adr/
+        files: ^docs/decisions/
 
       # `.sh` is a promise: POSIX sh, runnable under dash/ash, not just bash - see scripts/bazlang,
       # check-links.sh, coverage-summary.sh for the current examples, all `dash -n`-checked as part
@@ -135,7 +135,7 @@ repos:
   # commit - external hosts fail for reasons unrelated to the change under review, and a hook that
   # blocks a commit because someone else's server is down is a hook that gets bypassed.
   # `.github/workflows/link-check.yml` runs the same flags nightly, scoped to docs/research/ and
-  # docs/adr/; this manual stage covers the whole repo, for checking a link-heavy change before
+  # docs/decisions/; this manual stage covers the whole repo, for checking a link-heavy change before
   # it's committed.
   #
   # --method get, not the default HEAD: some hosts answer HEAD with an error and GET with 200.

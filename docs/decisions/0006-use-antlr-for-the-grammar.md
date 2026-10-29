@@ -2,6 +2,7 @@
 status: "accepted"
 date: 2026-01-05
 decision-makers: David Conneely
+approval: "Approved."
 ---
 
 # 6. Use ANTLR 4 for the grammar, instead of a hand-written parser
@@ -37,4 +38,4 @@ argument-binding tightness, and the statement/REPL-command split are all readabl
 - Bad, because a contributor needs to learn ANTLR's grammar syntax and generated-parser model, not
   just Java, to touch the parser.
 - Neutral: the generated `BazLangLexer`/`BazLangParser` classes are build output, never
-  hand-edited - see `DOC-MAP.md` "Machine-readable and generated parts".
+  hand-edited - see `DOC-MAP.md` Rules 3 and 4.

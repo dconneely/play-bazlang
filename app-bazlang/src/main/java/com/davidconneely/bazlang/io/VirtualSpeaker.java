@@ -4,7 +4,7 @@ package com.davidconneely.bazlang.io;
  * Audio output for {@code BEEP}/{@code PLAY}/{@code APLAY}. Deliberately its own interface rather
  * than another {@link VirtualScreen} default method: audio is not a screen concern at all (unlike
  * graphics vs. text, which are at least both visual), and {@code VirtualScreen} is already wide -
- * see ADR-0002 ({@code docs/adr/0002-virtualspeaker-separate-interface.md}).
+ * see ADR-0002 ({@code docs/decisions/0002-how-is-audio-output-structured-and-rendered.md}).
  *
  * <p>Every method defaults to a no-op, so screen implementations ({@link MockScreen}, {@link
  * StreamScreen}, {@link TerminalScreen}) get silent audio for free, exactly like {@link

@@ -1,6 +1,6 @@
 # Do any Sinclair-family BASICs (or COMAL) extend `DEF FN` past a single-line/inlined expression, and how?
 
-<!-- Confidence levels and what counts as research are in ../../DOC-MAP.md. -->
+<!-- Confidence levels and what counts as research are in 0000-template.md. -->
 
 **Confidence:** high - primary manual text was read directly for all seven core dialects surveyed,
 plus SpecBAS. See `0006-related-basic-dialects-overview.md` for the wider dialect genealogy this and
@@ -67,7 +67,7 @@ elaborate multi-line `PROC` systems:
   one.
 
 **Implication for BazLang:** the `DEF FN`-shaped `DEF PROC` design already discussed against
-`PLAN.md` (value-only params shadowing globals, no reference parameters) runs the comparison in
+`docs/plan.md` (value-only params shadowing globals, no reference parameters) runs the comparison in
 reverse from every extended dialect here. QL SuperBASIC, COMAL, and Boriel all built their
 multi-line function by _generalizing PROC to require a return value_; SpecBAS built a parallel but
 separate `CALL` construct to do the same job by implicit variable rather than statement. The design

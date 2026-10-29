@@ -1,6 +1,6 @@
 # Why does a mathematically pure square wave not reproduce the real ZX Spectrum beeper's sound, and what do real emulators do instead?
 
-<!-- Confidence levels and what counts as research are in ../../DOC-MAP.md. -->
+<!-- Confidence levels and what counts as research are in 0000-template.md. -->
 
 **Confidence:** medium overall. Two independent sources (one contemporary hobbyist/hardware
 reference, one peer-reviewed academic paper) converge on "the beeper's physical output stage
@@ -240,10 +240,10 @@ mechanism claim as settled.
 - What was Fuse's actual listening-test methodology behind `ula_filter`'s frozen constants - how
   many participants, what recordings, what comparison protocol? The `ChangeLog`'s credited thanks to
   named community testers confirms _some_ structured process existed, but no write-up of it was
-  found or read. BazLang's own `BEEP` filter ([ADR-0009](../adr/0009-beep-edge-rounding-filter.md))
-  used Fuse's frozen constants as its starting point rather than tuning from nothing; whether they
-  need retuning by ear against BazLang's own output pipeline is still open (see that ADR's
-  Consequences).
+  found or read. BazLang's own `BEEP` filter
+  ([ADR-0009](../decisions/0009-beep-edge-rounding-filter.md)) used Fuse's frozen constants as its
+  starting point rather than tuning from nothing; whether they need retuning by ear against
+  BazLang's own output pipeline is still open (see that ADR's Consequences).
 - Was Fuse's `ula_filter` genuinely new (i.e. MIC and speaker were previously one unmodelled path),
   or did the cited `ChangeLog` entry only refine an existing, less accurate filter? The entry's own
   wording ("separate MIC and speaker paths") suggests the former, but the commit diff itself was not

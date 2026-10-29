@@ -2,6 +2,7 @@
 status: "accepted"
 date: 2026-09-03
 decision-makers: David Conneely
+approval: "Approved."
 ---
 
 # 8. Adopt Prettier for Markdown alongside markdownlint-cli2
@@ -13,14 +14,14 @@ but has no auto-fix - `markdownlint-cli`'s successor, `markdownlint-cli2`, has n
 confirmed directly. Every rewrap has been manual: edit, lint, find the violation, count columns,
 rewrap by hand, re-lint.
 
-This is the same move `doc-kit` already made (its ADR-0017) and `identigon/identigon` and
-`identigon.github.io` both made before that, in the same split each time: `markdownlint-cli2` gates
-structure and line length, Prettier does the actual reformatting. Checked directly against
-`doc-kit`'s working `.prettierrc.json` and pre-commit wiring rather than assumed:
-`proseWrap: "always"` is load-bearing (Prettier's own default, `"preserve"`, never rewraps prose at
-all) and so is `embeddedLanguageFormatting: "off"` (Prettier's default, `"auto"`, reformats
-recognised-language content inside fenced code blocks too - a risk for this repository's `jsonc`
-example blocks in `docs/spec/mcp.md`).
+This is the same move `doc-kit` already made, and `identigon/identigon` and `identigon.github.io`
+both made before that, in the same split each time: `markdownlint-cli2` gates structure and line
+length, Prettier does the actual reformatting. Checked directly against `doc-kit`'s working
+`.prettierrc.json` and pre-commit wiring rather than assumed: `proseWrap: "always"` is load-bearing
+(Prettier's own default, `"preserve"`, never rewraps prose at all) and so is
+`embeddedLanguageFormatting: "off"` (Prettier's default, `"auto"`, reformats recognised-language
+content inside fenced code blocks too - a risk for this repository's `jsonc` example blocks in
+`docs/spec/mcp.md`).
 
 The obstacle specific to adopting Prettier at all: its markdown printer has no configuration option
 for single-emphasis style, confirmed empirically - a bare `*text*` becomes `_text_` on first run and
@@ -52,14 +53,13 @@ line - scoping `proseWrap: "always"`, `printWidth: 100` and `embeddedLanguageFor
 table alignment) and a linter (structural rules Prettier doesn't check at all - `MD024`, `MD032`,
 and the rest of the enabled default set) are different jobs.
 
-This record settles the trade-off. The one-time bulk reformat this decision requires touches every
-`*.md` file that isn't already compliant, including several `docs/adr/*.md` records already
-`accepted` - a direct exception to this repository's own rule (`AGENTS.md`: "never edit one that
-says accepted"), made once, on the repository owner's explicit instruction, and recorded here rather
-than treated as a standing carve-out for future formatting changes. Unlike `doc-kit` (ADR-0016),
-this repository has adopted no general policy permitting formatting-only touches to accepted
-records; a future formatting change to an accepted ADR needs the same explicit instruction again,
-not a citation of this one.
+This record settles the trade-off. The one-time bulk reformat this decision required touched every
+`*.md` file that was not already compliant, including several `docs/decisions/*.md` records already
+`accepted` - a direct exception to this repository's rule at the time (`AGENTS.md`: "never edit one
+that says accepted"), made once, on the repository owner's explicit instruction. The 0.6.0
+decision-record rules now treat formatting applied by a tool as not a change, and an accepted record
+may be amended with the owner's explicit approval (ADR-0011); this record therefore records the
+history of the bulk reformat, not a standing exception.
 
 ### Consequences
 
@@ -71,8 +71,8 @@ not a citation of this one.
 - Bad, because every existing `*word*` and `*` list marker in this repository's prose becomes
   `_word_` and `-` in one bulk reformat commit - a large diff with no semantic content, reviewed as
   such rather than read line by line.
-- Bad, because that same bulk reformat necessarily rewrites several already-`accepted` ADRs'
-  formatting - see the note above; this was a one-time exception, not a policy this record
-  establishes.
+- Bad, because that same bulk reformat necessarily rewrote several already-`accepted` ADRs'
+  formatting - see the note above; under the 0.6.0 rules it is a formatting change, not a
+  substantive amendment.
 - Neutral: table cell alignment padding (`| a | b |` -> `| a   | b   |`) is a side effect of the
   same bulk reformat, not a decision point of its own.

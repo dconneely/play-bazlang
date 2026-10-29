@@ -13,5 +13,8 @@ scripts/bazlang text eol=lf
 # Binary files: never normalise line endings or diff as text.
 *.jar binary
 
+# Third-party JLine source kept locally is vendored, not project documentation.
+localonly-JLINE-SOURCE/** linguist-vendored
+
 # Markdown: put the enclosing heading in diff hunk headers.
 *.md diff=markdown

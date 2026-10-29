@@ -2,7 +2,17 @@
 
 <!--
 Copy to a descriptive filename. Keep this file as 0000; it is the template.
-Confidence levels and what counts as research are in ../../DOC-MAP.md.
+
+Confidence is one of:
+- high - verified directly against the thing itself: the source, the running system, a normative
+  specification.
+- medium - sources agree, but not verified directly.
+- low - inferred, or resting on a single unverified source.
+Revise it in place as evidence changes.
+
+An unsourced note is not research: it is specification if it states behaviour, an ADR if it states
+a choice.
+
 Delete this comment in the copy.
 -->
 

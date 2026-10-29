@@ -2,20 +2,19 @@
 
 This document explains how the BazLang interpreter is built - its grammar, Java structure, execution
 model, and performance-load-bearing patterns. It is one of the three members
-[`SPECIFICATION.md`](../../SPECIFICATION.md) indexes, and the only one of the three actually about
-the Java code - `SPECIFICATION.md` itself holds none of this directly. It is written for
-**interpreter implementers** (including LLM agents modifying the code). Language-level behaviour is
-documented in [language.md](language.md) and the deliberately-preserved eccentric behaviours in
+[`docs/spec.md`](../spec.md) indexes, and the only one of the three actually about the Java code -
+`docs/spec.md` itself holds none of this directly. It is written for **interpreter implementers**
+(including LLM agents modifying the code). Language-level behaviour is documented in
+[language.md](language.md) and the deliberately-preserved eccentric behaviours in
 [quirks.md](../quirks.md) - nothing listed there may be changed by a refactoring.
 
 ## Grammar
 
 BazLang uses ANTLR 4 to generate its lexer and parser from a declarative grammar file
 (`app-bazlang/src/main/antlr/BazLang.g4`) - why ANTLR over a hand-written parser is
-[ADR-0006](../adr/0006-use-antlr-for-the-grammar.md). This section covers the grammar's key
+[ADR-0006](../decisions/0006-use-antlr-for-the-grammar.md). This section covers the grammar's key
 patterns; the grammar file itself is the machine-readable source of truth for syntax - see
-`DOC-MAP.md` "Machine-readable and generated parts" - so nothing here may restate a production, only
-explain it.
+`DOC-MAP.md` Rules 3 and 4 - so nothing here may restate a production, only explain it.
 
 ### Key grammar patterns
 
@@ -210,7 +209,7 @@ Under `com.davidconneely.bazlang`:
 ### Debugger execution model
 
 Why this is synchronous rather than a command-thread design is recorded in
-[ADR-0001](../adr/0001-synchronous-debugger.md); this section covers the mechanics.
+[ADR-0001](../decisions/0001-synchronous-debugger.md); this section covers the mechanics.
 
 **Synchronous blocking execution, no reentrant command loop.** `DebugEngine.run`/`gotoLine`/`go`/
 `stepInto`/`stepOver` each drive `Interpreter.resume()` on the caller's own thread until the
@@ -318,13 +317,14 @@ Input and output are handled by a set of classes that share a common `VirtualScr
 (which extends the base `ReplReader` and `AutoCloseable` interfaces), a `VirtualInput` interface,
 and a `VirtualSpeaker` interface (for `BEEP`/`PLAY`/`APLAY`), isolating the interpreter from the
 specific device. `VirtualSpeaker` is deliberately its own interface rather than another
-`VirtualScreen` method - see [ADR-0002](../adr/0002-virtualspeaker-separate-interface.md) for why.
-Every `VirtualSpeaker` method defaults to a no-op, so every screen implementation gets silent
+`VirtualScreen` method - see
+[ADR-0002](../decisions/0002-how-is-audio-output-structured-and-rendered.md) for why. Every
+`VirtualSpeaker` method defaults to a no-op, so every screen implementation gets silent
 `BEEP`/`PLAY`/`APLAY` for free, the same way `setFastMode` already works; real playback lives
 entirely in `JavaSoundSpeaker`, a separate class with no screen role at all - `MainClass` constructs
 it alongside (not instead of) whichever `VirtualScreen` it builds, and passes both independently to
 `StatementExecutor`. Frames are pushed to the speaker rather than pulled from it - see
-[ADR-0003](../adr/0003-push-based-audio-frames.md).
+[ADR-0002](../decisions/0002-how-is-audio-output-structured-and-rendered.md).
 
 `PLAY`/`APLAY`'s DSL parsing and multi-channel scheduling live entirely in their own
 `com.davidconneely.bazlang.play` package (`PlayParser`, `PlayToken`, `PlayChannelState`,
@@ -365,14 +365,15 @@ blocking/non-blocking contract itself.
   `playFrame()` synthesises exactly the requested duration of up to 3 mixed voices and writes it
   straight to a second, entirely independent persistent `SourceDataLine` (opened lazily, reused for
   the session) on whichever thread called it - no render thread of its own, per the no-idle-silence
-  rule above (see [ADR-0007](../adr/0007-synchronous-per-call-play-rendering.md)); `stopPlay()`
-  flushes audio already queued but not yet heard, so a note cut short by BREAK or a replacement
-  stops promptly, while `drainPlay()` instead lets a naturally-finished note's queued tail play out
-  before parking the line, called only when a sound reaches its natural end rather than being cut
-  short. Keeping `PLAY`/`APLAY` on their own line means a `BEEP` sound effect can layer over music
-  without either interfering with the other, matching real hardware's independent beeper/AY
-  circuits. `LineUnavailableException` (no audio device - e.g. a headless/SSH session) is caught and
-  silently swallowed for both, matching the no-op fallback the interface already provides elsewhere.
+  rule above (see [ADR-0002](../decisions/0002-how-is-audio-output-structured-and-rendered.md));
+  `stopPlay()` flushes audio already queued but not yet heard, so a note cut short by BREAK or a
+  replacement stops promptly, while `drainPlay()` instead lets a naturally-finished note's queued
+  tail play out before parking the line, called only when a sound reaches its natural end rather
+  than being cut short. Keeping `PLAY`/`APLAY` on their own line means a `BEEP` sound effect can
+  layer over music without either interfering with the other, matching real hardware's independent
+  beeper/AY circuits. `LineUnavailableException` (no audio device - e.g. a headless/SSH session) is
+  caught and silently swallowed for both, matching the no-op fallback the interface already provides
+  elsewhere.
 - **`StreamScreen`**: A simpler version used for pipes or non-interactive environments. It uses
   standard Java `System.in` and `System.out`. Graphics (`PLOT` and related draw calls) are no-ops.
   `MainClass` also falls back to this screen silently if `TerminalScreen` cannot be initialised

@@ -35,8 +35,7 @@ mode - load a programme with the `bazlang_program` tool once connected.
 
 This server targets the **2026-07-28 MCP specification** - the stateless protocol revision - and
 also answers the legacy `initialize` handshake so that clients which have not adopted 2026-07-28 yet
-can connect. See [ADR-0004](../adr/0004-mcp-modern-only-protocol.md) and
-[ADR-0010](../adr/0010-answer-the-legacy-mcp-initialize-handshake.md).
+can connect. See [ADR-0004](../decisions/0004-which-mcp-protocol-revisions-and-front-ends.md).
 
 - **Modern clients: no handshake, no protocol session.** Every request carries its own protocol
   version in `_meta`; there is nothing to negotiate up front. State (the loaded programme,
