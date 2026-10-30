@@ -2,7 +2,6 @@
 status: "accepted"
 date: 2026-01-05
 decision-makers: David Conneely
-approval: "Approved."
 ---
 
 # 6. Use ANTLR 4 for the grammar, instead of a hand-written parser

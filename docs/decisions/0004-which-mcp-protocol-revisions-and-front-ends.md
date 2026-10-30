@@ -2,7 +2,6 @@
 status: "accepted"
 date: 2026-10-29
 decision-makers: David Conneely
-approval: "Approved."
 ---
 
 # 4. Which MCP protocol revisions and debugging front-ends does the server support?

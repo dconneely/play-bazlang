@@ -2,7 +2,6 @@
 status: "deprecated"
 date: 2026-10-29
 decision-makers: David Conneely
-approval: "Approved."
 ---
 
 # 3. Push resolved audio frames to `VirtualSpeaker`, rather than a pull/`isPlaying()` model

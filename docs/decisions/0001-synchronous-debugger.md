@@ -2,7 +2,6 @@
 status: "accepted"
 date: 2026-08-17
 decision-makers: David Conneely
-approval: "Approved."
 ---
 
 # 1. Run the debugger synchronously on the caller's thread, with no reentrant command loop

@@ -2,7 +2,6 @@
 status: "accepted"
 date: 2026-10-29
 decision-makers: David Conneely
-approval: "Accepted"
 ---
 
 # 11. How the documentation is organised

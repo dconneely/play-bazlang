@@ -2,7 +2,6 @@
 status: "accepted"
 date: 2026-10-29
 decision-makers: David Conneely
-approval: "Approved."
 ---
 
 # 2. How is audio output structured and rendered?

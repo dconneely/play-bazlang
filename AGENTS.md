@@ -63,7 +63,7 @@ Before you edit:
   first. The owner may also approve a combine of records; absorbed records become `deprecated` and
   link to the surviving record. Never change a status or edit an accepted record without that
   permission.
-- On accepting, set `decision-makers`, `approval` (the owner's words, verbatim) and `date` (today).
+- On accepting, set `decision-makers` and `date` (today).
 - Cite records as `ADR-NNNN`, and another repository's record by a link. Fix every citation a change
   makes untrue in the same commit.
 - Delete completed `docs/plan.md` entries rather than marking them done.

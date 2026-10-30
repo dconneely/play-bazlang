@@ -2,7 +2,6 @@
 status: "deprecated"
 date: 2026-10-29
 decision-makers: David Conneely
-approval: "Approved."
 ---
 
 # 10. Answer the legacy MCP `initialize` handshake for the tools-only subset, honestly versioned

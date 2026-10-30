@@ -2,7 +2,6 @@
 status: "deprecated"
 date: 2026-10-29
 decision-makers: David Conneely
-approval: "Approved."
 ---
 
 # 7. Render `PLAY`/`APLAY` audio synchronously per call; no persistent render thread
