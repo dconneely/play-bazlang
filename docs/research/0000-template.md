@@ -1,7 +1,7 @@
 # Question being investigated
 
 <!--
-Copy to a descriptive filename. Keep this file as 0000; it is the template.
+Copy to the next free number, NNNN-kebab-case-title.md. Keep this file as 0000; it is the template.
 
 Confidence is one of:
 - high - verified directly against the thing itself: the source, the running system, a normative
@@ -21,8 +21,8 @@ Delete this comment in the copy.
 ## Finding
 
 What is true, stated plainly. Lead with the answer. Write it as the current answer, not a narrative
-of how it was reached - no pass counts, no "originally claimed X, now corrected"; if new evidence
-changes a finding, rewrite the finding and its confidence in place.
+of how it was reached - no pass counts, no "originally claimed X, now corrected". If new evidence
+changes it, rewrite the finding and its confidence in place.
 
 ## Evidence
 

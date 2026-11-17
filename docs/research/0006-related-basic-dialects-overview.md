@@ -133,8 +133,8 @@ changing the underlying tokenizer/interpreter model:
   `IF...THEN...ELSE` is nestable but **single-line only, no block form** and no `ENDIF`/`END IF` at
   all ("the whole structure... must be on a single program line," in the manual's own words); a
   genuine `WHILE...WEND` (the actual source, in this whole combined survey, of the "`WEND`" spelling
-  `docs/plan.md`'s item is named after - see `0004`); no `REPEAT` anywhere in the full text; no
-  `DEF PROC`/`SUB`-style procedure mechanism either - only plain `GOSUB`/`RETURN`; and classic
+  `docs/plan/README.md`'s item is named after - see `0004`); no `REPEAT` anywhere in the full text;
+  no `DEF PROC`/`SUB`-style procedure mechanism either - only plain `GOSUB`/`RETURN`; and classic
   single-line `DEF FN function-name(params) = expr`, unextended. So the one dialect in this entire
   combined survey that spells the loop terminator `WEND` is also the one dialect that isn't
   Sinclair-heritage at all, and is the weakest of any surveyed on structured procedures.

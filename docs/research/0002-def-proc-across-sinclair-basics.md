@@ -48,11 +48,12 @@ manual!)"** in the guide itself - direct evidence that SAM BASIC's procedure des
 modelled on Beta BASIC's, not arrived at independently.
 
 **Implication for BazLang:** a `DEF PROC` with an optional `LOCAL` statement but no reference
-parameters at all (see the design discussed against `docs/plan.md`'s `DEF PROC & local scoping`
-entry) sits deliberately outside every precedent surveyed here, rather than reproducing one of
-them - value-only parameters with no reference mechanism at all isn't a documented choice in any of
-the seven dialects surveyed, not even partially. It stays closest in spirit to `DEF FN`'s own
-existing by-value shadowing, just extended from a single expression to a statement body.
+parameters at all (see the design discussed against `docs/plan/README.md`'s
+`DEF PROC & local scoping` entry) sits deliberately outside every precedent surveyed here, rather
+than reproducing one of them - value-only parameters with no reference mechanism at all isn't a
+documented choice in any of the seven dialects surveyed, not even partially. It stays closest in
+spirit to `DEF FN`'s own existing by-value shadowing, just extended from a single expression to a
+statement body.
 
 ## Design axes and where each dialect lands
 

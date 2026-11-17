@@ -67,16 +67,16 @@ elaborate multi-line `PROC` systems:
   one.
 
 **Implication for BazLang:** the `DEF FN`-shaped `DEF PROC` design already discussed against
-`docs/plan.md` (value-only params shadowing globals, no reference parameters) runs the comparison in
-reverse from every extended dialect here. QL SuperBASIC, COMAL, and Boriel all built their
-multi-line function by _generalizing PROC to require a return value_; SpecBAS built a parallel but
-separate `CALL` construct to do the same job by implicit variable rather than statement. The design
-under discussion for BazLang instead proposes _generalizing FN's existing value-only shadowing to a
-statement body, without adding a return value_ (since a `DEF PROC` isn't a function). SAM Coupé's
-and NextBASIC's explicit choice to leave `DEFFN`/`DEF FN` single-expression and compose or use
-`PROC`'s own multi-return mechanism instead is the clearest existing precedent for keeping `FN` and
-`PROC` as genuinely separate mechanisms rather than unifying them - which is the same choice
-BazLang's design already makes.
+`docs/plan/README.md` (value-only params shadowing globals, no reference parameters) runs the
+comparison in reverse from every extended dialect here. QL SuperBASIC, COMAL, and Boriel all built
+their multi-line function by _generalizing PROC to require a return value_; SpecBAS built a parallel
+but separate `CALL` construct to do the same job by implicit variable rather than statement. The
+design under discussion for BazLang instead proposes _generalizing FN's existing value-only
+shadowing to a statement body, without adding a return value_ (since a `DEF PROC` isn't a function).
+SAM Coupé's and NextBASIC's explicit choice to leave `DEFFN`/`DEF FN` single-expression and compose
+or use `PROC`'s own multi-return mechanism instead is the clearest existing precedent for keeping
+`FN` and `PROC` as genuinely separate mechanisms rather than unifying them - which is the same
+choice BazLang's design already makes.
 
 ## Evidence
 

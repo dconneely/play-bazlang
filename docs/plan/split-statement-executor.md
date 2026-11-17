@@ -14,7 +14,7 @@ lines and does several unrelated jobs besides dispatching statements:
   newline-suppression rule in `executePrintStmt`.
 - **String assignment** - `assignStrTarget` and its scalar/array helpers, which duplicate the
   read-side logic in `ExpressionEvaluator.evalStrSubscriptCore` (already tracked as "Unify
-  read/write subscript-and-slice resolution" in `docs/plan.md`).
+  read/write subscript-and-slice resolution" in `docs/plan/README.md`).
 - **Two identical chunked BREAK-polling wait loops** in `executePauseStmt` and `executeBeepStmt`.
 
 The class also sits at PMD's `ExcessiveImports` threshold, and `listLine` uses fully-qualified class

@@ -9,7 +9,7 @@ Pascalated ZX BASIC, sourced from one real worked example program rather than a 
 ## Finding
 
 **`WEND` does not appear in any Sinclair-heritage dialect surveyed - but it does have a real source
-on Sinclair-branded hardware.** `docs/plan.md`'s own `WHILE...WEND` item is named after the
+on Sinclair-branded hardware.** `docs/plan/README.md`'s own `WHILE...WEND` item is named after the
 Microsoft/GW-BASIC-family spelling, and this survey's one confirmed `WHILE...WEND` is **Mallard
 BASIC** - the CP/M BASIC (from Locomotive Software, unrelated to Sinclair BASIC's own codebase)
 bundled with the ZX Spectrum +3's CP/M Plus mode as a separate boot path from ordinary Spectrum
@@ -59,9 +59,9 @@ Four genuinely different loop-family shapes turned up, of varying richness:
 
 The classic BBC-derived pair - a genuinely separate `REPEAT...UNTIL` (bottom-tested) alongside a
 genuinely separate `WHILE...ENDWHILE`/`WEND` (top-tested), as two independent constructs - is the
-shape BBC BASIC and COMAL use, and the shape `docs/plan.md`'s item is actually describing (once
-`WEND` is read as "the top-tested one", regardless of exact spelling). It's one option among the
-four found here, not the only one, and not the one most of the Sinclair-heritage dialects (as
+shape BBC BASIC and COMAL use, and the shape `docs/plan/README.md`'s item is actually describing
+(once `WEND` is read as "the top-tested one", regardless of exact spelling). It's one option among
+the four found here, not the only one, and not the one most of the Sinclair-heritage dialects (as
 opposed to BBC/COMAL) actually picked. **COMAL, uniquely among every dialect surveyed, layers a
 third construct on top of that pair**: `LOOP ... EXIT/EXITIF condition ... ENDLOOP`, for a condition
 in the _middle_ of the body - added to the language after its 1984 standard, but real (see
@@ -81,9 +81,9 @@ but its actual compiled output shows `REPEAT`/`UNTIL` are literally `#define`d a
 through unchanged - so it's not a fifth shape, or even really the classic pair; it's shape 1's `DO`
 half wearing a Pascal-flavoured name (see `0006`).
 
-**Implication for BazLang:** the `FOR`/`NEXT` skip-scan `docs/plan.md` already identifies as "the
-proven pattern for locating matching terminators" is a bottom-line-compatible primitive with all
-four shapes above, not just the BBC-style pair - so this survey doesn't push the implementation
+**Implication for BazLang:** the `FOR`/`NEXT` skip-scan `docs/plan/README.md` already identifies as
+"the proven pattern for locating matching terminators" is a bottom-line-compatible primitive with
+all four shapes above, not just the BBC-style pair - so this survey doesn't push the implementation
 choice either way. It does suggest the naming and shape question is more open than "add
 `WHILE`/`WEND` and `REPEAT`/`UNTIL`" implies: SAM Coupé's/Beta BASIC's single `DO`/`LOOP` with a
 condition clause on either end covers both cases with one pair of keywords instead of two, which may
@@ -283,11 +283,11 @@ Two independent primary sources cover different points in COMAL's version histor
 
   with `WEND` explicitly documented as an accepted alternative to `END WHILE` - making Boriel the
   only dialect surveyed that supports _both_ the BBC-style spelling and the GW-BASIC-family `WEND`
-  spelling `docs/plan.md`'s item is named after. The docs state plainly this statement "does not
-  exist in Sinclair Basic" - an explicit acknowledgement, in Boriel's own documentation, that
-  `WHILE` is a deliberate non-authentic extension, the same judgement `docs/plan.md`'s downgrade
-  rationale already reaches independently for BazLang. Separately, `DO`/`LOOP` supports the
-  condition on either end, either polarity, matching SAM Coupé's/Beta BASIC's shape exactly:
+  spelling `docs/plan/README.md`'s item is named after. The docs state plainly this statement "does
+  not exist in Sinclair Basic" - an explicit acknowledgement, in Boriel's own documentation, that
+  `WHILE` is a deliberate non-authentic extension, the same judgement `docs/plan/README.md`'s
+  downgrade rationale already reaches independently for BazLang. Separately, `DO`/`LOOP` supports
+  the condition on either end, either polarity, matching SAM Coupé's/Beta BASIC's shape exactly:
 
   ```basic
   DO UNTIL <condition>          DO WHILE <condition>

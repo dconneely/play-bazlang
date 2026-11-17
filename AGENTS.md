@@ -45,10 +45,10 @@ writing anything down.
 
 When documents disagree, tense settles it:
 
-- `docs/spec.md` - present tense, authoritative about what BazLang does now.
+- `docs/spec/README.md` - present tense, authoritative about what BazLang does now.
 - `CHANGELOG.md` - past tense. What changed, never what is true today.
-- `docs/plan.md` - intent. Nothing described in it exists yet.
-- `docs/decisions.md` - why: index of decision records; only `accepted` records bind.
+- `docs/plan/README.md` - intent. Nothing described in it exists yet.
+- `docs/decisions/` - why: decision records; only `accepted` ones bind.
 - `docs/quirks.md` - deliberate deviations. **Do not "fix" anything listed here.**
 - `docs/research/` - sourced findings with confidence levels.
 - `docs/testing.md` - test strategy, and what is deliberately not covered.
@@ -66,7 +66,9 @@ Before you edit:
 - On accepting, set `decision-makers` and `date` (today).
 - Cite records as `ADR-NNNN`, and another repository's record by a link. Fix every citation a change
   makes untrue in the same commit.
-- Delete completed `docs/plan.md` entries rather than marking them done.
+- After creating or changing a record, run `sh tools/doc-kit-index-decisions.sh` to regenerate
+  `docs/decisions/README.md`.
+- Delete completed `docs/plan/README.md` entries rather than marking them done.
 - Write the least that is true: no history or account of how you got there, in documents or code
   comments.
 - A code comment states why the code is as it is now. History goes in the commit message; a reason

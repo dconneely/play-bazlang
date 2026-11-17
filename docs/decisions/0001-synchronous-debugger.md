@@ -1,6 +1,6 @@
 ---
 status: "accepted"
-date: 2026-08-17
+date: 2026-11-17
 decision-makers: David Conneely
 ---
 
@@ -43,7 +43,7 @@ that same resume guard.
   programme stuck mid-statement in an infinite loop. Every run-control call arms a per-call
   wall-clock safety timeout (default 30s, overridable via `timeoutMs`) as a mitigation, not a
   substitute: see [`docs/spec/mcp.md`](../spec/mcp.md) "Known limitations" and the open
-  `docs/plan.md` item on true `tools/call` cancellation.
+  `docs/plan/README.md` item on true `tools/call` cancellation.
 - Neutral: `notifications/cancelled` is accepted by the MCP server but has no effect under this
   design - a full fix would move `Interpreter.resume()` onto a worker thread so a cancellation
   notification arriving on stdin could interrupt it mid-run, reintroducing the concurrency this

@@ -47,15 +47,15 @@ AGENTS.md                behavioural rules for coding agents - routes here
 CLAUDE.md                one line pointing at AGENTS.md
 CHANGELOG.md             what shipped, across the whole repository
 docs/
-  spec.md                the behaviour contract - an index over spec/
+  spec/README.md         the behaviour contract - an index over spec/
   spec/
     language.md          the language reference (BazLang programmers)
     architecture.md      grammar, Java structure, execution model (interpreter implementers)
     mcp.md               MCP debugger protocol and tool reference (MCP client developers)
-  plan.md                single ranked backlog, items tagged bug/debt/feature/docs
+  plan/README.md         single ranked backlog, items tagged bug/debt/feature/docs
   plan/*.md              optional: per-entry working notes
   plan/0000-template.md  optional: task-note template
-  decisions.md           optional: index of decision records, generated
+  decisions/README.md    optional: index of decision records, generated
   decisions/*.md         decisions, numbered, accepted only by the owner
   quirks.md              deliberate ZX BASIC eccentricities and accepted-wrong behaviour
   research/*.md          sourced findings with confidence levels
@@ -71,14 +71,14 @@ stays repository-wide under `docs/`, rather than moving under a module, because 
 thing, not several independent ones. The module READMEs are aliases of the root `README.md`; the two
 library READMEs are also each library's whole documentation.
 
-The specification is a set, not a file, and it is partly machine-readable. `docs/spec.md` is an
-index over `docs/spec/`; its three members are `language.md`, `architecture.md` and `mcp.md`. One of
-the tree's members, the ANTLR grammar `app-bazlang/src/main/antlr/BazLang.g4`, is itself the
+The specification is a set, not a file, and it is partly machine-readable. `docs/spec/README.md` is
+an index over `docs/spec/`; its three members are `language.md`, `architecture.md` and `mcp.md`. One
+of the tree's members, the ANTLR grammar `app-bazlang/src/main/antlr/BazLang.g4`, is itself the
 executable source of truth for syntax, not a description of one. Any `docs/name.md` that outgrows
-one file gains a sibling directory `docs/name/` for its parts and stays as their index; the
-specification is that case here.
+one file moves to `docs/name/README.md` as the index for its parts; the specification is that case
+here.
 
-## Artifacts
+## Artefacts
 
 | Artifact                     | Purpose                                                                                                                                                                                                  | Tense   | Mutability         | Audience                     |
 | ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- | ------------------ | ---------------------------- |
@@ -87,18 +87,18 @@ specification is that case here.
 | `app-bazlang/README.md`      | **Alias** of `README.md`, scoped to the interpreter module                                                                                                                                               | present | rewritten in place | owner, contributor, consumer |
 | `lib-cell/README.md`         | **Alias** of `README.md`, scoped to the library; also its whole documentation                                                                                                                            | present | rewritten in place | owner, contributor, consumer |
 | `lib-repl/README.md`         | **Alias** of `README.md`, scoped to the library; also its whole documentation                                                                                                                            | present | rewritten in place | owner, contributor, consumer |
-| `docs/spec.md`               | The BazLang behaviour contract; an index over `docs/spec/`, naming the grammar as its machine-readable member. Uses [RFC 2119](https://www.rfc-editor.org/rfc/rfc2119) keywords for requirement strength | present | rewritten in place | consumer, contributor        |
+| `docs/spec/README.md`        | The BazLang behaviour contract; an index over `docs/spec/`, naming the grammar as its machine-readable member. Uses [RFC 2119](https://www.rfc-editor.org/rfc/rfc2119) keywords for requirement strength | present | rewritten in place | consumer, contributor        |
 | `docs/spec/language.md`      | The language reference: lines, variables, operators, commands, functions, slicing and errors                                                                                                             | present | rewritten in place | consumer                     |
 | `docs/spec/architecture.md`  | Grammar, Java package and class structure, execution model, and performance-load-bearing patterns; the grammar itself is the machine-readable member                                                     | present | rewritten in place | contributor                  |
 | `docs/spec/mcp.md`           | The MCP debugger's JSON-RPC protocol and tool reference                                                                                                                                                  | present | rewritten in place | consumer                     |
-| `docs/decisions.md`          | Index of decision records, generated by `tools/doc-kit-index-decisions.sh`                                                                                                                               | present | rewritten in place | owner, contributor           |
+| `docs/decisions/README.md`   | Index of decision records, generated by `tools/doc-kit-index-decisions.sh`                                                                                                                               | present | rewritten in place | owner, contributor           |
 | `docs/decisions/*.md`        | Why a choice was made; follows the [MADR](https://adr.github.io/madr/) minimal template; rules in `0000-template.md`                                                                                     | past    | amendable          | owner, contributor           |
 | `CHANGELOG.md`               | What shipped that users can see; follows [Keep a Changelog](https://keepachangelog.com) and [SemVer](https://semver.org)                                                                                 | past    | append-only        | consumer                     |
-| `docs/plan.md`               | Single ranked backlog, items tagged bug/debt/feature/docs                                                                                                                                                | future  | volatile           | owner, contributor           |
+| `docs/plan/README.md`        | Single ranked backlog, items tagged bug/debt/feature/docs                                                                                                                                                | future  | volatile           | owner, contributor           |
 | `docs/plan/*.md`             | Working notes for one backlog item. Optional                                                                                                                                                             | future  | disposable         | contributor                  |
 | `docs/plan/0000-template.md` | **Template.** Task-note template. Optional                                                                                                                                                               | present | rewritten in place | contributor                  |
 | `docs/quirks.md`             | Deliberate deviations and accepted-wrong behaviour; the one artifact that says _do not change this_                                                                                                      | present | rewritten in place | consumer, contributor        |
-| `docs/research/*.md`         | Sourced findings with explicit confidence levels; shape and levels in `0000-template.md`                                                                                                                 | past    | append-only        | contributor                  |
+| `docs/research/*.md`         | Sourced findings with explicit confidence levels; shape and levels in `0000-template.md`                                                                                                                 | past    | rewritten in place | contributor                  |
 | `docs/testing.md`            | Test strategy, and what is deliberately _not_ covered                                                                                                                                                    | present | rewritten in place | contributor                  |
 | `AGENTS.md`                  | Routes a coding agent to this map, and names the hazards specific to working here. Routes rather than restates                                                                                           | present | rewritten in place | contributor (agents)         |
 | `CLAUDE.md`                  | **Alias** for `AGENTS.md`, existing only because some tools look for that filename                                                                                                                       | present | rewritten in place | contributor (agents)         |
@@ -122,14 +122,14 @@ The closed sets used in the artifacts table (ADR-0002):
 | `app-bazlang/README.md`      | the module is created                       | never                                                            |
 | `lib-cell/README.md`         | the module is created                       | never                                                            |
 | `lib-repl/README.md`         | the module is created                       | never                                                            |
-| `docs/spec.md`               | behaviour is decided                        | never - edited forever                                           |
+| `docs/spec/README.md`        | behaviour is decided                        | never - edited forever                                           |
 | `docs/spec/language.md`      | behaviour is decided                        | never - edited forever                                           |
 | `docs/spec/architecture.md`  | behaviour is decided                        | never - edited forever                                           |
 | `docs/spec/mcp.md`           | behaviour is decided                        | never - edited forever                                           |
-| `docs/decisions.md`          | first decision is recorded                  | never                                                            |
+| `docs/decisions/README.md`   | first decision is recorded                  | never                                                            |
 | `docs/decisions/*.md`        | a choice a newcomer would question          | deprecated or deleted, with the owner's permission               |
 | `CHANGELOG.md` entry         | at release, if user-visible                 | never                                                            |
-| `docs/plan.md` entry         | idea occurs - one paragraph, no design      | **deleted** when done, not struck through                        |
+| `docs/plan/README.md` entry  | idea occurs - one paragraph, no design      | **deleted** when done, not struck through                        |
 | `docs/plan/*.md`             | work begins on an item                      | work completes                                                   |
 | `docs/plan/0000-template.md` | the directory is adopted                    | when the directory is removed                                    |
 | `docs/quirks.md` entry       | a deviation is chosen, or a bug accepted    | when the deviation ends                                          |
@@ -142,10 +142,10 @@ The closed sets used in the artifacts table (ADR-0002):
 
 A change moves through the documents in this order:
 
-`docs/plan.md` entry -> (optional `docs/plan/` note) -> **ADR** if a real choice was made ->
-regenerate **`docs/decisions.md`** if kept -> **`docs/spec.md`** updated in present tense (or the
-`docs/spec/` member it indexes) -> **`CHANGELOG.md`** line if user-visible -> `docs/plan.md` entry
-**deleted**.
+`docs/plan/README.md` entry -> (optional `docs/plan/` note) -> **ADR** if a real choice was made ->
+regenerate **`docs/decisions/README.md`** if kept -> **`docs/spec/README.md`** updated in present
+tense (or the `docs/spec/` member it indexes) -> **`CHANGELOG.md`** line if user-visible ->
+`docs/plan/README.md` entry **deleted**.
 
 Most changes skip the ADR and the task note. Nothing skips the deletion.
 

@@ -2,9 +2,9 @@
 
 This document explains how the BazLang interpreter is built - its grammar, Java structure, execution
 model, and performance-load-bearing patterns. It is one of the three members
-[`docs/spec.md`](../spec.md) indexes, and the only one of the three actually about the Java code -
-`docs/spec.md` itself holds none of this directly. It is written for **interpreter implementers**
-(including LLM agents modifying the code). Language-level behaviour is documented in
+[`docs/spec/README.md`](README.md) indexes, and the only one of the three actually about the Java
+code - `docs/spec/README.md` itself holds none of this directly. It is written for **interpreter
+implementers** (including LLM agents modifying the code). Language-level behaviour is documented in
 [language.md](language.md) and the deliberately-preserved eccentric behaviours in
 [quirks.md](../quirks.md) - nothing listed there may be changed by a refactoring.
 

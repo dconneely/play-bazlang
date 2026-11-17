@@ -1,6 +1,6 @@
 ---
 status: "accepted"
-date: 2026-10-29
+date: 2026-11-17
 decision-makers: David Conneely
 ---
 
@@ -22,19 +22,19 @@ carried dated prose in the past. The owner authorised a re-adoption and an ADR r
 the accepted records were amended and combined under that authorisation, with the owner's approval
 recorded in each record.
 
-The structure comes from doc-kit at commit `5312a15`. Its decision records are at
-`https://github.com/dconneely/doc-kit/tree/5312a15/docs/decisions`.
+The structure comes from doc-kit `v0.10.0`. Its decision records are at
+`https://github.com/dconneely/doc-kit/tree/v0.10.0/docs/decisions`.
 
 ## Considered Options
 
-- Adopt doc-kit 0.6.0's structure, keeping this repository's content and customisations.
+- Adopt doc-kit 0.10.0's structure, keeping this repository's content and customisations.
 - Keep the pre-0.5.0 shape.
 - Keep everything in one `README.md` or `AGENTS.md`.
 
 ## Decision Outcome
 
-Chosen option: "Adopt doc-kit 0.6.0's structure", because the old paths and map had drifted from the
-current kit, and the repository has enough documentation that one map is worth keeping accurate.
+Chosen option: "Adopt doc-kit 0.10.0's structure", because the old paths and map had drifted from
+the current kit, and the repository has enough documentation that one map is worth keeping accurate.
 
 Deviations from the kit:
 
