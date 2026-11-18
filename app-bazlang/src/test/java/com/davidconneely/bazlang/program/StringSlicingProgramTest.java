@@ -29,10 +29,11 @@ class StringSlicingProgramTest extends BaseProgramTest {
         () ->
             runProgram(
                 """
-        10 DIM A$(5)
-        20 LET A$="12345"
-        30 LET A$(3 TO 10)="ABCDEFGH"
-        40 PRINT A$"""));
+                10 DIM A$(5)
+                20 LET A$="12345"
+                30 LET A$(3 TO 10)="ABCDEFGH"
+                40 PRINT A$\
+                """));
   }
 
   @Test
@@ -99,7 +100,8 @@ class StringSlicingProgramTest extends BaseProgramTest {
     runProgram(
         """
         10 LET A$="X"
-        20 PRINT A$(1 TO 1)""",
+        20 PRINT A$(1 TO 1)\
+        """,
         "X\n");
   }
 
@@ -136,22 +138,20 @@ class StringSlicingProgramTest extends BaseProgramTest {
   @Test
   void testSlicingConstraints() {
     // Correct: slice on last index of character array
-    assertDoesNotThrow(
-        () ->
-            runProgram(
-                """
-        10 DIM A$(5, 10)
-        20 PRINT A$(1, 2 TO 5)
-        """));
+    assertDoesNotThrow(() ->
+        runProgram(
+            """
+            10 DIM A$(5, 10)
+            20 PRINT A$(1, 2 TO 5)
+            """));
 
     // Correct: slice as sole index of string variable
-    assertDoesNotThrow(
-        () ->
-            runProgram(
-                """
-        10 LET A$="HELLO"
-        20 PRINT A$(2 TO 4)
-        """));
+    assertDoesNotThrow(() ->
+        runProgram(
+            """
+            10 LET A$="HELLO"
+            20 PRINT A$(2 TO 4)
+            """));
 
     // Incorrect: slice NOT on last index of character array
     assertThrows(
@@ -159,9 +159,9 @@ class StringSlicingProgramTest extends BaseProgramTest {
         () ->
             runProgram(
                 """
-        10 DIM A$(5, 10)
-        20 PRINT A$(1 TO 2, 5)
-        """));
+                10 DIM A$(5, 10)
+                20 PRINT A$(1 TO 2, 5)
+                """));
 
     // Incorrect: slice NOT as sole index of string variable
     // (This is incorrect because variable string only takes 1 index or 1 slice)
@@ -170,9 +170,9 @@ class StringSlicingProgramTest extends BaseProgramTest {
         () ->
             runProgram(
                 """
-        10 LET A$="HELLO"
-        20 PRINT A$(1, 2 TO 4)
-        """));
+                10 LET A$="HELLO"
+                20 PRINT A$(1, 2 TO 4)
+                """));
   }
 
   @Test
@@ -205,9 +205,9 @@ class StringSlicingProgramTest extends BaseProgramTest {
         () ->
             runProgram(
                 """
-        10 LET A$="HI"
-        20 PRINT A$(1 TO 10)
-        """));
+                10 LET A$="HI"
+                20 PRINT A$(1 TO 10)
+                """));
   }
 
   @Test
@@ -218,9 +218,9 @@ class StringSlicingProgramTest extends BaseProgramTest {
         () ->
             runProgram(
                 """
-        10 LET A$="HELLO"
-        20 PRINT A$(4 TO 2)
-        """));
+                10 LET A$="HELLO"
+                20 PRINT A$(4 TO 2)
+                """));
   }
 
   @Test

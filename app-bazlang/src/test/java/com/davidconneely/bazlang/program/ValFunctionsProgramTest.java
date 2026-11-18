@@ -15,7 +15,8 @@ class ValFunctionsProgramTest extends BaseProgramTest {
     runProgram(
         """
         10 PRINT VAL("123.4") + 1
-        20 PRINT STR$(42)""",
+        20 PRINT STR$(42)\
+        """,
         "124.4\n42\n");
   }
 
@@ -25,10 +26,10 @@ class ValFunctionsProgramTest extends BaseProgramTest {
     final String[] lines =
         runProgramCapture(
                 """
-        10 PRINT VAL "6-4"
-        20 PRINT VAL "2*3+1"
-        30 PRINT VAL (STR$ LEN "123456" + "-4")
-        """)
+                10 PRINT VAL "6-4"
+                20 PRINT VAL "2*3+1"
+                30 PRINT VAL (STR$ LEN "123456" + "-4")
+                """)
             .trim()
             .split("\n");
     assertEquals("2", lines[0]); // 6-4 = 2
@@ -53,14 +54,14 @@ class ValFunctionsProgramTest extends BaseProgramTest {
     final var state =
         runProgram(
             """
-        10 LET A$ = "Fruit punch"
-        20 LET B$ = "A$"
-        30 LET C$ = "(1 TO 5)"
-        40 LET D$ = "B$ + C$"
-        50 LET R$ = VAL$(D$)
-        55 LET T$ = VAL$(R$)
-        60 LET S$ = VAL$(""\"hello"" + "" world""\")
-        """);
+            10 LET A$ = "Fruit punch"
+            20 LET B$ = "A$"
+            30 LET C$ = "(1 TO 5)"
+            40 LET D$ = "B$ + C$"
+            50 LET R$ = VAL$(D$)
+            55 LET T$ = VAL$(R$)
+            60 LET S$ = VAL$(""\"hello"" + "" world""\")
+            """);
     assertEquals(
         "A$(1 TO 5)", ((EvalState.StrVar.Scalar) state.strVar("R$")).value().toJavaString());
     assertEquals("Fruit", ((EvalState.StrVar.Scalar) state.strVar("T$")).value().toJavaString());

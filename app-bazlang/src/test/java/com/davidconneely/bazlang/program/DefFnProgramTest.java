@@ -43,8 +43,8 @@ class DefFnProgramTest extends BaseProgramTest {
             () ->
                 runProgram(
                     """
-        10 DEF FN A() = "HELLO"
-        """));
+                    10 DEF FN A() = "HELLO"
+                    """));
     assertEquals(ReportCode.NONSENSE_IN_BASIC, exDefType.reportCode());
 
     // 2. Definition-time duplicate parameter names
@@ -54,8 +54,8 @@ class DefFnProgramTest extends BaseProgramTest {
             () ->
                 runProgram(
                     """
-        10 DEF FN A(X, X) = X
-        """));
+                    10 DEF FN A(X, X) = X
+                    """));
     assertEquals(ReportCode.NONSENSE_IN_BASIC, exDefDup.reportCode());
 
     // 3. Call-time undefined function
@@ -65,8 +65,8 @@ class DefFnProgramTest extends BaseProgramTest {
             () ->
                 runProgram(
                     """
-        10 PRINT FN A()
-        """));
+                    10 PRINT FN A()
+                    """));
     assertEquals(ReportCode.FN_WITHOUT_DEF, exCallUndefined.reportCode());
 
     // 4. Call-time incorrect parameter count
@@ -76,9 +76,9 @@ class DefFnProgramTest extends BaseProgramTest {
             () ->
                 runProgram(
                     """
-        10 DEF FN A(X) = X
-        20 PRINT FN A(1, 2)
-        """));
+                    10 DEF FN A(X) = X
+                    20 PRINT FN A(1, 2)
+                    """));
     assertEquals(ReportCode.PARAMETER_ERROR, exCount.reportCode());
 
     // 5. Call-time type mismatch in parameter (passing string for number)
@@ -88,9 +88,9 @@ class DefFnProgramTest extends BaseProgramTest {
             () ->
                 runProgram(
                     """
-        10 DEF FN A(X) = X
-        20 PRINT FN A("HELLO")
-        """));
+                    10 DEF FN A(X) = X
+                    20 PRINT FN A("HELLO")
+                    """));
     assertEquals(ReportCode.PARAMETER_ERROR, exType.reportCode());
   }
 
@@ -99,16 +99,16 @@ class DefFnProgramTest extends BaseProgramTest {
     final var state =
         runProgram(
             """
-        10 DEF FN ADD(X) = X + Y
-        15 DEF FN REPEAT$(A$) = A$ + A$
-        20 DEF FN DOUBLE(X) = FN ADD(X) * 2
-        25 LET X = 10
-        30 LET Y = 5
-        35 LET A$ = "GLOBAL"
-        40 LET Z = FN ADD(1)
-        45 LET B$ = FN REPEAT$("LOCAL")
-        50 LET W = FN DOUBLE(2)
-        """);
+            10 DEF FN ADD(X) = X + Y
+            15 DEF FN REPEAT$(A$) = A$ + A$
+            20 DEF FN DOUBLE(X) = FN ADD(X) * 2
+            25 LET X = 10
+            30 LET Y = 5
+            35 LET A$ = "GLOBAL"
+            40 LET Z = FN ADD(1)
+            45 LET B$ = FN REPEAT$("LOCAL")
+            50 LET W = FN DOUBLE(2)
+            """);
     // Z = 1 + Y = 1 + 5 = 6
     assertEquals(6.0, state.numVar("Z"));
     // Shadowed parameter X must restore to original value 10 after call
@@ -133,9 +133,9 @@ class DefFnProgramTest extends BaseProgramTest {
             () ->
                 runProgramCapture(
                     """
-        10 DEF FN F(N) = FN F(N)
-        20 PRINT FN F(1)
-        """));
+                    10 DEF FN F(N) = FN F(N)
+                    20 PRINT FN F(1)
+                    """));
     assertEquals(ReportCode.OUT_OF_MEMORY, e.reportCode());
   }
 }

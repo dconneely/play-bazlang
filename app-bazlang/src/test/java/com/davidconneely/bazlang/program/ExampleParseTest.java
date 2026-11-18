@@ -21,23 +21,22 @@ class ExampleParseTest {
       paths
           .filter(Files::isRegularFile)
           .filter(p -> p.toString().endsWith(".bas"))
-          .forEach(
-              p -> {
-                try {
-                  final String content = Files.readString(p);
-                  final var program = PARSER.parseProgramLines(content);
-                  assertNotNull(program, "Failed to parse example: " + p);
-                  // Trigger lazy parsing of each line to ensure ANTLR successfully parses them. A
-                  // throwaway EvalState is fine here - this test only cares that lowering succeeds,
-                  // not what variable ids it assigns.
-                  final var throwawayState = new EvalState();
-                  for (final var line : program.values()) {
-                    line.getFlattenedStatements(PARSER, throwawayState);
-                  }
-                } catch (IOException | ReportException e) {
-                  fail("Exception parsing example " + p + ": " + e.getMessage(), e);
-                }
-              });
+          .forEach(p -> {
+            try {
+              final String content = Files.readString(p);
+              final var program = PARSER.parseProgramLines(content);
+              assertNotNull(program, "Failed to parse example: " + p);
+              // Trigger lazy parsing of each line to ensure ANTLR successfully parses them. A
+              // throwaway EvalState is fine here - this test only cares that lowering succeeds,
+              // not what variable ids it assigns.
+              final var throwawayState = new EvalState();
+              for (final var line : program.values()) {
+                line.getFlattenedStatements(PARSER, throwawayState);
+              }
+            } catch (IOException | ReportException e) {
+              fail("Exception parsing example " + p + ": " + e.getMessage(), e);
+            }
+          });
     } catch (IOException e) {
       fail("Failed to read example directory: " + e.getMessage(), e);
     }

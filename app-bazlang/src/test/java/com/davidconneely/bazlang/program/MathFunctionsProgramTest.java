@@ -43,20 +43,20 @@ class MathFunctionsProgramTest extends BaseProgramTest {
     final var state =
         runProgram(
             """
-        10 LET P = PI
-        20 LET R = RND
-        30 LET I$ = INKEY$
-        40 LET F = FRAMES
-        50 LET W1 = TEXTH
-        60 LET W2 = TEXTW
-        70 LET W3 = PLOTH
-        80 LET W4 = PLOTW
-        90 LET W5 = PLOTMODE
-        100 LET W6 = TEXTX
-        110 LET W7 = TEXTY
-        120 LET W8 = PLOTX
-        130 LET W9 = PLOTY
-        """);
+            10 LET P = PI
+            20 LET R = RND
+            30 LET I$ = INKEY$
+            40 LET F = FRAMES
+            50 LET W1 = TEXTH
+            60 LET W2 = TEXTW
+            70 LET W3 = PLOTH
+            80 LET W4 = PLOTW
+            90 LET W5 = PLOTMODE
+            100 LET W6 = TEXTX
+            110 LET W7 = TEXTY
+            120 LET W8 = PLOTX
+            130 LET W9 = PLOTY
+            """);
     assertEquals(Math.PI, state.numVar("P"), 0.0001);
     // RND returns value between 0 and 1
     final double r = state.numVar("R");
@@ -79,10 +79,10 @@ class MathFunctionsProgramTest extends BaseProgramTest {
     final var state =
         runProgram(
             """
-        10 LET C1 = COLOUR(0, 0, 0)
-        20 LET C2 = COLOUR(255, 255, 255)
-        30 LET C3 = COLOUR(255, 128, 0)
-        """);
+            10 LET C1 = COLOUR(0, 0, 0)
+            20 LET C2 = COLOUR(255, 255, 255)
+            30 LET C3 = COLOUR(255, 128, 0)
+            """);
     assertEquals(16_777_216.0, state.numVar("C1"));
     assertEquals(33_554_431.0, state.numVar("C2"));
     assertEquals(16_777_216.0 + 0xFF8000, state.numVar("C3"));
@@ -104,17 +104,17 @@ class MathFunctionsProgramTest extends BaseProgramTest {
     final var state =
         runProgram(
             """
-        10 PAPER 1: INK 7: PRINT "A"
-        20 PAPER 2: INK 6: FLASH 1: BRIGHT 1: PRINT "B"
-        30 LET A1 = ATTR(0, 0)
-        40 LET A2 = ATTR(1, 0)
-        50 LET X1 = XATTR(0, 0, 0)
-        60 LET X2 = XATTR(0, 0, 1)
-        70 LET X3 = XATTR(1, 0, 0)
-        80 LET X4 = XATTR(1, 0, 1)
-        90 LET X5 = XATTR(1, 0, 2)
-        100 LET X6 = XATTR(1, 0, 3)
-        """);
+            10 PAPER 1: INK 7: PRINT "A"
+            20 PAPER 2: INK 6: FLASH 1: BRIGHT 1: PRINT "B"
+            30 LET A1 = ATTR(0, 0)
+            40 LET A2 = ATTR(1, 0)
+            50 LET X1 = XATTR(0, 0, 0)
+            60 LET X2 = XATTR(0, 0, 1)
+            70 LET X3 = XATTR(1, 0, 0)
+            80 LET X4 = XATTR(1, 0, 1)
+            90 LET X5 = XATTR(1, 0, 2)
+            100 LET X6 = XATTR(1, 0, 3)
+            """);
     // Line 10: PAPER 1, INK 7.
     // Spectrum ATTR: (0*128) + (0*64) + (1*8) + 7 = 15.
     assertEquals(15.0, state.numVar("A1"));

@@ -10,10 +10,10 @@ class GotoProgramTest extends BaseProgramTest {
     // Documented: Target label resolves to next highest.
     runProgram(
         """
-            10 GOTO 15
-            20 PRINT "SKIP"
-            30 PRINT "TARGET"
-            """,
+        10 GOTO 15
+        20 PRINT "SKIP"
+        30 PRINT "TARGET"
+        """,
         "SKIP\nTARGET\n");
   }
 
@@ -23,7 +23,8 @@ class GotoProgramTest extends BaseProgramTest {
         """
         10 GOTO 30
         20 PRINT "SKIP"
-        30 PRINT "END\"""",
+        30 PRINT "END\"\
+        """,
         "END\n");
   }
 

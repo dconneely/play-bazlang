@@ -25,9 +25,9 @@ class RemProgramTest extends BaseProgramTest {
         () ->
             runProgram(
                 """
-            10 PRINT "OK"
-            # arbitrary comment
-            """));
+                10 PRINT "OK"
+                # arbitrary comment
+                """));
   }
 
   @Test

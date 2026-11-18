@@ -126,14 +126,13 @@ public final class InterpreterReplHandler implements ReplHandler {
     if (screen == null) {
       return;
     }
-    screen.systemMessage(
-        () -> {
-          screen.setInk(MARKER_INK);
-          screen.print("❯ ");
-          screen.setInk(-1);
-          HighlightedLinePrinter.print(screen, code);
-          screen.println();
-        });
+    screen.systemMessage(() -> {
+      screen.setInk(MARKER_INK);
+      screen.print("❯ ");
+      screen.setInk(-1);
+      HighlightedLinePrinter.print(screen, code);
+      screen.println();
+    });
   }
 
   private boolean handleReplCommand(BazLangParser.ReplCommandContext ctx) {

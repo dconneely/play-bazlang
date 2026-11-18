@@ -15,9 +15,9 @@ class DataReadProgramTest extends BaseProgramTest {
     final var state =
         runProgram(
             """
-        10 DATA 10, "HELLO", 20, BIN 1010
-        20 READ A, B$, C, D
-        """);
+            10 DATA 10, "HELLO", 20, BIN 1010
+            20 READ A, B$, C, D
+            """);
     assertEquals(10.0, state.numVar("A"));
     assertEquals("HELLO", ((EvalState.StrVar.Scalar) state.strVar("B$")).value().toJavaString());
     assertEquals(20.0, state.numVar("C"));
@@ -29,11 +29,11 @@ class DataReadProgramTest extends BaseProgramTest {
     final var state =
         runProgram(
             """
-        10 DATA X + 5, A$ + "WORLD"
-        20 LET X = 10
-        30 LET A$ = "HELLO "
-        40 READ Y, B$
-        """);
+            10 DATA X + 5, A$ + "WORLD"
+            20 LET X = 10
+            30 LET A$ = "HELLO "
+            40 READ Y, B$
+            """);
     assertEquals(15.0, state.numVar("Y"));
     assertEquals(
         "HELLO WORLD", ((EvalState.StrVar.Scalar) state.strVar("B$")).value().toJavaString());
@@ -47,9 +47,9 @@ class DataReadProgramTest extends BaseProgramTest {
             () ->
                 runProgram(
                     """
-        10 DATA 42
-        20 READ A, B
-        """));
+                    10 DATA 42
+                    20 READ A, B
+                    """));
     assertEquals(ReportCode.OUT_OF_DATA, ex.reportCode());
   }
 
@@ -58,14 +58,14 @@ class DataReadProgramTest extends BaseProgramTest {
     final var state =
         runProgram(
             """
-        10 DATA 1, 2
-        20 DATA 3, 4
-        30 READ A, B
-        40 RESTORE 20
-        50 READ C, D
-        60 RESTORE
-        70 READ E
-        """);
+            10 DATA 1, 2
+            20 DATA 3, 4
+            30 READ A, B
+            40 RESTORE 20
+            50 READ C, D
+            60 RESTORE
+            70 READ E
+            """);
     assertEquals(1.0, state.numVar("A"));
     assertEquals(2.0, state.numVar("B"));
     assertEquals(3.0, state.numVar("C"));
@@ -93,9 +93,9 @@ class DataReadProgramTest extends BaseProgramTest {
             () ->
                 runProgram(
                     """
-        10 DATA "HELLO"
-        20 READ A
-        """));
+                    10 DATA "HELLO"
+                    20 READ A
+                    """));
     assertEquals(ReportCode.NONSENSE_IN_BASIC, ex1.reportCode());
 
     final var ex2 =
@@ -104,9 +104,9 @@ class DataReadProgramTest extends BaseProgramTest {
             () ->
                 runProgram(
                     """
-        10 DATA 42
-        20 READ A$
-        """));
+                    10 DATA 42
+                    20 READ A$
+                    """));
     assertEquals(ReportCode.NONSENSE_IN_BASIC, ex2.reportCode());
   }
 
@@ -115,9 +115,9 @@ class DataReadProgramTest extends BaseProgramTest {
     final var state =
         runProgram(
             """
-        10 IF 1=0 THEN DATA 42
-        20 READ A
-        """);
+            10 IF 1=0 THEN DATA 42
+            20 READ A
+            """);
     assertEquals(42.0, state.numVar("A"));
   }
 }

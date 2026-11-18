@@ -58,10 +58,10 @@ class AntlrParserTest {
     final var program =
         parser.parseProgramLines(
             """
-        10 LET A = 1
-        20 LET B = 2
-        30 PRINT A + B
-        """);
+            10 LET A = 1
+            20 LET B = 2
+            30 PRINT A + B
+            """);
     assertEquals(3, program.size());
     assertTrue(program.containsKey(10));
     assertTrue(program.containsKey(20));
@@ -80,9 +80,9 @@ class AntlrParserTest {
     final var program =
         parser.parseProgramLines(
             """
-        100 GOTO 200
-        110 GOSUB 300
-        """);
+            100 GOTO 200
+            110 GOSUB 300
+            """);
     assertInstanceOf(GotoStmtContext.class, program.get(100).getStatements(parser).statement(0));
     assertInstanceOf(GosubStmtContext.class, program.get(110).getStatements(parser).statement(0));
   }
@@ -138,37 +138,20 @@ class AntlrParserTest {
   @Test
   void testCaseInsensitiveKeywords() {
     // All variations should parse successfully
-    assertDoesNotThrow(
-        () ->
-            parser
-                .parseProgramLines("10 print \"test\"\n")
-                .get(10)
-                .getStatements(parser)
-                .statement(0));
-    assertDoesNotThrow(
-        () ->
-            parser
-                .parseProgramLines("10 PRINT \"test\"\n")
-                .get(10)
-                .getStatements(parser)
-                .statement(0));
-    assertDoesNotThrow(
-        () ->
-            parser
-                .parseProgramLines("10 PrInT \"test\"\n")
-                .get(10)
-                .getStatements(parser)
-                .statement(0));
+    assertDoesNotThrow(() ->
+        parser.parseProgramLines("10 print \"test\"\n").get(10).getStatements(parser).statement(0));
+    assertDoesNotThrow(() ->
+        parser.parseProgramLines("10 PRINT \"test\"\n").get(10).getStatements(parser).statement(0));
+    assertDoesNotThrow(() ->
+        parser.parseProgramLines("10 PrInT \"test\"\n").get(10).getStatements(parser).statement(0));
   }
 
   @Test
   void testCaseInsensitiveVariables() {
     // Variables should be normalised but parse correctly
-    assertDoesNotThrow(
-        () ->
-            parser.parseProgramLines("10 LET a = 1\n").get(10).getStatements(parser).statement(0));
-    assertDoesNotThrow(
-        () ->
-            parser.parseProgramLines("10 LET A = 1\n").get(10).getStatements(parser).statement(0));
+    assertDoesNotThrow(() ->
+        parser.parseProgramLines("10 LET a = 1\n").get(10).getStatements(parser).statement(0));
+    assertDoesNotThrow(() ->
+        parser.parseProgramLines("10 LET A = 1\n").get(10).getStatements(parser).statement(0));
   }
 }

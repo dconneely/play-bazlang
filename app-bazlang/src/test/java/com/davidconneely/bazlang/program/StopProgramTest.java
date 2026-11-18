@@ -50,10 +50,10 @@ class StopProgramTest extends BaseProgramTest {
     final String output =
         runProgramCapture(
             """
-        10 PRINT "START"
-        20 STOP
-        30 PRINT "END"
-        """);
+            10 PRINT "START"
+            20 STOP
+            30 PRINT "END"
+            """);
     assertTrue(output.contains("START"));
     assertFalse(output.contains("END"));
   }

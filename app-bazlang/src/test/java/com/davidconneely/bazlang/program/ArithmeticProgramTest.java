@@ -29,11 +29,11 @@ class ArithmeticProgramTest extends BaseProgramTest {
     final var state =
         runProgram(
             """
-        10 LET A = 1 + 2 * 3
-        20 LET B = (1 + 2) * 3
-        30 LET C = 2 ** 3
-        40 LET D = 5 / 2
-        """);
+            10 LET A = 1 + 2 * 3
+            20 LET B = (1 + 2) * 3
+            30 LET C = 2 ** 3
+            40 LET D = 5 / 2
+            """);
     assertEquals(7.0, state.numVar("A"));
     assertEquals(9.0, state.numVar("B"));
     assertEquals(8.0, state.numVar("C"));
@@ -46,9 +46,9 @@ class ArithmeticProgramTest extends BaseProgramTest {
     final var state =
         runProgram(
             """
-        10 LET A = -2**2
-        20 LET B = (-2)**2
-        """);
+            10 LET A = -2**2
+            20 LET B = (-2)**2
+            """);
     assertEquals(-4.0, state.numVar("A"));
     assertEquals(4.0, state.numVar("B"));
   }
@@ -60,10 +60,10 @@ class ArithmeticProgramTest extends BaseProgramTest {
     final var state =
         runProgram(
             """
-        10 LET A = -2**2
-        20 LET B = (-2)**2
-        30 LET C = 0-2**2
-        """);
+            10 LET A = -2**2
+            20 LET B = (-2)**2
+            30 LET C = 0-2**2
+            """);
     assertEquals(-4.0, state.numVar("A")); // -(2**2) = -4
     assertEquals(4.0, state.numVar("B")); // (-2)**2 = 4
     assertEquals(-4.0, state.numVar("C")); // 0-(2**2) = -4

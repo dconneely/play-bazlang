@@ -192,15 +192,14 @@ class PlayAgainProgramTest extends BaseProgramTest {
     // Run on a bounded thread: if the game can't finish it would otherwise spin forever on an
     // exhausted key queue, and a silent hang says far less than the screen contents at that point.
     final var runner =
-        new Thread(
-            () -> {
-              try {
-                new com.davidconneely.bazlang.exec.Interpreter(state, executor)
-                    .execute(PARSER.parseProgramLines(source));
-              } catch (com.davidconneely.bazlang.ReportException e) {
-                failure.set(e); // a BASIC-level error -- what MainClass would print and exit on
-              }
-            });
+        new Thread(() -> {
+          try {
+            new com.davidconneely.bazlang.exec.Interpreter(state, executor)
+                .execute(PARSER.parseProgramLines(source));
+          } catch (com.davidconneely.bazlang.ReportException e) {
+            failure.set(e); // a BASIC-level error -- what MainClass would print and exit on
+          }
+        });
     runner.setDaemon(true);
     runner.start();
     runner.join(20_000);

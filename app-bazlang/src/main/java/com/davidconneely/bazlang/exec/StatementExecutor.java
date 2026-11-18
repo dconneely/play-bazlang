@@ -560,33 +560,31 @@ public class StatementExecutor {
   }
 
   private void executePlotStmt(Stmt.PlotStmt stmt) {
-    withRestoredStyles(
-        () -> {
-          applyStyleList(stmt.styles());
-          try {
-            final int x = exprEvaluator.evalInt(stmt.x());
-            final int y = exprEvaluator.evalInt(stmt.y());
-            screen.plot(x, y);
-            state.setGraphicsCursorX(x);
-            state.setGraphicsCursorY(y);
-          } catch (IllegalArgumentException e) {
-            throw codedException(ReportCode.INTEGER_OUT_OF_RANGE, e.getMessage());
-          }
-        });
+    withRestoredStyles(() -> {
+      applyStyleList(stmt.styles());
+      try {
+        final int x = exprEvaluator.evalInt(stmt.x());
+        final int y = exprEvaluator.evalInt(stmt.y());
+        screen.plot(x, y);
+        state.setGraphicsCursorX(x);
+        state.setGraphicsCursorY(y);
+      } catch (IllegalArgumentException e) {
+        throw codedException(ReportCode.INTEGER_OUT_OF_RANGE, e.getMessage());
+      }
+    });
   }
 
   private void executeDrawStmt(Stmt.DrawStmt stmt) {
-    withRestoredStyles(
-        () -> {
-          applyStyleList(stmt.styles());
-          final int dx = exprEvaluator.evalInt(stmt.dx());
-          final int dy = exprEvaluator.evalInt(stmt.dy());
-          drawLine(
-              state.graphicsCursorX(),
-              state.graphicsCursorY(),
-              state.graphicsCursorX() + dx,
-              state.graphicsCursorY() + dy);
-        });
+    withRestoredStyles(() -> {
+      applyStyleList(stmt.styles());
+      final int dx = exprEvaluator.evalInt(stmt.dx());
+      final int dy = exprEvaluator.evalInt(stmt.dy());
+      drawLine(
+          state.graphicsCursorX(),
+          state.graphicsCursorY(),
+          state.graphicsCursorX() + dx,
+          state.graphicsCursorY() + dy);
+    });
   }
 
   private void drawLine(int startX, int startY, int endX, int endY) {
@@ -618,21 +616,20 @@ public class StatementExecutor {
   }
 
   private void executeCircleStmt(Stmt.CircleStmt stmt) {
-    withRestoredStyles(
-        () -> {
-          applyStyleList(stmt.styles());
-          final int cx = exprEvaluator.evalInt(stmt.cx());
-          final int cy = exprEvaluator.evalInt(stmt.cy());
-          final int r = exprEvaluator.evalInt(stmt.radius());
-          try {
-            drawCircle(cx, cy, r);
-          } catch (IllegalArgumentException e) {
-            throw codedException(ReportCode.INTEGER_OUT_OF_RANGE, e.getMessage());
-          }
-          // Like PLOT, CIRCLE leaves the graphics cursor at its centre.
-          state.setGraphicsCursorX(cx);
-          state.setGraphicsCursorY(cy);
-        });
+    withRestoredStyles(() -> {
+      applyStyleList(stmt.styles());
+      final int cx = exprEvaluator.evalInt(stmt.cx());
+      final int cy = exprEvaluator.evalInt(stmt.cy());
+      final int r = exprEvaluator.evalInt(stmt.radius());
+      try {
+        drawCircle(cx, cy, r);
+      } catch (IllegalArgumentException e) {
+        throw codedException(ReportCode.INTEGER_OUT_OF_RANGE, e.getMessage());
+      }
+      // Like PLOT, CIRCLE leaves the graphics cursor at its centre.
+      state.setGraphicsCursorX(cx);
+      state.setGraphicsCursorY(cy);
+    });
   }
 
   private void drawCircle(int cx, int cy, int r) {
@@ -670,61 +667,60 @@ public class StatementExecutor {
   // ===== PRINT =====
 
   private void executePrintStmt(Stmt.PrintStmt stmt) {
-    withRestoredStyles(
-        () -> {
-          int tabPos = screen.currentCol();
-          boolean suppressNewline = false;
-          for (final var item : stmt.items()) {
-            switch (item) {
-              case PrintElement.ValueItem v -> {
-                screen.print(exprEvaluator.evalPrintExpr(v.value()));
-                tabPos = screen.currentCol();
-                suppressNewline = false;
-              }
-              case PrintElement.AtItem at -> {
-                final int row = exprEvaluator.evalInt(at.row());
-                final int col = exprEvaluator.evalInt(at.col());
-                if (row < 0 || col < 0) {
-                  throw codedException(ReportCode.OUT_OF_SCREEN, "Screen out of bounds");
-                }
-                screen.locate(row, col);
-                tabPos = col;
-                suppressNewline = false;
-              }
-              case PrintElement.TabItem tab -> {
-                int t = exprEvaluator.evalInt(tab.col());
-                if (t < 0) {
-                  t = ((tabPos / Limits.TAB_WIDTH) + 1) * Limits.TAB_WIDTH;
-                }
-                if (t > tabPos) {
-                  screen.print(" ".repeat(t - tabPos));
-                }
-                tabPos = screen.currentCol();
-                suppressNewline = false;
-              }
-              case PrintElement.StyleElement style -> applyStyleItem(style.style());
-              case PrintElement.Sep sep -> {
-                if (sep.text() == ',') {
-                  // Comma moves to next tab stop
-                  final int nextTab = ((tabPos / Limits.TAB_WIDTH) + 1) * Limits.TAB_WIDTH;
-                  if (nextTab > tabPos) {
-                    screen.print(" ".repeat(nextTab - tabPos));
-                    tabPos = screen.currentCol();
-                  }
-                } else if (sep.text() == '\'') {
-                  screen.println();
-                  tabPos = 0;
-                }
-                // Semicolon does nothing (items concatenate)
-                suppressNewline = true;
-              }
+    withRestoredStyles(() -> {
+      int tabPos = screen.currentCol();
+      boolean suppressNewline = false;
+      for (final var item : stmt.items()) {
+        switch (item) {
+          case PrintElement.ValueItem v -> {
+            screen.print(exprEvaluator.evalPrintExpr(v.value()));
+            tabPos = screen.currentCol();
+            suppressNewline = false;
+          }
+          case PrintElement.AtItem at -> {
+            final int row = exprEvaluator.evalInt(at.row());
+            final int col = exprEvaluator.evalInt(at.col());
+            if (row < 0 || col < 0) {
+              throw codedException(ReportCode.OUT_OF_SCREEN, "Screen out of bounds");
             }
+            screen.locate(row, col);
+            tabPos = col;
+            suppressNewline = false;
           }
-          if (!suppressNewline) {
-            screen.println();
+          case PrintElement.TabItem tab -> {
+            int t = exprEvaluator.evalInt(tab.col());
+            if (t < 0) {
+              t = ((tabPos / Limits.TAB_WIDTH) + 1) * Limits.TAB_WIDTH;
+            }
+            if (t > tabPos) {
+              screen.print(" ".repeat(t - tabPos));
+            }
+            tabPos = screen.currentCol();
+            suppressNewline = false;
           }
-          screen.flush(); // Ensure output is visible, including semicolon-terminated lines
-        });
+          case PrintElement.StyleElement style -> applyStyleItem(style.style());
+          case PrintElement.Sep sep -> {
+            if (sep.text() == ',') {
+              // Comma moves to next tab stop
+              final int nextTab = ((tabPos / Limits.TAB_WIDTH) + 1) * Limits.TAB_WIDTH;
+              if (nextTab > tabPos) {
+                screen.print(" ".repeat(nextTab - tabPos));
+                tabPos = screen.currentCol();
+              }
+            } else if (sep.text() == '\'') {
+              screen.println();
+              tabPos = 0;
+            }
+            // Semicolon does nothing (items concatenate)
+            suppressNewline = true;
+          }
+        }
+      }
+      if (!suppressNewline) {
+        screen.println();
+      }
+      screen.flush(); // Ensure output is visible, including semicolon-terminated lines
+    });
   }
 
   // ===== INPUT =====
@@ -995,35 +991,34 @@ public class StatementExecutor {
     // Unlike PLAY, returns immediately - the rest of the BASIC program keeps running while this
     // background thread advances the tune, exactly the point of APLAY existing at all.
     final Thread player =
-        new Thread(
-            () -> {
-              try {
-                boolean wasSounding = false;
-                while (!stop.get()) {
-                  if (renderNextFramePaced(source)) {
-                    wasSounding = true;
-                  } else {
-                    if (wasSounding) {
-                      // Just reached the natural end of a sound: let its tail play, then park the
-                      // output rather than leaving it running empty until the next trigger.
-                      speaker.drainPlay();
-                      wasSounding = false;
-                    }
-                    // Nothing playing right now, but this session stays alive rather than exiting
-                    // -- exiting here would race executeAplayStmt's isAlive() check: a channel
-                    // replace targeted at this (still nominally "live") session could land after
-                    // the thread has already decided to exit but before it actually terminates,
-                    // silently dropping that update since no thread is left to ever consume it
-                    // (this was a real, intermittent "the click sometimes doesn't play" bug).
-                    // Idle-polls at the same cadence rather than a longer sleep: fillPendingNotes()
-                    // is O(1) once every channel is done, so this costs nothing while idle.
-                    sleepIgnoringInterrupt(PLAY_CHUNK_MS);
-                  }
+        new Thread(() -> {
+          try {
+            boolean wasSounding = false;
+            while (!stop.get()) {
+              if (renderNextFramePaced(source)) {
+                wasSounding = true;
+              } else {
+                if (wasSounding) {
+                  // Just reached the natural end of a sound: let its tail play, then park the
+                  // output rather than leaving it running empty until the next trigger.
+                  speaker.drainPlay();
+                  wasSounding = false;
                 }
-              } finally {
-                speaker.stopPlay();
+                // Nothing playing right now, but this session stays alive rather than exiting
+                // -- exiting here would race executeAplayStmt's isAlive() check: a channel
+                // replace targeted at this (still nominally "live") session could land after
+                // the thread has already decided to exit but before it actually terminates,
+                // silently dropping that update since no thread is left to ever consume it
+                // (this was a real, intermittent "the click sometimes doesn't play" bug).
+                // Idle-polls at the same cadence rather than a longer sleep: fillPendingNotes()
+                // is O(1) once every channel is done, so this costs nothing while idle.
+                sleepIgnoringInterrupt(PLAY_CHUNK_MS);
               }
-            });
+            }
+          } finally {
+            speaker.stopPlay();
+          }
+        });
     player.setDaemon(true);
     player.setName("bazlang-aplay");
     activeAplay = new AplaySession(player, source, stop);
@@ -1055,15 +1050,14 @@ public class StatementExecutor {
     }
     final int rangeStart = start;
     final int rangeEnd = end;
-    withRestoredStyles(
-        () -> {
-          for (final var entry : state.program().subMapEntries(rangeStart, true, rangeEnd, true)) {
-            final var line = entry.getValue();
-            if (line.lineNumber() >= Limits.MIN_LINE_LABEL) {
-              listLine(line.lineNumber(), line.sourceText());
-            }
-          }
-        });
+    withRestoredStyles(() -> {
+      for (final var entry : state.program().subMapEntries(rangeStart, true, rangeEnd, true)) {
+        final var line = entry.getValue();
+        if (line.lineNumber() >= Limits.MIN_LINE_LABEL) {
+          listLine(line.lineNumber(), line.sourceText());
+        }
+      }
+    });
   }
 
   // Full name rather than importing it -- this file already sits at PMD's ExcessiveImports

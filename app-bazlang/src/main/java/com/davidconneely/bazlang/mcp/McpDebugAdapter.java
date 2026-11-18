@@ -566,11 +566,8 @@ final class McpDebugAdapter {
       engine.screen().queueInkey(BStr.fromByte(b & 0xFF));
     }
     text.codePoints()
-        .forEach(
-            cp ->
-                engine
-                    .screen()
-                    .queueUinkey(BStr.fromJavaString(new String(Character.toChars(cp)))));
+        .forEach(cp ->
+            engine.screen().queueUinkey(BStr.fromJavaString(new String(Character.toChars(cp)))));
     engine.screen().queueInput(text);
   }
 

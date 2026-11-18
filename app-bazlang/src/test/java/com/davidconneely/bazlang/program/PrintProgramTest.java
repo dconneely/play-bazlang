@@ -15,8 +15,8 @@ class PrintProgramTest extends BaseProgramTest {
     assertTrue(
         runProgramCapture(
                 """
-        10 PRINT AT 5, 10; "X"
-        """)
+                10 PRINT AT 5, 10; "X"
+                """)
             .contains("X"));
   }
 
@@ -53,10 +53,10 @@ class PrintProgramTest extends BaseProgramTest {
     final String[] lines =
         runProgramCapture(
                 """
-            10 PRINT 1.5
-            20 PRINT 2.25
-            30 PRINT 10.0
-            """)
+                10 PRINT 1.5
+                20 PRINT 2.25
+                30 PRINT 10.0
+                """)
             .trim()
             .split("\n");
     assertEquals("1.5", lines[0]);
@@ -71,8 +71,8 @@ class PrintProgramTest extends BaseProgramTest {
     final String[] lines1 =
         runProgramCapture(
                 """
-        10 PRINT "A" ' "B"
-        """)
+                10 PRINT "A" ' "B"
+                """)
             .split("\n");
     assertEquals("A", lines1[0]);
     assertEquals("B", lines1[1]);
@@ -80,8 +80,8 @@ class PrintProgramTest extends BaseProgramTest {
     final String[] lines2 =
         runProgramCapture(
                 """
-        10 PRINT "A" ' ' "B"
-        """)
+                10 PRINT "A" ' ' "B"
+                """)
             .split("\n");
     assertEquals("A", lines2[0]);
     assertEquals("", lines2[1]); // Consecutive apostrophe prints a blank line
@@ -91,8 +91,8 @@ class PrintProgramTest extends BaseProgramTest {
     final String[] lines2b =
         runProgramCapture(
                 """
-        10 PRINT "A" '' "B"
-        """)
+                10 PRINT "A" '' "B"
+                """)
             .split("\n");
     assertEquals("A", lines2b[0]);
     assertEquals("", lines2b[1]);
@@ -101,8 +101,8 @@ class PrintProgramTest extends BaseProgramTest {
     final String[] lines2c =
         runProgramCapture(
                 """
-        10 PRINT "A" ''' "B"
-        """)
+                10 PRINT "A" ''' "B"
+                """)
             .split("\n");
     assertEquals("A", lines2c[0]);
     assertEquals("", lines2c[1]);
@@ -112,9 +112,9 @@ class PrintProgramTest extends BaseProgramTest {
     final String[] lines3 =
         runProgramCapture(
                 """
-        10 PRINT "A" '
-        20 PRINT "B"
-        """)
+                10 PRINT "A" '
+                20 PRINT "B"
+                """)
             .split("\n");
     assertEquals("A", lines3[0]);
     assertEquals("B", lines3[1]); // Trailing apostrophe suppresses automatic newline
@@ -122,8 +122,8 @@ class PrintProgramTest extends BaseProgramTest {
     final String[] lines4 =
         runProgramCapture(
                 """
-        10 PRINT ' "A"
-        """)
+                10 PRINT ' "A"
+                """)
             .split("\n");
     assertEquals("", lines4[0]); // Leading apostrophe prints a blank line
     assertEquals("A", lines4[1]);
@@ -132,9 +132,9 @@ class PrintProgramTest extends BaseProgramTest {
     final String[] lines5 =
         runProgramCapture(
                 """
-        10 PRINT "first"
-        20 PRINT ' "second"
-        """)
+                10 PRINT "first"
+                20 PRINT ' "second"
+                """)
             .split("\n");
     assertEquals("first", lines5[0]);
     assertEquals("", lines5[1]); // Blank line
@@ -144,9 +144,9 @@ class PrintProgramTest extends BaseProgramTest {
     final String[] lines6 =
         runProgramCapture(
                 """
-        10 PRINT "first" ''
-        20 PRINT "second"
-        """)
+                10 PRINT "first" ''
+                20 PRINT "second"
+                """)
             .split("\n");
     assertEquals("first", lines6[0]);
     assertEquals("", lines6[1]); // Blank line
@@ -159,8 +159,8 @@ class PrintProgramTest extends BaseProgramTest {
     final String output =
         runProgramCapture(
             """
-        10 PRINT "X", "Y", "Z"
-        """);
+            10 PRINT "X", "Y", "Z"
+            """);
     assertEquals(0, output.indexOf('X'));
     assertEquals(16, output.indexOf('Y'));
     assertEquals(32, output.indexOf('Z'));
@@ -172,8 +172,8 @@ class PrintProgramTest extends BaseProgramTest {
     final String output =
         runProgramCapture(
             """
-        10 PRINT "A"; "B", "C"
-        """);
+            10 PRINT "A"; "B", "C"
+            """);
     assertEquals(0, output.indexOf('A'));
     assertEquals(1, output.indexOf('B'));
     assertEquals(16, output.indexOf('C'));
@@ -195,8 +195,8 @@ class PrintProgramTest extends BaseProgramTest {
     final String output =
         runProgramCapture(
             """
-        10 PRINT "A",
-        """);
+            10 PRINT "A",
+            """);
     assertFalse(output.endsWith("\n"));
     assertTrue(output.length() >= 16); // "A" plus padding to tab stop
   }
@@ -216,11 +216,11 @@ class PrintProgramTest extends BaseProgramTest {
     final String[] lines =
         runProgramCapture(
                 """
-        10 PRINT 1E13
-        20 PRINT 1E-6
-        30 PRINT 1.23E15
-        40 PRINT -5E14
-        """)
+                10 PRINT 1E13
+                20 PRINT 1E-6
+                30 PRINT 1.23E15
+                40 PRINT -5E14
+                """)
             .trim()
             .split("\n");
     assertEquals("1E+13", lines[0]);
@@ -235,8 +235,8 @@ class PrintProgramTest extends BaseProgramTest {
     final String output =
         runProgramCapture(
             """
-        10 PRINT "A", "B"
-        """);
+            10 PRINT "A", "B"
+            """);
     // "A" is at 0, next tab is at 16. So "B" should be at index 16.
     int aPos = output.indexOf('A');
     int bPos = output.indexOf('B');
@@ -254,15 +254,15 @@ class PrintProgramTest extends BaseProgramTest {
     final String[] lines =
         runProgramCapture(
                 """
-        10 PRINT 0
-        20 PRINT 1
-        30 PRINT 42
-        40 PRINT -7
-        50 PRINT 3.14159
-        60 PRINT 0.5
-        70 PRINT 0.03
-        80 PRINT -0.03
-        """)
+                10 PRINT 0
+                20 PRINT 1
+                30 PRINT 42
+                40 PRINT -7
+                50 PRINT 3.14159
+                60 PRINT 0.5
+                70 PRINT 0.03
+                80 PRINT -0.03
+                """)
             .trim()
             .split("\n");
     assertEquals("0", lines[0]);

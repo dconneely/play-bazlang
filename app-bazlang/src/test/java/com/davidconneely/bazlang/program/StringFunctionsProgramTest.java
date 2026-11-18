@@ -22,11 +22,11 @@ class StringFunctionsProgramTest extends BaseProgramTest {
     final var state =
         runProgram(
             """
-        10 LET A = LEN(CHR$(255))
-        20 LET B = CODE(CHR$(255))
-        30 LET C = LEN(UCHR$(255))
-        40 LET D = UCODE(UCHR$(255))
-        """);
+            10 LET A = LEN(CHR$(255))
+            20 LET B = CODE(CHR$(255))
+            30 LET C = LEN(UCHR$(255))
+            40 LET D = UCODE(UCHR$(255))
+            """);
     assertEquals(1.0, state.numVar("A")); // CHR$(255) = 1 raw byte
     assertEquals(255.0, state.numVar("B")); // CODE returns raw byte value
     assertEquals(2.0, state.numVar("C")); // U+00FF encodes to 2 UTF-8 bytes
@@ -39,11 +39,11 @@ class StringFunctionsProgramTest extends BaseProgramTest {
     final var state =
         runProgram(
             """
-        10 LET A$ = UCHR$(65)
-        20 LET B$ = UCHR$(9608)
-        30 LET C = LEN(B$)
-        40 LET D = UCODE(B$)
-        """);
+            10 LET A$ = UCHR$(65)
+            20 LET B$ = UCHR$(9608)
+            30 LET C = LEN(B$)
+            40 LET D = UCODE(B$)
+            """);
     assertEquals("A", ((EvalState.StrVar.Scalar) state.strVar("A$")).value().toJavaString());
     assertEquals("█", ((EvalState.StrVar.Scalar) state.strVar("B$")).value().toJavaString());
     assertEquals(3.0, state.numVar("C")); // █ is 3 UTF-8 bytes
@@ -56,10 +56,10 @@ class StringFunctionsProgramTest extends BaseProgramTest {
     final var state =
         runProgram(
             """
-        10 LET A = LEN("Hello")
-        20 LET B = LEN(UCHR$(9608))
-        30 LET C = LEN(UCHR$(128512))
-        """);
+            10 LET A = LEN("Hello")
+            20 LET B = LEN(UCHR$(9608))
+            30 LET C = LEN(UCHR$(128512))
+            """);
     assertEquals(5.0, state.numVar("A")); // ASCII: bytes == chars
     assertEquals(3.0, state.numVar("B")); // █ U+2588: 3 bytes
     assertEquals(4.0, state.numVar("C")); // 😀 U+1F600: 4 bytes
@@ -71,12 +71,12 @@ class StringFunctionsProgramTest extends BaseProgramTest {
     final var state =
         runProgram(
             """
-        10 LET S$ = UCHR$(9608)
-        20 LET A = UCNEXT(S$, 1)
-        30 LET B$ = "Hello"
-        40 LET C = UCNEXT(B$, 1)
-        50 LET D = UCNEXT(B$, 5)
-        """);
+            10 LET S$ = UCHR$(9608)
+            20 LET A = UCNEXT(S$, 1)
+            30 LET B$ = "Hello"
+            40 LET C = UCNEXT(B$, 1)
+            50 LET D = UCNEXT(B$, 5)
+            """);
     assertEquals(4.0, state.numVar("A")); // █ is 3 bytes: next cp starts at 4
     assertEquals(2.0, state.numVar("C")); // 'H' is 1 byte: next cp starts at 2
     assertEquals(6.0, state.numVar("D")); // 'o' is 1 byte: next cp starts at 6 (= LEN+1)
@@ -88,10 +88,10 @@ class StringFunctionsProgramTest extends BaseProgramTest {
     final var state =
         runProgram(
             """
-        10 LET S$ = CHR$(194) + CHR$(32)
-        20 LET A = UCNEXT(S$, 1)
-        30 LET B = UCNEXT(S$, 2)
-        """);
+            10 LET S$ = CHR$(194) + CHR$(32)
+            20 LET A = UCNEXT(S$, 1)
+            30 LET B = UCNEXT(S$, 2)
+            """);
     assertEquals(2.0, state.numVar("A")); // 0xC2 invalid -> next at 2
     assertEquals(3.0, state.numVar("B")); // 0x20 ASCII -> next at 3
   }
@@ -102,9 +102,9 @@ class StringFunctionsProgramTest extends BaseProgramTest {
     final var state =
         runProgram(
             """
-        10 LET S$ = CHR$(255)
-        20 LET A = UCNEXT(S$, 1)
-        """);
+            10 LET S$ = CHR$(255)
+            20 LET A = UCNEXT(S$, 1)
+            """);
     assertEquals(2.0, state.numVar("A"));
   }
 
@@ -114,11 +114,11 @@ class StringFunctionsProgramTest extends BaseProgramTest {
     final String[] lines =
         runProgramCapture(
                 """
-        10 PRINT STR$ 0
-        20 PRINT STR$ 42
-        30 PRINT STR$ 3.14159
-        40 PRINT STR$ (-7)
-        """)
+                10 PRINT STR$ 0
+                20 PRINT STR$ 42
+                30 PRINT STR$ 3.14159
+                40 PRINT STR$ (-7)
+                """)
             .trim()
             .split("\n");
     assertEquals("0", lines[0]);
@@ -132,9 +132,9 @@ class StringFunctionsProgramTest extends BaseProgramTest {
     final var state =
         runProgram(
             """
-        10 LET A$ = CHR$(65)
-        20 LET B$ = STR$(123)
-        """);
+            10 LET A$ = CHR$(65)
+            20 LET B$ = STR$(123)
+            """);
     assertEquals("A", ((EvalState.StrVar.Scalar) state.strVar("A$")).value().toJavaString());
     assertEquals("123", ((EvalState.StrVar.Scalar) state.strVar("B$")).value().toJavaString());
   }
@@ -147,12 +147,12 @@ class StringFunctionsProgramTest extends BaseProgramTest {
     final var state =
         runProgram(
             """
-        10 LET A$ = CHR$(128) + CHR$(255)
-        20 LET L = LEN(A$)
-        30 LET B1 = CODE(A$(1))
-        40 LET B2 = CODE(A$(2))
-        50 LET CP = UCODE(A$)
-        """);
+            10 LET A$ = CHR$(128) + CHR$(255)
+            20 LET L = LEN(A$)
+            30 LET B1 = CODE(A$(1))
+            40 LET B2 = CODE(A$(2))
+            50 LET CP = UCODE(A$)
+            """);
     assertEquals(2.0, state.numVar("L")); // Exactly 2 raw bytes
     assertEquals(128.0, state.numVar("B1")); // CODE retrieves raw byte 128
     assertEquals(255.0, state.numVar("B2")); // CODE retrieves raw byte 255
@@ -164,13 +164,13 @@ class StringFunctionsProgramTest extends BaseProgramTest {
     final var state =
         runProgram(
             """
-        10 PRINT AT 5, 10; "A"
-        20 PRINT AT 6, 12; UCHR$(9608)
-        30 LET S1$ = SCREEN$(5, 10)
-        40 LET S2$ = SCREEN$(6, 12)
-        50 LET U1$ = USCREEN$(5, 10)
-        60 LET U2$ = USCREEN$(6, 12)
-        """);
+            10 PRINT AT 5, 10; "A"
+            20 PRINT AT 6, 12; UCHR$(9608)
+            30 LET S1$ = SCREEN$(5, 10)
+            40 LET S2$ = SCREEN$(6, 12)
+            50 LET U1$ = USCREEN$(5, 10)
+            60 LET U2$ = USCREEN$(6, 12)
+            """);
     assertEquals("A", ((EvalState.StrVar.Scalar) state.strVar("S1$")).value().toJavaString());
     // 9608 is not in 0..127, so SCREEN$ returns empty string
     assertEquals("", ((EvalState.StrVar.Scalar) state.strVar("S2$")).value().toJavaString());
@@ -198,11 +198,11 @@ class StringFunctionsProgramTest extends BaseProgramTest {
     final var state =
         runProgram(
             """
-        10 LET A = ULEN("Hello")
-        20 LET B = ULEN(UCHR$(9608))
-        30 LET C = ULEN(UCHR$(128512))
-        40 LET D = ULEN(CHR$(128) + CHR$(255))
-        """);
+            10 LET A = ULEN("Hello")
+            20 LET B = ULEN(UCHR$(9608))
+            30 LET C = ULEN(UCHR$(128512))
+            40 LET D = ULEN(CHR$(128) + CHR$(255))
+            """);
     assertEquals(5.0, state.numVar("A")); // ASCII: 5 characters
     assertEquals(1.0, state.numVar("B")); // █ is 1 character
     assertEquals(1.0, state.numVar("C")); // 😀 is 1 character
@@ -215,14 +215,14 @@ class StringFunctionsProgramTest extends BaseProgramTest {
     final var state =
         runProgram(
             """
-        10 LET A$ = TL$("HELLO")
-        20 LET B$ = TL$(UCHR$(9608) + "X")
-        30 LET C = LEN(B$)
-        40 LET D$ = UTL$("HELLO")
-        50 LET E$ = UTL$(UCHR$(9608) + "X")
-        60 LET F$ = TL$("")
-        70 LET G$ = UTL$("")
-        """);
+            10 LET A$ = TL$("HELLO")
+            20 LET B$ = TL$(UCHR$(9608) + "X")
+            30 LET C = LEN(B$)
+            40 LET D$ = UTL$("HELLO")
+            50 LET E$ = UTL$(UCHR$(9608) + "X")
+            60 LET F$ = TL$("")
+            70 LET G$ = UTL$("")
+            """);
     assertEquals("ELLO", ((EvalState.StrVar.Scalar) state.strVar("A$")).value().toJavaString());
     assertEquals(3.0, state.numVar("C")); // block char loses 1 of its 3 bytes, plus "X"
     assertEquals("ELLO", ((EvalState.StrVar.Scalar) state.strVar("D$")).value().toJavaString());
@@ -237,16 +237,16 @@ class StringFunctionsProgramTest extends BaseProgramTest {
     final var state =
         runProgram(
             """
-        10 LET S$ = "AB" + UCHR$(9608)
-        20 LET R$ = ""
-        30 LET T$ = S$
-        40 IF LEN(T$) = 0 THEN GO TO 80
-        50 LET R$ = R$ + CHR$(CODE(T$))
-        60 LET T$ = TL$(T$)
-        70 GO TO 40
-        80 LET MATCH = 1
-        90 IF R$ <> S$ THEN LET MATCH = 0
-        """);
+            10 LET S$ = "AB" + UCHR$(9608)
+            20 LET R$ = ""
+            30 LET T$ = S$
+            40 IF LEN(T$) = 0 THEN GO TO 80
+            50 LET R$ = R$ + CHR$(CODE(T$))
+            60 LET T$ = TL$(T$)
+            70 GO TO 40
+            80 LET MATCH = 1
+            90 IF R$ <> S$ THEN LET MATCH = 0
+            """);
     assertEquals(1.0, state.numVar("MATCH"));
   }
 
@@ -257,16 +257,16 @@ class StringFunctionsProgramTest extends BaseProgramTest {
     final var state =
         runProgram(
             """
-        10 LET S$ = "AB" + UCHR$(9608)
-        20 LET R$ = ""
-        30 LET T$ = S$
-        40 IF ULEN(T$) = 0 THEN GO TO 80
-        50 LET R$ = R$ + UCHR$(UCODE(T$))
-        60 LET T$ = UTL$(T$)
-        70 GO TO 40
-        80 LET MATCH = 1
-        90 IF R$ <> S$ THEN LET MATCH = 0
-        """);
+            10 LET S$ = "AB" + UCHR$(9608)
+            20 LET R$ = ""
+            30 LET T$ = S$
+            40 IF ULEN(T$) = 0 THEN GO TO 80
+            50 LET R$ = R$ + UCHR$(UCODE(T$))
+            60 LET T$ = UTL$(T$)
+            70 GO TO 40
+            80 LET MATCH = 1
+            90 IF R$ <> S$ THEN LET MATCH = 0
+            """);
     assertEquals(1.0, state.numVar("MATCH"));
   }
 }

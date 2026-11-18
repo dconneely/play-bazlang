@@ -14,9 +14,9 @@ class StringSubscriptProgramTest extends BaseProgramTest {
   void testAssignMultiDimArrayWithoutSubscriptThrows() {
     String source =
         """
-            10 DIM a$(5,10)
-            20 LET a$="HI"
-            """;
+        10 DIM a$(5,10)
+        20 LET a$="HI"
+        """;
     ReportException e = assertThrows(ReportException.class, () -> runProgram(source));
     assertEquals(ReportCode.SUBSCRIPT_WRONG, e.reportCode());
   }
@@ -25,10 +25,10 @@ class StringSubscriptProgramTest extends BaseProgramTest {
   void testCharArrayCharacterAccess() {
     String source =
         """
-            10 DIM a$(2, 10)
-            15 LET a$(1) = "ABCDEFGHIJ"
-            20 PRINT a$(1, 3)
-            """;
+        10 DIM a$(2, 10)
+        15 LET a$(1) = "ABCDEFGHIJ"
+        20 PRINT a$(1, 3)
+        """;
     runProgram(source, "C\n");
   }
 
@@ -36,11 +36,11 @@ class StringSubscriptProgramTest extends BaseProgramTest {
   void testCharArrayCharacterAssignment() {
     String source =
         """
-            10 DIM a$(2, 10)
-            20 LET a$(1) = "ABCDEFGHIJ"
-            30 LET a$(1, 2) = "X"
-            40 PRINT a$(1)
-            """;
+        10 DIM a$(2, 10)
+        20 LET a$(1) = "ABCDEFGHIJ"
+        30 LET a$(1, 2) = "X"
+        40 PRINT a$(1)
+        """;
     runProgram(source, "AXCDEFGHIJ\n");
   }
 
@@ -68,10 +68,10 @@ class StringSubscriptProgramTest extends BaseProgramTest {
   void testCharArrayWholeAssignment() {
     String source =
         """
-            10 DIM a$(10)
-            20 LET a$="123456789012345"
-            30 PRINT a$
-            """;
+        10 DIM a$(10)
+        20 LET a$="123456789012345"
+        30 PRINT a$
+        """;
     runProgram(source, "1234567890\n");
   }
 
@@ -85,11 +85,11 @@ class StringSubscriptProgramTest extends BaseProgramTest {
   void testReadMultiDimArrayWithoutSubscriptThrows() {
     String source =
         """
-            10 DIM a$(2,5)
-            20 LET a$(1)="HELLO"
-            30 LET a$(2)="THERE"
-            40 PRINT a$
-            """;
+        10 DIM a$(2,5)
+        20 LET a$(1)="HELLO"
+        30 LET a$(2)="THERE"
+        40 PRINT a$
+        """;
     ReportException e = assertThrows(ReportException.class, () -> runProgram(source));
     assertEquals(ReportCode.SUBSCRIPT_WRONG, e.reportCode());
   }
@@ -114,10 +114,10 @@ class StringSubscriptProgramTest extends BaseProgramTest {
   void testStrVarCharacterAssignment() {
     String source =
         """
-            10 LET a$ = "ABCDE"
-            20 LET a$(3) = "X"
-            30 PRINT a$
-            """;
+        10 LET a$ = "ABCDE"
+        20 LET a$(3) = "X"
+        30 PRINT a$
+        """;
     runProgram(source, "ABXDE\n");
   }
 
@@ -131,10 +131,10 @@ class StringSubscriptProgramTest extends BaseProgramTest {
     // Assign single character to string index
     String source =
         """
-            10 LET A$="HELLO"
-            20 LET A$(1)="X"
-            30 PRINT A$
-            """;
+        10 LET A$="HELLO"
+        20 LET A$(1)="X"
+        30 PRINT A$
+        """;
     runProgram(source, "XELLO\n");
   }
 
@@ -143,10 +143,10 @@ class StringSubscriptProgramTest extends BaseProgramTest {
     // Assign multi-char to single index - only first char used
     String source =
         """
-            10 LET A$="HELLO"
-            20 LET A$(1)="XYZ"
-            30 PRINT A$
-            """;
+        10 LET A$="HELLO"
+        20 LET A$(1)="XYZ"
+        30 PRINT A$
+        """;
     runProgram(source, "XELLO\n");
   }
 
@@ -183,13 +183,13 @@ class StringSubscriptProgramTest extends BaseProgramTest {
   void testSinclairZxBasicMonthsArray() {
     String source =
         """
-            10 DIM M$(12, 3)
-            20 LET M$(1)="JAN"
-            30 LET M$(2)="FEBRUARY"
-            40 LET M$(3)="MAR"
-            50 PRINT M$(2)
-            60 PRINT M$(2, 1 TO 2)
-            """;
+        10 DIM M$(12, 3)
+        20 LET M$(1)="JAN"
+        30 LET M$(2)="FEBRUARY"
+        40 LET M$(3)="MAR"
+        50 PRINT M$(2)
+        60 PRINT M$(2, 1 TO 2)
+        """;
     // "FEBRUARY" is truncated to 3 characters: "FEB"
     // "FEB" sliced 1 TO 2 is "FE"
     runProgram(source, "FEB\nFE\n");

@@ -29,9 +29,9 @@ class NumericArrayProgramTest extends BaseProgramTest {
         () ->
             runProgram(
                 """
-        10 DIM a(5)
-        20 PRINT a(6)
-        """));
+                10 DIM a(5)
+                20 PRINT a(6)
+                """));
   }
 
   @Test
@@ -41,9 +41,9 @@ class NumericArrayProgramTest extends BaseProgramTest {
         () ->
             runProgram(
                 """
-        10 DIM a(5)
-        20 PRINT a(0)
-        """));
+                10 DIM a(5)
+                20 PRINT a(0)
+                """));
   }
 
   @Test
@@ -66,8 +66,9 @@ class NumericArrayProgramTest extends BaseProgramTest {
         () ->
             runProgram(
                 """
-        10 DIM A(5)
-        20 PRINT A(1 TO 3)"""));
+                10 DIM A(5)
+                20 PRINT A(1 TO 3)\
+                """));
   }
 
   @Test
@@ -102,9 +103,9 @@ class NumericArrayProgramTest extends BaseProgramTest {
             () ->
                 runProgram(
                     """
-            10 DIM A(3,4)
-            20 PRINT A(4,1)
-            """));
+                    10 DIM A(3,4)
+                    20 PRINT A(4,1)
+                    """));
     assertEquals(ReportCode.SUBSCRIPT_WRONG, ex.reportCode());
   }
 
@@ -144,9 +145,9 @@ class NumericArrayProgramTest extends BaseProgramTest {
             () ->
                 runProgram(
                     """
-            10 DIM A(5)
-            20 PRINT A(6)
-            """));
+                    10 DIM A(5)
+                    20 PRINT A(6)
+                    """));
     assertEquals(ReportCode.SUBSCRIPT_WRONG, ex.reportCode());
   }
 }

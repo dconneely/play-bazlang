@@ -234,44 +234,43 @@ public class TerminalScreen extends AbstractCellBufferedScreen {
     }
 
     text.codePoints()
-        .forEach(
-            cp -> {
-              if (cp == 10) { // Newline (LF)
-                cursorRow++;
-                cursorCol = 0;
-                if (cursorRow >= cellBuffer.rows()) {
-                  scrollBuffer();
-                  cursorRow = cellBuffer.rows() - 1;
-                }
-              } else if (cp == 13) { // Carriage return (CR)
-                cursorCol = 0;
-              } else if (cp >= 32 && cp != 127) {
-                if (cursorCol >= cellBuffer.cols()) {
-                  cursorRow++;
-                  cursorCol = 0;
-                  if (cursorRow >= cellBuffer.rows()) {
-                    scrollBuffer();
-                    cursorRow = cellBuffer.rows() - 1;
-                  }
-                }
-                if (cursorRow < cellBuffer.rows()) {
-                  final int ink = activeInverse == 1 ? activePaper : activeInk;
-                  final int paper = activeInverse == 1 ? activeInk : activePaper;
-                  int cellFg = getMappedColour(ink, paper);
-                  int cellBg = getMappedColour(paper, ink);
-                  final int currentStyle = cellBuffer.getStyle(cursorRow, cursorCol);
-                  final int cellStyle = getMappedStyle(currentStyle);
-                  if (printingSystemPrompt) {
-                    // Marks this line as REPL/system chrome rather than PRINT output. A background
-                    // (not a forced foreground colour) so callers remain free to colour the text
-                    // itself, e.g. InterpreterReplHandler's syntax-highlighted accepted-line echo.
-                    cellBg = SYSTEM_MESSAGE_BACKGROUND;
-                  }
-                  cellBuffer.setCell(cursorRow, cursorCol, cp, cellFg, cellBg, cellStyle);
-                  cursorCol++;
-                }
+        .forEach(cp -> {
+          if (cp == 10) { // Newline (LF)
+            cursorRow++;
+            cursorCol = 0;
+            if (cursorRow >= cellBuffer.rows()) {
+              scrollBuffer();
+              cursorRow = cellBuffer.rows() - 1;
+            }
+          } else if (cp == 13) { // Carriage return (CR)
+            cursorCol = 0;
+          } else if (cp >= 32 && cp != 127) {
+            if (cursorCol >= cellBuffer.cols()) {
+              cursorRow++;
+              cursorCol = 0;
+              if (cursorRow >= cellBuffer.rows()) {
+                scrollBuffer();
+                cursorRow = cellBuffer.rows() - 1;
               }
-            });
+            }
+            if (cursorRow < cellBuffer.rows()) {
+              final int ink = activeInverse == 1 ? activePaper : activeInk;
+              final int paper = activeInverse == 1 ? activeInk : activePaper;
+              int cellFg = getMappedColour(ink, paper);
+              int cellBg = getMappedColour(paper, ink);
+              final int currentStyle = cellBuffer.getStyle(cursorRow, cursorCol);
+              final int cellStyle = getMappedStyle(currentStyle);
+              if (printingSystemPrompt) {
+                // Marks this line as REPL/system chrome rather than PRINT output. A background
+                // (not a forced foreground colour) so callers remain free to colour the text
+                // itself, e.g. InterpreterReplHandler's syntax-highlighted accepted-line echo.
+                cellBg = SYSTEM_MESSAGE_BACKGROUND;
+              }
+              cellBuffer.setCell(cursorRow, cursorCol, cp, cellFg, cellBg, cellStyle);
+              cursorCol++;
+            }
+          }
+        });
     dirty = true;
   }
 

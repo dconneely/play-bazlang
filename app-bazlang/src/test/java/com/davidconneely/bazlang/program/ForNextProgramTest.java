@@ -21,8 +21,8 @@ class ForNextProgramTest extends BaseProgramTest {
     // Should print "BEFORE", "1", "2", "3", "AFTER".
     runProgram(
         """
-            10 PRINT "BEFORE" : FOR I=1 TO 3 : PRINT I : NEXT I : PRINT "AFTER" : STOP
-            """,
+        10 PRINT "BEFORE" : FOR I=1 TO 3 : PRINT I : NEXT I : PRINT "AFTER" : STOP
+        """,
         "BEFORE\n1\n2\n3\nAFTER\n");
   }
 
@@ -30,8 +30,8 @@ class ForNextProgramTest extends BaseProgramTest {
   void testForInsideIfThen() {
     runProgram(
         """
-            10 IF 1=1 THEN PRINT "BEFORE" : FOR I=1 TO 3 : PRINT I : NEXT I : PRINT "AFTER" : STOP
-            """,
+        10 IF 1=1 THEN PRINT "BEFORE" : FOR I=1 TO 3 : PRINT I : NEXT I : PRINT "AFTER" : STOP
+        """,
         "BEFORE\n1\n2\n3\nAFTER\n");
   }
 
@@ -68,10 +68,10 @@ class ForNextProgramTest extends BaseProgramTest {
     final var state =
         runProgram(
             """
-        10 LET I = 0
-        20 FOR I = 10 TO 1
-        30 NEXT I
-        """);
+            10 LET I = 0
+            20 FOR I = 10 TO 1
+            30 NEXT I
+            """);
     assertEquals(10.0, state.numVar("I"));
   }
 
@@ -84,9 +84,9 @@ class ForNextProgramTest extends BaseProgramTest {
             () ->
                 runProgram(
                     """
-        10 FOR I = 10 TO 1
-        20 PRINT I
-        """));
+                    10 FOR I = 10 TO 1
+                    20 PRINT I
+                    """));
     assertEquals(ReportCode.FOR_WITHOUT_NEXT, ex.reportCode());
   }
 

@@ -198,12 +198,12 @@ class TerminalScreenGraphicsTest {
   void testPlotInverse() {
     runProgram(
         """
-            10 CLS
-            20 PLOT 0, 0
-            30 PLOT OVER 1; 0, 0
-            40 PLOT 1, 0
-            50 PLOT INVERSE 1; 1, 0
-            """);
+        10 CLS
+        20 PLOT 0, 0
+        30 PLOT OVER 1; 0, 0
+        40 PLOT 1, 0
+        50 PLOT INVERSE 1; 1, 0
+        """);
     String output = engine.getOutput();
     assertFalse(output.isEmpty());
   }
